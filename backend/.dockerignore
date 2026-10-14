@@ -1,0 +1,12 @@
+*
+!Dockerfile
+!.dockerignore
+!requirements.lock
+!manage.py
+!config/
+!config/**
+**/__pycache__/
+**/*.pyc
+**/*.md
+**/*.txt
+**/.env*

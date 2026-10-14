@@ -1,0 +1,93 @@
+name: rezayi-local
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: rezayi-backend:local
+  env_file: .env
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.development
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8100}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/admin/login/', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      start_period: 15s
+      retries: 5
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "config", "worker", "--loglevel=INFO", "--concurrency=1", "--hostname=worker@%h"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping --destination worker@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 20s
+      timeout: 10s
+      start_period: 20s
+      retries: 5
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "config", "beat", "--loglevel=INFO", "--schedule=/app/run/celerybeat-schedule", "--pidfile=/app/run/celerybeat.pid"]
+    volumes:
+      - beat_data:/app/run
+    depends_on:
+      worker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8.2-bookworm@sha256:47670742d7924adbcdb404d1288b6327815b23141969c0939b8e5d61f78c2634
+    user: redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    command: ["sh", "-c", "exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass \"$$REDIS_PASSWORD\""]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
+  beat_data:
