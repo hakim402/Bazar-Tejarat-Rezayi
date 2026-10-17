@@ -1,12 +1,12 @@
 from pathlib import Path
 from urllib.parse import urlsplit
 
-import environ
+from config.environment import database_config, load_environment
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-env = environ.Env()
-environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
+env = load_environment(BASE_DIR)
+PRODUCTION = env("DJANGO_SETTINGS_MODULE", default="config.settings.development").endswith(".production")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("replace-"):
@@ -40,9 +40,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
+    "foundation.observability.RequestContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -72,19 +74,12 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB"),
-        "USER": env("POSTGRES_USER"),
-        "PASSWORD": env("POSTGRES_PASSWORD"),
-        "HOST": env("POSTGRES_HOST"),
-        "PORT": env.int("POSTGRES_PORT", default=5432),
-        "CONN_MAX_AGE": 0,
-        "OPTIONS": {
-            "connect_timeout": 5,
-            "sslmode": env("POSTGRES_SSLMODE", default="disable"),
-        },
-    },
+    "default": database_config(
+        env("DATABASE_URL", default=""),
+        production=PRODUCTION,
+        host_override=env("DATABASE_HOST", default=""),
+        conn_max_age=env("DB_CONN_MAX_AGE", default="0"),
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -112,5 +107,65 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_IGNORE_RESULT = True
-CELERY_RESULT_EXPIRES = None
 CELERY_BEAT_SCHEDULE = {}
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "foundation.errors.api_exception_handler",
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Bazar Rezayi foundation API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {"LocaleEnum": "foundation.contracts.LOCALES"},
+    "COMPONENT_SPLIT_REQUEST": True,
+}
+CORS_EXPOSE_HEADERS = ["X-Request-ID"]
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_PROXY_SSL_HEADER = None
+USE_X_FORWARDED_HOST = False
+DATA_ROOT = Path(env("DATA_ROOT", default=str(BASE_DIR / "data")))
+PUBLIC_MEDIA_URL = env("PUBLIC_MEDIA_URL", default="/media/catalogue/")
+STORAGES = {
+    "default": {
+        "BACKEND": "foundation.storage.PrivateFileStorage",
+        "OPTIONS": {"location": DATA_ROOT / "private-evidence"},
+    },
+    "public_local": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": DATA_ROOT / "public-catalogue", "base_url": PUBLIC_MEDIA_URL},
+    },
+    "private_local": {
+        "BACKEND": "foundation.storage.PrivateFileStorage",
+        "OPTIONS": {"location": DATA_ROOT / "private-evidence"},
+    },
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+NEW_PUBLIC_STORAGE_ALIAS = "public_local"
+NEW_PRIVATE_STORAGE_ALIAS = "private_local"
+CELERY_IMPORTS = ("foundation.tasks",)
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
+CELERY_RESULT_EXPIRES = 60
+CELERY_TASK_SEND_SENT_EVENT = False
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_WORKER_REDIRECT_STDOUTS = False
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+        "safe_errors": {"class": "foundation.observability.SanitizedRequestErrorHandler"},
+        "safe_security": {"class": "foundation.observability.SanitizedSecurityHandler"},
+    },
+    "loggers": {
+        "foundation": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "django.request": {"handlers": ["safe_errors"], "level": "ERROR", "propagate": False},
+        "django.security": {"handlers": ["safe_security"], "level": "WARNING", "propagate": False},
+    },
+}

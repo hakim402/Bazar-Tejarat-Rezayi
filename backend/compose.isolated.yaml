@@ -1,0 +1,28 @@
+services:
+  web:
+    env_file: [.env, .env.isolated]
+    environment:
+      DATABASE_HOST: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+  worker:
+    env_file: [.env, .env.isolated]
+    environment:
+      DATABASE_HOST: ""
+  beat:
+    env_file: [.env, .env.isolated]
+    environment:
+      DATABASE_HOST: ""
+  postgres:
+    image: postgres:17-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+    env_file: .env.isolated
+    volumes:
+      - phase02_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  phase02_postgres_data:

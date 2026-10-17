@@ -23,6 +23,7 @@
 .env
 .env.*
 *.env
+.envrc
 !.env.example
 !.env.*.example
 **/secrets/
@@ -33,6 +34,9 @@
 **/.netrc
 **/.npmrc
 **/.pypirc
+**/.pgpass
+**/.pg_service.conf
+**/.docker/config.json
 **/credentials*.json
 **/secrets*.json
 **/service-account*.json
@@ -40,6 +44,14 @@
 *.key
 *.p12
 *.pfx
+*.p8
+*.crt
+*.cert
+*.cer
+*.der
+*.jks
+*.keystore
+*.kdbx
 id_rsa*
 id_ed25519*
 
@@ -49,6 +61,10 @@ out/
 dist/
 build/
 coverage/
+test-results/
+playwright-report/
+blob-report/
+.auth/
 *.tsbuildinfo
 .venv/
 venv/
