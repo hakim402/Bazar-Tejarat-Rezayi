@@ -76,7 +76,7 @@ class RequestContextMiddleware:
             request.request_id = str(uuid4())
         start = monotonic()
         response = self.get_response(request)
-        if request.path.startswith("/api/") and response.status_code in {400, 403, 500}:
+        if request.path.startswith(("/api/", "/admin/")) and response.status_code in {400, 403, 500}:
             if "application/json" not in response.get("Content-Type", ""):
                 from .errors import error_data
 
@@ -101,7 +101,7 @@ class RequestContextMiddleware:
 
     def process_exception(self, request, exception):
         log_failure(request, exception)
-        if request.path.startswith("/api/"):
+        if request.path.startswith(("/api/", "/admin/")):
             from .errors import error_data
 
             return JsonResponse(

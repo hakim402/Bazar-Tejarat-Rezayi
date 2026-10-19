@@ -5,7 +5,7 @@ x-backend: &backend
     context: .
     dockerfile: Dockerfile
     target: runtime
-  image: rezayi-backend:phase02
+  image: rezayi-backend:phase03
   env_file: .env
   environment:
     DJANGO_SETTINGS_MODULE: config.settings.development
@@ -14,6 +14,8 @@ x-backend: &backend
     - "host.docker.internal:host-gateway"
   stop_grace_period: 45s
   read_only: true
+  volumes:
+    - identity_private_data:/app/data
   tmpfs:
     - /tmp
   cap_drop:
@@ -52,6 +54,7 @@ services:
     command: ["celery", "-A", "config", "beat", "--loglevel=INFO", "--schedule=/app/run/celerybeat-schedule", "--pidfile=/app/run/celerybeat.pid"]
     volumes:
       - beat_data:/app/run
+      - identity_private_data:/app/data
     depends_on:
       worker:
         condition: service_healthy
@@ -73,5 +76,6 @@ services:
       retries: 10
 
 volumes:
+  identity_private_data:
   redis_data:
   beat_data:

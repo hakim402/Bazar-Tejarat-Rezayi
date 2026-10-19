@@ -16,8 +16,8 @@ from rest_framework.test import APIClient
 from rest_framework.views import APIView
 
 from config.environment import database_config, isolated_database, load_environment
-from foundation.observability import SanitizedRequestErrorHandler, SanitizedSecurityHandler, audit_event
-from foundation.storage import FileLocation, PrivateFileStorage
+from apps.foundation.observability import SanitizedRequestErrorHandler, SanitizedSecurityHandler, audit_event
+from apps.foundation.storage import FileLocation, PrivateFileStorage
 
 
 class DatabaseConfigurationTests(SimpleTestCase):
@@ -67,26 +67,25 @@ class DatabaseConfigurationTests(SimpleTestCase):
             isolated_database("postgres://u:p@postgres/test_rezayi_phase02_unit")["TEST"]["NAME"],
             "test_rezayi_phase02_unit",
         )
-        from tests.runner import FoundationTestRunner
+        from tests.runner import IdentityTestRunner
 
-        with self.assertRaises(RuntimeError):
-            FoundationTestRunner().setup_databases()
+        with self.assertRaises(ImproperlyConfigured):
+            IdentityTestRunner.validate_target(
+                {"HOST": "host.docker.internal", "USER": "business", "NAME": "bazar_rezayi_db"}
+            )
 
 
 class EnvironmentPrecedenceTests(SimpleTestCase):
-    def test_process_environment_wins_over_selected_file(self):
+    def test_process_environment_wins_over_single_file(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory, "selected.env")
-            path.write_text("FOUNDATION_ENV_PROBE=file-value\n")
-            with patch.dict("os.environ", {"DJANGO_ENV_FILE": str(path), "FOUNDATION_ENV_PROBE": "process-value"}):
+            Path(directory, ".env").write_text("FOUNDATION_ENV_PROBE=file-value\n")
+            with patch.dict("os.environ", {"FOUNDATION_ENV_PROBE":"process-value"}):
                 env = load_environment(Path(directory))
-                self.assertEqual(env("FOUNDATION_ENV_PROBE"), "process-value")
+                self.assertEqual(env("FOUNDATION_ENV_PROBE"),"process-value")
 
-    def test_explicit_missing_or_relative_file_fails_closed(self):
-        for env_path in ["relative.env", "/missing-phase02-env-file"]:
-            with patch.dict("os.environ", {"DJANGO_ENV_FILE": env_path}):
-                with self.assertRaises(ImproperlyConfigured):
-                    load_environment(Path("/tmp"))
+    def test_missing_single_file_allows_explicit_process_configuration(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {"FOUNDATION_ENV_PROBE":"process-value"}):
+            self.assertEqual(load_environment(Path(directory))("FOUNDATION_ENV_PROBE"),"process-value")
 
 
 class ValidationView(APIView):
@@ -129,14 +128,14 @@ class ApiTests(SimpleTestCase):
         UUID(response["X-Request-ID"])
 
     def test_origin_allowlist_and_preflight(self):
-        allowed = self.client.get("/api/v1/bootstrap/", HTTP_ORIGIN="http://127.0.0.1:3100")
-        self.assertEqual(allowed["Access-Control-Allow-Origin"], "http://127.0.0.1:3100")
-        self.assertNotIn("Access-Control-Allow-Credentials", allowed)
+        allowed = self.client.get("/api/v1/bootstrap/", HTTP_ORIGIN=settings.FRONTEND_ORIGIN)
+        self.assertEqual(allowed["Access-Control-Allow-Origin"], settings.FRONTEND_ORIGIN)
+        self.assertEqual(allowed["Access-Control-Allow-Credentials"], "true")
         denied = self.client.get("/api/v1/bootstrap/", HTTP_ORIGIN="https://evil.example")
         self.assertNotIn("Access-Control-Allow-Origin", denied)
         preflight = self.client.options(
             "/api/v1/bootstrap/",
-            HTTP_ORIGIN="http://127.0.0.1:3100",
+            HTTP_ORIGIN=settings.FRONTEND_ORIGIN,
             HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
             HTTP_ACCESS_CONTROL_REQUEST_HEADERS="x-request-id",
         )
@@ -148,8 +147,8 @@ class ApiTests(SimpleTestCase):
         self.assertEqual(response.json(), {"status": "alive"})
         self.assertEqual(response["Cache-Control"], "no-store")
 
-    @patch("foundation.views.redis.Redis.from_url")
-    @patch("foundation.views.connections")
+    @patch("apps.foundation.views.redis.Redis.from_url")
+    @patch("apps.foundation.views.connections")
     def test_readiness_success_and_both_dependency_failures(self, connections, redis):
         cursor = connections["default"].cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (1,)

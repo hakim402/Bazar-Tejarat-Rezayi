@@ -1,0 +1,10 @@
+{% load static %}
+<!doctype html>
+<html lang="{{ locale }}" dir="{{ direction }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="same-origin"><title>{{ t.title }}</title><link rel="stylesheet" href="{% static 'accounts/owner.css' %}"></head>
+<body><main><img src="{% static 'accounts/brand.svg' %}" alt="بازار رضایی" width="232" height="70"><h1>{{ t.title }}</h1><p>{{ subtitle }}</p><nav aria-label="Language"><a href="?locale=fa-AF">دری</a> · <a href="?locale=ps">پښتو</a> · <a href="?locale=ar">العربية</a> · <a href="?locale=en">English</a></nav>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+{% if stage == 'password' %}<form method="post">{% csrf_token %}<input type="hidden" name="stage" value="password"><label>{{ t.email }}<input type="email" name="email" required autocomplete="username" dir="ltr"></label><label>{{ t.password }}<input type="password" name="password" required autocomplete="current-password" dir="ltr"></label><button >{{ t.continue }}</button></form>
+{% elif stage == 'enroll_start' %}<h2>{{ t.enroll }}</h2><p>{{ t.enroll_body }}</p><form method="post">{% csrf_token %}<input type="hidden" name="stage" value="enroll"><button>{{ t.setup }}</button></form>
+{% elif stage == 'challenge' %}<h2>{{ t.challenge }}</h2>{% if secret %}<p>{{ t.secret }}</p><code class="private" dir="ltr">{{ secret }}</code>{% endif %}<form method="post">{% csrf_token %}<input type="hidden" name="stage" value="challenge"><label>{{ t.code }}<input name="code" required autocomplete="one-time-code" dir="ltr" maxlength="32"></label><label class="inline"><input name="recovery" type="checkbox">{{ t.recovery }}</label><button>{{ t.verify }}</button></form><a href="{% url 'admin:login' %}?locale={{ locale }}">{{ t.restart }}</a>
+{% elif stage == 'complete' %}<h2>{{ t.save }}</h2><p>{{ t.save_body }}</p><div class="private" dir="ltr">{% for code in codes %}<p><code>{{ code }}</code></p>{% endfor %}</div><a class="button" href="{% url 'admin:index' %}">{{ t.saved }}</a>{% endif %}
+<p>{{ t.logout }}</p></main></body></html>

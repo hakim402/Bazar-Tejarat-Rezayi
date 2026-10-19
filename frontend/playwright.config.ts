@@ -8,9 +8,9 @@ export default defineConfig({
 	outputDir: "../doc/progress/phase-02-foundation/browser-results",
 	reporter: [["list"]],
 	use: {
-		baseURL: "http://127.0.0.1:3100",
+		baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100",
 		browserName: "chromium",
-		channel: "chrome",
+		channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL ?? "chrome",
 		headless: true,
 	},
 });

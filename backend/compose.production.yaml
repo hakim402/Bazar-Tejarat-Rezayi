@@ -6,10 +6,12 @@ x-app: &app
     dockerfile: Dockerfile
     target: production
   image: rezayi-backend:production
-  env_file: ${PRODUCTION_ENV_FILE:-.env.production}
+  env_file: .env
   environment:
     DJANGO_SETTINGS_MODULE: config.settings.production
   read_only: true
+  volumes:
+    - identity_private_data:/app/data
   tmpfs:
     - /tmp
   cap_drop:
@@ -32,5 +34,7 @@ services:
     command: ["celery", "-A", "config", "beat", "--loglevel=WARNING", "--schedule=/app/run/celerybeat-schedule", "--pidfile=/app/run/celerybeat.pid"]
     volumes:
       - beat_data:/app/run
+      - identity_private_data:/app/data
 volumes:
+  identity_private_data:
   beat_data:

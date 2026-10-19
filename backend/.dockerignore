@@ -8,8 +8,8 @@
 !pyproject.toml
 !config/
 !config/**
-!foundation/
-!foundation/**
+!apps/
+!apps/**
 !scripts/
 !scripts/**
 !tests/
@@ -19,3 +19,5 @@
 **/*.md
 **/*.txt
 **/.env*
+
+!apps/accounts/templates/accounts/email/*.txt

@@ -1,215 +1,958 @@
-{
-    "openapi": "3.0.3",
-    "info": {
-        "title": "Bazar Rezayi foundation API",
-        "version": "1.0.0"
-    },
-    "paths": {
-        "/api/v1/bootstrap/": {
-            "get": {
-                "operationId": "bootstrap",
-                "tags": [
-                    "bootstrap"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Bootstrap"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "405": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/health/live/": {
-            "get": {
-                "operationId": "liveness",
-                "tags": [
-                    "health"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Status"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/health/ready/": {
-            "get": {
-                "operationId": "readiness",
-                "tags": [
-                    "health"
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Status"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "503": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Status"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        }
-    },
-    "components": {
-        "schemas": {
-            "Bootstrap": {
-                "type": "object",
-                "properties": {
-                    "default_locale": {
-                        "$ref": "#/components/schemas/LocaleEnum"
-                    },
-                    "supported_locales": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/LocaleEnum"
-                        }
-                    },
-                    "brand_names": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    },
-                    "currencies": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CurrenciesEnum"
-                        }
-                    }
-                },
-                "required": [
-                    "brand_names",
-                    "currencies",
-                    "default_locale",
-                    "supported_locales"
-                ]
-            },
-            "CurrenciesEnum": {
-                "enum": [
-                    "AFN",
-                    "USD"
-                ],
-                "type": "string",
-                "description": "* `AFN` - AFN\n* `USD` - USD"
-            },
-            "Error": {
-                "type": "object",
-                "properties": {
-                    "error": {
-                        "$ref": "#/components/schemas/ErrorBody"
-                    }
-                },
-                "required": [
-                    "error"
-                ]
-            },
-            "ErrorBody": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "request_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "fields": {}
-                },
-                "required": [
-                    "code",
-                    "message",
-                    "request_id"
-                ]
-            },
-            "LocaleEnum": {
-                "enum": [
-                    "fa-AF",
-                    "en",
-                    "ps",
-                    "ar"
-                ],
-                "type": "string",
-                "description": "* `fa-AF` - fa-AF\n* `en` - en\n* `ps` - ps\n* `ar` - ar"
-            },
-            "Status": {
-                "type": "object",
-                "properties": {
-                    "status": {
-                        "$ref": "#/components/schemas/StatusEnum"
-                    }
-                },
-                "required": [
-                    "status"
-                ]
-            },
-            "StatusEnum": {
-                "enum": [
-                    "alive",
-                    "ready",
-                    "not_ready"
-                ],
-                "type": "string",
-                "description": "* `alive` - alive\n* `ready` - ready\n* `not_ready` - not_ready"
-            }
-        }
-    }
-}
+openapi: 3.0.3
+info:
+  title: Bazar Rezayi foundation API
+  version: 1.0.0
+paths:
+  /api/v1/auth/{context}/link/{target}/:
+    post:
+      operationId: auth_link_create
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller$
+        required: true
+      - in: path
+        name: target
+        schema:
+          type: string
+          pattern: ^buyer|seller$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LinkRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LinkRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/{context}/logout/:
+    post:
+      operationId: auth_logout_create
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller|staff$
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/{context}/mfa/reset/:
+    post:
+      operationId: auth_mfa_reset_create
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^staff|owner$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FactorResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FactorResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FactorResetRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/{context}/password/:
+    post:
+      operationId: auth_password_create
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller|staff$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/{context}/profile/:
+    patch:
+      operationId: auth_profile_partial_update
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller|staff$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/{context}/register/:
+    post:
+      operationId: auth_register_create
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/{context}/session/:
+    get:
+      operationId: auth_session_retrieve
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller|staff$
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionData'
+          description: ''
+  /api/v1/auth/{context}/signin/:
+    post:
+      operationId: auth_signin_create
+      parameters:
+      - in: path
+        name: context
+        schema:
+          type: string
+          pattern: ^buyer|seller|staff|owner$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/google/availability/:
+    get:
+      operationId: auth_google_availability_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/google/callback/:
+    get:
+      operationId: auth_google_callback_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '302':
+          description: No response body
+  /api/v1/auth/google/complete/:
+    post:
+      operationId: auth_google_complete_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleCompleteRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoogleCompleteRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoogleCompleteRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/google/start/:
+    post:
+      operationId: auth_google_start_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleStartRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoogleStartRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoogleStartRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/logout-all/:
+    post:
+      operationId: auth_logout_all_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/mail/{purpose}/:
+    post:
+      operationId: auth_mail_create
+      parameters:
+      - in: path
+        name: purpose
+        schema:
+          type: string
+          pattern: ^verify|reset$
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MailRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MailRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MailRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/mfa/challenge/:
+    post:
+      operationId: auth_mfa_challenge_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChallengeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChallengeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChallengeRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/mfa/enroll/:
+    post:
+      operationId: auth_mfa_enroll_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/reset/:
+    post:
+      operationId: auth_reset_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/auth/verify/:
+    post:
+      operationId: auth_verify_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+          description: ''
+  /api/v1/bootstrap/:
+    get:
+      operationId: bootstrap
+      tags:
+      - bootstrap
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bootstrap'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '405':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+  /api/v1/health/live/:
+    get:
+      operationId: liveness
+      tags:
+      - health
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: ''
+  /api/v1/health/ready/:
+    get:
+      operationId: readiness
+      tags:
+      - health
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: ''
+components:
+  schemas:
+    AccountData:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        context:
+          type: string
+        status:
+          type: string
+        intent:
+          type: string
+        review_status:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+      required:
+      - context
+      - id
+      - intent
+      - permissions
+      - review_status
+      - status
+    ActionEnum:
+      enum:
+      - signin
+      - register
+      - link
+      - add-role
+      type: string
+      description: |-
+        * `signin` - signin
+        * `register` - register
+        * `link` - link
+        * `add-role` - add-role
+    AuthResult:
+      type: object
+      properties:
+        status:
+          type: string
+        csrf_token:
+          type: string
+        identity:
+          $ref: '#/components/schemas/IdentityData'
+        account:
+          $ref: '#/components/schemas/AccountData'
+        recovery_codes:
+          type: array
+          items:
+            type: string
+        secret:
+          type: string
+        uri:
+          type: string
+        authorization_url:
+          type: string
+          format: uri
+        attempt_id:
+          type: string
+          format: uuid
+        return_path:
+          type: string
+      required:
+      - status
+    Bootstrap:
+      type: object
+      properties:
+        default_locale:
+          $ref: '#/components/schemas/LocaleEnum'
+        supported_locales:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocaleEnum'
+        brand_names:
+          type: object
+          additionalProperties:
+            type: string
+        currencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurrenciesEnum'
+      required:
+      - brand_names
+      - currencies
+      - default_locale
+      - supported_locales
+    ChallengeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          writeOnly: true
+          minLength: 6
+          maxLength: 32
+        recovery:
+          type: boolean
+          default: false
+      required:
+      - code
+    CurrenciesEnum:
+      enum:
+      - AFN
+      - USD
+      type: string
+      description: |-
+        * `AFN` - AFN
+        * `USD` - USD
+    Error:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+      required:
+      - error
+    ErrorBody:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+          format: uuid
+        fields: {}
+      required:
+      - code
+      - message
+      - request_id
+    FactorResetRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          writeOnly: true
+          minLength: 6
+          maxLength: 32
+        recovery:
+          type: boolean
+          default: false
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - code
+      - password
+    GoogleCompleteRequestRequest:
+      type: object
+      properties:
+        attempt_id:
+          type: string
+          format: uuid
+        consent:
+          type: boolean
+        intent:
+          $ref: '#/components/schemas/IntentEnum'
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+      required:
+      - attempt_id
+      - consent
+      - display_name
+      - intent
+    GoogleStartRequestRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/PublicAccountContextEnum'
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        locale:
+          allOf:
+          - $ref: '#/components/schemas/LocaleEnum'
+          default: fa-AF
+        return_path:
+          type: string
+          maxLength: 500
+        source_context:
+          $ref: '#/components/schemas/PublicAccountContextEnum'
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - action
+      - context
+    IdentityData:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        email_verified:
+          type: boolean
+      required:
+      - display_name
+      - email
+      - email_verified
+      - id
+    IntentEnum:
+      enum:
+      - individual
+      - business
+      - company
+      type: string
+      description: |-
+        * `individual` - individual
+        * `business` - business
+        * `company` - company
+    LinkRequestRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        intent:
+          $ref: '#/components/schemas/IntentEnum'
+      required:
+      - intent
+      - password
+    LocaleEnum:
+      enum:
+      - fa-AF
+      - en
+      - ps
+      - ar
+      type: string
+      description: |-
+        * `fa-AF` - fa-AF
+        * `en` - en
+        * `ps` - ps
+        * `ar` - ar
+    MailRequestRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        locale:
+          allOf:
+          - $ref: '#/components/schemas/LocaleEnum'
+          default: fa-AF
+      required:
+      - email
+    PasswordChangeRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        password:
+          type: string
+          writeOnly: true
+          minLength: 12
+          maxLength: 128
+      required:
+      - current_password
+      - password
+    PatchedProfileUpdateRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+    PublicAccountContextEnum:
+      enum:
+      - buyer
+      - seller
+      type: string
+      description: |-
+        * `buyer` - buyer
+        * `seller` - seller
+    RegistrationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 12
+          maxLength: 128
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        intent:
+          $ref: '#/components/schemas/IntentEnum'
+        consent:
+          type: boolean
+        locale:
+          allOf:
+          - $ref: '#/components/schemas/LocaleEnum'
+          default: fa-AF
+      required:
+      - consent
+      - display_name
+      - email
+      - intent
+      - password
+    ResetRequestRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 32
+          maxLength: 100
+        password:
+          type: string
+          writeOnly: true
+          minLength: 12
+          maxLength: 128
+      required:
+      - password
+      - token
+    SessionData:
+      type: object
+      properties:
+        identity:
+          $ref: '#/components/schemas/IdentityData'
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountData'
+      required:
+      - accounts
+      - identity
+    SigninRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - email
+      - password
+    Status:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+      required:
+      - status
+    StatusEnum:
+      enum:
+      - alive
+      - ready
+      - not_ready
+      type: string
+      description: |-
+        * `alive` - alive
+        * `ready` - ready
+        * `not_ready` - not_ready
+    TokenRequestRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 32
+          maxLength: 100
+      required:
+      - token
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

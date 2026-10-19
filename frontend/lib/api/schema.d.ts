@@ -4,6 +4,310 @@
  */
 
 export interface paths {
+    "/api/v1/auth/{context}/link/{target}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_link_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/mfa/reset/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_mfa_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/profile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["auth_profile_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/register/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_register_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/session/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_session_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/signin/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_signin_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/csrf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_csrf_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/google/availability/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_google_availability_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/google/callback/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_google_callback_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/google/complete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_google_complete_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/google/start/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_google_start_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout-all/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_logout_all_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mail/{purpose}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_mail_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/challenge/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_mfa_challenge_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/enroll/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_mfa_enroll_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/reset/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_verify_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bootstrap/": {
         parameters: {
             query?: never;
@@ -56,6 +360,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountData: {
+            /** Format: uuid */
+            id: string;
+            context: string;
+            status: string;
+            intent: string;
+            review_status: string;
+            permissions: string[];
+        };
+        /**
+         * @description * `signin` - signin
+         *     * `register` - register
+         *     * `link` - link
+         *     * `add-role` - add-role
+         * @enum {string}
+         */
+        ActionEnum: "signin" | "register" | "link" | "add-role";
+        AuthResult: {
+            status: string;
+            csrf_token?: string;
+            identity?: components["schemas"]["IdentityData"];
+            account?: components["schemas"]["AccountData"];
+            recovery_codes?: string[];
+            secret?: string;
+            uri?: string;
+            /** Format: uri */
+            authorization_url?: string;
+            /** Format: uuid */
+            attempt_id?: string;
+            return_path?: string;
+        };
         Bootstrap: {
             default_locale: components["schemas"]["LocaleEnum"];
             supported_locales: components["schemas"]["LocaleEnum"][];
@@ -63,6 +398,11 @@ export interface components {
                 [key: string]: string;
             };
             currencies: components["schemas"]["CurrenciesEnum"][];
+        };
+        ChallengeRequest: {
+            code: string;
+            /** @default false */
+            recovery: boolean;
         };
         /**
          * @description * `AFN` - AFN
@@ -80,6 +420,47 @@ export interface components {
             request_id: string;
             fields?: unknown;
         };
+        FactorResetRequest: {
+            code: string;
+            /** @default false */
+            recovery: boolean;
+            password: string;
+        };
+        GoogleCompleteRequestRequest: {
+            /** Format: uuid */
+            attempt_id: string;
+            consent: boolean;
+            intent: components["schemas"]["IntentEnum"];
+            display_name: string;
+        };
+        GoogleStartRequestRequest: {
+            context: components["schemas"]["PublicAccountContextEnum"];
+            action: components["schemas"]["ActionEnum"];
+            /** @default fa-AF */
+            locale: components["schemas"]["LocaleEnum"];
+            return_path?: string;
+            source_context?: components["schemas"]["PublicAccountContextEnum"];
+            password?: string;
+        };
+        IdentityData: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            email_verified: boolean;
+        };
+        /**
+         * @description * `individual` - individual
+         *     * `business` - business
+         *     * `company` - company
+         * @enum {string}
+         */
+        IntentEnum: "individual" | "business" | "company";
+        LinkRequestRequest: {
+            password: string;
+            intent: components["schemas"]["IntentEnum"];
+        };
         /**
          * @description * `fa-AF` - fa-AF
          *     * `en` - en
@@ -88,6 +469,48 @@ export interface components {
          * @enum {string}
          */
         LocaleEnum: "fa-AF" | "en" | "ps" | "ar";
+        MailRequestRequest: {
+            /** Format: email */
+            email: string;
+            /** @default fa-AF */
+            locale: components["schemas"]["LocaleEnum"];
+        };
+        PasswordChangeRequest: {
+            current_password: string;
+            password: string;
+        };
+        PatchedProfileUpdateRequest: {
+            display_name?: string;
+        };
+        /**
+         * @description * `buyer` - buyer
+         *     * `seller` - seller
+         * @enum {string}
+         */
+        PublicAccountContextEnum: "buyer" | "seller";
+        RegistrationRequest: {
+            /** Format: email */
+            email: string;
+            password: string;
+            display_name: string;
+            intent: components["schemas"]["IntentEnum"];
+            consent: boolean;
+            /** @default fa-AF */
+            locale: components["schemas"]["LocaleEnum"];
+        };
+        ResetRequestRequest: {
+            token: string;
+            password: string;
+        };
+        SessionData: {
+            identity: components["schemas"]["IdentityData"];
+            accounts: components["schemas"]["AccountData"][];
+        };
+        SigninRequest: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
         Status: {
             status: components["schemas"]["StatusEnum"];
         };
@@ -98,6 +521,9 @@ export interface components {
          * @enum {string}
          */
         StatusEnum: "alive" | "ready" | "not_ready";
+        TokenRequestRequest: {
+            token: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -107,6 +533,457 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    auth_link_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                target: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["LinkRequestRequest"];
+                "multipart/form-data": components["schemas"]["LinkRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_mfa_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FactorResetRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FactorResetRequest"];
+                "multipart/form-data": components["schemas"]["FactorResetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordChangeRequest"];
+                "multipart/form-data": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_profile_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProfileUpdateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProfileUpdateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_register_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["RegistrationRequest"];
+                "multipart/form-data": components["schemas"]["RegistrationRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_session_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionData"];
+                };
+            };
+        };
+    };
+    auth_signin_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SigninRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SigninRequest"];
+                "multipart/form-data": components["schemas"]["SigninRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_csrf_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_google_availability_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_google_callback_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_google_complete_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleCompleteRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["GoogleCompleteRequestRequest"];
+                "multipart/form-data": components["schemas"]["GoogleCompleteRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_google_start_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleStartRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["GoogleStartRequestRequest"];
+                "multipart/form-data": components["schemas"]["GoogleStartRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_logout_all_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_mail_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purpose: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MailRequestRequest"];
+                "multipart/form-data": components["schemas"]["MailRequestRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_mfa_challenge_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChallengeRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ChallengeRequest"];
+                "multipart/form-data": components["schemas"]["ChallengeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_mfa_enroll_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ResetRequestRequest"];
+                "multipart/form-data": components["schemas"]["ResetRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_verify_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenRequestRequest"];
+                "multipart/form-data": components["schemas"]["TokenRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
     bootstrap: {
         parameters: {
             query?: never;

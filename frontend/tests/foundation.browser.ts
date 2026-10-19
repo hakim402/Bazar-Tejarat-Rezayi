@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { messages } from "../lib/i18n/messages";
 import { locales } from "../lib/i18n/locales";
+const apiOrigin = process.env.PLAYWRIGHT_API_ORIGIN ?? "http://127.0.0.1:8100";
+const evidence =
+	process.env.PLAYWRIGHT_EVIDENCE_DIR ?? "../doc/progress/phase-02-foundation";
 for (const locale of locales) {
 	for (const width of [390, 1440])
 		test(`${locale} ${width}: real API, fonts, direction, controls and theme`, async ({
@@ -49,7 +52,7 @@ for (const locale of locales) {
 			await page.reload();
 			await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 			const api = page.waitForResponse(
-				"http://127.0.0.1:8100/api/v1/bootstrap/",
+				`${apiOrigin}/api/v1/bootstrap/`,
 			);
 			await page.getByRole("button", { name: t.refresh }).click();
 			expect((await api).status()).toBe(200);
@@ -69,7 +72,7 @@ for (const locale of locales) {
 				window.scrollTo(0, 0);
 			});
 			await page.screenshot({
-				path: `../doc/progress/phase-02-foundation/${locale}-${width}-dark.png`,
+				path: `${evidence}/${locale}-${width}-dark.png`,
 				fullPage: true,
 			});
 			await page.getByLabel(t.theme, { exact: true }).selectOption("light");
@@ -78,7 +81,7 @@ for (const locale of locales) {
 				window.scrollTo(0, 0);
 			});
 			await page.screenshot({
-				path: `../doc/progress/phase-02-foundation/${locale}-${width}-light.png`,
+				path: `${evidence}/${locale}-${width}-light.png`,
 				fullPage: true,
 			});
 			expect(errors).toEqual([]);
@@ -100,7 +103,7 @@ test("unavailable and invalid browser responses are honest, retry recovers", asy
 	page,
 }) => {
 	await page.goto("/en");
-	await page.route("http://127.0.0.1:8100/api/v1/bootstrap/", (route) =>
+	await page.route(`${apiOrigin}/api/v1/bootstrap/`, (route) =>
 		route.abort("connectionrefused"),
 	);
 	await page.getByRole("button", { name: messages.en.refresh }).click();
@@ -109,7 +112,7 @@ test("unavailable and invalid browser responses are honest, retry recovers", asy
 	);
 	await expect(page.locator(".foundation-grid")).toHaveCount(0);
 	await page.unrouteAll();
-	await page.route("http://127.0.0.1:8100/api/v1/bootstrap/", (route) =>
+	await page.route(`${apiOrigin}/api/v1/bootstrap/`, (route) =>
 		route.fulfill({ contentType: "application/json", body: "{}" }),
 	);
 	await page.getByRole("button", { name: messages.en.refresh }).click();
@@ -155,7 +158,7 @@ test("actual API outage produces SSR and browser failure without fallback", asyn
 		messages.en.unavailable,
 	);
 	await page.screenshot({
-		path: "../doc/progress/phase-02-foundation/actual-api-outage.png",
+		path: `${evidence}/actual-api-outage.png`,
 		fullPage: true,
 	});
 });

@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -8,11 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 def load_environment(base_dir):
     env = environ.Env()
-    path = Path(os.environ.get("DJANGO_ENV_FILE", str(base_dir / ".env")))
-    if not path.is_absolute():
-        raise ImproperlyConfigured("DJANGO_ENV_FILE must be an absolute path.")
-    if "DJANGO_ENV_FILE" in os.environ and not path.is_file():
-        raise ImproperlyConfigured("The selected environment file does not exist.")
+    path = Path(base_dir) / ".env"
     if path.is_file():
         env.read_env(path, overwrite=False)
     return env
@@ -68,7 +63,7 @@ def isolated_database(url):
     import re
 
     database = database_config(url)
-    if not re.fullmatch(r"test_rezayi_phase02_[a-z0-9_]+", database["NAME"]):
-        raise ImproperlyConfigured("Tests require a dedicated test_rezayi_phase02_ database.")
+    if not re.fullmatch(r"test_rezayi_phase0[23]_[a-z0-9_]+", database["NAME"]):
+        raise ImproperlyConfigured("Tests require a dedicated phase-specific isolated database.")
     database["TEST"] = {"NAME": database["NAME"]}
     return database

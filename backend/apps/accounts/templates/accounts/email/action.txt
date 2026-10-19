@@ -1,0 +1,12 @@
+{{ brand }}
+{{ title }}
+
+{{ name }}
+{{ instructions }}
+{{ cta }}:
+{{ url }}
+
+{{ expiry }}
+{{ ignore }}
+
+{{ footer }}

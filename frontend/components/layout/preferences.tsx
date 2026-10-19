@@ -6,8 +6,8 @@ import {
 	locales,
 	localizePath,
 	type Locale,
-} from "../lib/i18n/locales";
-import { messages } from "../lib/i18n/messages";
+} from "../../lib/i18n/locales";
+import { messages } from "../../lib/i18n/messages";
 export function Preferences({ locale }: { locale: Locale }) {
 	const t = messages[locale];
 	const path = usePathname();
@@ -26,10 +26,11 @@ export function Preferences({ locale }: { locale: Locale }) {
 		} catch {}
 	}
 	return (
-		<div className="preferences">
-			<label>
+		<div className="preferences flex w-full justify-between gap-3.5 desktop:w-auto desktop:items-center desktop:gap-5">
+			<label className="grid min-w-0 flex-1 gap-1 text-base font-bold desktop:flex desktop:items-center desktop:gap-2.5">
 				{t.language}
 				<select
+					className="min-h-11.5 w-full max-w-none rounded-control border border-control bg-surface px-2.5 py-1.5 text-base text-foreground desktop:max-w-46.25 desktop:px-3"
 					aria-label={t.language}
 					value={locale}
 					onChange={(event) =>
@@ -47,9 +48,10 @@ export function Preferences({ locale }: { locale: Locale }) {
 					))}
 				</select>
 			</label>
-			<label>
+			<label className="grid min-w-0 flex-1 gap-1 text-base font-bold desktop:flex desktop:items-center desktop:gap-2.5">
 				{t.theme}
 				<select
+					className="min-h-11.5 w-full max-w-none rounded-control border border-control bg-surface px-2.5 py-1.5 text-base text-foreground desktop:max-w-46.25 desktop:px-3"
 					aria-label={t.theme}
 					value={theme}
 					onChange={(event) => changeTheme(event.target.value)}

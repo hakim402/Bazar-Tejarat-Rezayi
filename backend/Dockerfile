@@ -7,15 +7,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 RUN groupadd --gid 10001 app \
     && useradd --uid 10001 --gid app --create-home app \
-    && mkdir /app/run \
-    && chown app:app /app/run
+    && mkdir /app/run /app/data \
+    && chown app:app /app/run /app/data
 
 COPY requirements.lock ./
 RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 
 COPY --chown=app:app manage.py ./
 COPY --chown=app:app config ./config
-COPY --chown=app:app foundation ./foundation
+COPY --chown=app:app apps ./apps
 COPY --chown=app:app scripts ./scripts
 COPY --chown=app:app gunicorn.conf.py ./
 
