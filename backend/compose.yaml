@@ -5,7 +5,7 @@ x-backend: &backend
     context: .
     dockerfile: Dockerfile
     target: runtime
-  image: rezayi-backend:phase03
+  image: rezayi-backend:phase05
   env_file: .env
   environment:
     DJANGO_SETTINGS_MODULE: config.settings.development

@@ -42,6 +42,9 @@ def origin_list(name, *, secure=False):
 INSTALLED_APPS = [
     "unfold",
     "apps.accounts.apps.AccountsConfig",
+    "apps.organizations.apps.OrganizationsConfig",
+    "apps.verification.apps.VerificationConfig",
+    "apps.content.apps.ContentConfig",
     "django_otp",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -60,6 +63,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.verification.uploads.EvidenceRequestLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
@@ -188,6 +192,8 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
         "LocaleEnum": "apps.foundation.contracts.LOCALES",
+        "CompanyBundleEnum": "apps.organizations.models.BUNDLES",
+        "BusinessProfileKindEnum": ["individual", "company", "business"],
         "PublicAccountContextEnum": ["buyer", "seller"],
     },
     "COMPONENT_SPLIT_REQUEST": True,
@@ -250,5 +256,10 @@ CELERY_BEAT_SCHEDULE["account-mail-dispatch"] = {
     "schedule": 60.0,
 }
 # Provider libraries must never write request URLs, codes or token responses to application logs.
-for _logger in ("authlib", "requests", "urllib3"):
+for _logger in ("authlib", "requests", "urllib3", "pypdf", "PIL"):
     LOGGING["loggers"][_logger] = {"handlers": [], "level": "CRITICAL", "propagate": False}
+
+# One 10MiB evidence file per request, with bounded multipart overhead/count.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FILES = 1

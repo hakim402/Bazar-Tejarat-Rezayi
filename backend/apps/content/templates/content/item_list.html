@@ -1,0 +1,1 @@
+{% extends "admin/change_list.html" %}{% block content %}<p class="mb-5"><a class="font-semibold text-primary-600" href="{% url 'admin:content_create' %}?locale={{ content_locale }}">{{ content_copy.create }}</a></p>{{ block.super }}{% endblock %}

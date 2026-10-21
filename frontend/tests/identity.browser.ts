@@ -1,14 +1,66 @@
 import { test, expect, type Page } from "@playwright/test";
+import { writeFileSync } from "node:fs";
 import { createHmac, randomBytes } from "node:crypto";
-import { apiOrigin as api, disposablePython, fixturePassword as password, identityTestsEnabled as enabled } from "./support/identity-runtime";
+import {
+	apiOrigin as api,
+	disposablePython,
+	fixturePassword as password,
+	identityTestsEnabled as enabled,
+} from "./support/identity-runtime";
 import { authCopy } from "../lib/i18n/auth";
 import { locales, direction, type Locale } from "../lib/i18n/locales";
 
-const evidence = process.env.PLAYWRIGHT_EVIDENCE_DIR ?? "../doc/progress/phase-03-identity";
-test.skip(!enabled, "Run through the automatically provisioned disposable test harness.");
+const evidence =
+	process.env.PLAYWRIGHT_EVIDENCE_DIR ?? "../doc/progress/phase-03-identity";
+test.skip(
+	!enabled,
+	"Run through the automatically provisioned disposable test harness.",
+);
 test.beforeAll(() => {
-	if (enabled) disposablePython("from apps.accounts.models import RateBucket\nRateBucket.objects.all().delete()");
+	if (enabled)
+		disposablePython(
+			"from apps.accounts.models import RateBucket\nRateBucket.objects.all().delete()",
+		);
 });
+// Diagnostic metadata only: no request bodies, cookies, headers, query strings or tokens.
+const timings = new WeakMap<Page, object[]>();
+test.beforeEach(async ({ page }) => {
+	const events: object[] = [];
+	timings.set(page, events);
+	page.on("requestfinished", (request) => {
+		const path = new URL(request.url()).pathname;
+		if (
+			!/^\/api\/v1\/auth\/(csrf\/|(?:buyer|seller)\/(?:signin\/|link\/(?:buyer|seller)\/))/.test(
+				path,
+			)
+		)
+			return;
+		void request.response().then((response) =>
+			events.push({
+				path,
+				method: request.method(),
+				status: response?.status(),
+				durationMs: request.timing().responseEnd,
+			}),
+		);
+	});
+});
+test.afterEach(async ({ page }, info) => {
+	if (process.env.PLAYWRIGHT_EVIDENCE_DIR)
+		writeFileSync(
+			`${evidence}/identity-timing-${info.testId}.json`,
+			JSON.stringify(
+				{
+					title: info.title,
+					outcome: info.status,
+					requests: timings.get(page),
+				},
+				null,
+				2,
+			),
+		);
+});
+
 function mailbox(email: string) {
 	const script =
 		"from pathlib import Path\nfrom email import policy\nfrom email.parser import BytesParser\nimport re,json\nitems=[]\nfor p in Path('/app/data/private-mail').glob('*.eml'):\n m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())\n if str(m['To'])==" +
@@ -116,7 +168,15 @@ for (const locale of locales) {
 					`missing-${locale}-${width}-${randomBytes(3).toString("hex")}@example.test`,
 				);
 			await page.locator("[name=password]").fill("Synthetic-wrong-password");
+			// Historical measured denial took 8.46 s; await the real response before the 5 s UI assertion.
+			const denied = page.waitForResponse(
+				(r) =>
+					r.url() === `${api}/api/v1/auth/buyer/signin/` &&
+					r.request().method() === "POST",
+				{ timeout: 12000 },
+			);
 			await page.locator(".account-card > form button[type=submit]").click();
+			expect((await denied).status()).toBe(403);
 			await expect(page.locator(".account-error")).toContainText(
 				authCopy[locale].denied,
 			);
@@ -129,6 +189,8 @@ for (const locale of locales) {
 test("identity registration verification profile linking and recovery through private mail", async ({
 	page,
 }) => {
+	// This multi-operation real-mail/password journey measured 27.6 s even without the historical slow responses.
+	test.setTimeout(60000);
 	const email = await newBuyer(page);
 	await login(page, "buyer", email);
 	await expect(page).toHaveURL(/\/en\/account\/buyer$/);
@@ -138,7 +200,15 @@ test("identity registration verification profile linking and recovery through pr
 	await expect(page.getByRole("status")).toHaveText(authCopy.en.updated);
 	await page.goto("/en/account/buyer/link");
 	await page.locator("[name=current_password]").fill(password);
+	// Linking is real and password-verified; historical response took 5.15 s.
+	const linked = page.waitForResponse(
+		(r) =>
+			r.url() === `${api}/api/v1/auth/buyer/link/seller/` &&
+			r.request().method() === "POST",
+		{ timeout: 12000 },
+	);
 	await page.locator(".account-card > form button[type=submit]").click();
+	expect((await linked).status()).toBe(200);
 	await expect(page.getByRole("status")).toHaveText(authCopy.en.linkDone);
 	await page.goto("/en/account/seller");
 	await expect(page.locator(".account-error")).toContainText(
@@ -207,8 +277,9 @@ test("identity distinct tab contexts, context logout and identity replacement", 
 		"phase03-unrelated@example.test",
 	);
 	const globalLogout = seller.waitForResponse(
-		(response) => response.url() === `${api}/api/v1/auth/logout-all/`
-			&& response.request().method() === "POST",
+		(response) =>
+			response.url() === `${api}/api/v1/auth/logout-all/` &&
+			response.request().method() === "POST",
 	);
 	await seller.getByRole("button", { name: authCopy.en.logoutAll }).click();
 	expect((await globalLogout).status()).toBe(200);
@@ -232,8 +303,9 @@ test("identity staff enrollment recovery and admin denial", async ({
 	// Enrollment hashes one-time recovery codes with the runtime password hasher.
 	// Wait for its response rather than racing the default five-second UI assertion.
 	const confirmation = page.waitForResponse(
-		(response) => response.url() === `${api}/api/v1/auth/mfa/challenge/`
-			&& response.request().method() === "POST",
+		(response) =>
+			response.url() === `${api}/api/v1/auth/mfa/challenge/` &&
+			response.request().method() === "POST",
 		{ timeout: 20000 },
 	);
 	await page.locator(".account-card > form button[type=submit]").click();

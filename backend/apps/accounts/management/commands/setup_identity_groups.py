@@ -18,4 +18,11 @@ class Command(BaseCommand):
             group, created = Group.objects.get_or_create(name="Rezayi: " + title)
             if created:
                 group.permissions.add(Permission.objects.get(content_type__app_label="accounts", codename=code))
+        # New explicit group; existing groups and assignments remain unchanged.
+        group, created = Group.objects.get_or_create(name="Rezayi: Business review")
+        if created:
+            group.permissions.add(*Permission.objects.filter(content_type__app_label="verification", codename__in=["view_queue", "assign_review", "read_evidence", "decide_review", "review_transfer"]))
+        group, created = Group.objects.get_or_create(name="Rezayi: Editorial")
+        if created:
+            group.permissions.add(*Permission.objects.filter(content_type__app_label="content", codename__in=["read_drafts", "edit_content", "publish_content", "manage_settings"]))
         self.stdout.write("Operational groups available; existing assignments unchanged.")

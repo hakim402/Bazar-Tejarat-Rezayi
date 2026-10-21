@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { contentCopy } from "../lib/i18n/content";
 import { messages } from "../lib/i18n/messages";
 import { locales } from "../lib/i18n/locales";
 const apiOrigin = process.env.PLAYWRIGHT_API_ORIGIN ?? "http://127.0.0.1:8100";
@@ -20,23 +21,23 @@ for (const locale of locales) {
 				"dir",
 				locale === "en" ? "ltr" : "rtl",
 			);
-			await expect(page.getByRole("heading", { level: 1 })).toHaveText(t.title);
-			await expect(
-				page.getByRole("heading", { name: t.foundation, exact: true }),
-			).toBeVisible();
+			await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+			await expect(page.locator("main article")).toBeVisible();
 			await page.evaluate(() => document.fonts.ready);
 			expect(
 				await page.evaluate(
 					() => document.documentElement.scrollWidth <= window.innerWidth,
 				),
 			).toBe(true);
-			expect(
-				await page.evaluate(() =>
-					[...document.images].every(
-						(img) => img.complete && img.naturalWidth > 0,
+			await expect
+				.poll(() =>
+					page.evaluate(() =>
+						[...document.images].every(
+							(img) => img.complete && img.naturalWidth > 0,
+						),
 					),
-				),
-			).toBe(true);
+				)
+				.toBe(true);
 			expect(
 				await page.evaluate(
 					() =>
@@ -52,17 +53,15 @@ for (const locale of locales) {
 			await page.reload();
 			await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 			const api = page.waitForResponse(
-				`${apiOrigin}/api/v1/bootstrap/`,
+				`${apiOrigin}/api/v1/content/public/${locale}/home/`,
 			);
-			await page.getByRole("button", { name: t.refresh }).click();
+			await page
+				.getByRole("button", { name: contentCopy[locale].refresh })
+				.click();
 			expect((await api).status()).toBe(200);
-			await expect(page.getByRole("status")).toContainText(t.updated);
-			expect(
-				await page
-					.locator(".currency-list bdi")
-					.first()
-					.evaluate((el) => getComputedStyle(el).direction),
-			).toBe("ltr");
+			await expect(page.getByRole("status")).toContainText(
+				contentCopy[locale].updated,
+			);
 			await page.keyboard.press("Tab");
 			expect(
 				await page.evaluate(() => document.activeElement?.tagName !== "BODY"),
@@ -103,27 +102,25 @@ test("unavailable and invalid browser responses are honest, retry recovers", asy
 	page,
 }) => {
 	await page.goto("/en");
-	await page.route(`${apiOrigin}/api/v1/bootstrap/`, (route) =>
+	await page.route(`${apiOrigin}/api/v1/content/public/en/home/`, (route) =>
 		route.abort("connectionrefused"),
 	);
-	await page.getByRole("button", { name: messages.en.refresh }).click();
-	await expect(page.locator(".notice-error[role=alert]")).toHaveText(
-		messages.en.unavailable,
+	await page.getByRole("button", { name: contentCopy.en.refresh }).click();
+	await expect(page.locator("[data-testid=public-error]")).toHaveText(
+		contentCopy.en.outage,
 	);
-	await expect(page.locator(".foundation-grid")).toHaveCount(0);
+	await expect(page.locator("main article")).toHaveCount(0);
 	await page.unrouteAll();
-	await page.route(`${apiOrigin}/api/v1/bootstrap/`, (route) =>
+	await page.route(`${apiOrigin}/api/v1/content/public/en/home/`, (route) =>
 		route.fulfill({ contentType: "application/json", body: "{}" }),
 	);
-	await page.getByRole("button", { name: messages.en.refresh }).click();
-	await expect(page.locator(".notice-error[role=alert]")).toHaveText(
-		messages.en.invalid,
+	await page.getByRole("button", { name: contentCopy.en.retry }).click();
+	await expect(page.locator("[data-testid=public-error]")).toHaveText(
+		contentCopy.en.outage,
 	);
 	await page.unrouteAll();
-	await page.getByRole("button", { name: messages.en.refresh }).click();
-	await expect(
-		page.getByRole("heading", { name: messages.en.foundation, exact: true }),
-	).toBeVisible();
+	await page.getByRole("button", { name: contentCopy.en.retry }).click();
+	await expect(page.locator("main article")).toBeVisible();
 });
 test("localized unknown routes have honest 404 and preserve deep language path", async ({
 	page,
@@ -149,18 +146,20 @@ test("actual API outage produces SSR and browser failure without fallback", asyn
 		"Requires controlled local backend stop.",
 	);
 	await page.goto("/en");
-	await expect(page.locator(".notice-error[role=alert]")).toHaveText(
-		messages.en.unavailable,
+	await expect(page.locator("[data-testid=public-error]")).toHaveText(
+		contentCopy.en.outage,
 	);
-	await expect(page.locator(".foundation-grid")).toHaveCount(0);
-	await page.getByRole("button", { name: messages.en.refresh }).click();
-	await expect(page.locator(".notice-error[role=alert]")).toHaveText(
-		messages.en.unavailable,
+	await expect(page.locator("main article")).toHaveCount(0);
+	await page.getByRole("button", { name: contentCopy.en.retry }).click();
+	await expect(page.locator("[data-testid=public-error]")).toHaveText(
+		contentCopy.en.outage,
 	);
 	await page.screenshot({
 		path: `${evidence}/actual-api-outage.png`,
 		fullPage: true,
 	});
+	await page.goto("/en/auth/buyer-sign-in");
+	await expect(page.locator("[name=email]")).toBeVisible();
 });
 
 test("system theme follows device and keyboard skip link reaches main", async ({

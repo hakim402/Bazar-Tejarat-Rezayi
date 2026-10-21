@@ -6,6 +6,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import shutil
@@ -33,9 +34,11 @@ def available_port():
 
 
 class TestRun:
-    def __init__(self, backend_only=False, labels=()):
+    def __init__(self, backend_only=False, labels=(), phase="phase-03-identity", browser_spec=None):
         self.identifier = secrets.token_hex(8)
         self.project = "rezayi-test-" + self.identifier
+        self.browser_spec = browser_spec
+        self.phase = phase
         self.backend_only = backend_only
         self.labels = labels
         self.api_port, self.frontend_port = available_port(), available_port()
@@ -54,7 +57,7 @@ class TestRun:
         self.env = {**os.environ, **self.generated}
         self.compose = ["docker", "compose", "--env-file", os.devnull, "--project-name", self.project,
                         "-f", str(BACKEND / "compose.identity-test.yaml")]
-        self.evidence = ROOT / "doc/progress/phase-03-identity/test-tooling" / self.identifier
+        self.evidence = ROOT / "doc/progress" / phase / "test-tooling" / self.identifier
         self.evidence.mkdir(parents=True)
         self.frontend = None
         self.dist_owned = False
@@ -75,13 +78,22 @@ class TestRun:
         """Never echo command arguments, child error payloads or temporary credentials."""
         process = subprocess.Popen(args, cwd=cwd, env=env or self.env, stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+        chunks = []
         try:
-            output, _ = process.communicate(None if data is None else data.encode())
+            if data is not None:
+                process.stdin.write(data.encode())
+            process.stdin.close()
+            with (self.evidence / (name + ".log")).open("w") as log:
+                for line in process.stdout:
+                    redacted = self.redact(line.decode(errors="replace"))
+                    chunks.append(redacted)
+                    log.write(redacted)
+                    log.flush()
+            process.wait()
         except BaseException:
             self.stop_process(process)
             raise
-        output = self.redact(output.decode(errors="replace"))
-        (self.evidence / (name + ".log")).write_text(output)
+        output = "".join(chunks)
         print(f"{name}: {'passed' if process.returncode == 0 else 'failed'}", flush=True)
         if check and process.returncode:
             raise TestFailure(f"{name} failed; see its redacted evidence log.")
@@ -124,6 +136,8 @@ class TestRun:
                 name="migration-consistency")
         self.dc("run", "--rm", "--no-deps", "test", "python", "-m", "pip", "check", name="backend-dependencies")
 
+        self.dc("run", "--rm", "--no-deps", "-v", str(BACKEND / "schema.json") + ":/app/schema.json:ro", "test", "python", "-m", "scripts.check_schema", name="schema-consistency")
+
     def browser_environment(self):
         api = f"http://127.0.0.1:{self.api_port}"
         return {**self.env, "API_INTERNAL_URL": api, "NEXT_PUBLIC_API_URL": api, "NEXT_DIST_DIR": self.dist,
@@ -131,6 +145,8 @@ class TestRun:
                 "PLAYWRIGHT_EVIDENCE_DIR": str(self.evidence / "screenshots"),
                 "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
                 "PLAYWRIGHT_BROWSER_CHANNEL": "chromium", "IDENTITY_BROWSER_TESTS": "1",
+                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-05-content"} else "0",
+                "CONTENT_BROWSER_TESTS": "1" if self.phase == "phase-05-content" else "0",
                 "REZAYI_TEST_PROJECT": self.project, "REZAYI_TEST_FIXTURE_PASSWORD": self.password}
 
     @staticmethod
@@ -154,7 +170,7 @@ class TestRun:
         self.dist_owned = True
         self.dc("up", "-d", "web", name="browser-api")
         self.dc("exec", "-T", "web", "python", "-m", "scripts.prepare_browser_tests", name="browser-fixtures",
-                data=json.dumps({"password": self.password}))
+                data=json.dumps({"password": self.password, "phase": self.phase}))
         self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/")
         env = self.browser_environment()
         (self.evidence / "email-previews").mkdir()
@@ -172,6 +188,10 @@ class TestRun:
         rc, _ = self.command(["npm", "ls", "--depth=0"], "frontend-installed-dependencies", cwd=FRONTEND, check=False)
         if rc:
             self.command(["npm", "ci", "--no-audit", "--no-fund"], "frontend-install", cwd=FRONTEND)
+        generated_types = self.evidence / "schema.d.ts"
+        self.command(["npx", "openapi-typescript", "../backend/schema.json", "-o", str(generated_types)], "frontend-schema", cwd=FRONTEND, env=env)
+        if generated_types.read_bytes() != (FRONTEND / "lib/api/schema.d.ts").read_bytes():
+            raise TestFailure("Generated TypeScript API schema is stale.")
         for script in ("lint", "typecheck", "test"):
             self.command(["npm", "run", script], "frontend-" + script, cwd=FRONTEND, env=env)
         self.command(["npm", "run", "build"], "frontend-build", cwd=FRONTEND, env=env)
@@ -181,8 +201,9 @@ class TestRun:
                                           "--port", str(self.frontend_port)], cwd=FRONTEND, env=env,
                                          stdout=self.frontend_log, stderr=subprocess.STDOUT, start_new_session=True)
         self.wait_ready(env["PLAYWRIGHT_BASE_URL"] + "/en/auth/buyer-sign-in", self.frontend)
-        self.command(["npx", "playwright", "test", "--output", str(self.evidence / "browser-results"),
-                      "--global-timeout=300000"], "browser-tests", cwd=FRONTEND, env=env)
+        self.command(["npx", "playwright", "test", *(["tests/" + self.browser_spec] if self.browser_spec else []), "--output", str(self.evidence / "browser-results"),
+                      "--global-timeout=1200000"], "browser-tests", cwd=FRONTEND, env=env)
+        self.dc("logs", "--no-color", "web", name="browser-main-api-diagnostics", check=False)
         self.dc("stop", "web", name="outage-stop")
         self.command(["npx", "playwright", "test", "tests/foundation.browser.ts", "--grep", "actual API outage",
                       "--output", str(self.evidence / "outage-results"), "--global-timeout=60000"],
@@ -206,7 +227,16 @@ class TestRun:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait(timeout=5)
 
+    def sanitize_browser_diagnostics(self):
+        # Failed browser snapshots can include synthetic MFA input. Keep diagnostics without it.
+        for path in self.evidence.rglob('error-context.md'):
+            value = self.redact(path.read_text())
+            value = re.sub(r'(?im)(textbox[^\n]*(?:password|code|رمز|کد|کوډ|پټنوم|كلمة)[^\n]*:)\s*[^\n]+', r'\1 [private input redacted]', value)
+            path.write_text(value)
+            path.chmod(0o600)
+
     def cleanup(self):
+        self.sanitize_browser_diagnostics()
         if self.frontend:
             self.stop_process(self.frontend)
         if self.frontend_log:
@@ -278,11 +308,13 @@ class TestRun:
                 raise
             finally:
                 (self.evidence / "result.json").write_text(json.dumps({"run_id": self.identifier, "status": status,
-                    "backend_only": self.backend_only, "evidence": str(self.evidence.relative_to(ROOT))}, indent=2) + "\n")
+                    "backend_only": self.backend_only, "phase": self.phase, "browser_spec": self.browser_spec, "evidence": str(self.evidence.relative_to(ROOT))}, indent=2) + "\n")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-05-content"], default="phase-03-identity")
+    parser.add_argument("--browser-spec", choices=["content-review-fixes.browser.ts", "identity.browser.ts", "organizations.browser.ts", "content.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; default runs every browser spec")
     parser.add_argument("--backend-only", action="store_true")
     parser.add_argument("--test-label", action="append", default=[])
     args = parser.parse_args()
@@ -291,7 +323,7 @@ def main():
     for executable in ("docker",) if args.backend_only else ("docker", "node", "npm", "npx"):
         if not shutil.which(executable):
             parser.error(f"Required local executable is unavailable: {executable}")
-    run = TestRun(args.backend_only, args.test_label)
+    run = TestRun(args.backend_only, args.test_label, args.phase, args.browser_spec)
     def interrupted(signum, frame):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, interrupted)

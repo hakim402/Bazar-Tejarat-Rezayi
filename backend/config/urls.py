@@ -6,7 +6,10 @@ from apps.foundation.views import BootstrapView, LiveView, ReadyView
 from apps.accounts.admin import owner_site
 
 urlpatterns = [
+    path("api/v1/content/", include("apps.content.urls")),
     path("admin/", owner_site.urls),
+    path("api/v1/organizations/", include("apps.organizations.urls")),
+    path("api/v1/verification/", include("apps.verification.urls")),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/bootstrap/", BootstrapView.as_view(), name="bootstrap"),
     path("api/v1/health/live/", LiveView.as_view(), name="liveness"),

@@ -1,4 +1,6 @@
+import { SkipLink } from "../ui/skip-link";
 import Image from "next/image";
+import { InvitationReturn } from "../../features/organizations/components/invitation-entry";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { authCopy } from "../../lib/i18n/auth";
@@ -21,9 +23,7 @@ export function AccountShell({
 	const t = authCopy[locale];
 	return (
 		<div className="account-shell flex min-h-screen flex-col">
-			<a className="skip-link" href="#main">
-				{messages[locale].skip}
-			</a>
+			<SkipLink label={messages[locale].skip} />
 			<SiteHeader locale={locale} />
 			<main
 				className="page-container account-main flex-1 pt-5 pb-8 desktop:pt-6 desktop:pb-12"
@@ -46,6 +46,7 @@ export function AccountShell({
 					}
 				>
 					<Card className="account-card" aria-label={title}>
+						<InvitationReturn locale={locale} />
 						{children}
 					</Card>
 					{!privateScreen && (

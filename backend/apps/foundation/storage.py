@@ -6,6 +6,11 @@ from django.core.files.storage import FileSystemStorage, storages
 
 
 class PrivateFileStorage(FileSystemStorage):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("file_permissions_mode", 0o600)
+        kwargs.setdefault("directory_permissions_mode", 0o700)
+        super().__init__(*args, **kwargs)
+
     def url(self, name):
         raise SuspiciousFileOperation("Private files require an authorized download handler.")
 

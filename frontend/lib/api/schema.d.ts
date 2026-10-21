@@ -324,6 +324,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content/editor/{context}/items/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_editor_list"];
+        put?: never;
+        post: operations["content_editor_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/editor/{context}/items/{key}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_editor_get"];
+        put?: never;
+        post: operations["content_editor_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/editor/{context}/items/{key}/actions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["content_editor_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/editor/{context}/revisions/{id}/preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/public/{locale}/help/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_help"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/public/{locale}/home/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_home"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/public/{locale}/pages/{key}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/public/{locale}/shell/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_shell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live/": {
         parameters: {
             query?: never;
@@ -356,6 +484,278 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{context}/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProfilesView_get"];
+        put?: never;
+        post: operations["ProfilesView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProfileView_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["ProfileView_patch"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/invitations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InviteView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/invitations/{invitation_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InviteActionView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/members/{member_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MemberView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/team/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeamView_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/transfers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TransferCreateView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{context}/profiles/{id}/transfers/{transfer_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TransferActionView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/invitations/accept/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InvitationAcceptView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/invitations/preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InvitationPreviewView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/{context}/profiles/{id}/application/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ApplicationView_get"];
+        put?: never;
+        post: operations["ApplicationView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/{context}/profiles/{id}/evidence/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["EvidenceView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/cases/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CaseView_get"];
+        put?: never;
+        post: operations["CaseView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/evidence/{context}/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["EvidenceDownloadView_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/queue/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["QueueView_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/transfers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TransferQueueView_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/transfers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TransferReviewView_get"];
+        put?: never;
+        post: operations["TransferReviewView_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -370,13 +770,48 @@ export interface components {
             permissions: string[];
         };
         /**
-         * @description * `signin` - signin
-         *     * `register` - register
-         *     * `link` - link
-         *     * `add-role` - add-role
+         * @description * `submit` - submit
+         *     * `return` - return
+         *     * `publish` - publish
+         *     * `unpublish` - unpublish
          * @enum {string}
          */
-        ActionEnum: "signin" | "register" | "link" | "add-role";
+        ActionActionEnum: "submit" | "return" | "publish" | "unpublish";
+        ActionRequest: {
+            version: number;
+            action: components["schemas"]["ActionActionEnum"];
+            /** Format: uuid */
+            revision: string;
+            reason: string;
+            /** @default false */
+            owner_approval: boolean;
+            /** Format: date */
+            effective_date?: string;
+        };
+        /**
+         * @description * `save` - save
+         *     * `submit` - submit
+         *     * `revise` - revise
+         * @enum {string}
+         */
+        ApplicationActionActionEnum: "save" | "submit" | "revise";
+        ApplicationActionRequest: {
+            version: number;
+            action: components["schemas"]["ApplicationActionActionEnum"];
+            alternative_requests?: {
+                [key: string]: string;
+            };
+        };
+        ApplicationData: {
+            current: components["schemas"]["CaseData"];
+            revisions: components["schemas"]["CaseData"][];
+        };
+        /**
+         * @description * `` -
+         *     * `welcome` - welcome
+         * @enum {string}
+         */
+        AssetEnum: "welcome";
         AuthResult: {
             status: string;
             csrf_token?: string;
@@ -391,6 +826,40 @@ export interface components {
             attempt_id?: string;
             return_path?: string;
         };
+        /** @enum {unknown} */
+        BlankEnum: "";
+        Block: {
+            id: string;
+            type: components["schemas"]["TypeEnum"];
+            /** @default true */
+            enabled: boolean;
+            /** @default  */
+            title: string;
+            /** @default  */
+            text: string;
+            items?: string[];
+            links?: components["schemas"]["Link"][];
+            /** @default  */
+            asset: components["schemas"]["AssetEnum"] | components["schemas"]["BlankEnum"];
+            /** @default  */
+            alt: string;
+        };
+        BlockRequest: {
+            id: string;
+            type: components["schemas"]["TypeEnum"];
+            /** @default true */
+            enabled: boolean;
+            /** @default  */
+            title: string;
+            /** @default  */
+            text: string;
+            items?: string[];
+            links?: components["schemas"]["LinkRequest"][];
+            /** @default  */
+            asset: components["schemas"]["AssetEnum"] | components["schemas"]["BlankEnum"];
+            /** @default  */
+            alt: string;
+        };
         Bootstrap: {
             default_locale: components["schemas"]["LocaleEnum"];
             supported_locales: components["schemas"]["LocaleEnum"][];
@@ -399,10 +868,82 @@ export interface components {
             };
             currencies: components["schemas"]["CurrenciesEnum"][];
         };
+        /**
+         * @description * `individual` - individual
+         *     * `business` - business
+         *     * `company` - company
+         * @enum {string}
+         */
+        BusinessProfileKindEnum: "individual" | "business" | "company";
+        CaseData: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            profile_id: string;
+            display_name: string;
+            kind: string;
+            revision: number;
+            version: number;
+            status: string;
+            reason: string;
+            /** Format: uuid */
+            assigned_to: string | null;
+            snapshot: {
+                [key: string]: string;
+            };
+            categories: string[];
+            alternative_requests: {
+                [key: string]: string;
+            };
+            accepted_alternatives: {
+                [key: string]: string;
+            };
+            evidence: components["schemas"]["EvidenceData"][];
+            history: components["schemas"]["ReviewEventData"][];
+        };
+        /** @description Action acknowledgment only; private details require a separately authorized GET. */
+        CaseOperation: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            status: string;
+        };
+        /**
+         * @description * `identity` - identity
+         *     * `business` - business
+         *     * `representative_identity` - representative_identity
+         *     * `representative_authority` - representative_authority
+         * @enum {string}
+         */
+        CategoryEnum: "identity" | "business" | "representative_identity" | "representative_authority";
         ChallengeRequest: {
             code: string;
             /** @default false */
             recovery: boolean;
+        };
+        /**
+         * @description * `catalogue` - catalogue
+         *     * `orders_negotiation` - orders_negotiation
+         *     * `payments_refunds` - payments_refunds
+         *     * `fulfilment` - fulfilment
+         *     * `messaging` - messaging
+         * @enum {string}
+         */
+        CompanyBundleEnum: "catalogue" | "orders_negotiation" | "payments_refunds" | "fulfilment" | "messaging";
+        /**
+         * @description * `page` - page
+         *     * `article` - article
+         *     * `home` - home
+         *     * `shell` - shell
+         *     * `support` - support
+         *     * `announcement` - announcement
+         *     * `legal` - legal
+         * @enum {string}
+         */
+        CreateKindEnum: "page" | "article" | "home" | "shell" | "support" | "announcement" | "legal";
+        CreateRequest: {
+            key: string;
+            kind: components["schemas"]["CreateKindEnum"];
         };
         /**
          * @description * `AFN` - AFN
@@ -410,6 +951,36 @@ export interface components {
          * @enum {string}
          */
         CurrenciesEnum: "AFN" | "USD";
+        EditorItem: {
+            key: string;
+            kind: string;
+            /** Format: uuid */
+            id: string;
+            version: number;
+            revisions: components["schemas"]["RevisionData"][];
+            publications: {
+                [key: string]: string;
+            };
+            history: components["schemas"]["EventData"][];
+        };
+        EditorList: {
+            page: number;
+            count: number;
+            results: components["schemas"]["EditorSummary"][];
+            permissions: string[];
+        };
+        EditorSummary: {
+            key: string;
+            kind: string;
+            /** Format: uuid */
+            id: string;
+            version: number;
+            locales: string[];
+            states: string[];
+            publications: {
+                [key: string]: string;
+            };
+        };
         Error: {
             error: components["schemas"]["ErrorBody"];
         };
@@ -419,6 +990,32 @@ export interface components {
             /** Format: uuid */
             request_id: string;
             fields?: unknown;
+            violations?: components["schemas"]["Violation"][];
+        };
+        EventData: {
+            id: number;
+            actor_name: string;
+            action: string;
+            reason: string;
+            /** Format: uuid */
+            revision_id: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        EvidenceData: {
+            /** Format: uuid */
+            id: string;
+            category: string;
+            content_type: string;
+            size: number;
+        };
+        EvidenceUploadRequest: {
+            version: number;
+            category: components["schemas"]["CategoryEnum"];
+            /** Format: binary */
+            file: string;
+            /** Format: uuid */
+            replace_id?: string;
         };
         FactorResetRequest: {
             code: string;
@@ -430,12 +1027,20 @@ export interface components {
             /** Format: uuid */
             attempt_id: string;
             consent: boolean;
-            intent: components["schemas"]["IntentEnum"];
+            intent: components["schemas"]["BusinessProfileKindEnum"];
             display_name: string;
         };
+        /**
+         * @description * `signin` - signin
+         *     * `register` - register
+         *     * `link` - link
+         *     * `add-role` - add-role
+         * @enum {string}
+         */
+        GoogleStartRequestActionEnum: "signin" | "register" | "link" | "add-role";
         GoogleStartRequestRequest: {
             context: components["schemas"]["PublicAccountContextEnum"];
-            action: components["schemas"]["ActionEnum"];
+            action: components["schemas"]["GoogleStartRequestActionEnum"];
             /** @default fa-AF */
             locale: components["schemas"]["LocaleEnum"];
             return_path?: string;
@@ -450,16 +1055,44 @@ export interface components {
             display_name: string;
             email_verified: boolean;
         };
-        /**
-         * @description * `individual` - individual
-         *     * `business` - business
-         *     * `company` - company
-         * @enum {string}
-         */
-        IntentEnum: "individual" | "business" | "company";
+        InvitationCreateRequest: {
+            /** Format: email */
+            email: string;
+            bundles: components["schemas"]["CompanyBundleEnum"][];
+            /** @default fa-AF */
+            locale: components["schemas"]["LocaleEnum"];
+        };
+        InvitationData: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            bundles: string[];
+            status: string;
+            /** Format: date-time */
+            expires_at: string;
+            version: number;
+            delivery_status: string;
+        };
+        InvitationPreview: {
+            status: string;
+            company_name?: string;
+            invited_hint?: string;
+            bundles?: string[];
+        };
+        Link: {
+            id?: string;
+            label: string;
+            target: string;
+        };
+        LinkRequest: {
+            id?: string;
+            label: string;
+            target: string;
+        };
         LinkRequestRequest: {
             password: string;
-            intent: components["schemas"]["IntentEnum"];
+            intent: components["schemas"]["BusinessProfileKindEnum"];
         };
         /**
          * @description * `fa-AF` - fa-AF
@@ -475,12 +1108,124 @@ export interface components {
             /** @default fa-AF */
             locale: components["schemas"]["LocaleEnum"];
         };
+        /**
+         * @description * `permissions` - permissions
+         *     * `revoke` - revoke
+         *     * `leave` - leave
+         * @enum {string}
+         */
+        MemberActionActionEnum: "permissions" | "revoke" | "leave";
+        MemberActionRequest: {
+            version: number;
+            action: components["schemas"]["MemberActionActionEnum"];
+            bundles?: components["schemas"]["CompanyBundleEnum"][];
+        };
+        MemberData: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            account_id: string;
+            name: string;
+            is_owner: boolean;
+            active: boolean;
+            eligible: boolean;
+            bundles: string[];
+        };
+        NavGroup: {
+            id?: string;
+            label: string;
+            placement: components["schemas"]["PlacementEnum"];
+            links: components["schemas"]["Link"][];
+        };
+        NavGroupRequest: {
+            id?: string;
+            label: string;
+            placement: components["schemas"]["PlacementEnum"];
+            links: components["schemas"]["LinkRequest"][];
+        };
+        Operation: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            /** Format: uuid */
+            revision: string | null;
+            state: string;
+        };
+        OperationResult: {
+            status: string;
+        };
         PasswordChangeRequest: {
             current_password: string;
             password: string;
         };
+        PatchedBusinessProfileUpdateRequest: {
+            display_name?: string;
+            legal_name?: string;
+            business_type?: string;
+            contact_phone?: string;
+            location?: string;
+            representative?: string;
+            version?: number;
+        };
         PatchedProfileUpdateRequest: {
             display_name?: string;
+        };
+        Payload: {
+            title: string;
+            /** @default  */
+            description: string;
+            /** @default  */
+            group: string;
+            blocks?: components["schemas"]["Block"][];
+            navigation?: components["schemas"]["NavGroup"][];
+            support?: components["schemas"]["Support"];
+        };
+        PayloadRequest: {
+            title: string;
+            /** @default  */
+            description: string;
+            /** @default  */
+            group: string;
+            blocks?: components["schemas"]["BlockRequest"][];
+            navigation?: components["schemas"]["NavGroupRequest"][];
+            support?: components["schemas"]["SupportRequest"];
+        };
+        /**
+         * @description * `header` - header
+         *     * `footer` - footer
+         * @enum {string}
+         */
+        PlacementEnum: "header" | "footer";
+        ProfileCreateRequest: {
+            display_name: string;
+            legal_name?: string;
+            business_type?: string;
+            contact_phone?: string;
+            location?: string;
+            representative?: string;
+            kind: components["schemas"]["BusinessProfileKindEnum"];
+        };
+        ProfileData: {
+            display_name: string;
+            legal_name?: string;
+            business_type?: string;
+            contact_phone?: string;
+            location?: string;
+            representative?: string;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            version: number;
+            revision: number;
+            review_status: string;
+            entitlement: boolean;
+            can_manage: boolean;
+            /** Format: uuid */
+            my_membership_id: string | null;
+            bundles: string[];
+        };
+        ProfilesResult: {
+            profiles: components["schemas"]["ProfileData"][];
         };
         /**
          * @description * `buyer` - buyer
@@ -488,12 +1233,62 @@ export interface components {
          * @enum {string}
          */
         PublicAccountContextEnum: "buyer" | "seller";
+        PublicContent: {
+            key: string;
+            kind: string;
+            /** Format: uuid */
+            revision: string;
+            number: number;
+            requested_locale: string;
+            content_locale: string;
+            fallback: boolean;
+            available_locales: string[];
+            /** Format: date-time */
+            published_at: string;
+            /** Format: date */
+            effective_date: string | null;
+            payload: components["schemas"]["Payload"];
+        };
+        PublicList: {
+            results: components["schemas"]["PublicContent"][];
+            page: number;
+            count: number;
+        };
+        PublicShell: {
+            navigation: components["schemas"]["PublicContent"] | null;
+            support: components["schemas"]["PublicContent"] | null;
+            announcement: components["schemas"]["PublicContent"] | null;
+        };
+        QueueItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            profile_id: string;
+            display_name: string;
+            kind: string;
+            revision: number;
+            version: number;
+            status: string;
+            /** Format: uuid */
+            assigned_to: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        QueueResult: {
+            /** Format: uuid */
+            current_account_id: string;
+            results: components["schemas"]["QueueItem"][];
+            count: number;
+            page: number;
+            reviewers: components["schemas"]["ReviewerData"][];
+            permissions: string[];
+        };
         RegistrationRequest: {
             /** Format: email */
             email: string;
             password: string;
             display_name: string;
-            intent: components["schemas"]["IntentEnum"];
+            intent: components["schemas"]["BusinessProfileKindEnum"];
             consent: boolean;
             /** @default fa-AF */
             locale: components["schemas"]["LocaleEnum"];
@@ -501,6 +1296,62 @@ export interface components {
         ResetRequestRequest: {
             token: string;
             password: string;
+        };
+        /**
+         * @description * `assign` - assign
+         *     * `approved` - approved
+         *     * `rejected` - rejected
+         *     * `needs_information` - needs_information
+         * @enum {string}
+         */
+        ReviewActionActionEnum: "assign" | "approved" | "rejected" | "needs_information";
+        ReviewActionRequest: {
+            version: number;
+            action: components["schemas"]["ReviewActionActionEnum"];
+            /** Format: uuid */
+            assigned_to?: string;
+            reason: string;
+            /** @default  */
+            internal_note: string;
+            accepted_alternatives?: {
+                [key: string]: string;
+            };
+        };
+        ReviewEventData: {
+            /** Format: uuid */
+            id: string;
+            action: string;
+            reason: string;
+            /** Format: date-time */
+            created_at: string;
+            context: string;
+        };
+        ReviewerData: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        RevisionData: {
+            author_name: string;
+            /** Format: uuid */
+            id: string;
+            number: number;
+            locale: string;
+            /** Format: uuid */
+            source_id: string | null;
+            payload: components["schemas"]["Payload"];
+            state: string;
+            /** Format: date */
+            effective_date: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        SaveRequest: {
+            version: number;
+            locale: components["schemas"]["LocaleEnum"];
+            /** Format: uuid */
+            source?: string | null;
+            payload: components["schemas"]["PayloadRequest"];
         };
         SessionData: {
             identity: components["schemas"]["IdentityData"];
@@ -521,8 +1372,101 @@ export interface components {
          * @enum {string}
          */
         StatusEnum: "alive" | "ready" | "not_ready";
+        Support: {
+            email?: string;
+            /** @default  */
+            phone: string;
+            website?: string;
+        };
+        SupportRequest: {
+            email?: string;
+            /** @default  */
+            phone: string;
+            website?: string;
+        };
+        TeamData: {
+            members: components["schemas"]["MemberData"][];
+            invitations: components["schemas"]["InvitationData"][];
+            transfers: components["schemas"]["TransferData"][];
+        };
+        TokenInputRequest: {
+            token: string;
+        };
         TokenRequestRequest: {
             token: string;
+        };
+        /**
+         * @description * `accept` - accept
+         *     * `cancel` - cancel
+         *     * `approve` - approve
+         *     * `reject` - reject
+         * @enum {string}
+         */
+        TransferActionActionEnum: "accept" | "cancel" | "approve" | "reject";
+        TransferActionRequest: {
+            version: number;
+            action: components["schemas"]["TransferActionActionEnum"];
+            /** @default  */
+            reason: string;
+        };
+        TransferCreateRequest: {
+            /** Format: uuid */
+            recipient: string;
+            retained_bundles: components["schemas"]["CompanyBundleEnum"][];
+        };
+        TransferData: {
+            company_identity?: {
+                [key: string]: string;
+            };
+            company_revision: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            company_id: string;
+            company_name: string;
+            /** Format: uuid */
+            requester_id: string;
+            /** Format: uuid */
+            recipient_id: string;
+            /** Format: uuid */
+            recipient_account_id: string;
+            recipient_name: string;
+            retained_bundles: string[];
+            status: string;
+            version: number;
+            reason: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        TransferQueue: {
+            results: components["schemas"]["TransferData"][];
+            count: number;
+            page: number;
+        };
+        /**
+         * @description * `hero` - hero
+         *     * `text` - text
+         *     * `steps` - steps
+         *     * `guides` - guides
+         *     * `callout` - callout
+         *     * `catalogue` - catalogue
+         *     * `store` - store
+         * @enum {string}
+         */
+        TypeEnum: "hero" | "text" | "steps" | "guides" | "callout" | "catalogue" | "store";
+        /**
+         * @description * `resend` - resend
+         *     * `cancel` - cancel
+         * @enum {string}
+         */
+        VersionActionActionEnum: "resend" | "cancel";
+        VersionActionRequest: {
+            version: number;
+            action: components["schemas"]["VersionActionActionEnum"];
+        };
+        Violation: {
+            path: string;
+            code: string;
         };
     };
     responses: never;
@@ -1027,6 +1971,239 @@ export interface operations {
             };
         };
     };
+    content_editor_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorList"];
+                };
+            };
+        };
+    };
+    content_editor_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateRequest"];
+                "multipart/form-data": components["schemas"]["CreateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+        };
+    };
+    content_editor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorItem"];
+                };
+            };
+        };
+    };
+    content_editor_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SaveRequest"];
+                "multipart/form-data": components["schemas"]["SaveRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+        };
+    };
+    content_editor_action: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ActionRequest"];
+                "multipart/form-data": components["schemas"]["ActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+        };
+    };
+    content_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionData"];
+                };
+            };
+        };
+    };
+    content_help: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicList"];
+                };
+            };
+        };
+    };
+    content_home: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicContent"];
+                };
+            };
+        };
+    };
+    content_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicContent"];
+                };
+            };
+        };
+    };
+    content_shell: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicShell"];
+                };
+            };
+        };
+    };
     liveness: {
         parameters: {
             query?: never;
@@ -1069,6 +2246,552 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Status"];
+                };
+            };
+        };
+    };
+    ProfilesView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfilesResult"];
+                };
+            };
+        };
+    };
+    ProfilesView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileCreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProfileCreateRequest"];
+                "multipart/form-data": components["schemas"]["ProfileCreateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileData"];
+                };
+            };
+        };
+    };
+    ProfileView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileData"];
+                };
+            };
+        };
+    };
+    ProfileView_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedBusinessProfileUpdateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedBusinessProfileUpdateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedBusinessProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileData"];
+                };
+            };
+        };
+    };
+    InviteView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationCreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["InvitationCreateRequest"];
+                "multipart/form-data": components["schemas"]["InvitationCreateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationData"];
+                };
+            };
+        };
+    };
+    InviteActionView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["VersionActionRequest"];
+                "multipart/form-data": components["schemas"]["VersionActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationData"];
+                };
+            };
+        };
+    };
+    MemberView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MemberActionRequest"];
+                "multipart/form-data": components["schemas"]["MemberActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberData"];
+                };
+            };
+        };
+    };
+    TeamView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamData"];
+                };
+            };
+        };
+    };
+    TransferCreateView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferCreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TransferCreateRequest"];
+                "multipart/form-data": components["schemas"]["TransferCreateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferData"];
+                };
+            };
+        };
+    };
+    TransferActionView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                transfer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TransferActionRequest"];
+                "multipart/form-data": components["schemas"]["TransferActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferData"];
+                };
+            };
+        };
+    };
+    InvitationAcceptView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenInputRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenInputRequest"];
+                "multipart/form-data": components["schemas"]["TokenInputRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResult"];
+                };
+            };
+        };
+    };
+    InvitationPreviewView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenInputRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenInputRequest"];
+                "multipart/form-data": components["schemas"]["TokenInputRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+        };
+    };
+    ApplicationView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationData"];
+                };
+            };
+        };
+    };
+    ApplicationView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ApplicationActionRequest"];
+                "multipart/form-data": components["schemas"]["ApplicationActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseData"];
+                };
+            };
+        };
+    };
+    EvidenceView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["EvidenceUploadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EvidenceUploadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceData"];
+                };
+            };
+        };
+    };
+    CaseView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseData"];
+                };
+            };
+        };
+    };
+    CaseView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReviewActionRequest"];
+                "multipart/form-data": components["schemas"]["ReviewActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseOperation"];
+                };
+            };
+        };
+    };
+    EvidenceDownloadView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    QueueView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueResult"];
+                };
+            };
+        };
+    };
+    TransferQueueView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferQueue"];
+                };
+            };
+        };
+    };
+    TransferReviewView_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferData"];
+                };
+            };
+        };
+    };
+    TransferReviewView_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TransferActionRequest"];
+                "multipart/form-data": components["schemas"]["TransferActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferData"];
                 };
             };
         };

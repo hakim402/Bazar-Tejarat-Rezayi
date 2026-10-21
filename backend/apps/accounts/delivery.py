@@ -79,11 +79,16 @@ def message_for(token, payload):
     route = "reset-password" if token.purpose == "reset" else "verify-email"
     url = f"{settings.FRONTEND_ORIGIN}/{locale}/auth/{route}#token={payload['raw']}"
     subject, text, html = render_account_mail(token.purpose, locale, token.user.display_name, url)
+    return assemble_message((subject, text, html), token.user.email, locale)
+
+
+def assemble_message(rendered, recipient, locale):
+    subject, text, html = rendered
     message = EmailMultiAlternatives(
         subject,
         text,
         settings.DEFAULT_FROM_EMAIL,
-        [token.user.email],
+        [recipient],
         reply_to=[settings.ACCOUNT_REPLY_TO] if settings.ACCOUNT_REPLY_TO else None,
     )
     message.attach_alternative(html, "text/html")
@@ -135,6 +140,8 @@ def dispatch_one(pk):
 
 
 def sweep_mail():
+    from apps.organizations.mail import sweep_invitations
+    sweep_invitations()
     from .models import GoogleAttempt
 
     now = timezone.now()

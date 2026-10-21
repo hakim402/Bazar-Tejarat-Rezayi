@@ -1,4 +1,6 @@
 "use client";
+import { contentCopy } from "../../../lib/i18n/content";
+import { organizationCopy } from "../../../lib/i18n/organizations";
 import { Button } from "../../../components/ui/button";
 import {
 	Field,
@@ -39,6 +41,13 @@ export function AccountPanel({
 	screen?: string;
 }) {
 	const t = authCopy[locale];
+	const businessLabels: Record<string, string> = {
+		view_queue: organizationCopy[locale].queue,
+		assign_review: organizationCopy[locale].assign,
+		read_evidence: organizationCopy[locale].evidence,
+		decide_review: organizationCopy[locale].decision,
+		review_transfer: organizationCopy[locale].transferReview,
+	};
 	const [data, setData] = useState<SessionData | null>(null),
 		[loading, setLoading] = useState(true),
 		[error, setError] = useState(""),
@@ -250,6 +259,33 @@ export function AccountPanel({
 					{screen === "profile" && (
 						<>
 							<AccountSummary data={data} locale={locale} />
+							{context !== "staff" && (
+								<p className="text-muted">
+									{organizationCopy[locale].approvalScope}
+								</p>
+							)}
+
+							<nav className="my-5 flex flex-wrap gap-4 text-action">
+								{context === "staff" ? (
+									<>
+										<Link href={`/${locale}/account/staff/verification`}>
+											{organizationCopy[locale].review}
+										</Link>
+										{data.accounts[0].permissions.includes("read_drafts") && (
+											<Link href={`/${locale}/account/staff/content`}>
+												{contentCopy[locale].editor}
+											</Link>
+										)}
+										<Link href={`/${locale}/account/staff/transfers`}>
+											{organizationCopy[locale].transfers}
+										</Link>
+									</>
+								) : (
+									<Link href={`/${locale}/account/${context}/organizations`}>
+										{organizationCopy[locale].title}
+									</Link>
+								)}
+							</nav>
 							{context === "staff" && (
 								<section>
 									<h2>{t.permissions}</h2>
@@ -257,7 +293,9 @@ export function AccountPanel({
 										<ul>
 											{data.accounts[0].permissions.map((p) => (
 												<li key={p}>
-													{responsibilityLabels[locale][p] ?? t.permissions}
+													{responsibilityLabels[locale][p] ??
+														businessLabels[p] ??
+														t.permissions}
 												</li>
 											))}
 										</ul>

@@ -100,6 +100,31 @@ class RequestContextMiddleware:
         return response
 
     def process_exception(self, request, exception):
+        from django.core.exceptions import PermissionDenied, SuspiciousOperation
+        from django.http import Http404
+        from .errors import error_data
+
+        # Expected owner-admin authorization/resource failures retain their HTTP meaning.
+        expected = (
+            403
+            if isinstance(exception, PermissionDenied)
+            else 404
+            if isinstance(exception, Http404)
+            else 400
+            if isinstance(exception, SuspiciousOperation)
+            else None
+        )
+        if expected and request.path.startswith(("/api/", "/admin/")):
+            response = JsonResponse(
+                error_data(
+                    {403: "forbidden", 404: "not_found", 400: "validation_error"}[expected],
+                    "The request could not be completed.",
+                    request.request_id,
+                ),
+                status=expected,
+            )
+            response["Cache-Control"] = "private, no-store"
+            return response
         log_failure(request, exception)
         if request.path.startswith(("/api/", "/admin/")):
             from .errors import error_data

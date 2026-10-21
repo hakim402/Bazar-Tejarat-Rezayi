@@ -1,958 +1,4935 @@
-openapi: 3.0.3
-info:
-  title: Bazar Rezayi foundation API
-  version: 1.0.0
-paths:
-  /api/v1/auth/{context}/link/{target}/:
-    post:
-      operationId: auth_link_create
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller$
-        required: true
-      - in: path
-        name: target
-        schema:
-          type: string
-          pattern: ^buyer|seller$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LinkRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/LinkRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/LinkRequestRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/{context}/logout/:
-    post:
-      operationId: auth_logout_create
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller|staff$
-        required: true
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/{context}/mfa/reset/:
-    post:
-      operationId: auth_mfa_reset_create
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^staff|owner$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FactorResetRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/FactorResetRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/FactorResetRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/{context}/password/:
-    post:
-      operationId: auth_password_create
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller|staff$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PasswordChangeRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PasswordChangeRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PasswordChangeRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/{context}/profile/:
-    patch:
-      operationId: auth_profile_partial_update
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller|staff$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/{context}/register/:
-    post:
-      operationId: auth_register_create
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegistrationRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/RegistrationRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/RegistrationRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '202':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/{context}/session/:
-    get:
-      operationId: auth_session_retrieve
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller|staff$
-        required: true
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SessionData'
-          description: ''
-  /api/v1/auth/{context}/signin/:
-    post:
-      operationId: auth_signin_create
-      parameters:
-      - in: path
-        name: context
-        schema:
-          type: string
-          pattern: ^buyer|seller|staff|owner$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SigninRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/SigninRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/SigninRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/csrf/:
-    get:
-      operationId: auth_csrf_retrieve
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/google/availability/:
-    get:
-      operationId: auth_google_availability_retrieve
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/google/callback/:
-    get:
-      operationId: auth_google_callback_retrieve
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '302':
-          description: No response body
-  /api/v1/auth/google/complete/:
-    post:
-      operationId: auth_google_complete_create
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GoogleCompleteRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/GoogleCompleteRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/GoogleCompleteRequestRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/google/start/:
-    post:
-      operationId: auth_google_start_create
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GoogleStartRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/GoogleStartRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/GoogleStartRequestRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/logout-all/:
-    post:
-      operationId: auth_logout_all_create
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/mail/{purpose}/:
-    post:
-      operationId: auth_mail_create
-      parameters:
-      - in: path
-        name: purpose
-        schema:
-          type: string
-          pattern: ^verify|reset$
-        required: true
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MailRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/MailRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/MailRequestRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '202':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/mfa/challenge/:
-    post:
-      operationId: auth_mfa_challenge_create
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChallengeRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ChallengeRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ChallengeRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/mfa/enroll/:
-    post:
-      operationId: auth_mfa_enroll_create
-      tags:
-      - auth
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/reset/:
-    post:
-      operationId: auth_reset_create
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ResetRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ResetRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ResetRequestRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/auth/verify/:
-    post:
-      operationId: auth_verify_create
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TokenRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenRequestRequest'
-        required: true
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResult'
-          description: ''
-  /api/v1/bootstrap/:
-    get:
-      operationId: bootstrap
-      tags:
-      - bootstrap
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Bootstrap'
-          description: ''
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '405':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-  /api/v1/health/live/:
-    get:
-      operationId: liveness
-      tags:
-      - health
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Status'
-          description: ''
-  /api/v1/health/ready/:
-    get:
-      operationId: readiness
-      tags:
-      - health
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Status'
-          description: ''
-        '503':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Status'
-          description: ''
-components:
-  schemas:
-    AccountData:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        context:
-          type: string
-        status:
-          type: string
-        intent:
-          type: string
-        review_status:
-          type: string
-        permissions:
-          type: array
-          items:
-            type: string
-      required:
-      - context
-      - id
-      - intent
-      - permissions
-      - review_status
-      - status
-    ActionEnum:
-      enum:
-      - signin
-      - register
-      - link
-      - add-role
-      type: string
-      description: |-
-        * `signin` - signin
-        * `register` - register
-        * `link` - link
-        * `add-role` - add-role
-    AuthResult:
-      type: object
-      properties:
-        status:
-          type: string
-        csrf_token:
-          type: string
-        identity:
-          $ref: '#/components/schemas/IdentityData'
-        account:
-          $ref: '#/components/schemas/AccountData'
-        recovery_codes:
-          type: array
-          items:
-            type: string
-        secret:
-          type: string
-        uri:
-          type: string
-        authorization_url:
-          type: string
-          format: uri
-        attempt_id:
-          type: string
-          format: uuid
-        return_path:
-          type: string
-      required:
-      - status
-    Bootstrap:
-      type: object
-      properties:
-        default_locale:
-          $ref: '#/components/schemas/LocaleEnum'
-        supported_locales:
-          type: array
-          items:
-            $ref: '#/components/schemas/LocaleEnum'
-        brand_names:
-          type: object
-          additionalProperties:
-            type: string
-        currencies:
-          type: array
-          items:
-            $ref: '#/components/schemas/CurrenciesEnum'
-      required:
-      - brand_names
-      - currencies
-      - default_locale
-      - supported_locales
-    ChallengeRequest:
-      type: object
-      properties:
-        code:
-          type: string
-          writeOnly: true
-          minLength: 6
-          maxLength: 32
-        recovery:
-          type: boolean
-          default: false
-      required:
-      - code
-    CurrenciesEnum:
-      enum:
-      - AFN
-      - USD
-      type: string
-      description: |-
-        * `AFN` - AFN
-        * `USD` - USD
-    Error:
-      type: object
-      properties:
-        error:
-          $ref: '#/components/schemas/ErrorBody'
-      required:
-      - error
-    ErrorBody:
-      type: object
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-        request_id:
-          type: string
-          format: uuid
-        fields: {}
-      required:
-      - code
-      - message
-      - request_id
-    FactorResetRequest:
-      type: object
-      properties:
-        code:
-          type: string
-          writeOnly: true
-          minLength: 6
-          maxLength: 32
-        recovery:
-          type: boolean
-          default: false
-        password:
-          type: string
-          writeOnly: true
-          minLength: 1
-          maxLength: 128
-      required:
-      - code
-      - password
-    GoogleCompleteRequestRequest:
-      type: object
-      properties:
-        attempt_id:
-          type: string
-          format: uuid
-        consent:
-          type: boolean
-        intent:
-          $ref: '#/components/schemas/IntentEnum'
-        display_name:
-          type: string
-          minLength: 1
-          maxLength: 150
-      required:
-      - attempt_id
-      - consent
-      - display_name
-      - intent
-    GoogleStartRequestRequest:
-      type: object
-      properties:
-        context:
-          $ref: '#/components/schemas/PublicAccountContextEnum'
-        action:
-          $ref: '#/components/schemas/ActionEnum'
-        locale:
-          allOf:
-          - $ref: '#/components/schemas/LocaleEnum'
-          default: fa-AF
-        return_path:
-          type: string
-          maxLength: 500
-        source_context:
-          $ref: '#/components/schemas/PublicAccountContextEnum'
-        password:
-          type: string
-          writeOnly: true
-          minLength: 1
-          maxLength: 128
-      required:
-      - action
-      - context
-    IdentityData:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-        display_name:
-          type: string
-        email_verified:
-          type: boolean
-      required:
-      - display_name
-      - email
-      - email_verified
-      - id
-    IntentEnum:
-      enum:
-      - individual
-      - business
-      - company
-      type: string
-      description: |-
-        * `individual` - individual
-        * `business` - business
-        * `company` - company
-    LinkRequestRequest:
-      type: object
-      properties:
-        password:
-          type: string
-          writeOnly: true
-          minLength: 1
-          maxLength: 128
-        intent:
-          $ref: '#/components/schemas/IntentEnum'
-      required:
-      - intent
-      - password
-    LocaleEnum:
-      enum:
-      - fa-AF
-      - en
-      - ps
-      - ar
-      type: string
-      description: |-
-        * `fa-AF` - fa-AF
-        * `en` - en
-        * `ps` - ps
-        * `ar` - ar
-    MailRequestRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          minLength: 1
-          maxLength: 254
-        locale:
-          allOf:
-          - $ref: '#/components/schemas/LocaleEnum'
-          default: fa-AF
-      required:
-      - email
-    PasswordChangeRequest:
-      type: object
-      properties:
-        current_password:
-          type: string
-          writeOnly: true
-          minLength: 1
-          maxLength: 128
-        password:
-          type: string
-          writeOnly: true
-          minLength: 12
-          maxLength: 128
-      required:
-      - current_password
-      - password
-    PatchedProfileUpdateRequest:
-      type: object
-      properties:
-        display_name:
-          type: string
-          minLength: 1
-          maxLength: 150
-    PublicAccountContextEnum:
-      enum:
-      - buyer
-      - seller
-      type: string
-      description: |-
-        * `buyer` - buyer
-        * `seller` - seller
-    RegistrationRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          minLength: 1
-          maxLength: 254
-        password:
-          type: string
-          writeOnly: true
-          minLength: 12
-          maxLength: 128
-        display_name:
-          type: string
-          minLength: 1
-          maxLength: 150
-        intent:
-          $ref: '#/components/schemas/IntentEnum'
-        consent:
-          type: boolean
-        locale:
-          allOf:
-          - $ref: '#/components/schemas/LocaleEnum'
-          default: fa-AF
-      required:
-      - consent
-      - display_name
-      - email
-      - intent
-      - password
-    ResetRequestRequest:
-      type: object
-      properties:
-        token:
-          type: string
-          writeOnly: true
-          minLength: 32
-          maxLength: 100
-        password:
-          type: string
-          writeOnly: true
-          minLength: 12
-          maxLength: 128
-      required:
-      - password
-      - token
-    SessionData:
-      type: object
-      properties:
-        identity:
-          $ref: '#/components/schemas/IdentityData'
-        accounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/AccountData'
-      required:
-      - accounts
-      - identity
-    SigninRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          minLength: 1
-          maxLength: 254
-        password:
-          type: string
-          writeOnly: true
-          minLength: 1
-          maxLength: 128
-      required:
-      - email
-      - password
-    Status:
-      type: object
-      properties:
-        status:
-          $ref: '#/components/schemas/StatusEnum'
-      required:
-      - status
-    StatusEnum:
-      enum:
-      - alive
-      - ready
-      - not_ready
-      type: string
-      description: |-
-        * `alive` - alive
-        * `ready` - ready
-        * `not_ready` - not_ready
-    TokenRequestRequest:
-      type: object
-      properties:
-        token:
-          type: string
-          writeOnly: true
-          minLength: 32
-          maxLength: 100
-      required:
-      - token
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Bazar Rezayi foundation API",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/v1/auth/{context}/link/{target}/": {
+            "post": {
+                "operationId": "auth_link_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "target",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/logout/": {
+            "post": {
+                "operationId": "auth_logout_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller|staff$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/mfa/reset/": {
+            "post": {
+                "operationId": "auth_mfa_reset_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^staff|owner$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FactorResetRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FactorResetRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FactorResetRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/password/": {
+            "post": {
+                "operationId": "auth_password_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller|staff$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordChangeRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordChangeRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordChangeRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/profile/": {
+            "patch": {
+                "operationId": "auth_profile_partial_update",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller|staff$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedProfileUpdateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedProfileUpdateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedProfileUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/register/": {
+            "post": {
+                "operationId": "auth_register_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegistrationRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegistrationRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegistrationRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/session/": {
+            "get": {
+                "operationId": "auth_session_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller|staff$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/signin/": {
+            "post": {
+                "operationId": "auth_signin_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller|staff|owner$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SigninRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SigninRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SigninRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/csrf/": {
+            "get": {
+                "operationId": "auth_csrf_retrieve",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/google/availability/": {
+            "get": {
+                "operationId": "auth_google_availability_retrieve",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/google/callback/": {
+            "get": {
+                "operationId": "auth_google_callback_retrieve",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "302": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/google/complete/": {
+            "post": {
+                "operationId": "auth_google_complete_create",
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleCompleteRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleCompleteRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleCompleteRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/google/start/": {
+            "post": {
+                "operationId": "auth_google_start_create",
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleStartRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleStartRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoogleStartRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout-all/": {
+            "post": {
+                "operationId": "auth_logout_all_create",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mail/{purpose}/": {
+            "post": {
+                "operationId": "auth_mail_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "purpose",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^verify|reset$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/challenge/": {
+            "post": {
+                "operationId": "auth_mfa_challenge_create",
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChallengeRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChallengeRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChallengeRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/enroll/": {
+            "post": {
+                "operationId": "auth_mfa_enroll_create",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset/": {
+            "post": {
+                "operationId": "auth_reset_create",
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/verify/": {
+            "post": {
+                "operationId": "auth_verify_create",
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/bootstrap/": {
+            "get": {
+                "operationId": "bootstrap",
+                "tags": [
+                    "bootstrap"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Bootstrap"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "405": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/editor/{context}/items/": {
+            "get": {
+                "operationId": "content_editor_list",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EditorList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "content_editor_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Operation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/editor/{context}/items/{key}/": {
+            "get": {
+                "operationId": "content_editor_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EditorItem"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "content_editor_save",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Operation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/editor/{context}/items/{key}/actions/": {
+            "post": {
+                "operationId": "content_editor_action",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Operation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/editor/{context}/revisions/{id}/preview/": {
+            "get": {
+                "operationId": "content_preview",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RevisionData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/public/{locale}/help/": {
+            "get": {
+                "operationId": "content_help",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/public/{locale}/home/": {
+            "get": {
+                "operationId": "content_home",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicContent"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/public/{locale}/pages/{key}/": {
+            "get": {
+                "operationId": "content_page",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicContent"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/content/public/{locale}/shell/": {
+            "get": {
+                "operationId": "content_shell",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "content"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicShell"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/health/live/": {
+            "get": {
+                "operationId": "liveness",
+                "tags": [
+                    "health"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Status"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/health/ready/": {
+            "get": {
+                "operationId": "readiness",
+                "tags": [
+                    "health"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Status"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Status"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/": {
+            "get": {
+                "operationId": "ProfilesView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProfilesResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "ProfilesView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProfileCreateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProfileCreateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProfileCreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProfileData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/": {
+            "get": {
+                "operationId": "ProfileView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProfileData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "ProfileView_patch",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedBusinessProfileUpdateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedBusinessProfileUpdateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedBusinessProfileUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProfileData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/invitations/": {
+            "post": {
+                "operationId": "InviteView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InvitationCreateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InvitationCreateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InvitationCreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvitationData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/invitations/{invitation_id}/": {
+            "post": {
+                "operationId": "InviteActionView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "invitation_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VersionActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VersionActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VersionActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvitationData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/members/{member_id}/": {
+            "post": {
+                "operationId": "MemberView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "member_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MemberActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MemberActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MemberActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MemberData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/team/": {
+            "get": {
+                "operationId": "TeamView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/transfers/": {
+            "post": {
+                "operationId": "TransferCreateView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferCreateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferCreateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferCreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/{context}/profiles/{id}/transfers/{transfer_id}/": {
+            "post": {
+                "operationId": "TransferActionView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "transfer_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/invitations/accept/": {
+            "post": {
+                "operationId": "InvitationAcceptView_post",
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenInputRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenInputRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenInputRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OperationResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/organizations/invitations/preview/": {
+            "post": {
+                "operationId": "InvitationPreviewView_post",
+                "tags": [
+                    "organizations"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenInputRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenInputRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenInputRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvitationPreview"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/{context}/profiles/{id}/application/": {
+            "get": {
+                "operationId": "ApplicationView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApplicationData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "ApplicationView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplicationActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplicationActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplicationActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CaseData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/{context}/profiles/{id}/evidence/": {
+            "post": {
+                "operationId": "EvidenceView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EvidenceUploadRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EvidenceUploadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EvidenceData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/cases/{id}/": {
+            "get": {
+                "operationId": "CaseView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CaseData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "CaseView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReviewActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReviewActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReviewActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CaseOperation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/evidence/{context}/{id}/": {
+            "get": {
+                "operationId": "EvidenceDownloadView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/queue/": {
+            "get": {
+                "operationId": "QueueView_get",
+                "tags": [
+                    "verification"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueueResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/transfers/": {
+            "get": {
+                "operationId": "TransferQueueView_get",
+                "tags": [
+                    "verification"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferQueue"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/verification/transfers/{id}/": {
+            "get": {
+                "operationId": "TransferReviewView_get",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "TransferReviewView_post",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferActionRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferActionRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferActionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AccountData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "context": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "intent": {
+                        "type": "string"
+                    },
+                    "review_status": {
+                        "type": "string"
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "context",
+                    "id",
+                    "intent",
+                    "permissions",
+                    "review_status",
+                    "status"
+                ]
+            },
+            "ActionActionEnum": {
+                "enum": [
+                    "submit",
+                    "return",
+                    "publish",
+                    "unpublish"
+                ],
+                "type": "string",
+                "description": "* `submit` - submit\n* `return` - return\n* `publish` - publish\n* `unpublish` - unpublish"
+            },
+            "ActionRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/ActionActionEnum"
+                    },
+                    "revision": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                    },
+                    "owner_approval": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "effective_date": {
+                        "type": "string",
+                        "format": "date"
+                    }
+                },
+                "required": [
+                    "action",
+                    "reason",
+                    "revision",
+                    "version"
+                ]
+            },
+            "ApplicationActionActionEnum": {
+                "enum": [
+                    "save",
+                    "submit",
+                    "revise"
+                ],
+                "type": "string",
+                "description": "* `save` - save\n* `submit` - submit\n* `revise` - revise"
+            },
+            "ApplicationActionRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/ApplicationActionActionEnum"
+                    },
+                    "alternative_requests": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1000
+                        }
+                    }
+                },
+                "required": [
+                    "action",
+                    "version"
+                ]
+            },
+            "ApplicationData": {
+                "type": "object",
+                "properties": {
+                    "current": {
+                        "$ref": "#/components/schemas/CaseData"
+                    },
+                    "revisions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CaseData"
+                        }
+                    }
+                },
+                "required": [
+                    "current",
+                    "revisions"
+                ]
+            },
+            "AssetEnum": {
+                "enum": [
+                    "welcome"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `welcome` - welcome"
+            },
+            "AuthResult": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "csrf_token": {
+                        "type": "string"
+                    },
+                    "identity": {
+                        "$ref": "#/components/schemas/IdentityData"
+                    },
+                    "account": {
+                        "$ref": "#/components/schemas/AccountData"
+                    },
+                    "recovery_codes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "secret": {
+                        "type": "string"
+                    },
+                    "uri": {
+                        "type": "string"
+                    },
+                    "authorization_url": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "attempt_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "return_path": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "BlankEnum": {
+                "enum": [
+                    ""
+                ]
+            },
+            "Block": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "pattern": "^[-a-zA-Z0-9_]+$"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/TypeEnum"
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 180
+                    },
+                    "text": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 6000
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 1000
+                        },
+                        "maxItems": 12
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Link"
+                        }
+                    },
+                    "asset": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AssetEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "alt": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ]
+            },
+            "BlockRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 50,
+                        "pattern": "^[-a-zA-Z0-9_]+$"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/TypeEnum"
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 180
+                    },
+                    "text": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 6000
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1000
+                        },
+                        "maxItems": 12
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LinkRequest"
+                        }
+                    },
+                    "asset": {
+                        "default": "",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AssetEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "alt": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ]
+            },
+            "Bootstrap": {
+                "type": "object",
+                "properties": {
+                    "default_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "supported_locales": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LocaleEnum"
+                        }
+                    },
+                    "brand_names": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "currencies": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CurrenciesEnum"
+                        }
+                    }
+                },
+                "required": [
+                    "brand_names",
+                    "currencies",
+                    "default_locale",
+                    "supported_locales"
+                ]
+            },
+            "BusinessProfileKindEnum": {
+                "enum": [
+                    "individual",
+                    "business",
+                    "company"
+                ],
+                "type": "string",
+                "description": "* `individual` - individual\n* `business` - business\n* `company` - company"
+            },
+            "CaseData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "profile_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "revision": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "assigned_to": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "snapshot": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "alternative_requests": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "accepted_alternatives": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EvidenceData"
+                        }
+                    },
+                    "history": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReviewEventData"
+                        }
+                    }
+                },
+                "required": [
+                    "accepted_alternatives",
+                    "alternative_requests",
+                    "assigned_to",
+                    "categories",
+                    "display_name",
+                    "evidence",
+                    "history",
+                    "id",
+                    "kind",
+                    "profile_id",
+                    "reason",
+                    "revision",
+                    "snapshot",
+                    "status",
+                    "version"
+                ]
+            },
+            "CaseOperation": {
+                "type": "object",
+                "description": "Action acknowledgment only; private details require a separately authorized GET.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "status",
+                    "version"
+                ]
+            },
+            "CategoryEnum": {
+                "enum": [
+                    "identity",
+                    "business",
+                    "representative_identity",
+                    "representative_authority"
+                ],
+                "type": "string",
+                "description": "* `identity` - identity\n* `business` - business\n* `representative_identity` - representative_identity\n* `representative_authority` - representative_authority"
+            },
+            "ChallengeRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 6,
+                        "maxLength": 32
+                    },
+                    "recovery": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "code"
+                ]
+            },
+            "CompanyBundleEnum": {
+                "enum": [
+                    "catalogue",
+                    "orders_negotiation",
+                    "payments_refunds",
+                    "fulfilment",
+                    "messaging"
+                ],
+                "type": "string",
+                "description": "* `catalogue` - catalogue\n* `orders_negotiation` - orders_negotiation\n* `payments_refunds` - payments_refunds\n* `fulfilment` - fulfilment\n* `messaging` - messaging"
+            },
+            "CreateKindEnum": {
+                "enum": [
+                    "page",
+                    "article",
+                    "home",
+                    "shell",
+                    "support",
+                    "announcement",
+                    "legal"
+                ],
+                "type": "string",
+                "description": "* `page` - page\n* `article` - article\n* `home` - home\n* `shell` - shell\n* `support` - support\n* `announcement` - announcement\n* `legal` - legal"
+            },
+            "CreateRequest": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80,
+                        "pattern": "^[-a-zA-Z0-9_]+$"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/CreateKindEnum"
+                    }
+                },
+                "required": [
+                    "key",
+                    "kind"
+                ]
+            },
+            "CurrenciesEnum": {
+                "enum": [
+                    "AFN",
+                    "USD"
+                ],
+                "type": "string",
+                "description": "* `AFN` - AFN\n* `USD` - USD"
+            },
+            "EditorItem": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "revisions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RevisionData"
+                        }
+                    },
+                    "publications": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    "history": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EventData"
+                        }
+                    }
+                },
+                "required": [
+                    "history",
+                    "id",
+                    "key",
+                    "kind",
+                    "publications",
+                    "revisions",
+                    "version"
+                ]
+            },
+            "EditorList": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EditorSummary"
+                        }
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "permissions",
+                    "results"
+                ]
+            },
+            "EditorSummary": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "locales": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "states": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "publications": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "key",
+                    "kind",
+                    "locales",
+                    "publications",
+                    "states",
+                    "version"
+                ]
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "$ref": "#/components/schemas/ErrorBody"
+                    }
+                },
+                "required": [
+                    "error"
+                ]
+            },
+            "ErrorBody": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "request_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "fields": {},
+                    "violations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Violation"
+                        }
+                    }
+                },
+                "required": [
+                    "code",
+                    "message",
+                    "request_id"
+                ]
+            },
+            "EventData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "actor_name": {
+                        "type": "string"
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "revision_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "action",
+                    "actor_name",
+                    "created_at",
+                    "id",
+                    "reason",
+                    "revision_id"
+                ]
+            },
+            "EvidenceData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "content_type": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "category",
+                    "content_type",
+                    "id",
+                    "size"
+                ]
+            },
+            "EvidenceUploadRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "category": {
+                        "$ref": "#/components/schemas/CategoryEnum"
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "binary"
+                    },
+                    "replace_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "category",
+                    "file",
+                    "version"
+                ]
+            },
+            "FactorResetRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 6,
+                        "maxLength": 32
+                    },
+                    "recovery": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "code",
+                    "password"
+                ]
+            },
+            "GoogleCompleteRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "attempt_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "consent": {
+                        "type": "boolean"
+                    },
+                    "intent": {
+                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                    },
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 150
+                    }
+                },
+                "required": [
+                    "attempt_id",
+                    "consent",
+                    "display_name",
+                    "intent"
+                ]
+            },
+            "GoogleStartRequestActionEnum": {
+                "enum": [
+                    "signin",
+                    "register",
+                    "link",
+                    "add-role"
+                ],
+                "type": "string",
+                "description": "* `signin` - signin\n* `register` - register\n* `link` - link\n* `add-role` - add-role"
+            },
+            "GoogleStartRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "context": {
+                        "$ref": "#/components/schemas/PublicAccountContextEnum"
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/GoogleStartRequestActionEnum"
+                    },
+                    "locale": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/LocaleEnum"
+                            }
+                        ],
+                        "default": "fa-AF"
+                    },
+                    "return_path": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "source_context": {
+                        "$ref": "#/components/schemas/PublicAccountContextEnum"
+                    },
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "action",
+                    "context"
+                ]
+            },
+            "IdentityData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "email_verified": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "display_name",
+                    "email",
+                    "email_verified",
+                    "id"
+                ]
+            },
+            "InvitationCreateRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "minLength": 1
+                    },
+                    "bundles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CompanyBundleEnum"
+                        },
+                        "maxItems": 5
+                    },
+                    "locale": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/LocaleEnum"
+                            }
+                        ],
+                        "default": "fa-AF"
+                    }
+                },
+                "required": [
+                    "bundles",
+                    "email"
+                ]
+            },
+            "InvitationData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "bundles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "delivery_status": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "bundles",
+                    "delivery_status",
+                    "email",
+                    "expires_at",
+                    "id",
+                    "status",
+                    "version"
+                ]
+            },
+            "InvitationPreview": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "type": "string"
+                    },
+                    "invited_hint": {
+                        "type": "string"
+                    },
+                    "bundles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "Link": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "default": "",
+                                "maxLength": 50,
+                                "pattern": "^[-a-zA-Z0-9_]+$"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "label": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "target": {
+                        "type": "string",
+                        "maxLength": 180
+                    }
+                },
+                "required": [
+                    "label",
+                    "target"
+                ]
+            },
+            "LinkRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "default": "",
+                                "maxLength": 50,
+                                "pattern": "^[-a-zA-Z0-9_]+$"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "target": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                    }
+                },
+                "required": [
+                    "label",
+                    "target"
+                ]
+            },
+            "LinkRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "maxLength": 128
+                    },
+                    "intent": {
+                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                    }
+                },
+                "required": [
+                    "intent",
+                    "password"
+                ]
+            },
+            "LocaleEnum": {
+                "enum": [
+                    "fa-AF",
+                    "en",
+                    "ps",
+                    "ar"
+                ],
+                "type": "string",
+                "description": "* `fa-AF` - fa-AF\n* `en` - en\n* `ps` - ps\n* `ar` - ar"
+            },
+            "MailRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "minLength": 1,
+                        "maxLength": 254
+                    },
+                    "locale": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/LocaleEnum"
+                            }
+                        ],
+                        "default": "fa-AF"
+                    }
+                },
+                "required": [
+                    "email"
+                ]
+            },
+            "MemberActionActionEnum": {
+                "enum": [
+                    "permissions",
+                    "revoke",
+                    "leave"
+                ],
+                "type": "string",
+                "description": "* `permissions` - permissions\n* `revoke` - revoke\n* `leave` - leave"
+            },
+            "MemberActionRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/MemberActionActionEnum"
+                    },
+                    "bundles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CompanyBundleEnum"
+                        },
+                        "maxItems": 5
+                    }
+                },
+                "required": [
+                    "action",
+                    "version"
+                ]
+            },
+            "MemberData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "account_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "is_owner": {
+                        "type": "boolean"
+                    },
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "eligible": {
+                        "type": "boolean"
+                    },
+                    "bundles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "account_id",
+                    "active",
+                    "bundles",
+                    "eligible",
+                    "id",
+                    "is_owner",
+                    "name"
+                ]
+            },
+            "NavGroup": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "default": "",
+                                "maxLength": 50,
+                                "pattern": "^[-a-zA-Z0-9_]+$"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "label": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "placement": {
+                        "$ref": "#/components/schemas/PlacementEnum"
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Link"
+                        }
+                    }
+                },
+                "required": [
+                    "label",
+                    "links",
+                    "placement"
+                ]
+            },
+            "NavGroupRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "default": "",
+                                "maxLength": 50,
+                                "pattern": "^[-a-zA-Z0-9_]+$"
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                    },
+                    "placement": {
+                        "$ref": "#/components/schemas/PlacementEnum"
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LinkRequest"
+                        }
+                    }
+                },
+                "required": [
+                    "label",
+                    "links",
+                    "placement"
+                ]
+            },
+            "Operation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "revision": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "state": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "revision",
+                    "state",
+                    "version"
+                ]
+            },
+            "OperationResult": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "PasswordChangeRequest": {
+                "type": "object",
+                "properties": {
+                    "current_password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "maxLength": 128
+                    },
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 12,
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "current_password",
+                    "password"
+                ]
+            },
+            "PatchedBusinessProfileUpdateRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 150
+                    },
+                    "legal_name": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "business_type": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "contact_phone": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "location": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "representative": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                }
+            },
+            "PatchedProfileUpdateRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 150
+                    }
+                }
+            },
+            "Payload": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 180
+                    },
+                    "description": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 400
+                    },
+                    "group": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 100
+                    },
+                    "blocks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Block"
+                        }
+                    },
+                    "navigation": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/NavGroup"
+                        }
+                    },
+                    "support": {
+                        "$ref": "#/components/schemas/Support"
+                    }
+                },
+                "required": [
+                    "title"
+                ]
+            },
+            "PayloadRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                    },
+                    "description": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 400
+                    },
+                    "group": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 100
+                    },
+                    "blocks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BlockRequest"
+                        }
+                    },
+                    "navigation": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/NavGroupRequest"
+                        }
+                    },
+                    "support": {
+                        "$ref": "#/components/schemas/SupportRequest"
+                    }
+                },
+                "required": [
+                    "title"
+                ]
+            },
+            "PlacementEnum": {
+                "enum": [
+                    "header",
+                    "footer"
+                ],
+                "type": "string",
+                "description": "* `header` - header\n* `footer` - footer"
+            },
+            "ProfileCreateRequest": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 150
+                    },
+                    "legal_name": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "business_type": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "contact_phone": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "location": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "representative": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                    }
+                },
+                "required": [
+                    "display_name",
+                    "kind"
+                ]
+            },
+            "ProfileData": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "legal_name": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "business_type": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "contact_phone": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "location": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "representative": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "revision": {
+                        "type": "integer"
+                    },
+                    "review_status": {
+                        "type": "string"
+                    },
+                    "entitlement": {
+                        "type": "boolean"
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    },
+                    "my_membership_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "bundles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "bundles",
+                    "can_manage",
+                    "display_name",
+                    "entitlement",
+                    "id",
+                    "kind",
+                    "my_membership_id",
+                    "review_status",
+                    "revision",
+                    "version"
+                ]
+            },
+            "ProfilesResult": {
+                "type": "object",
+                "properties": {
+                    "profiles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProfileData"
+                        }
+                    }
+                },
+                "required": [
+                    "profiles"
+                ]
+            },
+            "PublicAccountContextEnum": {
+                "enum": [
+                    "buyer",
+                    "seller"
+                ],
+                "type": "string",
+                "description": "* `buyer` - buyer\n* `seller` - seller"
+            },
+            "PublicContent": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "revision": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "integer"
+                    },
+                    "requested_locale": {
+                        "type": "string"
+                    },
+                    "content_locale": {
+                        "type": "string"
+                    },
+                    "fallback": {
+                        "type": "boolean"
+                    },
+                    "available_locales": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "published_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "effective_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "payload": {
+                        "$ref": "#/components/schemas/Payload"
+                    }
+                },
+                "required": [
+                    "available_locales",
+                    "content_locale",
+                    "effective_date",
+                    "fallback",
+                    "key",
+                    "kind",
+                    "number",
+                    "payload",
+                    "published_at",
+                    "requested_locale",
+                    "revision"
+                ]
+            },
+            "PublicList": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PublicContent"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "PublicShell": {
+                "type": "object",
+                "properties": {
+                    "navigation": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PublicContent"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "support": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PublicContent"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "announcement": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PublicContent"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "announcement",
+                    "navigation",
+                    "support"
+                ]
+            },
+            "QueueItem": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "profile_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "revision": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "assigned_to": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "assigned_to",
+                    "created_at",
+                    "display_name",
+                    "id",
+                    "kind",
+                    "profile_id",
+                    "revision",
+                    "status",
+                    "version"
+                ]
+            },
+            "QueueResult": {
+                "type": "object",
+                "properties": {
+                    "current_account_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/QueueItem"
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "reviewers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReviewerData"
+                        }
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "current_account_id",
+                    "page",
+                    "permissions",
+                    "results",
+                    "reviewers"
+                ]
+            },
+            "RegistrationRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "minLength": 1,
+                        "maxLength": 254
+                    },
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 12,
+                        "maxLength": 128
+                    },
+                    "display_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 150
+                    },
+                    "intent": {
+                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                    },
+                    "consent": {
+                        "type": "boolean"
+                    },
+                    "locale": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/LocaleEnum"
+                            }
+                        ],
+                        "default": "fa-AF"
+                    }
+                },
+                "required": [
+                    "consent",
+                    "display_name",
+                    "email",
+                    "intent",
+                    "password"
+                ]
+            },
+            "ResetRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 32,
+                        "maxLength": 100
+                    },
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 12,
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "password",
+                    "token"
+                ]
+            },
+            "ReviewActionActionEnum": {
+                "enum": [
+                    "assign",
+                    "approved",
+                    "rejected",
+                    "needs_information"
+                ],
+                "type": "string",
+                "description": "* `assign` - assign\n* `approved` - approved\n* `rejected` - rejected\n* `needs_information` - needs_information"
+            },
+            "ReviewActionRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/ReviewActionActionEnum"
+                    },
+                    "assigned_to": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                    },
+                    "internal_note": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 1000
+                    },
+                    "accepted_alternatives": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1000
+                        }
+                    }
+                },
+                "required": [
+                    "action",
+                    "reason",
+                    "version"
+                ]
+            },
+            "ReviewEventData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "context": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "action",
+                    "context",
+                    "created_at",
+                    "id",
+                    "reason"
+                ]
+            },
+            "ReviewerData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ]
+            },
+            "RevisionData": {
+                "type": "object",
+                "properties": {
+                    "author_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "integer"
+                    },
+                    "locale": {
+                        "type": "string"
+                    },
+                    "source_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "payload": {
+                        "$ref": "#/components/schemas/Payload"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "effective_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "author_name",
+                    "created_at",
+                    "effective_date",
+                    "id",
+                    "locale",
+                    "number",
+                    "payload",
+                    "source_id",
+                    "state"
+                ]
+            },
+            "SaveRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "source": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "payload": {
+                        "$ref": "#/components/schemas/PayloadRequest"
+                    }
+                },
+                "required": [
+                    "locale",
+                    "payload",
+                    "version"
+                ]
+            },
+            "SessionData": {
+                "type": "object",
+                "properties": {
+                    "identity": {
+                        "$ref": "#/components/schemas/IdentityData"
+                    },
+                    "accounts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AccountData"
+                        }
+                    }
+                },
+                "required": [
+                    "accounts",
+                    "identity"
+                ]
+            },
+            "SigninRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "minLength": 1,
+                        "maxLength": 254
+                    },
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "email",
+                    "password"
+                ]
+            },
+            "Status": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/StatusEnum"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "StatusEnum": {
+                "enum": [
+                    "alive",
+                    "ready",
+                    "not_ready"
+                ],
+                "type": "string",
+                "description": "* `alive` - alive\n* `ready` - ready\n* `not_ready` - not_ready"
+            },
+            "Support": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "email",
+                                "default": ""
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "phone": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 24
+                    },
+                    "website": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "uri",
+                                "default": "",
+                                "maxLength": 200
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    }
+                }
+            },
+            "SupportRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "email",
+                                "default": ""
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    },
+                    "phone": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 24
+                    },
+                    "website": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "format": "uri",
+                                "default": "",
+                                "maxLength": 200
+                            },
+                            {
+                                "type": "string",
+                                "maxLength": 0
+                            }
+                        ]
+                    }
+                }
+            },
+            "TeamData": {
+                "type": "object",
+                "properties": {
+                    "members": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MemberData"
+                        }
+                    },
+                    "invitations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InvitationData"
+                        }
+                    },
+                    "transfers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TransferData"
+                        }
+                    }
+                },
+                "required": [
+                    "invitations",
+                    "members",
+                    "transfers"
+                ]
+            },
+            "TokenInputRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9_-]{40,100}$"
+                    }
+                },
+                "required": [
+                    "token"
+                ]
+            },
+            "TokenRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 32,
+                        "maxLength": 100
+                    }
+                },
+                "required": [
+                    "token"
+                ]
+            },
+            "TransferActionActionEnum": {
+                "enum": [
+                    "accept",
+                    "cancel",
+                    "approve",
+                    "reject"
+                ],
+                "type": "string",
+                "description": "* `accept` - accept\n* `cancel` - cancel\n* `approve` - approve\n* `reject` - reject"
+            },
+            "TransferActionRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/TransferActionActionEnum"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "action",
+                    "version"
+                ]
+            },
+            "TransferCreateRequest": {
+                "type": "object",
+                "properties": {
+                    "recipient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "retained_bundles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CompanyBundleEnum"
+                        },
+                        "maxItems": 5
+                    }
+                },
+                "required": [
+                    "recipient",
+                    "retained_bundles"
+                ]
+            },
+            "TransferData": {
+                "type": "object",
+                "properties": {
+                    "company_identity": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "company_revision": {
+                        "type": "integer"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "company_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "company_name": {
+                        "type": "string"
+                    },
+                    "requester_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient_account_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient_name": {
+                        "type": "string"
+                    },
+                    "retained_bundles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "company_id",
+                    "company_name",
+                    "company_revision",
+                    "created_at",
+                    "id",
+                    "reason",
+                    "recipient_account_id",
+                    "recipient_id",
+                    "recipient_name",
+                    "requester_id",
+                    "retained_bundles",
+                    "status",
+                    "version"
+                ]
+            },
+            "TransferQueue": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TransferData"
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "TypeEnum": {
+                "enum": [
+                    "hero",
+                    "text",
+                    "steps",
+                    "guides",
+                    "callout",
+                    "catalogue",
+                    "store"
+                ],
+                "type": "string",
+                "description": "* `hero` - hero\n* `text` - text\n* `steps` - steps\n* `guides` - guides\n* `callout` - callout\n* `catalogue` - catalogue\n* `store` - store"
+            },
+            "VersionActionActionEnum": {
+                "enum": [
+                    "resend",
+                    "cancel"
+                ],
+                "type": "string",
+                "description": "* `resend` - resend\n* `cancel` - cancel"
+            },
+            "VersionActionRequest": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "$ref": "#/components/schemas/VersionActionActionEnum"
+                    }
+                },
+                "required": [
+                    "action",
+                    "version"
+                ]
+            },
+            "Violation": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "maxLength": 160
+                    },
+                    "code": {
+                        "type": "string",
+                        "maxLength": 40
+                    }
+                },
+                "required": [
+                    "code",
+                    "path"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "cookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "sessionid"
+            }
+        }
+    }
+}

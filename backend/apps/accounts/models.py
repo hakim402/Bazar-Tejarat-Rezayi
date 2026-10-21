@@ -194,6 +194,10 @@ class AuditEvent(models.Model):
     action = models.CharField(max_length=48)
     request_id = models.UUIDField(null=True)
     changed_fields = models.JSONField(default=list)
+    resource_type = models.CharField(max_length=32, blank=True)
+    resource_id = models.UUIDField(null=True, blank=True)
+    reason = models.CharField(max_length=1000, blank=True)
+    state = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 
 

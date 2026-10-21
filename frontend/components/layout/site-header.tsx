@@ -26,6 +26,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 						alt=""
 						width={232}
 						height={70}
+						priority
 					/>
 				</Link>
 				<Preferences locale={locale} />

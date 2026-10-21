@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<section lang="{{ locale }}" dir="{{ direction }}" class="max-w-4xl">
+<h1>{{ title }}</h1>
+<p>{{ resource }}</p>
+{% if requested_alternatives %}
+<p>{{ t.intro }}</p>
+<h2>{{ t.requested }}</h2>
+<dl class="my-4 space-y-3">
+{% for item in requested_alternatives %}
+<div><dt class="font-semibold">{{ item.label }}</dt><dd class="break-words whitespace-pre-wrap">{{ item.reason }}</dd></div>
+{% endfor %}
+</dl>
+{% endif %}
+<form method="post">
+{% csrf_token %}
+{% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}
+{% if field.is_hidden %}{{ field }}{% else %}
+<div class="mb-5">
+<label for="{{ field.id_for_label }}" class="block font-semibold mb-2">{{ field.label }}</label>
+{{ field }}
+{% if field.errors %}<div role="alert">{{ field.errors }}</div>{% endif %}
+{% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="mt-2 text-sm">{{ field.help_text }}</p>{% endif %}
+</div>
+{% endif %}
+{% endfor %}
+<button type="submit" class="bg-primary-600 text-white rounded-default px-4 py-2 font-medium">{{ t.apply }}</button>
+</form>
+</section>
+{% endblock %}

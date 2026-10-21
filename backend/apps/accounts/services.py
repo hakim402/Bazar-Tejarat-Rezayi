@@ -381,7 +381,7 @@ def permission_codes(account):
     # Fresh queries, no cached Django superuser permission bypass for operational accounts.
     return (
         list(
-            account.permission_groups.filter(permissions__content_type__app_label="accounts")
+            account.permission_groups.filter(permissions__content_type__app_label__in=["accounts", "verification", "content"])
             .values_list("permissions__codename", flat=True)
             .distinct()
         )
@@ -396,6 +396,21 @@ def account_summary(account):
         "context": account.context,
         "status": account.status,
         "intent": account.intent,
-        "review_status": account.review_status,
+        "review_status": compatibility_review_status(account),
         "permissions": permission_codes(account),
     }
+
+
+def compatibility_review_status(account):
+    """Read-only compatibility projection; business review cases alone grant entitlement."""
+    if account.context == "staff":
+        return "not_requested"
+    from apps.organizations.models import BusinessProfile
+    from django.db.models import Q
+    profiles = BusinessProfile.objects.filter(Q(account=account, kind__in=["individual", "business"]) | Q(kind="company", memberships__account=account, memberships__active=True)).distinct()
+    statuses = [p.cases.get(revision=p.revision).status for p in profiles]
+    if "approved" in statuses:
+        return "approved"
+    if "rejected" in statuses:
+        return "rejected"
+    return "pending" if statuses or account.context == "seller" or account.intent == "business" else "not_requested"
