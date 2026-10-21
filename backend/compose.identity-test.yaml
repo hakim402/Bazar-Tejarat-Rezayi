@@ -1,5 +1,6 @@
 # Only scripts/run_tests.py supplies these temporary process values. No private env_file.
 x-test-environment: &test-environment
+  REZAYI_TEST_TRANSLATION_ADAPTER: ${REZAYI_TEST_TRANSLATION_ADAPTER:-disabled}
   HOME: /tmp
   DJANGO_SETTINGS_MODULE: config.settings.test
   OWNER_MFA_REQUIRED: "true"

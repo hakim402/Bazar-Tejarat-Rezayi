@@ -1,4 +1,5 @@
 "use client";
+import { catalogueCopy } from "../../../lib/i18n/catalogue";
 import { contentCopy } from "../../../lib/i18n/content";
 import { organizationCopy } from "../../../lib/i18n/organizations";
 import { Button } from "../../../components/ui/button";
@@ -271,6 +272,9 @@ export function AccountPanel({
 										<Link href={`/${locale}/account/staff/verification`}>
 											{organizationCopy[locale].review}
 										</Link>
+										<Link href={`/${locale}/account/staff/catalogue`}>
+											{catalogueCopy[locale].title}
+										</Link>
 										{data.accounts[0].permissions.includes("read_drafts") && (
 											<Link href={`/${locale}/account/staff/content`}>
 												{contentCopy[locale].editor}
@@ -281,9 +285,16 @@ export function AccountPanel({
 										</Link>
 									</>
 								) : (
-									<Link href={`/${locale}/account/${context}/organizations`}>
-										{organizationCopy[locale].title}
-									</Link>
+									<>
+										{context === "seller" && (
+											<Link href={`/${locale}/account/seller/catalogue`}>
+												{catalogueCopy[locale].title}
+											</Link>
+										)}
+										<Link href={`/${locale}/account/${context}/organizations`}>
+											{organizationCopy[locale].title}
+										</Link>
+									</>
 								)}
 							</nav>
 							{context === "staff" && (

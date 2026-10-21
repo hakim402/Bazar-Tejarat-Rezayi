@@ -55,6 +55,8 @@ class TestRun:
             "REZAYI_TEST_FRONTEND_PORT": str(self.frontend_port),
         }
         self.env = {**os.environ, **self.generated}
+        if phase == "phase-06-catalogue":
+            self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
         self.compose = ["docker", "compose", "--env-file", os.devnull, "--project-name", self.project,
                         "-f", str(BACKEND / "compose.identity-test.yaml")]
         self.evidence = ROOT / "doc/progress" / phase / "test-tooling" / self.identifier
@@ -145,8 +147,9 @@ class TestRun:
                 "PLAYWRIGHT_EVIDENCE_DIR": str(self.evidence / "screenshots"),
                 "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
                 "PLAYWRIGHT_BROWSER_CHANNEL": "chromium", "IDENTITY_BROWSER_TESTS": "1",
-                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-05-content"} else "0",
-                "CONTENT_BROWSER_TESTS": "1" if self.phase == "phase-05-content" else "0",
+                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-05-content", "phase-06-catalogue"} else "0",
+                "CONTENT_BROWSER_TESTS": "1" if self.phase in {"phase-05-content", "phase-06-catalogue"} else "0",
+                "CATALOGUE_BROWSER_TESTS": "1" if self.phase == "phase-06-catalogue" else "0",
                 "REZAYI_TEST_PROJECT": self.project, "REZAYI_TEST_FIXTURE_PASSWORD": self.password}
 
     @staticmethod
@@ -172,6 +175,8 @@ class TestRun:
         self.dc("exec", "-T", "web", "python", "-m", "scripts.prepare_browser_tests", name="browser-fixtures",
                 data=json.dumps({"password": self.password, "phase": self.phase}))
         self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/")
+        if self.phase == "phase-06-catalogue":
+            self.dc("exec", "-d", "web", "celery", "-A", "config", "worker", "--pool=solo", "--concurrency=1", "--loglevel=WARNING", "--logfile=/tmp/catalogue-worker.log", "--pidfile=/tmp/catalogue-worker.pid", name="catalogue-worker")
         env = self.browser_environment()
         (self.evidence / "email-previews").mkdir()
         self.dc("exec", "-T", "web", "python", "manage.py", "account_mail_previews", "--output", "/app/data/previews",
@@ -203,7 +208,14 @@ class TestRun:
         self.wait_ready(env["PLAYWRIGHT_BASE_URL"] + "/en/auth/buyer-sign-in", self.frontend)
         self.command(["npx", "playwright", "test", *(["tests/" + self.browser_spec] if self.browser_spec else []), "--output", str(self.evidence / "browser-results"),
                       "--global-timeout=1200000"], "browser-tests", cwd=FRONTEND, env=env)
+        if self.phase == "phase-06-catalogue":
+            self.dc("exec", "-T", "web", "python", "-c", "import django;django.setup();import json;from config.celery import app;from apps.catalogue.models import TranslationJob;registered=app.control.inspect(timeout=5).registered() or {};expected={'catalogue.generate_translation','catalogue.dispatch_translations'};assert any(expected.issubset(set(tasks)) for tasks in registered.values());print(json.dumps({'registered':sorted(expected),'completed_jobs':TranslationJob.objects.filter(status='completed').count()}))", name="catalogue-worker-result")
         self.dc("logs", "--no-color", "web", name="browser-main-api-diagnostics", check=False)
+        if self.phase == "phase-06-catalogue":
+            self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
+            self.dc("up", "-d", "--no-deps", "--force-recreate", "web", name="catalogue-disabled-api")
+            self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/")
+            self.command(["npx", "playwright", "test", "tests/catalogue-disabled.browser.ts", "--output", str(self.evidence / "disabled-provider-results"), "--global-timeout=90000"], "browser-catalogue-disabled", cwd=FRONTEND, env={**env,"CATALOGUE_DISABLED_BROWSER_TESTS":"1"})
         self.dc("stop", "web", name="outage-stop")
         self.command(["npx", "playwright", "test", "tests/foundation.browser.ts", "--grep", "actual API outage",
                       "--output", str(self.evidence / "outage-results"), "--global-timeout=60000"],
@@ -269,6 +281,21 @@ class TestRun:
                 if resource in self.initial[kind] or labels.get(LABEL) != self.identifier:
                     raise TestFailure("Teardown refused a resource without matching run ownership.")
         self.dc("down", "--volumes", name="cleanup")
+        # A cancelled compose-run client can leave its labelled one-off container briefly alive.
+        # Remove only this run's verified resources before retiring its uniquely labelled image.
+        owned = subprocess.check_output(["docker", "ps", "-aq", "--filter", f"label={LABEL}={self.identifier}"], text=True).split()
+        for index, container in enumerate(owned):
+            inspect = subprocess.run(["docker", "inspect", container], text=True, capture_output=True)
+            if inspect.returncode:
+                continue  # --rm may already have removed this same owned container.
+            item = json.loads(inspect.stdout)[0]
+            if container in self.initial["containers"] or item["Config"]["Labels"].get(LABEL) != self.identifier:
+                raise TestFailure("Teardown refused a one-off container outside this run.")
+            self.command(["docker", "rm", "-f", container], f"cleanup-one-off-{index}", check=False)
+        self.dc("down", "--volumes", name="cleanup-final")
+        remaining_networks = subprocess.check_output(["docker", "network", "ls", "-q", "--filter", f"label={LABEL}={self.identifier}"], text=True)
+        if remaining_networks.strip():
+            raise TestFailure("Disposable networks remain after teardown.")
         tag = "rezayi-test:" + self.identifier
         image = subprocess.run(["docker", "image", "inspect", tag], text=True, capture_output=True)
         if image.returncode == 0 and json.loads(image.stdout)[0]["Config"]["Labels"].get(LABEL) == self.identifier:
@@ -283,6 +310,10 @@ class TestRun:
             "preexisting_resources_preserved": True, "private_env_files_unchanged": True}, indent=2) + "\n")
         print("Disposable resources removed; pre-existing resources preserved.", flush=True)
 
+    def source_manifest(self):
+        paths = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT).decode().strip("\0").split("\0")
+        return {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in sorted(paths)}
+
     def execute(self):
         private = {folder: hashlib.sha256((ROOT / folder / ".env").read_bytes()).hexdigest()
                    for folder in ("backend", "frontend") if (ROOT / folder / ".env").exists()}
@@ -290,6 +321,8 @@ class TestRun:
         next_env = FRONTEND / "next-env.d.ts"
         if not self.backend_only and next_env.exists():
             self.next_env = next_env.read_bytes()
+        source = self.source_manifest()
+        (self.evidence / "source-manifest.json").write_text(json.dumps(source, indent=2) + "\n")
         status = "failed"
         try:
             self.prepare()
@@ -300,6 +333,8 @@ class TestRun:
         finally:
             try:
                 self.cleanup()
+                if self.source_manifest() != source:
+                    raise TestFailure("Application source changed during verification; rerun the final source.")
                 for folder, expected in private.items():
                     if hashlib.sha256((ROOT / folder / ".env").read_bytes()).hexdigest() != expected:
                         raise TestFailure("A private environment changed during verification.")
@@ -313,8 +348,8 @@ class TestRun:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-05-content"], default="phase-03-identity")
-    parser.add_argument("--browser-spec", choices=["content-review-fixes.browser.ts", "identity.browser.ts", "organizations.browser.ts", "content.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; default runs every browser spec")
+    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-05-content", "phase-06-catalogue"], default="phase-03-identity")
+    parser.add_argument("--browser-spec", choices=["catalogue-review.browser.ts", "catalogue.browser.ts", "content-review-fixes.browser.ts", "identity.browser.ts", "organizations.browser.ts", "content.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; default runs every browser spec")
     parser.add_argument("--backend-only", action="store_true")
     parser.add_argument("--test-label", action="append", default=[])
     args = parser.parse_args()

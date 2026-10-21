@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.organizations.apps.OrganizationsConfig",
     "apps.verification.apps.VerificationConfig",
     "apps.content.apps.ContentConfig",
+    "apps.catalogue.apps.CatalogueConfig",
     "django_otp",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "apps.verification.uploads.EvidenceRequestLimitMiddleware",
+    "apps.catalogue.media.CatalogueRequestLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
@@ -192,6 +194,7 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
         "LocaleEnum": "apps.foundation.contracts.LOCALES",
+        "CurrencyEnum": ["AFN", "USD"],
         "CompanyBundleEnum": "apps.organizations.models.BUNDLES",
         "BusinessProfileKindEnum": ["individual", "company", "business"],
         "PublicAccountContextEnum": ["buyer", "seller"],
@@ -263,3 +266,39 @@ for _logger in ("authlib", "requests", "urllib3", "pypdf", "PIL"):
 DATA_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FILES = 1
+
+# Catalogue bytes always pass application authorization, including when stored in S3.
+STORAGES["catalogue_local"] = {
+    "BACKEND": "apps.foundation.storage.PrivateFileStorage",
+    "OPTIONS": {"location": DATA_ROOT / "private-catalogue"},
+}
+CATALOGUE_STORAGE_ALIAS = env("CATALOGUE_STORAGE_ALIAS", default="catalogue_local")
+if env("CATALOGUE_S3_BUCKET", default=""):
+    STORAGES["catalogue_s3"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": env("CATALOGUE_S3_BUCKET"),
+            "access_key": env("CATALOGUE_S3_ACCESS_KEY", default=""),
+            "secret_key": env("CATALOGUE_S3_SECRET_KEY", default=""),
+            "endpoint_url": env("CATALOGUE_S3_ENDPOINT", default=None),
+            "region_name": env("CATALOGUE_S3_REGION", default="us-east-1"),
+            "default_acl": None, "querystring_auth": True, "file_overwrite": False,
+            "object_parameters": {"CacheControl": "private, no-store"},
+        },
+    }
+CATALOGUE_TRANSLATION_ENABLED = env.bool("CATALOGUE_TRANSLATION_ENABLED", default=False)
+CATALOGUE_TRANSLATION_ADAPTER = "groq"
+GROQ_API_KEY = env("GROQ_API_KEY", default="")
+GROQ_MODEL = env("GROQ_MODEL", default="")
+GROQ_DAILY_CALL_LIMIT = env.int("GROQ_DAILY_CALL_LIMIT", default=0)
+GROQ_DAILY_CHARACTER_LIMIT = env.int("GROQ_DAILY_CHARACTER_LIMIT", default=0)
+# Only explicitly evaluated languages may be sent. Persian must not silently stand for Dari.
+GROQ_TRANSLATION_LOCALES = tuple(env.list("GROQ_TRANSLATION_LOCALES", default=[]))
+CELERY_IMPORTS = (*CELERY_IMPORTS, "apps.catalogue.tasks")
+CELERY_BEAT_SCHEDULE["catalogue-translation-recovery"] = {
+    "task": "catalogue.dispatch_translations", "schedule": 30.0,
+}
+for _logger in ("botocore", "boto3", "s3transfer"):
+    LOGGING["loggers"][_logger] = {"handlers": [], "level": "CRITICAL", "propagate": False}
+
+CATALOGUE_TEST_ADAPTER_ALLOWED = False

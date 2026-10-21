@@ -1,0 +1,22 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+<div class="max-w-5xl space-y-6" lang="{{ locale }}" dir="{{ direction }}">
+<nav><a href="?locale=fa-AF">دری</a> · <a href="?locale=ps">پښتو</a> · <a href="?locale=ar">العربية</a> · <a href="?locale=en">English</a></nav>
+<p>{{ t.revision }}</p>
+{% if item %}<p>{{ item.id }} · {{ item.currency }} · {{ item.pricing_mode }} · {{ item.version }}</p>
+<p><a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a> · <a href="?locale={{ locale }}">{{ t.source }}</a></p>{% endif %}
+{% if selection %}
+<p>{{ t.load_help }}</p>
+<form method="get" class="space-y-4" id="translation-selection">
+<input type="hidden" name="translation" value="1"><input type="hidden" name="locale" value="{{ locale }}">
+{{ selection.as_p }}<button type="submit" class="px-4 py-3 border rounded">{{ t.load }}</button>
+</form>
+{% if selected_revision %}<p id="translation-identity">{{ selected_revision.id }} · #{{ selected_revision.number }} · {{ selected_revision.body.locale }} → {{ form.locale.value }} · {{ t.version }} {{ form.version.value }} · {{ selected_translation.state|default:'draft' }}</p>{% endif %}
+{% endif %}
+<form method="post" class="space-y-4" id="catalogue-operation">{% csrf_token %}
+{% if translation %}<input type="hidden" name="form" value="translation">{% endif %}
+{{ form.as_p }}<button type="submit" class="px-4 py-3 border rounded">{{ t.action }}</button></form>
+{% for revision in revisions %}<details class="border rounded p-4"><summary>{{ revision.id }} · #{{ revision.number }} · {{ revision.state }} · {{ revision.body.locale }}</summary><pre class="whitespace-pre-wrap break-words">{{ revision.body }}</pre><p>{{ revision.reason }}</p></details>{% endfor %}
+{% for t in translations %}<p>{{ t.revision_id }} · {{ t.locale }} · {{ t.version }} · {{ t.state }} · {{ t.title }}</p>{% endfor %}
+{% for event in events %}<p>{{ event.created_at }} · {{ event.action }} · {{ event.revision_id }} · {{ event.reason }}</p>{% endfor %}
+</div>{% endblock %}

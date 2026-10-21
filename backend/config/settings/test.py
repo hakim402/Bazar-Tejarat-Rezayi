@@ -46,3 +46,19 @@ PASSWORD_HASHERS = [
 ]
 if not _browser:
     LOGGING = {"version": 1, "disable_existing_loggers": True}
+
+# Tests never use a private key or a live translation/storage account.
+CATALOGUE_STORAGE_ALIAS = "catalogue_local"
+CATALOGUE_TRANSLATION_ENABLED = False
+GROQ_API_KEY = ""
+GROQ_MODEL = ""
+GROQ_DAILY_CALL_LIMIT = 0
+GROQ_DAILY_CHARACTER_LIMIT = 0
+GROQ_TRANSLATION_LOCALES = ()
+CATALOGUE_TRANSLATION_ADAPTER = "deterministic" if _browser and os.environ.get("REZAYI_TEST_TRANSLATION_ADAPTER") == "deterministic" else "disabled"
+STORAGES.pop("catalogue_s3", None)  # noqa: F405
+
+CATALOGUE_TEST_ADAPTER_ALLOWED = True
+
+if CATALOGUE_TRANSLATION_ADAPTER == "deterministic":
+    CATALOGUE_TRANSLATION_ENABLED = True

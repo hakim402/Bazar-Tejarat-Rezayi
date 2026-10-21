@@ -9,6 +9,8 @@ import { ReviewWorkspace } from "../../../../../features/verification/components
 import { organizationCopy } from "../../../../../lib/i18n/organizations";
 import { ContentWorkspace } from "../../../../../features/content/components/content-workspace";
 import { contentCopy } from "../../../../../lib/i18n/content";
+import { CatalogueWorkspace } from "../../../../../features/catalogue/components/catalogue-workspace";
+import { catalogueCopy } from "../../../../../lib/i18n/catalogue";
 export const dynamic = "force-dynamic";
 export default async function Page({
 	params,
@@ -17,6 +19,8 @@ export default async function Page({
 }) {
 	const { locale, context, screen } = await params;
 	const action = screen?.[0] ?? "profile";
+	const catalogue =
+		action === "catalogue" && ["seller", "staff"].includes(context);
 	const content = action === "content" && context === "staff";
 	const business = action === "organizations" && context !== "staff";
 	const review =
@@ -26,17 +30,45 @@ export default async function Page({
 		!["buyer", "seller", "staff"].includes(context) ||
 		!(
 			business ||
-			review || content ||
+			review ||
+			content ||
+			catalogue ||
 			["profile", "password", "link", "mfa-reset"].includes(action)
 		) ||
-		(screen?.length ?? 0) > (business || review || content ? 2 : 1) ||
+		(screen?.length ?? 0) >
+			(business || review || content || catalogue ? 2 : 1) ||
 		((screen?.length ?? 0) === 2 &&
-			!(content ? /^[a-z][a-z0-9-]{0,79}$/ : /^[0-9a-f-]{36}$/).test(screen?.[1] ?? "")) ||
+			!(content ? /^[a-z][a-z0-9-]{0,79}$/ : /^[0-9a-f-]{36}$/).test(
+				screen?.[1] ?? "",
+			)) ||
 		(context === "staff" && action === "link") ||
 		(context !== "staff" && action === "mfa-reset")
 	)
 		notFound();
-	if (content) return <AccountShell locale={locale} title={contentCopy[locale].editor} privateScreen><ContentWorkspace locale={locale} contentKey={screen?.[1]}/></AccountShell>;
+	if (catalogue)
+		return (
+			<AccountShell
+				locale={locale}
+				title={catalogueCopy[locale].title}
+				privateScreen
+			>
+				<CatalogueWorkspace
+					locale={locale}
+					context={context as "seller" | "staff"}
+					id={screen?.[1]}
+				/>
+			</AccountShell>
+		);
+	if (content)
+		return (
+			<AccountShell
+				locale={locale}
+				title={contentCopy[locale].editor}
+				privateScreen
+			>
+				<ContentWorkspace locale={locale} contentKey={screen?.[1]} />
+			</AccountShell>
+		);
 	if (business || review)
 		return (
 			<AccountShell

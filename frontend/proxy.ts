@@ -4,6 +4,7 @@ import {
 	validContent,
 	contentPath,
 } from "./features/content/api/public";
+import { apiOrigin } from "./lib/api/client";
 import { defaultLocale, isLocale } from "./lib/i18n/locales";
 export async function proxy(request: NextRequest) {
 	const locale = request.nextUrl.pathname.split("/")[1];
@@ -15,6 +16,36 @@ export async function proxy(request: NextRequest) {
 	const headers = new Headers(request.headers);
 	headers.set("x-rezayi-locale", locale);
 	const parts = request.nextUrl.pathname.split("/").filter(Boolean);
+	// Reject absent/unpublished narrow previews before React can stream a 200 shell.
+	if (
+		parts.length === 3 &&
+		parts[1] === "catalogue-preview" &&
+		["GET", "HEAD"].includes(request.method)
+	) {
+		try {
+			const check = await fetch(
+				`${apiOrigin(process.env.API_INTERNAL_URL)}/api/v1/catalogue/published/${locale}/${encodeURIComponent(parts[2])}/`,
+				{
+					cache: "no-store",
+					credentials: "omit",
+					signal: AbortSignal.timeout(10000),
+				},
+			);
+			if (check.status === 404) {
+				const destination = request.nextUrl.clone();
+				destination.pathname = `/${locale}/_unavailable/catalogue`;
+				destination.search = "";
+				const response = NextResponse.rewrite(destination, {
+					status: 404,
+					request: { headers },
+				});
+				response.headers.set("Cache-Control", "no-store");
+				return response;
+			}
+		} catch {
+			/* Dependency failures retain the preview's distinct retry state. */
+		}
+	}
 	// Decide article absence before React can stream a 200 response with a not-found body.
 	if (
 		parts.length === 3 &&

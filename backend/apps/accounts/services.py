@@ -381,7 +381,7 @@ def permission_codes(account):
     # Fresh queries, no cached Django superuser permission bypass for operational accounts.
     return (
         list(
-            account.permission_groups.filter(permissions__content_type__app_label__in=["accounts", "verification", "content"])
+            account.permission_groups.filter(permissions__content_type__app_label__in=["accounts", "verification", "content", "catalogue"])
             .values_list("permissions__codename", flat=True)
             .distinct()
         )

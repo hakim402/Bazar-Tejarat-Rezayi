@@ -14,3 +14,4 @@ requests==2.34.2
 joserfc==1.7.7
 pillow==13.0.0
 pypdf==6.21.1
+django-storages[s3]==1.14.6

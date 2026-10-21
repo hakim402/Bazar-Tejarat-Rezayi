@@ -324,6 +324,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalogue/{context}/images/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue_private_image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/products/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue_list"];
+        put?: never;
+        post: operations["catalogue_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/products/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue_detail"];
+        put?: never;
+        post: operations["catalogue_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/products/{id}/actions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["catalogue_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/products/{id}/images/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["catalogue_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/products/{id}/prices/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["catalogue_prices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/products/{id}/translations/{revision_id}/{locale}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["catalogue_translation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/taxonomy/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue_taxonomy"];
+        put?: never;
+        post: operations["catalogue_taxonomy_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/{context}/units/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["catalogue_unit_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/images/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue_public_image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalogue/published/{locale}/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue_published"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/content/editor/{context}/items/": {
         parameters: {
             query?: never;
@@ -866,7 +1042,7 @@ export interface components {
             brand_names: {
                 [key: string]: string;
             };
-            currencies: components["schemas"]["CurrenciesEnum"][];
+            currencies: components["schemas"]["CurrencyEnum"][];
         };
         /**
          * @description * `individual` - individual
@@ -907,6 +1083,184 @@ export interface components {
             id: string;
             version: number;
             status: string;
+        };
+        /**
+         * @description * `submit` - submit
+         *     * `withdraw` - withdraw
+         *     * `publish` - publish
+         *     * `reject` - reject
+         *     * `unpublish` - unpublish
+         * @enum {string}
+         */
+        CatalogueActionActionEnum: "submit" | "withdraw" | "publish" | "reject" | "unpublish";
+        CatalogueActionRequest: {
+            version: number;
+            /** Format: uuid */
+            revision: string;
+            action: components["schemas"]["CatalogueActionActionEnum"];
+            /** @default  */
+            reason: string;
+        };
+        CatalogueBodyRequest: {
+            title: string;
+            description: string;
+            /** @default  */
+            brand: string;
+            locale: components["schemas"]["LocaleEnum"];
+            category: string;
+            attributes?: unknown;
+            variants: components["schemas"]["CatalogueVariantInputRequest"][];
+            images: components["schemas"]["CatalogueImageRefRequest"][];
+        };
+        CatalogueCreateRequest: {
+            /** Format: uuid */
+            seller: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            pricing_mode: components["schemas"]["PricingModeEnum"];
+        };
+        CatalogueDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            seller_name: string;
+            currency: string;
+            pricing_mode: string;
+            version: number;
+            /** Format: uuid */
+            published: string | null;
+            revisions: components["schemas"]["CatalogueRevision"][];
+            images: unknown[];
+            prices: unknown[];
+            price_history: unknown[];
+            translations: unknown[];
+            permissions: string[];
+            provider: string;
+        };
+        CatalogueImage: {
+            version: number;
+            /** Format: uuid */
+            id: string;
+            width: number;
+            height: number;
+            url: string;
+        };
+        CatalogueImageRefRequest: {
+            /** Format: uuid */
+            id: string;
+            alt: string;
+            /** Format: uuid */
+            variant?: string | null;
+        };
+        CatalogueList: {
+            results: unknown[];
+            sellers: unknown[];
+            permissions: string[];
+            count: number;
+            page: number;
+        };
+        CatalogueOperation: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            /** Format: uuid */
+            revision: string | null;
+        };
+        CataloguePriceInputRequest: {
+            /** Format: uuid */
+            id: string;
+            retail?: string | null;
+            wholesale?: string | null;
+        };
+        CataloguePricesRequest: {
+            version: number;
+            prices: components["schemas"]["CataloguePriceInputRequest"][];
+        };
+        CataloguePublic: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            revision: string;
+            seller_name: string;
+            currency: string;
+            pricing_mode: string;
+            requested_locale: string;
+            resolved_locale: string;
+            source_fallback: boolean;
+            body: unknown;
+            variants: unknown[];
+            images: unknown[];
+        };
+        CatalogueRevision: {
+            /** Format: uuid */
+            id: string;
+            number: number;
+            state: string;
+            body: unknown;
+            reason: string;
+        };
+        CatalogueSaveRequest: {
+            version: number;
+            body: components["schemas"]["CatalogueBodyRequest"];
+        };
+        CatalogueTaxonomy: {
+            categories: unknown[];
+            units: unknown[];
+        };
+        CatalogueTaxonomyInputRequest: {
+            version: number;
+            code: string;
+            labels: {
+                [key: string]: string;
+            };
+            parent?: string | null;
+            attributes?: unknown;
+            units: string[];
+            /** @default true */
+            active: boolean;
+        };
+        /**
+         * @description * `save` - save
+         *     * `approve` - approve
+         *     * `reject` - reject
+         *     * `generate` - generate
+         *     * `retry` - retry
+         * @enum {string}
+         */
+        CatalogueTranslationInputActionEnum: "save" | "approve" | "reject" | "generate" | "retry";
+        CatalogueTranslationInputRequest: {
+            version: number;
+            action: components["schemas"]["CatalogueTranslationInputActionEnum"];
+            title?: string;
+            description?: string;
+            image_alts?: {
+                [key: string]: string;
+            };
+            reason?: string;
+        };
+        CatalogueUnitInputRequest: {
+            version: number;
+            code: string;
+            labels: {
+                [key: string]: string;
+            };
+            fractional: boolean;
+            active: boolean;
+        };
+        CatalogueVariantInputRequest: {
+            /** Format: uuid */
+            id?: string | null;
+            sku: string;
+            unit: string;
+            increment: string;
+            minimum: string;
+            /** @default  */
+            contents: string;
+            attributes?: unknown;
+            /** @default true */
+            active: boolean;
+            retail?: string | null;
+            wholesale?: string | null;
         };
         /**
          * @description * `identity` - identity
@@ -950,7 +1304,7 @@ export interface components {
          *     * `USD` - USD
          * @enum {string}
          */
-        CurrenciesEnum: "AFN" | "USD";
+        CurrencyEnum: "AFN" | "USD";
         EditorItem: {
             key: string;
             kind: string;
@@ -1196,6 +1550,12 @@ export interface components {
          * @enum {string}
          */
         PlacementEnum: "header" | "footer";
+        /**
+         * @description * `fixed` - fixed
+         *     * `negotiable` - negotiable
+         * @enum {string}
+         */
+        PricingModeEnum: "fixed" | "negotiable";
         ProfileCreateRequest: {
             display_name: string;
             legal_name?: string;
@@ -1967,6 +2327,360 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    catalogue_private_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+        };
+    };
+    catalogue_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueList"];
+                };
+            };
+        };
+    };
+    catalogue_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueCreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CatalogueCreateRequest"];
+                "multipart/form-data": components["schemas"]["CatalogueCreateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueOperation"];
+                };
+            };
+        };
+    };
+    catalogue_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueDetail"];
+                };
+            };
+        };
+    };
+    catalogue_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueSaveRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CatalogueSaveRequest"];
+                "multipart/form-data": components["schemas"]["CatalogueSaveRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueOperation"];
+                };
+            };
+        };
+    };
+    catalogue_action: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CatalogueActionRequest"];
+                "multipart/form-data": components["schemas"]["CatalogueActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueOperation"];
+                };
+            };
+        };
+    };
+    catalogue_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file?: string;
+                    version?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueImage"];
+                };
+            };
+        };
+    };
+    catalogue_prices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CataloguePricesRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CataloguePricesRequest"];
+                "multipart/form-data": components["schemas"]["CataloguePricesRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueOperation"];
+                };
+            };
+        };
+    };
+    catalogue_translation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                locale: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueTranslationInputRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CatalogueTranslationInputRequest"];
+                "multipart/form-data": components["schemas"]["CatalogueTranslationInputRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueOperation"];
+                };
+            };
+        };
+    };
+    catalogue_taxonomy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueTaxonomy"];
+                };
+            };
+        };
+    };
+    catalogue_taxonomy_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueTaxonomyInputRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CatalogueTaxonomyInputRequest"];
+                "multipart/form-data": components["schemas"]["CatalogueTaxonomyInputRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueTaxonomy"];
+                };
+            };
+        };
+    };
+    catalogue_unit_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatalogueUnitInputRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CatalogueUnitInputRequest"];
+                "multipart/form-data": components["schemas"]["CatalogueUnitInputRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueTaxonomy"];
+                };
+            };
+        };
+    };
+    catalogue_public_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+        };
+    };
+    catalogue_published: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CataloguePublic"];
                 };
             };
         };
