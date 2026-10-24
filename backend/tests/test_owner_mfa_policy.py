@@ -119,7 +119,12 @@ class OwnerDevelopmentMFATests(TestCase):
         self.owner.save()
         self.assertEqual(self.client.get("/admin/").status_code, 302)
 
-    def test_password_only_subtitle_is_correct_in_all_four_languages(self):
-        for locale, subtitle in PASSWORD_ONLY_SUBTITLES.items():
-            response = self.client.get(f"/admin/login/?locale={locale}")
-            self.assertContains(response, subtitle)
+    def test_password_only_policy_stays_english_in_the_compact_login(self):
+        for locale in PASSWORD_ONLY_SUBTITLES:
+            with self.subTest(locale=locale):
+                response = self.client.get(f"/admin/login/?locale={locale}")
+                self.assertEqual(response.context["stage"], "password")
+                self.assertEqual(response.context["subtitle"], PASSWORD_ONLY_SUBTITLES["en"])
+                self.assertEqual(response["Content-Language"], "en")
+                self.assertContains(response, '<html lang="en" dir="ltr">')
+                self.assertNotContains(response, PASSWORD_ONLY_SUBTITLES["en"])

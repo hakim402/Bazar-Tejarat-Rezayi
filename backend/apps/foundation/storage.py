@@ -23,7 +23,7 @@ class FileLocation:
     def __post_init__(self):
         path = PurePosixPath(self.key)
         if (
-            self.storage_alias not in {"public_local", "private_local", "catalogue_local", "catalogue_s3"}
+            self.storage_alias not in {"public_local", "private_local", "catalogue_local", "catalogue_s3", "site_local"}
             or not self.key
             or path.is_absolute()
             or ".." in path.parts

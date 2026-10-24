@@ -6,6 +6,7 @@ export type SessionData = components["schemas"]["SessionData"];
 export type AccountContext = "buyer" | "seller" | "staff";
 import { privateCall } from "../../../lib/api/private-client.ts";
 export { AccountError } from "../../../lib/api/private-client.ts";
+export const ACCOUNT_SESSION_CHANGED = "rezayi:account-session-changed";
 let csrf: string | null = null;
 function call<T>(path: string, method: string, data?: unknown): Promise<T> {
 	return privateCall<T>(path, method, data, csrf);
@@ -21,6 +22,8 @@ export async function authMutation(
 	if (!csrf) throw new ApiError("invalid");
 	const result = await call<AuthResult>(path, method, data);
 	csrf = result.csrf_token ?? csrf;
+	if (typeof window !== "undefined")
+		window.dispatchEvent(new Event(ACCOUNT_SESSION_CHANGED));
 	return result;
 }
 export async function accountSession(context: AccountContext) {

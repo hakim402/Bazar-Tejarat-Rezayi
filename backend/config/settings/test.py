@@ -13,24 +13,31 @@ for _key in ("DJANGO_SECRET_KEY", "MFA_ENCRYPTION_KEY", "REZAYI_TEST_FRONTEND_OR
 os.environ.update(
     DJANGO_SETTINGS_MODULE="config.settings.test",
     DATABASE_URL=os.environ["REZAYI_TEST_DATABASE_URL"],
-    DATABASE_HOST="",
     GOOGLE_OAUTH_ENABLED="false",
     ACCOUNT_EMAIL_TRANSPORT="capture",
     GOOGLE_CLIENT_ID="",
     GOOGLE_CLIENT_SECRET="",
+    GOOGLE_REDIRECT_URI="",
+    ACCOUNT_REPLY_TO="",
+    EMAIL_HOST="smtp.example.test",
     EMAIL_HOST_USER="",
     EMAIL_HOST_PASSWORD="",
     DEFAULT_FROM_EMAIL="",
     FRONTEND_ORIGIN=os.environ["REZAYI_TEST_FRONTEND_ORIGIN"],
     CELERY_BROKER_URL=os.environ["REZAYI_TEST_BROKER_URL"] if _browser else "memory://",
     CELERY_RESULT_BACKEND=os.environ["REZAYI_TEST_BROKER_URL"] if _browser else "cache+memory://",
-    DATA_ROOT="/app/data",
-    PRIVATE_MAIL_ROOT="/app/data/private-mail",
+    DATA_ROOT=os.environ["REZAYI_TEST_ROOT"] + "/data",
+    PRIVATE_MAIL_ROOT=os.environ["REZAYI_TEST_ROOT"] + "/data/private-mail",
+    CATALOGUE_S3_BUCKET="",
+    CATALOGUE_S3_ACCESS_KEY="",
+    CATALOGUE_S3_SECRET_KEY="",
+    OWNER_MFA_REQUIRED=os.environ.get("REZAYI_TEST_OWNER_MFA_REQUIRED", "true"),
 )
 
 from .base import *  # noqa: E402, F403
 
 DATABASES = {"default": _test_database}
+STATIC_ROOT = os.environ["REZAYI_TEST_ROOT"] + "/staticfiles"
 DEBUG = _browser
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 CORS_ALLOWED_ORIGINS = [FRONTEND_ORIGIN]  # noqa: F405
@@ -62,3 +69,9 @@ CATALOGUE_TEST_ADAPTER_ALLOWED = True
 
 if CATALOGUE_TRANSLATION_ADAPTER == "deterministic":
     CATALOGUE_TRANSLATION_ENABLED = True
+
+STORAGES["site_local"]["OPTIONS"]["location"] = os.environ["REZAYI_TEST_ROOT"] + "/site-public"  # noqa: F405
+SITE_MEDIA_HOSTS = ()
+
+if _browser:
+    MIDDLEWARE = ["tests.site_faults.SiteFaultMiddleware", *MIDDLEWARE]  # noqa: F405

@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from apps.content.views import PublicView
+from apps.foundation.views import PublicView
 from apps.accounts.services import rate_limit
 from apps.organizations.views import OrganizationView
 from apps.organizations.access import visible_profiles

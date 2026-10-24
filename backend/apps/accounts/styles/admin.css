@@ -1,0 +1,53 @@
+@layer theme, base, components, utilities;
+@import "../../../../frontend/node_modules/tailwindcss/theme.css" layer(theme) prefix(ra);
+@import "../../../../frontend/node_modules/tailwindcss/utilities.css" layer(utilities) prefix(ra) source(none);
+@source "../templates";
+@source "../../site";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme inline {
+  --color-canvas: var(--admin-canvas);
+  --color-panel: var(--admin-panel);
+  --color-ink: var(--admin-ink);
+  --color-muted: var(--admin-muted);
+  --color-line: var(--admin-line);
+  --color-action: var(--admin-action);
+  --color-tint: var(--admin-tint);
+  --color-on-action: var(--admin-on-action);
+  --color-brand-navy: #102c49;
+  --color-brand-panel: #005bab;
+  --color-inverse-muted: #c6d8e9;
+  --color-on-dark: #ffffff;
+  --color-info-line: #31516e;
+  --color-control: var(--admin-control);
+  --color-auth-line: var(--admin-auth-line);
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --shadow-auth: 0 4px 24px rgb(24 43 58 / 0.04);
+  --font-sans: "RezayiAdminLatin", system-ui, sans-serif;
+}
+@font-face {font-family:RezayiAdminArabic;src:url("NotoSansArabic-Regular.ttf") format("truetype");font-display:swap}
+@font-face {font-family:RezayiAdminLatin;src:url("NotoSans-Regular.ttf") format("truetype");font-weight:400;font-display:swap}
+@font-face {font-family:RezayiAdminLatin;src:url("NotoSans-Bold.ttf") format("truetype");font-weight:600 900;font-display:swap}
+:root {--admin-auth-line:#dce5ed;--admin-canvas:#f4f7fa;--admin-panel:#fff;--admin-ink:#182b3a;--admin-muted:#526575;--admin-line:#ccd6df;--admin-action:#005bab;--admin-tint:#eaf4ff;--admin-on-action:#fff;--admin-control:#7a8d9b}
+html.dark {--admin-auth-line:#43596c;--admin-canvas:#101c28;--admin-panel:#192b3c;--admin-ink:#f4f7fa;--admin-muted:#b9c9d8;--admin-line:#3f566c;--admin-action:#84c4ff;--admin-tint:#153752;--admin-on-action:#101c28;--admin-control:#879daf}
+/* Shared typography and accessible focus; layouts live in template utilities. */
+html[lang^="en"] body,html[lang^="en"] .font-sans {font-family:RezayiAdminLatin,RezayiAdminArabic,system-ui,sans-serif}
+html[lang^="en"] body {line-height:1.6}
+:focus-visible {outline:3px solid var(--admin-action);outline-offset:3px}
+[x-cloak] {display:none!important}
+.admin-login {margin:0;background:var(--admin-canvas);color:var(--admin-ink);font:16px/1.6 RezayiAdminLatin,system-ui,sans-serif}
+.admin-login *, .admin-login *::before, .admin-login *::after {box-sizing:border-box}
+@layer base {.admin-login h1,.admin-login h2,.admin-login h3,.admin-login p {margin:0}}
+.admin-login a {text-decoration:none}
+.admin-login button,.admin-login input {font-family:inherit}
+.admin-login button {cursor:pointer}
+.admin-login .private {overflow-wrap:anywhere;user-select:all}
+#nav-sidebar-inner {background:var(--admin-panel)}
+#nav-sidebar-apps a {min-height:44px;height:auto;padding-block:10px;font-size:14px;line-height:1.5}
+#nav-sidebar-apps a.active {background:var(--admin-tint);color:var(--admin-action)}
+#nav-sidebar-inner a img.h-8 {width:174px;height:auto;max-height:48px;object-fit:contain;margin-inline-end:0}
+#main {background:var(--admin-canvas)}
+@media(prefers-reduced-motion:reduce) {*,*::before,*::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Reserve ligature icon dimensions while the local font loads. */
+.material-symbols-outlined[data-admin-icon] {inline-size:1em;overflow:hidden;box-sizing:content-box;flex-shrink:0;vertical-align:middle}

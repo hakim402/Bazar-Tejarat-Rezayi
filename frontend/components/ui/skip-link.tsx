@@ -4,7 +4,7 @@ export function SkipLink({ label }: { label: string }) {
 		// biome-ignore lint/a11y/useValidAnchor: This skip link retains a real fragment destination and explicitly focuses its landmark.
 		<a
 			href="#main"
-			className="skip-link"
+			className="skip-link fixed -top-40 start-4 z-50 rounded-control border border-action bg-surface px-5 py-3 font-bold focus:top-3"
 			onClick={(event) => {
 				const main = document.getElementById("main");
 				if (main) {

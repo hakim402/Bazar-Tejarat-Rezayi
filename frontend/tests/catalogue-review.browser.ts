@@ -139,7 +139,7 @@ test("owner loads exact translation versions, saves and approves without repairi
 	const base = `${apiOrigin}/admin/catalogue/product/${p.id}/workflow/`;
 	await page.goto(`${base}?translation=1&locale=fa-AF`);
 	await expect(page.locator("label[for=select_target]")).toHaveText(
-		"زبان ترجمه:",
+		"Target language:",
 	);
 	await expect(page.locator("#id_version")).toHaveValue("1");
 	await expect(page.locator("#id_version")).toHaveAttribute("type", "hidden");

@@ -33,7 +33,7 @@ export function validBootstrap(value: unknown): value is Bootstrap {
 	const data = value as Record<string, unknown>;
 	const supported = ["fa-AF", "en", "ps", "ar"];
 	return (
-		data.default_locale === "fa-AF" &&
+		supported.includes(String(data.default_locale)) &&
 		Array.isArray(data.supported_locales) &&
 		data.supported_locales.length === 4 &&
 		supported.every((locale) =>

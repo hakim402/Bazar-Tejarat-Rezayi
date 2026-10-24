@@ -1,3 +1,5 @@
+import { messages } from "../lib/i18n/messages";
+import { choosePreference } from "./support/site-preferences";
 import { test, expect, type Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import { createHmac, randomBytes } from "node:crypto";
@@ -63,7 +65,7 @@ test.afterEach(async ({ page }, info) => {
 
 function mailbox(email: string) {
 	const script =
-		"from pathlib import Path\nfrom email import policy\nfrom email.parser import BytesParser\nimport re,json\nitems=[]\nfor p in Path('/app/data/private-mail').glob('*.eml'):\n m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())\n if str(m['To'])==" +
+		"from django.conf import settings\nfrom pathlib import Path\nfrom email import policy\nfrom email.parser import BytesParser\nimport re,json\nitems=[]\nfor p in Path(settings.PRIVATE_MAIL_ROOT).glob('*.eml'):\n m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())\n if str(m['To'])==" +
 		JSON.stringify(email) +
 		":\n  body=m.get_body(preferencelist=('plain',)).get_content() if m.is_multipart() else m.get_content()\n  match=re.search(r'(http://[^\\s]+#token=[A-Za-z0-9_-]+)',body)\n  if match:items.append((p.stat().st_mtime,match[1]))\nprint(json.dumps(sorted(items)[-1][1]))";
 	return JSON.parse(disposablePython(script));
@@ -151,7 +153,7 @@ for (const locale of locales) {
 			).toBe(true);
 			const themes = width === 390 ? ["light", "dark"] : ["light"];
 			for (const theme of themes) {
-				await page.locator(".preferences select").nth(1).selectOption(theme);
+				await choosePreference(page, messages[locale].theme, theme);
 				await page.evaluate(() => {
 					(document.activeElement as HTMLElement)?.blur();
 					window.scrollTo(0, 0);
@@ -426,7 +428,7 @@ test("identity A01–A08 Dari desktop and mobile design inventory", async ({
 		await page.setViewportSize({ width, height: 900 });
 		for (const screen of screens) {
 			await page.goto(`/fa-AF/auth/${screen}`);
-			await page.locator(".preferences select").nth(1).selectOption("light");
+			await choosePreference(page, messages["fa-AF"].theme, "light");
 			await page.evaluate(async () => {
 				await document.fonts.ready;
 				await Promise.all(

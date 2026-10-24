@@ -1,0 +1,9 @@
+{% load i18n %}
+<section id="seo" class="ra:space-y-5 ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5 ra:sm:p-6">
+  <h3 class="ra:text-lg ra:font-bold">{% translate 'Individual page overrides (optional)' %}</h3>
+  <p class="ra:text-sm ra:text-muted">{% translate 'The defaults above are enough for most pages. Add an override only when an existing page needs a different title, description or sharing image.' %}</p>
+  {{ seo.management_form }}
+  <div id="seo-forms" class="ra:space-y-4">{% for editor in seo %}{% include 'site/seo-row.html' %}{% endfor %}</div>
+  <template id="seo-empty">{% include 'site/seo-row.html' with editor=seo.empty_form %}</template>
+  <button type="button" data-add-form="seo" class="ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:px-4 ra:text-sm ra:font-bold ra:text-action">{% translate 'Add page override' %}</button>
+</section>

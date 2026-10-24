@@ -13,11 +13,13 @@ export function GoogleButton({
 	context,
 	action = "signin",
 	sourceContext,
+	compact = false,
 }: {
 	locale: Locale;
 	context: "buyer" | "seller";
 	action?: "signin" | "register" | "link" | "add-role";
 	sourceContext?: "buyer" | "seller";
+	compact?: boolean;
 }) {
 	const t = googleCopy[locale],
 		a = authCopy[locale];
@@ -75,7 +77,9 @@ export function GoogleButton({
 		}
 	}
 	return (
-		<div className="google-entry my-6 border-t border-border py-5">
+		<div
+			className={`google-entry border-t border-border ${compact ? "mt-3 pt-2" : "my-6 py-5"}`}
+		>
 			{error && (
 				<Alert variant="danger" role="alert">
 					{error}
@@ -96,6 +100,7 @@ export function GoogleButton({
 				)}
 				<Button
 					variant="google"
+					compact={compact}
 					className="google-button"
 					type="submit"
 					disabled={!available || busy}
@@ -122,7 +127,9 @@ export function GoogleButton({
 				</Button>
 			</form>
 			{loaded && !available && (
-				<p className="account-hint mt-3 mb-5 text-base text-muted">
+				<p
+					className={`account-hint text-muted ${compact ? "mt-2 text-xs leading-5" : "mt-3 mb-5 text-base"}`}
+				>
 					{t.unavailable}
 				</p>
 			)}

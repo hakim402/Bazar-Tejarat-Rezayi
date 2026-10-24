@@ -1,33 +1,19 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "../../../lib/i18n/locales";
-import { ContentPage } from "../../../features/content/components/content-page";
-import { contentMetadata } from "../../../features/content/metadata";
-const pages = [
-	"how-it-works",
-	"wholesale",
-	"sell",
-	"about",
-	"contact",
-	"terms",
-	"privacy",
-];
+import { StaticPage } from "../../../features/pages/components/static-page";
+import { pageMetadata } from "../../../features/pages/metadata";
+import { pageAtPath } from "../../../features/pages/registry";
 export const dynamic = "force-dynamic";
-export async function generateMetadata({
-	params,
-}: {
-	params: Promise<{ locale: string; page: string }>;
-}) {
+type Props = { params: Promise<{ locale: string; page: string }> };
+export async function generateMetadata({ params }: Props) {
 	const { locale, page } = await params;
-	return isLocale(locale) && pages.includes(page)
-		? contentMetadata(locale, page, `/${page}`)
-		: {};
+	const key = pageAtPath(`/${page}`);
+	if (!isLocale(locale) || !key) notFound();
+	return pageMetadata(locale, key);
 }
-export default async function Page({
-	params,
-}: {
-	params: Promise<{ locale: string; page: string }>;
-}) {
+export default async function Page({ params }: Props) {
 	const { locale, page } = await params;
-	if (!isLocale(locale) || !pages.includes(page)) notFound();
-	return <ContentPage locale={locale} contentKey={page} />;
+	const key = pageAtPath(`/${page}`);
+	if (!isLocale(locale) || !key) notFound();
+	return <StaticPage locale={locale} page={key} />;
 }

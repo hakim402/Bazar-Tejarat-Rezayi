@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { randomBytes } from "node:crypto";
-import { locales, direction } from "../lib/i18n/locales";
+import { locales } from "../lib/i18n/locales";
 import { apiOrigin, disposablePython, fixturePassword } from "./support/identity-runtime";
 
 const enabled = process.env.OWNER_DEVELOPMENT_BROWSER_TESTS === "1";
@@ -15,8 +15,8 @@ for (const locale of locales) {
 		);
 		await page.setViewportSize({ width: locale === "en" ? 1440 : 390, height: 900 });
 		await page.goto(`${apiOrigin}/admin/login/?locale=${locale}`);
-		await expect(page.locator("html")).toHaveAttribute("lang", locale);
-		await expect(page.locator("html")).toHaveAttribute("dir", direction(locale));
+		await expect(page.locator("html")).toHaveAttribute("lang", "en");
+		await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
 		await expect(page.locator(".private")).toHaveCount(0);
 		await page.locator("[name=email]").fill(email);
 		await page.locator("[name=password]").fill("incorrect");

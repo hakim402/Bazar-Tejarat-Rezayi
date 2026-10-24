@@ -1,10 +1,56 @@
-{% load static %}
+{% load static i18n %}
 <!doctype html>
-<html lang="{{ locale }}" dir="{{ direction }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="same-origin"><title>{{ t.title }}</title><link rel="stylesheet" href="{% static 'accounts/owner.css' %}"></head>
-<body><main><img src="{% static 'accounts/brand.svg' %}" alt="بازار رضایی" width="232" height="70"><h1>{{ t.title }}</h1><p>{{ subtitle }}</p><nav aria-label="Language"><a href="?locale=fa-AF">دری</a> · <a href="?locale=ps">پښتو</a> · <a href="?locale=ar">العربية</a> · <a href="?locale=en">English</a></nav>
-{% if error %}<p role="alert">{{ error }}</p>{% endif %}
-{% if stage == 'password' %}<form method="post">{% csrf_token %}<input type="hidden" name="stage" value="password"><label>{{ t.email }}<input type="email" name="email" required autocomplete="username" dir="ltr"></label><label>{{ t.password }}<input type="password" name="password" required autocomplete="current-password" dir="ltr"></label><button >{{ t.continue }}</button></form>
-{% elif stage == 'enroll_start' %}<h2>{{ t.enroll }}</h2><p>{{ t.enroll_body }}</p><form method="post">{% csrf_token %}<input type="hidden" name="stage" value="enroll"><button>{{ t.setup }}</button></form>
-{% elif stage == 'challenge' %}<h2>{{ t.challenge }}</h2>{% if secret %}<p>{{ t.secret }}</p><code class="private" dir="ltr">{{ secret }}</code>{% endif %}<form method="post">{% csrf_token %}<input type="hidden" name="stage" value="challenge"><label>{{ t.code }}<input name="code" required autocomplete="one-time-code" dir="ltr" maxlength="32"></label><label class="inline"><input name="recovery" type="checkbox">{{ t.recovery }}</label><button>{{ t.verify }}</button></form><a href="{% url 'admin:login' %}?locale={{ locale }}">{{ t.restart }}</a>
-{% elif stage == 'complete' %}<h2>{{ t.save }}</h2><p>{{ t.save_body }}</p><div class="private" dir="ltr">{% for code in codes %}<p><code>{{ code }}</code></p>{% endfor %}</div><a class="button" href="{% url 'admin:index' %}">{{ t.saved }}</a>{% endif %}
-<p>{{ t.logout }}</p></main></body></html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="same-origin"><meta name="color-scheme" content="light dark">
+  <title>{{ t.title }} | Bazar Rezayi</title>
+  <link rel="stylesheet" href="{% static 'accounts/admin.css' %}">
+  <script src="{% static 'accounts/owner-login.js' %}"></script>
+</head>
+<body class="admin-login">
+<a href="#owner-form" class="ra:sr-only ra:focus:not-sr-only ra:focus:fixed ra:focus:start-4 ra:focus:top-4 ra:focus:z-50 ra:focus:rounded-lg ra:focus:bg-panel ra:focus:p-3 ra:focus:text-action">{% translate 'Skip to sign-in' %}</a>
+<div class="ra:mx-auto ra:flex ra:min-h-dvh ra:max-w-5xl ra:flex-col ra:px-4 ra:py-5 ra:sm:px-6">
+  <header class="ra:flex ra:flex-wrap ra:items-center ra:justify-between ra:gap-3">
+    <a href="{{ frontend_url }}" class="ra:inline-flex ra:min-h-11 ra:items-center" aria-label="Bazar Rezayi marketplace">
+      <img src="{% static 'accounts/brand-en.svg' %}" alt="Bazar Rezayi" width="140" height="40" class="ra:block ra:h-auto ra:w-36 ra:dark:hidden">
+      <img src="{% static 'accounts/brand-en-white.svg' %}" alt="Bazar Rezayi" width="140" height="40" class="ra:hidden ra:h-auto ra:w-36 ra:dark:block">
+    </a>
+    <a class="ra:inline-flex ra:min-h-11 ra:items-center ra:gap-2 ra:text-sm ra:text-muted ra:hover:text-action" href="{{ frontend_url }}"><span aria-hidden="true">←</span>{{ admin_copy.back_marketplace }}</a>
+  </header>
+  <main class="ra:grid ra:flex-1 ra:items-center ra:py-8">
+    <div class="ra:mx-auto ra:w-full ra:max-w-2xl">
+    <div class="ra:mx-auto ra:grid ra:w-full ra:max-w-2xl ra:overflow-hidden ra:rounded-card ra:border ra:border-auth-line ra:bg-panel ra:shadow-auth ra:md:grid-cols-[13rem_minmax(0,1fr)]">
+      <aside class="ra:hidden ra:flex-col ra:bg-brand-panel ra:p-5 ra:text-on-dark ra:md:flex">
+        <img src="{% static 'accounts/brand-en-white.svg' %}" alt="Bazar Rezayi" width="128" height="36" class="ra:block ra:h-auto ra:w-32">
+        <h2 class="ra:mt-8 ra:text-xl ra:font-bold ra:leading-snug">{{ admin_copy.role_title }}</h2>
+        <p class="ra:mt-3 ra:text-sm ra:leading-6 ra:text-on-dark/90">{{ admin_copy.signin_panel_body }}</p>
+        <div class="ra:mt-auto ra:pt-5"><img src="{% static 'accounts/owner-welcome.webp' %}" alt="" width="168" height="144" loading="lazy" class="ra:block ra:h-36 ra:w-full ra:rounded-control ra:object-cover ra:object-bottom"></div>
+      </aside>
+      <section id="owner-form" tabindex="-1" class="ra:min-w-0 ra:p-5 ra:md:p-7" aria-labelledby="signin-title">
+        <h1 id="signin-title" class="ra:mb-3 ra:text-xl ra:font-bold ra:leading-snug">{{ t.title }}</h1>
+        {% if stage != 'password' %}<p class="ra:mb-4 ra:text-sm ra:leading-6 ra:text-muted">{{ subtitle }}</p>{% endif %}
+        {% if error %}<p id="owner-error" role="alert" class="ra:mb-4 ra:rounded-lg ra:border ra:border-control ra:bg-tint ra:p-3 ra:text-sm ra:text-ink">{{ error }}</p>{% endif %}
+        {% if stage == 'password' %}
+          <form method="post" class="ra:flex ra:flex-col ra:gap-2">{% csrf_token %}<input type="hidden" name="stage" value="password">
+            <div class="ra:my-0.5 ra:flex ra:flex-col ra:gap-1"><label for="owner-email" class="ra:text-sm ra:font-medium">{{ t.email }}</label><input id="owner-email" type="email" name="email" required maxlength="254" autocomplete="username" dir="ltr" {% if error %}aria-invalid="true" aria-describedby="owner-error"{% endif %} class="ra:block ra:min-h-11 ra:md:min-h-10 ra:w-full ra:rounded-control ra:border ra:border-control ra:bg-panel ra:px-3 ra:py-2 ra:text-sm ra:text-ink ra:placeholder:text-muted"></div>
+            <div class="ra:my-0.5 ra:flex ra:flex-col ra:gap-1"><label for="owner-password" class="ra:text-sm ra:font-medium">{{ t.password }}</label><input id="owner-password" type="password" name="password" required maxlength="128" autocomplete="current-password" dir="ltr" {% if error %}aria-invalid="true" aria-describedby="owner-error"{% endif %} class="ra:block ra:min-h-11 ra:md:min-h-10 ra:w-full ra:rounded-control ra:border ra:border-control ra:bg-panel ra:px-3 ra:py-2 ra:text-sm ra:text-ink ra:placeholder:text-muted"></div>
+            <button type="submit" class="ra:mt-1 ra:flex ra:min-h-11 ra:md:min-h-10 ra:w-full ra:items-center ra:justify-center ra:rounded-control ra:border ra:border-action ra:bg-action ra:px-4 ra:py-2 ra:text-sm ra:font-bold ra:text-on-action ra:hover:brightness-95">{{ t.continue }}</button>
+          </form>
+        {% elif stage == 'enroll_start' %}
+          <h2 class="ra:text-lg ra:font-bold">{{ t.enroll }}</h2><p class="ra:my-4 ra:text-sm ra:leading-6 ra:text-muted">{{ t.enroll_body }}</p>
+          <form method="post">{% csrf_token %}<input type="hidden" name="stage" value="enroll"><button type="submit" class="ra:min-h-11 ra:w-full ra:rounded-lg ra:border-0 ra:bg-action ra:px-4 ra:py-2 ra:text-sm ra:font-bold ra:text-on-action">{{ t.setup }}</button></form>
+        {% elif stage == 'challenge' %}
+          <h2 class="ra:text-lg ra:font-bold">{{ t.challenge }}</h2>
+          {% if secret %}<p class="ra:my-4 ra:text-sm ra:leading-6 ra:text-muted">{{ t.secret }}</p><code class="private ra:mb-5 ra:block ra:rounded-lg ra:border ra:border-line ra:bg-canvas ra:p-3 ra:text-sm" dir="ltr">{{ secret }}</code>{% endif %}
+          <form method="post" class="ra:mt-4 ra:space-y-4">{% csrf_token %}<input type="hidden" name="stage" value="challenge"><div><label for="owner-code" class="ra:mb-2 ra:block ra:text-sm">{{ t.code }}</label><input id="owner-code" name="code" required autocomplete="one-time-code" dir="ltr" maxlength="32" {% if error %}aria-invalid="true" aria-describedby="owner-error"{% endif %} class="ra:block ra:min-h-11 ra:md:min-h-10 ra:w-full ra:rounded-control ra:border ra:border-control ra:bg-panel ra:px-3 ra:py-2 ra:text-sm ra:text-ink"></div><label class="ra:flex ra:min-h-11 ra:items-center ra:gap-3 ra:text-sm"><input name="recovery" type="checkbox" class="ra:size-4 ra:accent-action">{{ t.recovery }}</label><button type="submit" class="ra:min-h-11 ra:w-full ra:rounded-lg ra:border-0 ra:bg-action ra:px-4 ra:py-2 ra:text-sm ra:font-bold ra:text-on-action">{{ t.verify }}</button></form><a class="ra:mt-3 ra:inline-flex ra:min-h-11 ra:items-center ra:text-sm ra:font-bold ra:text-action" href="{% url 'admin:login' %}">{{ t.restart }}</a>
+        {% elif stage == 'complete' %}
+          <h2 class="ra:text-lg ra:font-bold">{{ t.save }}</h2><p class="ra:my-4 ra:text-sm ra:leading-6 ra:text-muted">{{ t.save_body }}</p><div class="private ra:mb-5 ra:grid ra:grid-cols-2 ra:gap-3 ra:rounded-lg ra:border ra:border-line ra:bg-canvas ra:p-3 ra:text-sm" dir="ltr">{% for code in codes %}<p><code>{{ code }}</code></p>{% endfor %}</div><a class="ra:flex ra:min-h-11 ra:items-center ra:justify-center ra:rounded-lg ra:bg-action ra:px-4 ra:py-2 ra:text-center ra:text-sm ra:font-bold ra:text-on-action" href="{% url 'admin:index' %}">{{ t.saved }}</a>
+        {% endif %}
+      </section>
+    </div>
+    <p class="ra:mx-auto ra:mt-4 ra:max-w-lg ra:text-center ra:text-xs ra:leading-5 ra:text-muted">{{ t.logout }}</p>
+    </div>
+  </main>
+  <footer class="ra:text-center ra:text-xs ra:text-muted">{{ admin_copy.signin_restricted }}</footer>
+</div>
+</body></html>

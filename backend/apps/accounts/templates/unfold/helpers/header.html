@@ -1,0 +1,8 @@
+{% load i18n %}
+<header class="ra:mb-5 ra:border-b ra:border-line ra:bg-panel ra:px-4">
+  <div class="container ra:mx-auto ra:flex ra:min-h-16 ra:items-center ra:gap-3 ra:py-3">
+    {% if is_nav_sidebar_enabled and not is_popup %}<button type="button" id="owner-nav-toggle" x-on:click="sidebarToggle(); $nextTick(() => { if (sidebarOpen && innerWidth &lt; 1280) $dispatch('owner-nav-opened') })" x-bind:aria-expanded="sidebarOpen" aria-controls="nav-sidebar" aria-label="{% translate 'Toggle navigation' %}" class="ra:inline-flex ra:size-11 ra:shrink-0 ra:items-center ra:justify-center ra:rounded-lg ra:text-muted ra:hover:bg-tint ra:hover:text-action"><span data-admin-icon class="material-symbols-outlined" aria-hidden="true">menu</span></button>{% endif %}
+    <div class="ra:min-w-0 ra:flex-1"><p class="ra:text-[11px] ra:font-bold ra:uppercase ra:tracking-widest ra:text-muted">{% translate 'Owner workspace' %}</p><h1 class="ra:truncate ra:text-sm ra:font-bold ra:text-ink ra:sm:text-base">{{ title }}</h1></div>
+    <span class="ra:hidden ra:items-center ra:gap-1.5 ra:rounded-full ra:bg-tint ra:px-3 ra:py-1.5 ra:text-xs ra:font-bold ra:text-action ra:sm:inline-flex"><span data-admin-icon class="material-symbols-outlined ra:text-base" aria-hidden="true">admin_panel_settings</span>{% translate 'Owner' %}</span>
+  </div>
+</header>

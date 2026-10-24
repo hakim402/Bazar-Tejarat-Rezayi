@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if not theme %}
+<div class="ra:mb-1 ra:grid ra:grid-cols-3 ra:gap-1 ra:border-b ra:border-line ra:px-2 ra:pb-2" role="group" aria-label="{% translate 'Appearance' %}">
+<button type="button" x-on:click="switchTheme('light')" x-bind:aria-pressed="adminTheme === 'light'" class="ra:min-h-11 ra:rounded-lg ra:px-2 ra:text-xs ra:font-semibold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">{% translate 'Light' %}</button>
+<button type="button" x-on:click="switchTheme('dark')" x-bind:aria-pressed="adminTheme === 'dark'" class="ra:min-h-11 ra:rounded-lg ra:px-2 ra:text-xs ra:font-semibold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">{% translate 'Dark' %}</button>
+<button type="button" x-on:click="switchTheme('auto')" x-bind:aria-pressed="adminTheme === 'auto'" class="ra:min-h-11 ra:rounded-lg ra:px-2 ra:text-xs ra:font-semibold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">{% translate 'System' %}</button>
+</div>
+{% endif %}

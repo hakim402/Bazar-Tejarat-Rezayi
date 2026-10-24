@@ -3,7 +3,7 @@ import { isLocale, type Locale } from "../../../../lib/i18n/locales";
 import { catalogueCopy } from "../../../../lib/i18n/catalogue";
 import { apiOrigin } from "../../../../lib/api/client";
 import { PublicShell } from "../../../../components/layout/public-shell";
-import { readShell } from "../../../../features/content/api/server";
+import { readSite } from "../../../../features/site/server";
 import { ProductRevisionPreview } from "../../../../features/catalogue/components/product-revision-preview";
 import type {
 	ProductBody,
@@ -56,7 +56,7 @@ export default async function Page({
 	if (!value && !unavailable) notFound();
 	const t = catalogueCopy[locale];
 	return (
-		<PublicShell locale={locale} shell={await readShell(locale)}>
+		<PublicShell locale={locale} site={await readSite(locale)}>
 			{unavailable || !value ? (
 				<p role="alert">{t.unavailable}</p>
 			) : (

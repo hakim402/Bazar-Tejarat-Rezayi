@@ -1,0 +1,10 @@
+{% load i18n %}
+<div class="ra:relative ra:border-t ra:border-line ra:p-3" x-data="{ openUserLinks: false }">
+  <nav aria-label="{% translate 'Account settings' %}" id="owner-user-menu" class="ra:absolute ra:bottom-full ra:start-3 ra:end-3 ra:z-50 ra:mb-2 ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:py-2 ra:shadow-lg" x-cloak x-show="openUserLinks" x-on:click.outside="openUserLinks = false" x-on:keydown.escape="openUserLinks = false; $refs.ownerMenu.focus()">
+    {% include 'unfold/helpers/theme_switch.html' %}
+    {% include 'unfold/helpers/account_links.html' %}
+  </nav>
+  <button type="button" x-ref="ownerMenu" x-on:click="openUserLinks = !openUserLinks" x-bind:aria-expanded="openUserLinks" aria-controls="owner-user-menu" class="ra:flex ra:min-h-14 ra:w-full ra:items-center ra:gap-3 ra:rounded-lg ra:p-2 ra:text-start ra:hover:bg-tint">
+    <span data-admin-icon class="material-symbols-outlined ra:rounded-full ra:bg-tint ra:p-2 ra:text-action" aria-hidden="true">person</span><span class="ra:min-w-0 ra:flex-1"><span class="ra:block ra:truncate ra:text-sm ra:font-bold ra:text-ink">{{ request.user.display_name|default:request.user.get_username }}</span><span class="ra:block ra:text-xs ra:text-muted">{% translate 'Super admin / Owner' %}</span></span><span data-admin-icon class="material-symbols-outlined ra:text-muted" aria-hidden="true">unfold_more</span>
+  </button>
+</div>

@@ -57,8 +57,7 @@ class WorkflowAdmin(ReadOnlyAdmin):
         from .teams import change_member
 
         obj = get_object_or_404(self.model, pk=pk)
-        locale = request.GET.get("locale", "fa-AF")
-        locale = locale if locale in COPY else "fa-AF"
+        locale = "en"
         t = COPY[locale]
         actor = Actor(request, "owner")
         if self.model is ReviewCase:

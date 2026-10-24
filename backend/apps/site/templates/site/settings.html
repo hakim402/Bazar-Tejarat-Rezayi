@@ -1,0 +1,43 @@
+{% extends 'admin/base_site.html' %}{% load static i18n %}
+{% block extrahead %}{{ block.super }}<script src="{% static 'site/settings.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="ra:w-full ra:space-y-6 ra:pb-10 ra:text-ink" data-testid="site-settings-editor">
+  <header class="ra:space-y-3">
+    <h2 class="ra:text-3xl ra:font-bold">{{ selected.title }}</h2>
+    <p class="ra:max-w-2xl ra:text-base ra:text-muted">{{ selected.description }}</p>
+  </header>
+    <form method="post" enctype="multipart/form-data" id="site-settings-form" class="ra:w-full ra:min-w-0 ra:space-y-5" data-section="{{ selected.key }}">
+      {% csrf_token %}{{ form.version }}
+      <p class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-4 ra:text-sm ra:text-muted">{% if draft %}{% translate 'You are editing a saved draft. The public version stays unchanged until you publish.' %}{% else %}{% translate 'Save a draft to prepare changes privately, or publish to update the public website.' %}{% endif %}</p>
+      {% if form.errors or seo.errors or seo.non_form_errors %}
+      <div role="alert" tabindex="-1" data-error-summary class="ra:space-y-2 ra:rounded-xl ra:border ra:border-control ra:bg-tint ra:p-5"><strong>{% translate 'Settings not saved. Correct the errors below.' %}</strong><p class="ra:text-sm">{% translate 'Your text is retained. Re-select uploads after correcting errors.' %}</p>{{ form.non_field_errors }}{{ seo.non_form_errors }}</div>
+      {% endif %}
+      <section class="ra:space-y-5 ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5 ra:sm:p-6" aria-labelledby="section-fields-title">
+        <h3 id="section-fields-title" class="ra:text-lg ra:font-bold">{% if selected.key == 'hero' %}{% translate 'Layout & playback' %}{% elif selected.key == 'promotions' %}{% translate 'Choose homepage cards' %}{% elif selected.key == 'contacts' %}{% translate 'Public support details' %}{% else %}{{ selected.title }}{% endif %}</h3>
+        {% if selected.key == 'contacts' %}
+          <div class="ra:grid ra:gap-5 ra:lg:grid-cols-2">{% for field in contact_fields %}{% include 'site/field.html' %}{% endfor %}</div>
+          <details class="ra:rounded-lg ra:border ra:border-line ra:p-4"><summary class="ra:cursor-pointer ra:font-bold">{% translate 'Social links (optional)' %}</summary><div class="ra:mt-5 ra:grid ra:gap-5 ra:lg:grid-cols-2">{% for field in social_fields %}{% include 'site/field.html' %}{% endfor %}</div></details>
+        {% else %}<div class="ra:grid ra:gap-5 ra:lg:grid-cols-2">{% for field in fields %}{% include 'site/field.html' %}{% endfor %}</div>{% endif %}
+        {% if selected.key == 'branding' %}<p class="ra:text-sm ra:text-muted">{% translate 'Your original brand logos are already in use. Replace them only if needed. Upload public images, never private documents.' %}</p>{% if instance.favicon_id %}<img src="{% url 'site_media' pk=instance.favicon_id %}" alt="{% translate 'Current website icon' %}" class="ra:size-16 ra:rounded-lg ra:border ra:border-line ra:object-contain">{% endif %}{% endif %}
+        {% if selected.key == 'maintenance' %}<p class="ra:rounded-lg ra:bg-tint ra:p-4 ra:text-sm ra:text-muted">{% translate 'When enabled, public information pages show your maintenance message. Owner sign-in and existing account workflows stay accessible. Turn this off to reopen public pages.' %}</p>{% endif %}
+        {% if selected.key == 'hero' %}<p class="ra:text-sm ra:text-muted">{% translate 'Image Carousel shows published image slides; Video Carousel shows published video slides without visible messages or buttons. If none match, the default hero appears. Manage individual slides in the library below.' %}</p>{% endif %}
+        {% if selected.key == 'seo' %}<p class="ra:text-sm ra:text-muted">{% translate 'Local previews, account pages and private pages always remain hidden from search engines.' %}</p>{% if instance.og_image_id %}<img src="{% url 'site_media' pk=instance.og_image_id %}" alt="{% translate 'Current social preview image' %}" class="ra:h-32 ra:max-w-full ra:rounded-lg ra:object-contain">{% endif %}{% endif %}
+      </section>
+      {% if language_tabs %}
+      <section id="languages" class="ra:space-y-5 ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5 ra:sm:p-6">
+        <h3 class="ra:text-lg ra:font-bold">{% if selected.key == 'branding' %}{% translate 'Logos by language' %}{% elif selected.key == 'contacts' %}{% translate 'Address & opening hours' %}{% elif selected.key == 'announcement' %}{% translate 'Announcement message' %}{% elif selected.key == 'maintenance' %}{% translate 'Visitor message' %}{% elif selected.key == 'seo' %}{% translate 'Default page titles & descriptions' %}{% else %}{% translate 'Website name & tagline' %}{% endif %}</h3>
+        <p class="ra:text-sm ra:text-muted">{% if selected.key == 'branding' %}{% translate 'Choose a language to view its logos. Leaving a replacement blank keeps its current logo; Restore original uses that language’s original brand asset.' %}{% else %}{% translate 'Start with Dari. Other languages are optional and fall back to Dari when blank.' %}{% endif %}</p>
+        {% include 'site/locales.html' with editor=form %}
+      </section>
+      {% endif %}
+      {% if draft_uploads %}<section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5"><h3 class="ra:text-base ra:font-bold">{% translate 'Saved draft images' %}</h3><p class="ra:my-3 ra:text-sm ra:text-muted">{% translate 'These uploads are retained for publication. Upload a replacement to change them.' %}</p><div class="ra:flex ra:flex-wrap ra:gap-4">{% for upload in draft_uploads %}<figure><img src="{% url 'site_media' pk=upload.asset_id %}" alt="" class="ra:h-24 ra:max-w-full ra:object-contain"><figcaption class="ra:mt-2 ra:text-xs ra:text-muted">{{ upload.field }}</figcaption></figure>{% endfor %}</div></section>{% endif %}
+      {% if seo %}{% include 'site/seo.html' %}{% endif %}
+      <footer class="ra:flex ra:flex-wrap ra:items-center ra:gap-4 ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
+        <button type="submit" name="action" value="save_draft" class="ra:min-h-12 ra:rounded-lg ra:border ra:border-control ra:px-6 ra:py-3 ra:text-sm ra:font-bold">{% translate 'Save draft' %}</button>
+        <button type="submit" name="action" value="publish" class="ra:min-h-12 ra:rounded-lg ra:bg-action ra:px-6 ra:py-3 ra:text-sm ra:font-bold ra:text-on-action">{% translate 'Publish' %}</button>
+        <span id="site-save-state" class="ra:text-sm ra:text-muted" role="status">{% translate 'No unsaved changes' %}</span>
+      </footer>
+    </form>
+    {% if media_section %}{% include 'site/library.html' %}{% endif %}
+</div>
+{% endblock %}

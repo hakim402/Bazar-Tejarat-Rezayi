@@ -178,11 +178,11 @@ class ConfigTests(SimpleTestCase):
             self.config(**base, EMAIL_USE_TLS="false", EMAIL_USE_SSL="true", EMAIL_PORT="465")["EMAIL_USE_SSL"]
         )
 
-    def test_owner_custom_flow_has_four_locales_default_dari(self):
+    def test_owner_custom_flow_is_english_for_default_and_legacy_locale_queries(self):
         for locale in ["fa-AF", "en", "ps", "ar"]:
             response = self.client.get("/admin/login/?locale=" + locale)
-            self.assertContains(response, f'lang="{locale}"')
-        self.assertContains(self.client.get("/admin/login/"), "ورود مدیر سیستم")
+            self.assertContains(response, 'lang="en"')
+        self.assertContains(self.client.get("/admin/login/"), "Owner sign-in")
 
 
 @override_settings(**GOOGLE)

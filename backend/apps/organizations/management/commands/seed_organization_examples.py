@@ -70,7 +70,7 @@ class Command(BaseCommand):
         limited = account("member")
         invitee = account("invitee")
         revoked = account("revoked")
-        account("unauthorized", "staff", "Rezayi: Content")
+        account("unauthorized", "staff", "Rezayi: Support")
         account("unrelated")
         shared = account("shared")
         shared_buyer = Account.objects.create(user=shared.user, context="buyer", intent="business")

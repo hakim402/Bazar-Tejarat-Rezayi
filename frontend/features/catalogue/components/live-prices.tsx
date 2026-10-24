@@ -21,8 +21,21 @@ export function LivePrices({
 	onSave: (prices: ProductDetail["prices"]) => Promise<boolean>;
 }) {
 	const t = catalogueCopy[locale];
-	const [prices, setPrices] = useState(item.prices);
-	const [baseline, setBaseline] = useState(JSON.stringify(item.prices));
+	// Keep variant rows in source order even when database updates change API row order.
+	const order = new Map(
+		item.revisions[0]?.body.variants.map((variant, index) => [
+			variant.id,
+			index,
+		]),
+	);
+	const initialPrices = [...item.prices].sort(
+		(a, b) =>
+			(order.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+				(order.get(b.id) ?? Number.MAX_SAFE_INTEGER) ||
+			a.sku.localeCompare(b.sku),
+	);
+	const [prices, setPrices] = useState(initialPrices);
+	const [baseline, setBaseline] = useState(JSON.stringify(initialPrices));
 	const dirty = JSON.stringify(prices) !== baseline;
 	useEffect(() => {
 		onDirty(dirty);

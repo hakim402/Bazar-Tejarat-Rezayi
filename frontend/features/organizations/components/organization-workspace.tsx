@@ -39,7 +39,7 @@ export function OrganizationWorkspace({
 							{state.data.profiles.map((profile) => (
 								<li
 									key={profile.id}
-									className="rounded-card border border-border p-4"
+									className="rounded-card border border-border bg-page p-5"
 								>
 									<Link
 										className="break-words text-xl font-bold text-action"

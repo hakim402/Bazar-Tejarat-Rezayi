@@ -1631,451 +1631,6 @@
                 }
             }
         },
-        "/api/v1/content/editor/{context}/items/": {
-            "get": {
-                "operationId": "content_editor_list",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/EditorList"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "content_editor_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Operation"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/editor/{context}/items/{key}/": {
-            "get": {
-                "operationId": "content_editor_get",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "key",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/EditorItem"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "content_editor_save",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "key",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SaveRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SaveRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SaveRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Operation"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/editor/{context}/items/{key}/actions/": {
-            "post": {
-                "operationId": "content_editor_action",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "key",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ActionRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ActionRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ActionRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Operation"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/editor/{context}/revisions/{id}/preview/": {
-            "get": {
-                "operationId": "content_preview",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RevisionData"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/public/{locale}/help/": {
-            "get": {
-                "operationId": "content_help",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "locale",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/PublicList"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/public/{locale}/home/": {
-            "get": {
-                "operationId": "content_home",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "locale",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/PublicContent"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/public/{locale}/pages/{key}/": {
-            "get": {
-                "operationId": "content_page",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "key",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "locale",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/PublicContent"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/content/public/{locale}/shell/": {
-            "get": {
-                "operationId": "content_shell",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "locale",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "content"
-                ],
-                "security": [
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/PublicShell"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
         "/api/v1/health/live/": {
             "get": {
                 "operationId": "liveness",
@@ -2812,6 +2367,39 @@
                 }
             }
         },
+        "/api/v1/site/public/{locale}/": {
+            "get": {
+                "operationId": "site_settings",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "site"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicSite"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/verification/{context}/profiles/{id}/application/": {
             "get": {
                 "operationId": "ApplicationView_get",
@@ -3300,51 +2888,6 @@
                     "status"
                 ]
             },
-            "ActionActionEnum": {
-                "enum": [
-                    "submit",
-                    "return",
-                    "publish",
-                    "unpublish"
-                ],
-                "type": "string",
-                "description": "* `submit` - submit\n* `return` - return\n* `publish` - publish\n* `unpublish` - unpublish"
-            },
-            "ActionRequest": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "action": {
-                        "$ref": "#/components/schemas/ActionActionEnum"
-                    },
-                    "revision": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "reason": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 1000
-                    },
-                    "owner_approval": {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "effective_date": {
-                        "type": "string",
-                        "format": "date"
-                    }
-                },
-                "required": [
-                    "action",
-                    "reason",
-                    "revision",
-                    "version"
-                ]
-            },
             "ApplicationActionActionEnum": {
                 "enum": [
                     "save",
@@ -3396,13 +2939,6 @@
                     "revisions"
                 ]
             },
-            "AssetEnum": {
-                "enum": [
-                    "welcome"
-                ],
-                "type": "string",
-                "description": "* `` - \n* `welcome` - welcome"
-            },
             "AuthResult": {
                 "type": "object",
                 "properties": {
@@ -3444,135 +2980,6 @@
                 },
                 "required": [
                     "status"
-                ]
-            },
-            "BlankEnum": {
-                "enum": [
-                    ""
-                ]
-            },
-            "Block": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "maxLength": 50,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/TypeEnum"
-                    },
-                    "enabled": {
-                        "type": "boolean",
-                        "default": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 180
-                    },
-                    "text": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 6000
-                    },
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "maxLength": 1000
-                        },
-                        "maxItems": 12
-                    },
-                    "links": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Link"
-                        }
-                    },
-                    "asset": {
-                        "default": "",
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/AssetEnum"
-                            },
-                            {
-                                "$ref": "#/components/schemas/BlankEnum"
-                            }
-                        ]
-                    },
-                    "alt": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 200
-                    }
-                },
-                "required": [
-                    "id",
-                    "type"
-                ]
-            },
-            "BlockRequest": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 50,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/TypeEnum"
-                    },
-                    "enabled": {
-                        "type": "boolean",
-                        "default": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 180
-                    },
-                    "text": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 6000
-                    },
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 1000
-                        },
-                        "maxItems": 12
-                    },
-                    "links": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/LinkRequest"
-                        }
-                    },
-                    "asset": {
-                        "default": "",
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/AssetEnum"
-                            },
-                            {
-                                "$ref": "#/components/schemas/BlankEnum"
-                            }
-                        ]
-                    },
-                    "alt": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 200
-                    }
-                },
-                "required": [
-                    "id",
-                    "type"
                 ]
             },
             "Bootstrap": {
@@ -4387,35 +3794,39 @@
                 "type": "string",
                 "description": "* `catalogue` - catalogue\n* `orders_negotiation` - orders_negotiation\n* `payments_refunds` - payments_refunds\n* `fulfilment` - fulfilment\n* `messaging` - messaging"
             },
-            "CreateKindEnum": {
-                "enum": [
-                    "page",
-                    "article",
-                    "home",
-                    "shell",
-                    "support",
-                    "announcement",
-                    "legal"
-                ],
-                "type": "string",
-                "description": "* `page` - page\n* `article` - article\n* `home` - home\n* `shell` - shell\n* `support` - support\n* `announcement` - announcement\n* `legal` - legal"
-            },
-            "CreateRequest": {
+            "Contacts": {
                 "type": "object",
                 "properties": {
-                    "key": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 80,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
+                    "email": {
+                        "type": "string"
                     },
-                    "kind": {
-                        "$ref": "#/components/schemas/CreateKindEnum"
+                    "phone": {
+                        "type": "string"
+                    },
+                    "website": {
+                        "type": "string"
+                    },
+                    "facebook": {
+                        "type": "string"
+                    },
+                    "instagram": {
+                        "type": "string"
+                    },
+                    "linkedin": {
+                        "type": "string"
+                    },
+                    "youtube": {
+                        "type": "string"
                     }
                 },
                 "required": [
-                    "key",
-                    "kind"
+                    "email",
+                    "facebook",
+                    "instagram",
+                    "linkedin",
+                    "phone",
+                    "website",
+                    "youtube"
                 ]
             },
             "CurrencyEnum": {
@@ -4426,126 +3837,14 @@
                 "type": "string",
                 "description": "* `AFN` - AFN\n* `USD` - USD"
             },
-            "EditorItem": {
-                "type": "object",
-                "properties": {
-                    "key": {
-                        "type": "string"
-                    },
-                    "kind": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "version": {
-                        "type": "integer"
-                    },
-                    "revisions": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/RevisionData"
-                        }
-                    },
-                    "publications": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    },
-                    "history": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/EventData"
-                        }
-                    }
-                },
-                "required": [
-                    "history",
-                    "id",
-                    "key",
-                    "kind",
-                    "publications",
-                    "revisions",
-                    "version"
-                ]
-            },
-            "EditorList": {
-                "type": "object",
-                "properties": {
-                    "page": {
-                        "type": "integer"
-                    },
-                    "count": {
-                        "type": "integer"
-                    },
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/EditorSummary"
-                        }
-                    },
-                    "permissions": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "required": [
-                    "count",
-                    "page",
-                    "permissions",
-                    "results"
-                ]
-            },
-            "EditorSummary": {
-                "type": "object",
-                "properties": {
-                    "key": {
-                        "type": "string"
-                    },
-                    "kind": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "version": {
-                        "type": "integer"
-                    },
-                    "locales": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "states": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "publications": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                },
-                "required": [
-                    "id",
-                    "key",
-                    "kind",
-                    "locales",
-                    "publications",
-                    "states",
-                    "version"
-                ]
+            "DefaultThemeEnum": {
+                "enum": [
+                    "system",
+                    "light",
+                    "dark"
+                ],
+                "type": "string",
+                "description": "* `system` - system\n* `light` - light\n* `dark` - dark"
             },
             "Error": {
                 "type": "object",
@@ -4583,40 +3882,6 @@
                     "code",
                     "message",
                     "request_id"
-                ]
-            },
-            "EventData": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "actor_name": {
-                        "type": "string"
-                    },
-                    "action": {
-                        "type": "string"
-                    },
-                    "reason": {
-                        "type": "string"
-                    },
-                    "revision_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "action",
-                    "actor_name",
-                    "created_at",
-                    "id",
-                    "reason",
-                    "revision_id"
                 ]
             },
             "EvidenceData": {
@@ -4765,6 +4030,102 @@
                     "context"
                 ]
             },
+            "Hero": {
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "$ref": "#/components/schemas/ModeEnum"
+                    },
+                    "autoplay": {
+                        "type": "boolean"
+                    },
+                    "rotate": {
+                        "type": "boolean"
+                    },
+                    "interval": {
+                        "type": "integer",
+                        "maximum": 60,
+                        "minimum": 5
+                    },
+                    "slides": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Slide"
+                        }
+                    },
+                    "cards": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PromotionalCard"
+                        }
+                    }
+                },
+                "required": [
+                    "autoplay",
+                    "cards",
+                    "interval",
+                    "mode",
+                    "rotate",
+                    "slides"
+                ]
+            },
+            "Identity": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "tagline": {
+                        "type": "string"
+                    },
+                    "title_template": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "hours": {
+                        "type": "string"
+                    },
+                    "logo_light": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "logo_dark": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "content_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "fallback": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "address",
+                    "content_locale",
+                    "description",
+                    "fallback",
+                    "hours",
+                    "logo_dark",
+                    "logo_light",
+                    "name",
+                    "tagline",
+                    "title_template"
+                ]
+            },
             "IdentityData": {
                 "type": "object",
                 "properties": {
@@ -4883,70 +4244,6 @@
                     "status"
                 ]
             },
-            "Link": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "default": "",
-                                "maxLength": 50,
-                                "pattern": "^[-a-zA-Z0-9_]+$"
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    },
-                    "label": {
-                        "type": "string",
-                        "maxLength": 120
-                    },
-                    "target": {
-                        "type": "string",
-                        "maxLength": 180
-                    }
-                },
-                "required": [
-                    "label",
-                    "target"
-                ]
-            },
-            "LinkRequest": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "default": "",
-                                "maxLength": 50,
-                                "pattern": "^[-a-zA-Z0-9_]+$"
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    },
-                    "label": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120
-                    },
-                    "target": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 180
-                    }
-                },
-                "required": [
-                    "label",
-                    "target"
-                ]
-            },
             "LinkRequestRequest": {
                 "type": "object",
                 "properties": {
@@ -4995,6 +4292,29 @@
                 },
                 "required": [
                     "email"
+                ]
+            },
+            "Media": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "width": {
+                        "type": "integer"
+                    },
+                    "height": {
+                        "type": "integer"
+                    },
+                    "content_type": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "content_type",
+                    "height",
+                    "url",
+                    "width"
                 ]
             },
             "MemberActionActionEnum": {
@@ -5069,105 +4389,47 @@
                     "name"
                 ]
             },
-            "NavGroup": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "default": "",
-                                "maxLength": 50,
-                                "pattern": "^[-a-zA-Z0-9_]+$"
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    },
-                    "label": {
-                        "type": "string",
-                        "maxLength": 100
-                    },
-                    "placement": {
-                        "$ref": "#/components/schemas/PlacementEnum"
-                    },
-                    "links": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Link"
-                        }
-                    }
-                },
-                "required": [
-                    "label",
-                    "links",
-                    "placement"
-                ]
+            "ModeEnum": {
+                "enum": [
+                    "image_carousel",
+                    "video_carousel"
+                ],
+                "type": "string",
+                "description": "* `image_carousel` - image_carousel\n* `video_carousel` - video_carousel"
             },
-            "NavGroupRequest": {
+            "Notice": {
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "default": "",
-                                "maxLength": 50,
-                                "pattern": "^[-a-zA-Z0-9_]+$"
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
+                    "enabled": {
+                        "type": "boolean"
                     },
-                    "label": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 100
-                    },
-                    "placement": {
-                        "$ref": "#/components/schemas/PlacementEnum"
-                    },
-                    "links": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/LinkRequest"
-                        }
-                    }
-                },
-                "required": [
-                    "label",
-                    "links",
-                    "placement"
-                ]
-            },
-            "Operation": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "version": {
-                        "type": "integer"
-                    },
-                    "revision": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "state": {
+                    "text": {
                         "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "content_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "fallback": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
-                    "id",
-                    "revision",
-                    "state",
-                    "version"
+                    "content_locale",
+                    "enabled",
+                    "fallback",
+                    "label",
+                    "text",
+                    "title",
+                    "url"
                 ]
             },
             "OperationResult": {
@@ -5180,6 +4442,24 @@
                 "required": [
                     "status"
                 ]
+            },
+            "PageEnum": {
+                "enum": [
+                    "home",
+                    "how-it-works",
+                    "wholesale",
+                    "sell",
+                    "about",
+                    "contact",
+                    "terms",
+                    "privacy",
+                    "help",
+                    "payment-and-delivery",
+                    "cancellations-and-disputes",
+                    "verification"
+                ],
+                "type": "string",
+                "description": "* `home` - home\n* `how-it-works` - how-it-works\n* `wholesale` - wholesale\n* `sell` - sell\n* `about` - about\n* `contact` - contact\n* `terms` - terms\n* `privacy` - privacy\n* `help` - help\n* `payment-and-delivery` - payment-and-delivery\n* `cancellations-and-disputes` - cancellations-and-disputes\n* `verification` - verification"
             },
             "PasswordChangeRequest": {
                 "type": "object",
@@ -5245,89 +4525,6 @@
                         "maxLength": 150
                     }
                 }
-            },
-            "Payload": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "maxLength": 180
-                    },
-                    "description": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 400
-                    },
-                    "group": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 100
-                    },
-                    "blocks": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Block"
-                        }
-                    },
-                    "navigation": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/NavGroup"
-                        }
-                    },
-                    "support": {
-                        "$ref": "#/components/schemas/Support"
-                    }
-                },
-                "required": [
-                    "title"
-                ]
-            },
-            "PayloadRequest": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 180
-                    },
-                    "description": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 400
-                    },
-                    "group": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 100
-                    },
-                    "blocks": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/BlockRequest"
-                        }
-                    },
-                    "navigation": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/NavGroupRequest"
-                        }
-                    },
-                    "support": {
-                        "$ref": "#/components/schemas/SupportRequest"
-                    }
-                },
-                "required": [
-                    "title"
-                ]
-            },
-            "PlacementEnum": {
-                "enum": [
-                    "header",
-                    "footer"
-                ],
-                "type": "string",
-                "description": "* `header` - header\n* `footer` - footer"
             },
             "PricingModeEnum": {
                 "enum": [
@@ -5462,6 +4659,89 @@
                     "profiles"
                 ]
             },
+            "PromotionalCard": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "image": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "video": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "poster": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "alt": {
+                        "type": "string"
+                    },
+                    "cta_label": {
+                        "type": "string"
+                    },
+                    "cta_url": {
+                        "type": "string"
+                    },
+                    "transcript": {
+                        "type": "string"
+                    },
+                    "source_url": {
+                        "type": "string"
+                    },
+                    "content_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "fallback": {
+                        "type": "boolean"
+                    },
+                    "slot": {
+                        "$ref": "#/components/schemas/SlotEnum"
+                    }
+                },
+                "required": [
+                    "alt",
+                    "content_locale",
+                    "cta_label",
+                    "cta_url",
+                    "description",
+                    "fallback",
+                    "id",
+                    "image",
+                    "kind",
+                    "poster",
+                    "slot",
+                    "source_url",
+                    "title",
+                    "transcript",
+                    "video"
+                ]
+            },
             "PublicAccountContextEnum": {
                 "enum": [
                     "buyer",
@@ -5470,118 +4750,75 @@
                 "type": "string",
                 "description": "* `buyer` - buyer\n* `seller` - seller"
             },
-            "PublicContent": {
+            "PublicSite": {
                 "type": "object",
                 "properties": {
-                    "key": {
-                        "type": "string"
+                    "default_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
                     },
-                    "kind": {
-                        "type": "string"
+                    "default_theme": {
+                        "$ref": "#/components/schemas/DefaultThemeEnum"
                     },
-                    "revision": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "number": {
-                        "type": "integer"
-                    },
-                    "requested_locale": {
-                        "type": "string"
-                    },
-                    "content_locale": {
-                        "type": "string"
-                    },
-                    "fallback": {
+                    "indexing": {
                         "type": "boolean"
                     },
-                    "available_locales": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
+                    "identity": {
+                        "$ref": "#/components/schemas/Identity"
                     },
-                    "published_at": {
-                        "type": "string",
-                        "format": "date-time"
+                    "contacts": {
+                        "$ref": "#/components/schemas/Contacts"
                     },
-                    "effective_date": {
-                        "type": "string",
-                        "format": "date",
-                        "nullable": true
-                    },
-                    "payload": {
-                        "$ref": "#/components/schemas/Payload"
-                    }
-                },
-                "required": [
-                    "available_locales",
-                    "content_locale",
-                    "effective_date",
-                    "fallback",
-                    "key",
-                    "kind",
-                    "number",
-                    "payload",
-                    "published_at",
-                    "requested_locale",
-                    "revision"
-                ]
-            },
-            "PublicList": {
-                "type": "object",
-                "properties": {
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PublicContent"
-                        }
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "count": {
-                        "type": "integer"
-                    }
-                },
-                "required": [
-                    "count",
-                    "page",
-                    "results"
-                ]
-            },
-            "PublicShell": {
-                "type": "object",
-                "properties": {
-                    "navigation": {
+                    "favicon": {
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/PublicContent"
+                                "$ref": "#/components/schemas/Media"
                             }
                         ],
                         "nullable": true
                     },
-                    "support": {
+                    "og_image": {
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/PublicContent"
+                                "$ref": "#/components/schemas/Media"
                             }
                         ],
                         "nullable": true
                     },
                     "announcement": {
-                        "allOf": [
-                            {
-                                "$ref": "#/components/schemas/PublicContent"
-                            }
-                        ],
-                        "nullable": true
+                        "$ref": "#/components/schemas/Notice"
+                    },
+                    "maintenance": {
+                        "$ref": "#/components/schemas/Notice"
+                    },
+                    "hero": {
+                        "$ref": "#/components/schemas/Hero"
+                    },
+                    "seo": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SEO"
+                        }
+                    },
+                    "media_hosts": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "required": [
                     "announcement",
-                    "navigation",
-                    "support"
+                    "contacts",
+                    "default_locale",
+                    "default_theme",
+                    "favicon",
+                    "hero",
+                    "identity",
+                    "indexing",
+                    "maintenance",
+                    "media_hosts",
+                    "og_image",
+                    "seo"
                 ]
             },
             "QueueItem": {
@@ -5831,78 +5068,32 @@
                     "name"
                 ]
             },
-            "RevisionData": {
+            "SEO": {
                 "type": "object",
                 "properties": {
-                    "author_name": {
+                    "page": {
+                        "$ref": "#/components/schemas/PageEnum"
+                    },
+                    "title": {
                         "type": "string"
                     },
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "number": {
-                        "type": "integer"
-                    },
-                    "locale": {
+                    "description": {
                         "type": "string"
                     },
-                    "source_id": {
-                        "type": "string",
-                        "format": "uuid",
+                    "image": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
                         "nullable": true
-                    },
-                    "payload": {
-                        "$ref": "#/components/schemas/Payload"
-                    },
-                    "state": {
-                        "type": "string"
-                    },
-                    "effective_date": {
-                        "type": "string",
-                        "format": "date",
-                        "nullable": true
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
                     }
                 },
                 "required": [
-                    "author_name",
-                    "created_at",
-                    "effective_date",
-                    "id",
-                    "locale",
-                    "number",
-                    "payload",
-                    "source_id",
-                    "state"
-                ]
-            },
-            "SaveRequest": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "locale": {
-                        "$ref": "#/components/schemas/LocaleEnum"
-                    },
-                    "source": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "payload": {
-                        "$ref": "#/components/schemas/PayloadRequest"
-                    }
-                },
-                "required": [
-                    "locale",
-                    "payload",
-                    "version"
+                    "description",
+                    "image",
+                    "page",
+                    "title"
                 ]
             },
             "SessionData": {
@@ -5944,6 +5135,101 @@
                     "password"
                 ]
             },
+            "Slide": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/SlideKindEnum"
+                    },
+                    "image": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "video": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "poster": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "alt": {
+                        "type": "string"
+                    },
+                    "cta_label": {
+                        "type": "string"
+                    },
+                    "cta_url": {
+                        "type": "string"
+                    },
+                    "transcript": {
+                        "type": "string"
+                    },
+                    "source_url": {
+                        "type": "string"
+                    },
+                    "content_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "fallback": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "alt",
+                    "content_locale",
+                    "cta_label",
+                    "cta_url",
+                    "description",
+                    "fallback",
+                    "id",
+                    "image",
+                    "kind",
+                    "poster",
+                    "source_url",
+                    "title",
+                    "transcript",
+                    "video"
+                ]
+            },
+            "SlideKindEnum": {
+                "enum": [
+                    "image",
+                    "video"
+                ],
+                "type": "string",
+                "description": "* `image` - image\n* `video` - video"
+            },
+            "SlotEnum": {
+                "enum": [
+                    "promo_1",
+                    "promo_2"
+                ],
+                "type": "string",
+                "description": "* `promo_1` - promo_1\n* `promo_2` - promo_2"
+            },
             "Status": {
                 "type": "object",
                 "properties": {
@@ -5963,80 +5249,6 @@
                 ],
                 "type": "string",
                 "description": "* `alive` - alive\n* `ready` - ready\n* `not_ready` - not_ready"
-            },
-            "Support": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "format": "email",
-                                "default": ""
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    },
-                    "phone": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 24
-                    },
-                    "website": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "format": "uri",
-                                "default": "",
-                                "maxLength": 200
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    }
-                }
-            },
-            "SupportRequest": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "format": "email",
-                                "default": ""
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    },
-                    "phone": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 24
-                    },
-                    "website": {
-                        "oneOf": [
-                            {
-                                "type": "string",
-                                "format": "uri",
-                                "default": "",
-                                "maxLength": 200
-                            },
-                            {
-                                "type": "string",
-                                "maxLength": 0
-                            }
-                        ]
-                    }
-                }
             },
             "TeamData": {
                 "type": "object",
@@ -6240,19 +5452,6 @@
                     "page",
                     "results"
                 ]
-            },
-            "TypeEnum": {
-                "enum": [
-                    "hero",
-                    "text",
-                    "steps",
-                    "guides",
-                    "callout",
-                    "catalogue",
-                    "store"
-                ],
-                "type": "string",
-                "description": "* `hero` - hero\n* `text` - text\n* `steps` - steps\n* `guides` - guides\n* `callout` - callout\n* `catalogue` - catalogue\n* `store` - store"
             },
             "VersionActionActionEnum": {
                 "enum": [

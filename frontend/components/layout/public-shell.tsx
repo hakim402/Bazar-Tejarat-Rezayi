@@ -1,174 +1,141 @@
-import { Document } from "../../features/content/components/document";
-import { SkipLink } from "../ui/skip-link";
-import { authCopy } from "../../lib/i18n/auth";
-import Link from "next/link";
+import { AccessProvider } from "../../features/identity/components/access-provider";
 import type { ReactNode } from "react";
 import type { Locale } from "../../lib/i18n/locales";
 import { direction } from "../../lib/i18n/locales";
 import { messages } from "../../lib/i18n/messages";
-import { contentCopy } from "../../lib/i18n/content";
-import type { Content, ContentShell } from "../../features/content/types";
+import { siteCopy } from "../../lib/i18n/site";
+import type { Site } from "../../features/site/contract";
 import { SiteHeader } from "./site-header";
+import { Container } from "./container";
+import { SiteFooter } from "./site-footer";
+import { SkipLink } from "../ui/skip-link";
 export function SupportDetails({
-	resource,
+	site,
 	locale,
 }: {
-	resource?: Content | null;
+	site?: Site | null;
 	locale: Locale;
 }) {
-	const t = contentCopy[locale],
-		support = resource?.payload.support;
-	if (resource === undefined)
-		return (
-			<aside role="alert" className="rounded-card border border-border p-5">
-				{t.outage}
-			</aside>
-		);
+	const t = siteCopy[locale],
+		contacts = site?.contacts;
 	return (
-		<aside className="space-y-2 rounded-card border border-border bg-surface p-5">
+		<aside className="min-w-0 space-y-3 rounded-card border border-border bg-surface p-5 text-foreground">
 			<h2 className="text-2xl">{t.contact}</h2>
-			{resource?.fallback && (
-				<p lang={locale} dir={direction(locale)}>
-					{t.fallback}
-				</p>
-			)}
-			{support && (support.email || support.phone || support.website) ? (
+			{contacts && (contacts.email || contacts.phone || contacts.website) ? (
 				<address className="flex min-w-0 flex-wrap gap-5 not-italic wrap-anywhere">
-					{support.email && (
-						<a href={`mailto:${support.email}`}>
-							<bdi dir="ltr">{support.email}</bdi>
+					{contacts.email && (
+						<a href={`mailto:${contacts.email}`}>
+							<bdi dir="ltr">{contacts.email}</bdi>
 						</a>
 					)}
-					{support.phone && (
-						<a href={`tel:${support.phone.replace(/[ ()-]/g, "")}`}>
-							<bdi dir="ltr">{support.phone}</bdi>
+					{contacts.phone && (
+						<a href={`tel:${contacts.phone.replace(/[ ()-]/g, "")}`}>
+							<bdi dir="ltr">{contacts.phone}</bdi>
 						</a>
 					)}
-					{support.website && (
-						<a href={support.website} rel="noopener noreferrer">
-							<bdi dir="ltr">{support.website}</bdi>
+					{contacts.website && (
+						<a href={contacts.website}>
+							<bdi dir="ltr">{contacts.website}</bdi>
 						</a>
 					)}
 				</address>
 			) : (
 				<p className="text-muted">{t.noContact}</p>
 			)}
+			{site?.identity.fallback &&
+				(site.identity.address || site.identity.hours) && <p>{t.fallback}</p>}
+			{site?.identity.address && (
+				<p
+					lang={site.identity.content_locale}
+					dir={direction(site.identity.content_locale)}
+				>
+					{site.identity.address}
+				</p>
+			)}
+			{site?.identity.hours && (
+				<p
+					lang={site.identity.content_locale}
+					dir={direction(site.identity.content_locale)}
+				>
+					{site.identity.hours}
+				</p>
+			)}
+			{contacts && (
+				<div className="flex flex-wrap gap-5">
+					{(["facebook", "instagram", "linkedin", "youtube"] as const).map(
+						(key) =>
+							contacts[key] && (
+								<a
+									key={key}
+									href={contacts[key]}
+									className="inline-flex min-h-11 items-center"
+									lang="en"
+									dir="ltr"
+								>
+									{key[0].toUpperCase() + key.slice(1)}
+								</a>
+							),
+					)}
+				</div>
+			)}
 		</aside>
 	);
 }
 export function PublicShell({
 	locale,
-	shell,
+	site,
+	hero,
 	children,
 }: {
 	locale: Locale;
-	shell: ContentShell | null;
+	site?: Site | null;
+	hero?: ReactNode;
 	children: ReactNode;
 }) {
-	const t = contentCopy[locale];
-	const groups = shell?.navigation?.payload.navigation ?? [];
+	const announcement = site?.announcement;
 	return (
-		<>
-			<SkipLink label={messages[locale].skip} />
-			<SiteHeader locale={locale} />
-			<nav
-				aria-label={t.navigation}
-				className="border-b border-border bg-surface"
-			>
-				<div className="page-container flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
-					<Link href={`/${locale}`}>{t.home}</Link>
-					<Link href={`/${locale}/help`}>{t.help}</Link>
-					{groups
-						.filter((g) => g.placement === "header")
-						.map((g) => (
-							<span
-								key={g.id}
-								lang={shell?.navigation?.content_locale}
-								dir={direction(
-									(shell?.navigation?.content_locale ?? locale) as Locale,
-								)}
-								className="contents"
-							>
-								{g.links.map((link) => (
-									<Link key={link.id} href={`/${locale}${link.target}`}>
-										{link.label}
-									</Link>
-								))}
-							</span>
-						))}
-					<Link href={`/${locale}/auth/buyer-sign-in`}>
-						{authCopy[locale].buyerSignin}
-					</Link>
-					<Link href={`/${locale}/auth/seller-sign-in`}>
-						{authCopy[locale].sellerSignin}
-					</Link>
-				</div>
-			</nav>
-			{shell?.announcement && (
-				<aside className="border-b border-border bg-info">
-					<div
-						className="page-container py-3"
-						lang={shell.announcement.content_locale}
-						dir={direction(shell.announcement.content_locale as Locale)}
-					>
-						{shell.announcement.fallback && (
-							<p lang={locale} dir={direction(locale)}>
-								{t.fallback}
-							</p>
-						)}
-						<strong>{shell.announcement.payload.title}</strong>
-						<Document
-							data={shell.announcement.payload}
-							locale={locale}
-							contentLocale={shell.announcement.content_locale as Locale}
-							heading={false}
-							compact
-						/>
-					</div>
-				</aside>
-			)}
-			<main
-				id="main"
-				tabIndex={-1}
-				className="page-container space-y-6 py-7 desktop:py-12"
-			>
-				{children}
-			</main>
-			<footer className="border-t border-border bg-surface">
-				<div className="page-container space-y-5 py-7">
-					<strong>{messages[locale].brand}</strong>
-					{shell?.navigation?.fallback && (
-						<p className="text-muted">{t.fallback}</p>
+		<AccessProvider locale={locale}>
+			<div className="flex min-h-screen flex-col">
+				<SkipLink label={messages[locale].skip} />
+				<SiteHeader locale={locale} />
+				{announcement?.enabled && (
+					<aside className="border-b border-border bg-info">
+						<Container
+							className="flex flex-wrap items-center gap-4 py-3"
+							lang={announcement.content_locale}
+							dir={direction(announcement.content_locale)}
+						>
+							{announcement.fallback && (
+								<span lang={locale} dir={direction(locale)}>
+									{siteCopy[locale].fallback}
+								</span>
+							)}
+							<p>{announcement.text}</p>
+							{announcement.label && announcement.url && (
+								<a
+									className="inline-flex min-h-11 items-center font-bold"
+									href={
+										announcement.url.startsWith("/")
+											? `/${locale}${announcement.url === "/" ? "" : announcement.url}`
+											: announcement.url
+									}
+								>
+									{announcement.label}
+								</a>
+							)}
+						</Container>
+					</aside>
+				)}
+				<main id="main" tabIndex={-1} className="flex-1">
+					{hero}
+					{children && (
+						<Container className="space-y-7 py-7 desktop:py-10">
+							{children}
+						</Container>
 					)}
-					<div
-						className="flex flex-wrap gap-x-12 gap-y-4"
-						lang={shell?.navigation?.content_locale}
-						dir={direction(
-							(shell?.navigation?.content_locale ?? locale) as Locale,
-						)}
-					>
-						{groups
-							.filter((g) => g.placement === "footer")
-							.map((g) => (
-								<nav key={g.id} aria-label={g.label} className="space-y-2">
-									<strong>{g.label}</strong>
-									<ul className="m-0 list-none space-y-2 p-0">
-										{g.links.map((link) => (
-											<li key={link.id}>
-												<Link href={`/${locale}${link.target}`}>
-													{link.label}
-												</Link>
-											</li>
-										))}
-									</ul>
-								</nav>
-							))}
-					</div>
-					{shell?.support && (
-						<SupportDetails resource={shell.support} locale={locale} />
-					)}
-				</div>
-			</footer>
-		</>
+				</main>
+				<SiteFooter locale={locale} />
+			</div>
+		</AccessProvider>
 	);
 }

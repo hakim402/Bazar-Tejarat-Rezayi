@@ -9,7 +9,7 @@ export function Shell({
 	children: ReactNode;
 }) {
 	return (
-		<PublicShell locale={locale} shell={null}>
+		<PublicShell locale={locale} site={null}>
 			{children}
 		</PublicShell>
 	);

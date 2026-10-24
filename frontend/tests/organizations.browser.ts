@@ -1,3 +1,5 @@
+import { messages } from "../lib/i18n/messages";
+import { choosePreference } from "./support/site-preferences";
 import {
 	test,
 	expect,
@@ -318,7 +320,7 @@ test("Phase04 invitation correct account explicit acceptance permission reductio
 		.click();
 	const token = JSON.parse(
 		disposablePython(
-			"import json\nfrom email import policy\nfrom email.parser import BytesParser\nfrom pathlib import Path\nimport re\nlinks=[]\nfor p in Path('/app/data/private-mail').glob('*.eml'):\n m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())\n if str(m['To'])=='phase04-invitee@example.test':\n  text=m.get_body(preferencelist=('plain',)).get_content()\n  match=re.search(r'#token=([A-Za-z0-9_-]+)',text)\n  if match:links.append((p.stat().st_mtime,match[1]))\nprint(json.dumps(sorted(links)[-1][1]))",
+			"from django.conf import settings\nimport json\nfrom email import policy\nfrom email.parser import BytesParser\nfrom pathlib import Path\nimport re\nlinks=[]\nfor p in Path(settings.PRIVATE_MAIL_ROOT).glob('*.eml'):\n m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())\n if str(m['To'])=='phase04-invitee@example.test':\n  text=m.get_body(preferencelist=('plain',)).get_content()\n  match=re.search(r'#token=([A-Za-z0-9_-]+)',text)\n  if match:links.append((p.stat().st_mtime,match[1]))\nprint(json.dumps(sorted(links)[-1][1]))",
 		),
 	);
 	const invited = await browser.newContext();
@@ -495,11 +497,7 @@ test("Phase04 long Dari company name, upload error recovery and keyboard focus",
 	await page.setViewportSize({ width: 390, height: 900 });
 	await login(page, user.email, "seller", locale);
 	await createProfile(page, locale, "company", name);
-	await page
-		.locator("header")
-		.getByRole("combobox")
-		.nth(1)
-		.selectOption("dark");
+	await choosePreference(page, messages[locale].theme, "dark");
 	await page.locator("[name=file]").setInputFiles({
 		name: "untrusted.svg",
 		mimeType: "image/svg+xml",
@@ -660,7 +658,8 @@ test("Phase04 reviewed P2 owner submits rendered alternative form with preserved
 			`${apiOrigin}/admin/verification/reviewcase/${item.id}/workflow/?locale=${locale}`,
 		);
 		const section = page.locator("section[lang]");
-		await expect(section).toHaveAttribute("dir", direction(locale));
+		await expect(section).toHaveAttribute("dir", "ltr");
+		await expect(section).toHaveAttribute("lang", "en");
 		for (const category of [
 			"business",
 			"representative_identity",

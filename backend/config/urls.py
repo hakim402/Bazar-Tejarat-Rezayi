@@ -7,7 +7,7 @@ from apps.accounts.admin import owner_site
 
 urlpatterns = [
     path("api/v1/catalogue/", include("apps.catalogue.urls")),
-    path("api/v1/content/", include("apps.content.urls")),
+    path("api/v1/site/", include("apps.site.urls")),
     path("admin/", owner_site.urls),
     path("api/v1/organizations/", include("apps.organizations.urls")),
     path("api/v1/verification/", include("apps.verification.urls")),

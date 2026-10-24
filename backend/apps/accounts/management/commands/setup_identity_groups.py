@@ -10,7 +10,6 @@ class Command(BaseCommand):
     def handle(self, **options):
         for title, code in [
             ("Verification", "review_identity"),
-            ("Content", "manage_content"),
             ("Payments", "review_payments"),
             ("Logistics", "manage_logistics"),
             ("Support", "handle_support"),
@@ -22,7 +21,4 @@ class Command(BaseCommand):
         group, created = Group.objects.get_or_create(name="Rezayi: Business review")
         if created:
             group.permissions.add(*Permission.objects.filter(content_type__app_label="verification", codename__in=["view_queue", "assign_review", "read_evidence", "decide_review", "review_transfer"]))
-        group, created = Group.objects.get_or_create(name="Rezayi: Editorial")
-        if created:
-            group.permissions.add(*Permission.objects.filter(content_type__app_label="content", codename__in=["read_drafts", "edit_content", "publish_content", "manage_settings"]))
         self.stdout.write("Operational groups available; existing assignments unchanged.")

@@ -67,7 +67,7 @@ for (const locale of locales) {
 			await page.goto(
 				`/${locale}/auth/google-result?google=${state}&context=buyer`,
 			);
-			await expect(page.getByRole("status")).toHaveText(
+			await expect(page.getByRole("main").getByRole("status")).toHaveText(
 				googleCopy[locale][state],
 			);
 			await expect(page).not.toHaveURL(/google=/);
@@ -141,12 +141,12 @@ for (const locale of locales) {
 		}
 	});
 }
-test("Owner auth uses supported language throughout public stages", async ({
+test("Owner auth stays English independently of marketplace locale", async ({
 	page,
 }) => {
 	for (const locale of locales) {
 		await page.goto(`${process.env.PLAYWRIGHT_API_ORIGIN ?? "http://127.0.0.1:8100"}/admin/login/?locale=${locale}`);
-		await expect(page.locator("html")).toHaveAttribute("lang", locale);
+		await expect(page.locator("html")).toHaveAttribute("lang", "en");
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.evaluate(() => document.fonts.ready);
 		await page.evaluate(() => {

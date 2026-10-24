@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.contrib.admin import action
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.contrib.auth.models import Group
@@ -14,13 +16,20 @@ from unfold.admin import ModelAdmin
 from unfold.sites import UnfoldAdminSite
 
 from .owner_copy import COPY, PASSWORD_ONLY_SUBTITLES
+from .admin_copy import COPY as ADMIN_COPY
 from .models import Account, AuditEvent, User
-from .services import audit, begin_signin, finish_mfa, get_grant, owner_mfa_required, start_enrollment
+from .services import audit, begin_signin, finish_mfa, get_grant, owner_mfa_required, start_enrollment, verify_development_emails
 
 
 class OwnerSite(UnfoldAdminSite):
-    site_header = "بازار رضایی — Owner"
+    site_header = "Bazar Rezayi"
+    index_title = "Overview"
+    index_template = "accounts/admin/dashboard.html"
     site_title = "Bazar Rezayi"
+
+    def get_urls(self):
+        from apps.site.admin import settings_urls
+        return [*settings_urls(self), *super().get_urls()]
 
     def has_permission(self, request):
         try:
@@ -33,8 +42,7 @@ class OwnerSite(UnfoldAdminSite):
     @method_decorator(csrf_protect)
     @method_decorator(sensitive_post_parameters())
     def login(self, request, extra_context=None):
-        locale = request.GET.get("locale", "fa-AF")
-        locale = locale if locale in COPY else "fa-AF"
+        locale = "en"
         t = COPY[locale]
         context = {
             "stage": "password",
@@ -44,7 +52,9 @@ class OwnerSite(UnfoldAdminSite):
             "site_header": self.site_header,
             "t": t,
             "locale": locale,
-            "direction": "ltr" if locale == "en" else "rtl",
+            "direction": "ltr",
+            "admin_copy": ADMIN_COPY,
+            "frontend_url": settings.FRONTEND_ORIGIN + "/en",
         }
         if self.has_permission(request):
             return HttpResponseRedirect(reverse("admin:index"))
@@ -110,6 +120,7 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
     list_display = ["display_name", "email", "email_verified", "is_active", "owner_authority"]
     ordering = ["email"]
     search_fields = ["email", "display_name"]
+    list_filter = ["email_verified", *UserAdmin.list_filter]
     fieldsets = [
         (None, {"fields": ["email", "display_name", "is_active"]}),
         (
@@ -120,7 +131,18 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
     add_fieldsets = [(None, {"fields": ["email", "display_name", "password1", "password2"]})]
     filter_horizontal = []
     readonly_fields = ["email", "email_verified", "owner_authority", "is_staff", "is_superuser", "credential_epoch"]
-    actions = []
+    actions = ["verify_email_for_development"]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if settings.PRODUCTION or not settings.DEBUG or not self.admin_site.has_permission(request):
+            actions.pop("verify_email_for_development", None)
+        return actions
+
+    @action(description=ADMIN_COPY["development_verify_email"])
+    def verify_email_for_development(self, request, queryset):
+        count = verify_development_emails(request, queryset.values_list("pk", flat=True))
+        self.message_user(request, ADMIN_COPY["development_verified_result"] % {"count": count})
 
     def get_readonly_fields(self, request, obj=None):
         return self.readonly_fields if obj else []

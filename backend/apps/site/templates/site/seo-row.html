@@ -1,0 +1,5 @@
+{% load i18n %}
+<details {% if editor.errors %}open{% endif %} class="ra:rounded-lg ra:border ra:border-line ra:p-4">
+  <summary class="ra:min-h-11 ra:cursor-pointer ra:text-sm ra:font-bold">{{ editor.caption }}</summary>
+  <fieldset class="ra:mt-4 ra:grid ra:min-w-0 ra:gap-5 ra:lg:grid-cols-2">{% for field in editor %}{% include 'site/field.html' %}{% endfor %}{{ editor.non_field_errors }}</fieldset>
+</details>

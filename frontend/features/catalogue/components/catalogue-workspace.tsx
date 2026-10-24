@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Button } from "../../../components/ui/button";
 import { catalogueCopy, catalogueStatuses } from "../../../lib/i18n/catalogue";
@@ -20,6 +20,8 @@ import {
 	failure,
 } from "./catalogue-fields";
 import type { ValidationIssue } from "../../../lib/api/private-client";
+import { useUnsavedNavigation } from "../../../components/layout/navigation-guard";
+import { CatalogueOverview } from "./catalogue-overview";
 import { ProductEditor } from "./product-editor";
 import { ProductRevisionPreview } from "./product-revision-preview";
 import { LivePrices } from "./live-prices";
@@ -83,6 +85,7 @@ export function CatalogueWorkspace({
 		[page, setPage] = useState(1);
 	const sourceDirty = !!body && JSON.stringify(body) !== baseline;
 	const dirty = sourceDirty || translationDirty || priceDirty;
+	const navigationFocus = useRef<HTMLElement | null>(null);
 	const previous = item?.revisions.find((r) => r.id === item.published);
 	const setTranslation = useCallback(
 		(v: boolean) => setTranslationDirty(v),
@@ -129,9 +132,12 @@ export function CatalogueWorkspace({
 		};
 	}, [context, id, state, page, locale, install]);
 	function guarded(fn: () => void) {
-		if (dirty) setPending(() => fn);
-		else fn();
+		if (dirty) {
+			navigationFocus.current = document.activeElement as HTMLElement;
+			setPending(() => fn);
+		} else fn();
 	}
+	useUnsavedNavigation(dirty, guarded);
 	async function run(
 		task: () => Promise<unknown>,
 		after?: (fresh: ProductDetail, result: Operation) => void,
@@ -205,7 +211,14 @@ export function CatalogueWorkspace({
 					</p>
 				)}
 				{pending && (
-					<div role="alert" className="border border-warning p-4 space-y-3">
+					<div
+						role="alert"
+						tabIndex={-1}
+						ref={(node) => {
+							if (node && !node.contains(document.activeElement)) node.focus();
+						}}
+						className="rounded-card border border-warning bg-warning-surface p-4 space-y-3"
+					>
 						<p>{t.dirty}</p>
 						<Button
 							onClick={() => {
@@ -220,7 +233,13 @@ export function CatalogueWorkspace({
 						>
 							{t.confirm}
 						</Button>
-						<Button variant="secondary" onClick={() => setPending(null)}>
+						<Button
+							variant="secondary"
+							onClick={() => {
+								setPending(null);
+								navigationFocus.current?.focus();
+							}}
+						>
 							{t.cancel}
 						</Button>
 					</div>
@@ -256,26 +275,7 @@ export function CatalogueWorkspace({
 							</label>
 							<Button type="submit">{t.filter}</Button>
 						</form>
-						{list.results.length === 0 && <p>{t.empty}</p>}
-						<ul className="space-y-3">
-							{list.results.map((p) => (
-								<li
-									key={p.id}
-									className="rounded-control border border-border p-4"
-								>
-									<Link
-										className="text-action underline break-words"
-										href={`/${locale}/account/${context}/catalogue/${p.id}`}
-									>
-										{p.title || p.id}
-									</Link>
-									<p>
-										{p.seller} · {catalogueStatuses[locale][p.state]} ·{" "}
-										{p.version}
-									</p>
-								</li>
-							))}
-						</ul>
+						<CatalogueOverview locale={locale} list={list} context={context} />
 						<div className="flex gap-4">
 							<Button
 								variant="secondary"

@@ -9,8 +9,9 @@ from urllib.parse import quote
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import Permission
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied, ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
 from django.middleware.csrf import rotate_token
 from django.utils import timezone
@@ -141,6 +142,30 @@ def consume_token(raw, purpose, *, password=None, request=None):
 
 def owner_mfa_required():
     return settings.PRODUCTION or settings.OWNER_MFA_REQUIRED
+
+
+@transaction.atomic
+def verify_development_emails(request, user_ids):
+    """Owner-only substitute for email proof in the local development environment."""
+    if settings.PRODUCTION or not settings.DEBUG:
+        raise DjangoPermissionDenied()
+    get_grant(request, "owner")
+    public_users = Account.objects.filter(context__in=["buyer", "seller"]).values("user_id")
+    staff_users = Account.objects.filter(context="staff").values("user_id")
+    users = User.objects.select_for_update().filter(
+        pk__in=user_ids, is_active=True, email_verified=False,
+        owner_authority=False, is_staff=False, is_superuser=False,
+    ).filter(pk__in=public_users).exclude(pk__in=staff_users)
+    count = 0
+    for user in users:
+        user.email_verified = True
+        user.save(update_fields=["email_verified"])
+        audit(
+            "owner_development_email_verified", request=request, user=user,
+            context="owner", fields=["email_verified"],
+        )
+        count += 1
+    return count
 
 
 def get_grant(request, context):
@@ -381,8 +406,9 @@ def permission_codes(account):
     # Fresh queries, no cached Django superuser permission bypass for operational accounts.
     return (
         list(
-            account.permission_groups.filter(permissions__content_type__app_label__in=["accounts", "verification", "content", "catalogue"])
-            .values_list("permissions__codename", flat=True)
+            Permission.objects.filter(group__in=account.permission_groups.all(), content_type__app_label__in=["accounts", "verification", "catalogue"])
+            .exclude(codename="manage_content")
+            .values_list("codename", flat=True)
             .distinct()
         )
         if account.context == "staff"

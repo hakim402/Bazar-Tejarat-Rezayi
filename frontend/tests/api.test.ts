@@ -102,3 +102,58 @@ test("language switch preserves equivalent deep path", () => {
 		"/en/stores/abc/products/item",
 	);
 });
+
+test("local review uses one auth hostname without redirecting remote or untrusted origins", async () => {
+	const { canonicalReviewUrl } = await import("../lib/api/review-origin.ts");
+	assert.equal(
+		canonicalReviewUrl(
+			"http://localhost:3100/en/auth/seller-registration?return=%2Fen%2Faccount%2Fseller",
+			"localhost:3100",
+			"http://127.0.0.1:8100",
+		)?.href,
+		"http://127.0.0.1:3100/en/auth/seller-registration?return=%2Fen%2Faccount%2Fseller",
+	);
+	// Next can normalize its URL internally; the actual Host prevents a redirect loop.
+	assert.equal(
+		canonicalReviewUrl(
+			"http://localhost:3100/en",
+			"127.0.0.1:3100",
+			"http://127.0.0.1:8100",
+		),
+		null,
+	);
+	assert.equal(
+		canonicalReviewUrl(
+			"http://127.0.0.1:3100/en",
+			"127.0.0.1:3100",
+			"http://localhost:8100",
+		)?.hostname,
+		"localhost",
+	);
+	for (const [url, host, api] of [
+		[
+			"https://bazartejaratrezayi.com/en",
+			"bazartejaratrezayi.com",
+			"https://api.bazartejaratrezayi.com",
+		],
+		[
+			"http://localhost:3100/en",
+			"localhost:3100",
+			"https://api.bazartejaratrezayi.com",
+		],
+		["http://localhost:3100/en", "localhost:8100", "http://127.0.0.1:8100"],
+		[
+			"http://localhost:3100/en",
+			"localhost.evil.test:3100",
+			"http://127.0.0.1:8100",
+		],
+		["http://evil.test:3100/en", "localhost:3100", "http://127.0.0.1:8100"],
+		[
+			"http://localhost:3100/en",
+			"localhost:3100",
+			"http://secret:private@127.0.0.1:8100",
+		],
+		["http://localhost:3100/en", "localhost:3100", "invalid"],
+	])
+		assert.equal(canonicalReviewUrl(url, host, api), null);
+});

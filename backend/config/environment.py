@@ -13,7 +13,7 @@ def load_environment(base_dir):
     return env
 
 
-def database_config(url, *, production=False, host_override="", conn_max_age=0):
+def database_config(url, *, production=False, conn_max_age=0):
     message = "DATABASE_URL must be an explicit PostgreSQL URL with database and credentials."
     try:
         parsed = urlsplit(url)
@@ -35,21 +35,17 @@ def database_config(url, *, production=False, host_override="", conn_max_age=0):
         mode = options.get("sslmode", "verify-full" if production else "disable")
         if mode not in {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}:
             raise ValueError
-        if production and (mode != "verify-full" or host_override):
+        if production and mode != "verify-full":
             raise ValueError
         timeout = int(options.get("connect_timeout", 3))
         if not 1 <= timeout <= 10:
-            raise ValueError
-        if host_override and parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
-            raise ValueError
-        if host_override and not all(c.isalnum() or c in ".-" for c in host_override):
             raise ValueError
         return {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": unquote(parsed.path[1:]),
             "USER": unquote(parsed.username),
             "PASSWORD": unquote(parsed.password),
-            "HOST": host_override or parsed.hostname,
+            "HOST": parsed.hostname,
             "PORT": port,
             "CONN_MAX_AGE": int(conn_max_age),
             "CONN_HEALTH_CHECKS": True,

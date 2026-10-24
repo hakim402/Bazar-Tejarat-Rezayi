@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import NotFound, APIException
 
 from .contracts import BRAND_NAMES, LOCALES, BootstrapSerializer, ErrorSerializer, StatusSerializer
 from .observability import log_failure
@@ -14,6 +15,15 @@ class PublicView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
+    def locale(self, locale):
+        if locale not in LOCALES:
+            raise NotFound()
+
 
 class BootstrapView(PublicView):
     @extend_schema(
@@ -22,17 +32,24 @@ class BootstrapView(PublicView):
         auth=[],
     )
     def get(self, request):
+        from apps.site.models import SiteSettings
+        try:
+            default_locale = SiteSettings.objects.values_list("default_locale", flat=True).get(pk=1)
+        except SiteSettings.DoesNotExist:
+            error = APIException("Site settings are not initialized.")
+            error.status_code = 503
+            raise error from None
         response = Response(
             BootstrapSerializer(
                 {
-                    "default_locale": "fa-AF",
+                    "default_locale": default_locale,
                     "supported_locales": LOCALES,
                     "brand_names": BRAND_NAMES,
                     "currencies": ["AFN", "USD"],
                 }
             ).data
         )
-        response["Cache-Control"] = "public, max-age=60"
+        response["Cache-Control"] = "no-store"
         return response
 
 

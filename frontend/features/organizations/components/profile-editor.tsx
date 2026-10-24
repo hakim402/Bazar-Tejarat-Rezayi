@@ -31,7 +31,11 @@ export function ProfileEditor({
 		void onSave(fields);
 	}
 	return (
-		<form onSubmit={submit} className="flex flex-col gap-3" aria-busy={busy}>
+		<form
+			onSubmit={submit}
+			className="grid grid-cols-1 gap-4 rounded-card border border-border bg-page p-5"
+			aria-busy={busy}
+		>
 			{!profile && (
 				<Field name="kind" label={t.profile}>
 					<Select name="kind">

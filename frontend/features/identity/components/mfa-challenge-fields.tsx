@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Field, Input, CheckField } from "../../../components/ui/form-field";
 import { authCopy } from "../../../lib/i18n/auth";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -5,12 +6,15 @@ export function MfaChallengeFields({
 	locale,
 	secret,
 	error,
+	errorId = "account-error",
 }: {
 	locale: Locale;
 	secret: string;
 	error: string;
+	errorId?: string;
 }) {
 	const t = authCopy[locale];
+	const prefix = useId();
 	return (
 		<>
 			{secret && (
@@ -24,19 +28,24 @@ export function MfaChallengeFields({
 					</code>
 				</>
 			)}
-			<Field name="code" label={t.code}>
+			<Field id={`${prefix}-code`} name="code" label={t.code}>
 				<Input
 					name="code"
+					id={`${prefix}-code`}
 					type="text"
 					required
 					autoComplete="one-time-code"
 					dir="ltr"
 					maxLength={32}
 					aria-invalid={Boolean(error)}
-					aria-describedby={error ? "account-error" : undefined}
+					aria-describedby={error ? errorId : undefined}
 				/>
 			</Field>
-			<CheckField name="recovery" label={t.recoveryCode} />
+			<CheckField
+				id={`${prefix}-recovery`}
+				name="recovery"
+				label={t.recoveryCode}
+			/>
 		</>
 	);
 }

@@ -33,13 +33,13 @@ export function AccountSummary({
 		},
 	];
 	return (
-		<dl className="account-summary my-6">
+		<dl className="account-summary my-6 grid gap-3 desktop:grid-cols-2">
 			{fields.map((field) => (
 				<div
 					key={field.key}
-					className="grid grid-cols-1 gap-1 border-b border-border py-3 desktop:grid-cols-[11.25rem_minmax(0,1fr)] desktop:gap-4"
+					className="min-w-0 rounded-control border border-border bg-page p-4"
 				>
-					<dt className="text-muted">{field.label}</dt>
+					<dt className="mb-1 text-sm text-muted">{field.label}</dt>
 					<dd className="m-0 wrap-anywhere">{field.value}</dd>
 				</div>
 			))}

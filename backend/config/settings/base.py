@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     "apps.accounts.apps.AccountsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.verification.apps.VerificationConfig",
-    "apps.content.apps.ContentConfig",
+    "apps.site.apps.SiteConfig",
     "apps.catalogue.apps.CatalogueConfig",
     "django_otp",
     "django.contrib.admin",
@@ -60,6 +60,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "apps.foundation.observability.RequestContextMiddleware",
+    "apps.foundation.uploads.UploadBoundaryMiddleware",
+    "apps.accounts.admin_locale.AdminEnglishMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -77,7 +79,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "apps/accounts/templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -95,7 +97,6 @@ DATABASES = {
     "default": database_config(
         env("DATABASE_URL", default=""),
         production=PRODUCTION,
-        host_override=env("DATABASE_HOST", default=""),
         conn_max_age=env("DB_CONN_MAX_AGE", default="0"),
     )
 }
@@ -150,8 +151,15 @@ AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS[1]["OPTIONS"] = {"min_length": 12}
 UNFOLD = {
     "SITE_TITLE": "Bazar Rezayi",
-    "SITE_HEADER": "بازار رضایی",
-    "SITE_SUBHEADER": "Owner administration",
+    "SITE_HEADER": "Bazar Rezayi",
+    "SITE_SUBHEADER": "Owner workspace",
+    "SHOW_LANGUAGES": False,
+    "DASHBOARD_CALLBACK": "apps.accounts.dashboard.dashboard_context",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": "apps.accounts.admin_navigation.navigation",
+    },
     "COLORS": {
         "primary": {
             "50": "#eaf4ff",
@@ -170,8 +178,8 @@ UNFOLD = {
     "SITE_URL": FRONTEND_ORIGIN,
     "STYLES": [lambda request: "/static/accounts/admin.css"],
     "SITE_LOGO": {
-        "light": lambda request: "/static/accounts/brand.svg",
-        "dark": lambda request: "/static/accounts/brand-white.svg",
+        "light": lambda request: "/static/accounts/brand-en.svg",
+        "dark": lambda request: "/static/accounts/brand-en-white.svg",
     },
 }
 
@@ -265,7 +273,7 @@ for _logger in ("authlib", "requests", "urllib3", "pypdf", "PIL"):
 # One 10MiB evidence file per request, with bounded multipart overhead/count.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
-DATA_UPLOAD_MAX_NUMBER_FILES = 1
+DATA_UPLOAD_MAX_NUMBER_FILES = 32  # Per-request guard retains one file outside owner Site Settings.
 
 # Catalogue bytes always pass application authorization, including when stored in S3.
 STORAGES["catalogue_local"] = {
@@ -302,3 +310,10 @@ for _logger in ("botocore", "boto3", "s3transfer"):
     LOGGING["loggers"][_logger] = {"handlers": [], "level": "CRITICAL", "propagate": False}
 
 CATALOGUE_TEST_ADAPTER_ALLOWED = False
+
+# Site-public assets have a separate root and validated exact-host policy.
+SITE_MEDIA_HOSTS = tuple(env.list("SITE_MEDIA_HOSTS", default=[]))
+for _host in SITE_MEDIA_HOSTS:
+    if not __import__("re").fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}", _host) or "." not in _host or _host.endswith((".local", ".localhost", ".internal", ".test", ".invalid")) or _host.replace(".", "").isdigit():
+        raise ImproperlyConfigured("SITE_MEDIA_HOSTS must contain explicit public lowercase DNS hostnames only.")
+STORAGES["site_local"] = {"BACKEND": "apps.foundation.storage.PrivateFileStorage", "OPTIONS": {"location": DATA_ROOT / "site-public"}}

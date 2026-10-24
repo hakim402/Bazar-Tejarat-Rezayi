@@ -1,0 +1,9 @@
+{% load i18n %}
+<div class="ra:space-y-5">
+  {% for field in editor.hidden_fields %}{{ field }}{% endfor %}{{ editor.non_field_errors }}
+  <div class="ra:grid ra:gap-5 ra:lg:grid-cols-2">{% for field in editor.basics %}{% include 'site/field.html' %}{% endfor %}{% for field in editor.image_fields %}{% include 'site/field.html' %}{% endfor %}</div>
+  {% if editor.instance.image_id %}<img src="{% url 'site_media' pk=editor.instance.image_id %}" alt="{% translate 'Current card image' %}" class="ra:h-40 ra:max-w-full ra:rounded-lg ra:object-contain">{% endif %}
+  {% include 'site/field.html' with field=editor.image_url %}
+  {% include 'site/locales.html' with editor=editor %}
+  {% if editor.instance.pk %}{% include 'site/field.html' with field=editor.DELETE %}{% endif %}
+</div>

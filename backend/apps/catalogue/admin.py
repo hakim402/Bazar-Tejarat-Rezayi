@@ -9,7 +9,7 @@ from rest_framework.exceptions import APIException
 from apps.accounts.admin import owner_site
 from apps.organizations.admin import ReadOnlyAdmin
 from . import contracts, access, services, translations, taxonomy
-from .owner_copy import FIELDS, localize
+from .owner_copy import localize
 from .models import (
     Product,
     SourceRevision,
@@ -60,7 +60,7 @@ class ProductAdmin(ReadOnlyAdmin):
 
     def workflow_link(self, obj):
         return format_html(
-            '<a href="{}">Review / ترجمه / خپرول / مراجعة</a>', reverse("admin:catalogue_workflow", args=[obj.pk])
+            '<a href="{}">Review / translate / publish</a>', reverse("admin:catalogue_workflow", args=[obj.pk])
         )
 
     def get_urls(self):
@@ -70,8 +70,7 @@ class ProductAdmin(ReadOnlyAdmin):
         ]
 
     def workflow(self, request, pk):
-        locale = request.GET.get("locale", "fa-AF")
-        locale = locale if locale in FIELDS else "fa-AF"
+        locale = "en"
         item = get_object_or_404(Product, pk=pk)
         actor = access.actor_for(request, "owner")
         access.resource(actor, pk)
@@ -184,8 +183,7 @@ class CategoryAdmin(ReadOnlyAdmin):
         ]
 
     def workflow(self, request, code):
-        locale = request.GET.get("locale", "fa-AF")
-        locale = locale if locale in FIELDS else "fa-AF"
+        locale = "en"
         actor = access.actor_for(request, "owner")
         access.staff(actor, "manage_taxonomy")
         row = next((r for r in taxonomy.taxonomy()["categories"] if r["code"] == code), None)
@@ -228,8 +226,7 @@ class UnitAdmin(ReadOnlyAdmin):
     def workflow(self, request, code):
         actor = access.actor_for(request, "owner")
         access.staff(actor, "manage_taxonomy")
-        locale = request.GET.get("locale", "fa-AF")
-        locale = locale if locale in FIELDS else "fa-AF"
+        locale = "en"
         row = next((r for r in taxonomy.taxonomy()["units"] if r["code"] == code), None)
         form = CategoryForm(request.POST if request.method == "POST" else None, initial={"payload": row})
         t = localize(form, locale)

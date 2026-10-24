@@ -8,38 +8,39 @@ import {
 	type Locale,
 } from "../../lib/i18n/locales";
 import { messages } from "../../lib/i18n/messages";
+import { useSite } from "../../features/site/context";
+import { useNavigation } from "./navigation-guard";
 export function Preferences({ locale }: { locale: Locale }) {
-	const t = messages[locale];
-	const path = usePathname();
-	const [theme, setTheme] = useState("system");
+	const t = messages[locale],
+		path = usePathname(),
+		navigate = useNavigation();
+	const site = useSite();
+	const [theme, setTheme] = useState<string>(site?.default_theme ?? "system");
 	useEffect(() => {
 		try {
 			const value = localStorage.getItem("rezayi-theme");
 			if (value && ["light", "dark", "system"].includes(value)) setTheme(value);
 		} catch {}
 	}, []);
-	function changeTheme(value: string) {
-		setTheme(value);
-		document.documentElement.dataset.theme = value;
-		try {
-			localStorage.setItem("rezayi-theme", value);
-		} catch {}
-	}
 	return (
-		<div className="preferences flex w-full justify-between gap-3.5 desktop:w-auto desktop:items-center desktop:gap-5">
-			<label className="grid min-w-0 flex-1 gap-1 text-base font-bold desktop:flex desktop:items-center desktop:gap-2.5">
-				{t.language}
+		<div className="preferences flex min-w-0 flex-wrap items-center gap-2 text-sm">
+			<label className="min-w-0 max-w-full">
+				<span className="sr-only">{t.language}</span>
 				<select
-					className="min-h-11.5 w-full max-w-none rounded-control border border-control bg-surface px-2.5 py-1.5 text-base text-foreground desktop:max-w-46.25 desktop:px-3"
+					className="min-h-11 max-w-full rounded-control border border-border bg-surface px-2 text-foreground"
 					aria-label={t.language}
 					value={locale}
-					onChange={(event) =>
-						window.location.assign(
+					onChange={(event) => {
+						const href =
 							localizePath(path, event.target.value as Locale) +
-								window.location.search +
-								window.location.hash,
-						)
-					}
+							location.search +
+							location.hash;
+						navigate(() => {
+							// biome-ignore lint/suspicious/noDocumentCookie: supports browsers without Cookie Store API.
+							document.cookie = `rezayi-locale=${event.target.value}; Path=/; SameSite=Lax; Max-Age=31536000`;
+							location.assign(href);
+						});
+					}}
 				>
 					{locales.map((value) => (
 						<option key={value} value={value} lang={value}>
@@ -48,13 +49,20 @@ export function Preferences({ locale }: { locale: Locale }) {
 					))}
 				</select>
 			</label>
-			<label className="grid min-w-0 flex-1 gap-1 text-base font-bold desktop:flex desktop:items-center desktop:gap-2.5">
-				{t.theme}
+			<label className="min-w-0 max-w-full">
+				<span className="sr-only">{t.theme}</span>
 				<select
-					className="min-h-11.5 w-full max-w-none rounded-control border border-control bg-surface px-2.5 py-1.5 text-base text-foreground desktop:max-w-46.25 desktop:px-3"
+					className="min-h-11 max-w-full rounded-control border border-border bg-surface px-2 text-foreground"
 					aria-label={t.theme}
 					value={theme}
-					onChange={(event) => changeTheme(event.target.value)}
+					onChange={(event) => {
+						const value = event.target.value;
+						setTheme(value);
+						document.documentElement.dataset.theme = value;
+						try {
+							localStorage.setItem("rezayi-theme", value);
+						} catch {}
+					}}
 				>
 					<option value="system">{t.system}</option>
 					<option value="light">{t.light}</option>

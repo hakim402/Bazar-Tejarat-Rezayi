@@ -865,11 +865,11 @@ class OrganizationTests(TransactionTestCase):
         business = create_profile(buyer_actor, profile_values("business"))
         for profile, actor in ((self.profile, self.actor), (individual, self.actor), (business, buyer_actor)):
             case = self.alternative_case(profile, actor)
-            for locale, t in COPY.items():
+            for locale in COPY:
                 with self.subTest(kind=profile.kind, locale=locale):
                     page = client.get(f"/admin/verification/reviewcase/{case.pk}/workflow/?locale={locale}")
                     self.assertEqual(page.status_code, 200)
-                    self.assertContains(page, escape(t["requested"]))
+                    self.assertContains(page, escape(COPY["en"]["requested"]))
                     form = page.context["form"]
                     self.assertEqual({key.removeprefix("alternative_") for key in form.fields if key.startswith("alternative_")}, set(categories(profile)))
                     for category in categories(profile):

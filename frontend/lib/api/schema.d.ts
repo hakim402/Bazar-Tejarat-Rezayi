@@ -500,134 +500,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/content/editor/{context}/items/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_editor_list"];
-        put?: never;
-        post: operations["content_editor_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/editor/{context}/items/{key}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_editor_get"];
-        put?: never;
-        post: operations["content_editor_save"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/editor/{context}/items/{key}/actions/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["content_editor_action"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/editor/{context}/revisions/{id}/preview/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_preview"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/public/{locale}/help/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_help"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/public/{locale}/home/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_home"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/public/{locale}/pages/{key}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_page"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content/public/{locale}/shell/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["content_shell"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/health/live/": {
         parameters: {
             query?: never;
@@ -820,6 +692,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/site/public/{locale}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["site_settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/verification/{context}/profiles/{id}/application/": {
         parameters: {
             query?: never;
@@ -946,25 +834,6 @@ export interface components {
             permissions: string[];
         };
         /**
-         * @description * `submit` - submit
-         *     * `return` - return
-         *     * `publish` - publish
-         *     * `unpublish` - unpublish
-         * @enum {string}
-         */
-        ActionActionEnum: "submit" | "return" | "publish" | "unpublish";
-        ActionRequest: {
-            version: number;
-            action: components["schemas"]["ActionActionEnum"];
-            /** Format: uuid */
-            revision: string;
-            reason: string;
-            /** @default false */
-            owner_approval: boolean;
-            /** Format: date */
-            effective_date?: string;
-        };
-        /**
          * @description * `save` - save
          *     * `submit` - submit
          *     * `revise` - revise
@@ -982,12 +851,6 @@ export interface components {
             current: components["schemas"]["CaseData"];
             revisions: components["schemas"]["CaseData"][];
         };
-        /**
-         * @description * `` -
-         *     * `welcome` - welcome
-         * @enum {string}
-         */
-        AssetEnum: "welcome";
         AuthResult: {
             status: string;
             csrf_token?: string;
@@ -1001,40 +864,6 @@ export interface components {
             /** Format: uuid */
             attempt_id?: string;
             return_path?: string;
-        };
-        /** @enum {unknown} */
-        BlankEnum: "";
-        Block: {
-            id: string;
-            type: components["schemas"]["TypeEnum"];
-            /** @default true */
-            enabled: boolean;
-            /** @default  */
-            title: string;
-            /** @default  */
-            text: string;
-            items?: string[];
-            links?: components["schemas"]["Link"][];
-            /** @default  */
-            asset: components["schemas"]["AssetEnum"] | components["schemas"]["BlankEnum"];
-            /** @default  */
-            alt: string;
-        };
-        BlockRequest: {
-            id: string;
-            type: components["schemas"]["TypeEnum"];
-            /** @default true */
-            enabled: boolean;
-            /** @default  */
-            title: string;
-            /** @default  */
-            text: string;
-            items?: string[];
-            links?: components["schemas"]["LinkRequest"][];
-            /** @default  */
-            asset: components["schemas"]["AssetEnum"] | components["schemas"]["BlankEnum"];
-            /** @default  */
-            alt: string;
         };
         Bootstrap: {
             default_locale: components["schemas"]["LocaleEnum"];
@@ -1284,20 +1113,14 @@ export interface components {
          * @enum {string}
          */
         CompanyBundleEnum: "catalogue" | "orders_negotiation" | "payments_refunds" | "fulfilment" | "messaging";
-        /**
-         * @description * `page` - page
-         *     * `article` - article
-         *     * `home` - home
-         *     * `shell` - shell
-         *     * `support` - support
-         *     * `announcement` - announcement
-         *     * `legal` - legal
-         * @enum {string}
-         */
-        CreateKindEnum: "page" | "article" | "home" | "shell" | "support" | "announcement" | "legal";
-        CreateRequest: {
-            key: string;
-            kind: components["schemas"]["CreateKindEnum"];
+        Contacts: {
+            email: string;
+            phone: string;
+            website: string;
+            facebook: string;
+            instagram: string;
+            linkedin: string;
+            youtube: string;
         };
         /**
          * @description * `AFN` - AFN
@@ -1305,36 +1128,13 @@ export interface components {
          * @enum {string}
          */
         CurrencyEnum: "AFN" | "USD";
-        EditorItem: {
-            key: string;
-            kind: string;
-            /** Format: uuid */
-            id: string;
-            version: number;
-            revisions: components["schemas"]["RevisionData"][];
-            publications: {
-                [key: string]: string;
-            };
-            history: components["schemas"]["EventData"][];
-        };
-        EditorList: {
-            page: number;
-            count: number;
-            results: components["schemas"]["EditorSummary"][];
-            permissions: string[];
-        };
-        EditorSummary: {
-            key: string;
-            kind: string;
-            /** Format: uuid */
-            id: string;
-            version: number;
-            locales: string[];
-            states: string[];
-            publications: {
-                [key: string]: string;
-            };
-        };
+        /**
+         * @description * `system` - system
+         *     * `light` - light
+         *     * `dark` - dark
+         * @enum {string}
+         */
+        DefaultThemeEnum: "system" | "light" | "dark";
         Error: {
             error: components["schemas"]["ErrorBody"];
         };
@@ -1345,16 +1145,6 @@ export interface components {
             request_id: string;
             fields?: unknown;
             violations?: components["schemas"]["Violation"][];
-        };
-        EventData: {
-            id: number;
-            actor_name: string;
-            action: string;
-            reason: string;
-            /** Format: uuid */
-            revision_id: string | null;
-            /** Format: date-time */
-            created_at: string;
         };
         EvidenceData: {
             /** Format: uuid */
@@ -1401,6 +1191,26 @@ export interface components {
             source_context?: components["schemas"]["PublicAccountContextEnum"];
             password?: string;
         };
+        Hero: {
+            mode: components["schemas"]["ModeEnum"];
+            autoplay: boolean;
+            rotate: boolean;
+            interval: number;
+            slides: components["schemas"]["Slide"][];
+            cards: components["schemas"]["PromotionalCard"][];
+        };
+        Identity: {
+            name: string;
+            tagline: string;
+            title_template: string;
+            description: string;
+            address: string;
+            hours: string;
+            logo_light: components["schemas"]["Media"] | null;
+            logo_dark: components["schemas"]["Media"] | null;
+            content_locale: components["schemas"]["LocaleEnum"];
+            fallback: boolean;
+        };
         IdentityData: {
             /** Format: uuid */
             id: string;
@@ -1434,16 +1244,6 @@ export interface components {
             invited_hint?: string;
             bundles?: string[];
         };
-        Link: {
-            id?: string;
-            label: string;
-            target: string;
-        };
-        LinkRequest: {
-            id?: string;
-            label: string;
-            target: string;
-        };
         LinkRequestRequest: {
             password: string;
             intent: components["schemas"]["BusinessProfileKindEnum"];
@@ -1461,6 +1261,12 @@ export interface components {
             email: string;
             /** @default fa-AF */
             locale: components["schemas"]["LocaleEnum"];
+        };
+        Media: {
+            url: string;
+            width: number;
+            height: number;
+            content_type: string;
         };
         /**
          * @description * `permissions` - permissions
@@ -1485,29 +1291,40 @@ export interface components {
             eligible: boolean;
             bundles: string[];
         };
-        NavGroup: {
-            id?: string;
+        /**
+         * @description * `image_carousel` - image_carousel
+         *     * `video_carousel` - video_carousel
+         * @enum {string}
+         */
+        ModeEnum: "image_carousel" | "video_carousel";
+        Notice: {
+            enabled: boolean;
+            text: string;
+            title: string;
             label: string;
-            placement: components["schemas"]["PlacementEnum"];
-            links: components["schemas"]["Link"][];
-        };
-        NavGroupRequest: {
-            id?: string;
-            label: string;
-            placement: components["schemas"]["PlacementEnum"];
-            links: components["schemas"]["LinkRequest"][];
-        };
-        Operation: {
-            /** Format: uuid */
-            id: string;
-            version: number;
-            /** Format: uuid */
-            revision: string | null;
-            state: string;
+            url: string;
+            content_locale: components["schemas"]["LocaleEnum"];
+            fallback: boolean;
         };
         OperationResult: {
             status: string;
         };
+        /**
+         * @description * `home` - home
+         *     * `how-it-works` - how-it-works
+         *     * `wholesale` - wholesale
+         *     * `sell` - sell
+         *     * `about` - about
+         *     * `contact` - contact
+         *     * `terms` - terms
+         *     * `privacy` - privacy
+         *     * `help` - help
+         *     * `payment-and-delivery` - payment-and-delivery
+         *     * `cancellations-and-disputes` - cancellations-and-disputes
+         *     * `verification` - verification
+         * @enum {string}
+         */
+        PageEnum: "home" | "how-it-works" | "wholesale" | "sell" | "about" | "contact" | "terms" | "privacy" | "help" | "payment-and-delivery" | "cancellations-and-disputes" | "verification";
         PasswordChangeRequest: {
             current_password: string;
             password: string;
@@ -1524,32 +1341,6 @@ export interface components {
         PatchedProfileUpdateRequest: {
             display_name?: string;
         };
-        Payload: {
-            title: string;
-            /** @default  */
-            description: string;
-            /** @default  */
-            group: string;
-            blocks?: components["schemas"]["Block"][];
-            navigation?: components["schemas"]["NavGroup"][];
-            support?: components["schemas"]["Support"];
-        };
-        PayloadRequest: {
-            title: string;
-            /** @default  */
-            description: string;
-            /** @default  */
-            group: string;
-            blocks?: components["schemas"]["BlockRequest"][];
-            navigation?: components["schemas"]["NavGroupRequest"][];
-            support?: components["schemas"]["SupportRequest"];
-        };
-        /**
-         * @description * `header` - header
-         *     * `footer` - footer
-         * @enum {string}
-         */
-        PlacementEnum: "header" | "footer";
         /**
          * @description * `fixed` - fixed
          *     * `negotiable` - negotiable
@@ -1587,37 +1378,43 @@ export interface components {
         ProfilesResult: {
             profiles: components["schemas"]["ProfileData"][];
         };
+        PromotionalCard: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            image: components["schemas"]["Media"] | null;
+            video: components["schemas"]["Media"] | null;
+            poster: components["schemas"]["Media"] | null;
+            title: string;
+            description: string;
+            alt: string;
+            cta_label: string;
+            cta_url: string;
+            transcript: string;
+            source_url: string;
+            content_locale: components["schemas"]["LocaleEnum"];
+            fallback: boolean;
+            slot: components["schemas"]["SlotEnum"];
+        };
         /**
          * @description * `buyer` - buyer
          *     * `seller` - seller
          * @enum {string}
          */
         PublicAccountContextEnum: "buyer" | "seller";
-        PublicContent: {
-            key: string;
-            kind: string;
-            /** Format: uuid */
-            revision: string;
-            number: number;
-            requested_locale: string;
-            content_locale: string;
-            fallback: boolean;
-            available_locales: string[];
-            /** Format: date-time */
-            published_at: string;
-            /** Format: date */
-            effective_date: string | null;
-            payload: components["schemas"]["Payload"];
-        };
-        PublicList: {
-            results: components["schemas"]["PublicContent"][];
-            page: number;
-            count: number;
-        };
-        PublicShell: {
-            navigation: components["schemas"]["PublicContent"] | null;
-            support: components["schemas"]["PublicContent"] | null;
-            announcement: components["schemas"]["PublicContent"] | null;
+        PublicSite: {
+            default_locale: components["schemas"]["LocaleEnum"];
+            default_theme: components["schemas"]["DefaultThemeEnum"];
+            indexing: boolean;
+            identity: components["schemas"]["Identity"];
+            contacts: components["schemas"]["Contacts"];
+            favicon: components["schemas"]["Media"] | null;
+            og_image: components["schemas"]["Media"] | null;
+            announcement: components["schemas"]["Notice"];
+            maintenance: components["schemas"]["Notice"];
+            hero: components["schemas"]["Hero"];
+            seo: components["schemas"]["SEO"][];
+            media_hosts: string[];
         };
         QueueItem: {
             /** Format: uuid */
@@ -1691,27 +1488,11 @@ export interface components {
             id: string;
             name: string;
         };
-        RevisionData: {
-            author_name: string;
-            /** Format: uuid */
-            id: string;
-            number: number;
-            locale: string;
-            /** Format: uuid */
-            source_id: string | null;
-            payload: components["schemas"]["Payload"];
-            state: string;
-            /** Format: date */
-            effective_date: string | null;
-            /** Format: date-time */
-            created_at: string;
-        };
-        SaveRequest: {
-            version: number;
-            locale: components["schemas"]["LocaleEnum"];
-            /** Format: uuid */
-            source?: string | null;
-            payload: components["schemas"]["PayloadRequest"];
+        SEO: {
+            page: components["schemas"]["PageEnum"];
+            title: string;
+            description: string;
+            image: components["schemas"]["Media"] | null;
         };
         SessionData: {
             identity: components["schemas"]["IdentityData"];
@@ -1722,6 +1503,35 @@ export interface components {
             email: string;
             password: string;
         };
+        Slide: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["SlideKindEnum"];
+            image: components["schemas"]["Media"] | null;
+            video: components["schemas"]["Media"] | null;
+            poster: components["schemas"]["Media"] | null;
+            title: string;
+            description: string;
+            alt: string;
+            cta_label: string;
+            cta_url: string;
+            transcript: string;
+            source_url: string;
+            content_locale: components["schemas"]["LocaleEnum"];
+            fallback: boolean;
+        };
+        /**
+         * @description * `image` - image
+         *     * `video` - video
+         * @enum {string}
+         */
+        SlideKindEnum: "image" | "video";
+        /**
+         * @description * `promo_1` - promo_1
+         *     * `promo_2` - promo_2
+         * @enum {string}
+         */
+        SlotEnum: "promo_1" | "promo_2";
         Status: {
             status: components["schemas"]["StatusEnum"];
         };
@@ -1732,18 +1542,6 @@ export interface components {
          * @enum {string}
          */
         StatusEnum: "alive" | "ready" | "not_ready";
-        Support: {
-            email?: string;
-            /** @default  */
-            phone: string;
-            website?: string;
-        };
-        SupportRequest: {
-            email?: string;
-            /** @default  */
-            phone: string;
-            website?: string;
-        };
         TeamData: {
             members: components["schemas"]["MemberData"][];
             invitations: components["schemas"]["InvitationData"][];
@@ -1803,17 +1601,6 @@ export interface components {
             count: number;
             page: number;
         };
-        /**
-         * @description * `hero` - hero
-         *     * `text` - text
-         *     * `steps` - steps
-         *     * `guides` - guides
-         *     * `callout` - callout
-         *     * `catalogue` - catalogue
-         *     * `store` - store
-         * @enum {string}
-         */
-        TypeEnum: "hero" | "text" | "steps" | "guides" | "callout" | "catalogue" | "store";
         /**
          * @description * `resend` - resend
          *     * `cancel` - cancel
@@ -2685,239 +2472,6 @@ export interface operations {
             };
         };
     };
-    content_editor_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EditorList"];
-                };
-            };
-        };
-    };
-    content_editor_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CreateRequest"];
-                "multipart/form-data": components["schemas"]["CreateRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Operation"];
-                };
-            };
-        };
-    };
-    content_editor_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EditorItem"];
-                };
-            };
-        };
-    };
-    content_editor_save: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SaveRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["SaveRequest"];
-                "multipart/form-data": components["schemas"]["SaveRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Operation"];
-                };
-            };
-        };
-    };
-    content_editor_action: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActionRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["ActionRequest"];
-                "multipart/form-data": components["schemas"]["ActionRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Operation"];
-                };
-            };
-        };
-    };
-    content_preview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionData"];
-                };
-            };
-        };
-    };
-    content_help: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locale: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicList"];
-                };
-            };
-        };
-    };
-    content_home: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locale: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicContent"];
-                };
-            };
-        };
-    };
-    content_page: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                locale: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicContent"];
-                };
-            };
-        };
-    };
-    content_shell: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                locale: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicShell"];
-                };
-            };
-        };
-    };
     liveness: {
         parameters: {
             query?: never;
@@ -3273,6 +2827,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+        };
+    };
+    site_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSite"];
                 };
             };
         };

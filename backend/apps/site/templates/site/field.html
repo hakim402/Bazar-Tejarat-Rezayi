@@ -1,0 +1,11 @@
+{% if field.is_hidden %}{{ field }}{% else %}
+<div class="ra:min-w-0 ra:space-y-2" data-field="{{ field.name }}">
+  {% if field.widget_type == 'checkbox' %}
+  <label for="{{ field.id_for_label }}" class="ra:flex ra:min-h-11 ra:cursor-pointer ra:items-center ra:gap-3 ra:text-sm ra:font-bold">{{ field }}<span>{{ field.label }}</span></label>
+  {% else %}
+  <label for="{{ field.id_for_label }}" class="ra:block ra:text-sm ra:font-bold">{{ field.label }}{% if field.field.required %}<span aria-hidden="true"> *</span>{% endif %}</label>{{ field }}
+  {% endif %}
+  {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="ra:text-xs ra:leading-5 ra:text-muted">{{ field.help_text }}</p>{% endif %}
+  {% if field.errors %}<div role="alert" class="ra:text-sm ra:font-semibold">{{ field.errors }}</div>{% endif %}
+</div>
+{% endif %}

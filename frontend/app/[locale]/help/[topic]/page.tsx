@@ -1,28 +1,19 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "../../../../lib/i18n/locales";
-import { ContentPage } from "../../../../features/content/components/content-page";
-import { readContent } from "../../../../features/content/api/server";
-import { contentMetadata } from "../../../../features/content/metadata";
+import { StaticPage } from "../../../../features/pages/components/static-page";
+import { pageMetadata } from "../../../../features/pages/metadata";
+import { pageAtPath } from "../../../../features/pages/registry";
 export const dynamic = "force-dynamic";
-export async function generateMetadata({
-	params,
-}: {
-	params: Promise<{ locale: string; topic: string }>;
-}) {
+type Props = { params: Promise<{ locale: string; topic: string }> };
+export async function generateMetadata({ params }: Props) {
 	const { locale, topic } = await params;
-	if (!isLocale(locale)) return {};
-	const { data, failure } = await readContent(locale, topic);
-	if (!failure && data?.kind !== "article") notFound();
-	return contentMetadata(locale, topic, `/help/${topic}`);
+	const key = pageAtPath(`/help/${topic}`);
+	if (!isLocale(locale) || !key) notFound();
+	return pageMetadata(locale, key);
 }
-export default async function Page({
-	params,
-}: {
-	params: Promise<{ locale: string; topic: string }>;
-}) {
+export default async function Page({ params }: Props) {
 	const { locale, topic } = await params;
-	if (!isLocale(locale) || !/^[a-z][a-z0-9-]{0,79}$/.test(topic)) notFound();
-	const { data, failure } = await readContent(locale, topic);
-	if (!failure && data?.kind !== "article") notFound();
-	return <ContentPage locale={locale} contentKey={topic} />;
+	const key = pageAtPath(`/help/${topic}`);
+	if (!isLocale(locale) || !key) notFound();
+	return <StaticPage locale={locale} page={key} />;
 }

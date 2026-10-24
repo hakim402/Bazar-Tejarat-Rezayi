@@ -9,7 +9,7 @@ from uuid import UUID
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation
 from django.core.files.base import ContentFile
-from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import path
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
@@ -46,32 +46,30 @@ class DatabaseConfigurationTests(SimpleTestCase):
                 self.assertNotIn("secret", str(result.exception))
                 self.assertNotIn(value, str(result.exception)) if value else None
 
-    def test_production_requires_verified_tls_and_no_host_override(self):
+    def test_production_requires_verified_tls(self):
         result = database_config("postgres://u:p@db.example/db", production=True, conn_max_age=60)
         self.assertEqual(result["OPTIONS"]["sslmode"], "verify-full")
-        for kwargs in [{"production": True}, {"production": True, "host_override": "postgres"}]:
-            with self.assertRaises(ImproperlyConfigured):
-                database_config("postgres://u:p@db.example/db?sslmode=disable", **kwargs)
-
-    def test_host_override_is_deliberate_and_loopback_only(self):
-        result = database_config("postgres://u:p@localhost/db", host_override="host.docker.internal")
-        self.assertEqual(result["HOST"], "host.docker.internal")
         with self.assertRaises(ImproperlyConfigured):
-            database_config("postgres://u:p@remote/db", host_override="other-host")
+            database_config("postgres://u:p@db.example/db?sslmode=disable", production=True)
+
+    def test_native_database_url_host_is_authoritative(self):
+        with patch.dict("os.environ", {"DATABASE_HOST": "obsolete-container-host"}):
+            result = database_config("postgres://u:p@localhost/db")
+            self.assertEqual(result["HOST"], "localhost")
 
     def test_tests_fail_closed_on_business_database(self):
         for name in ["bazar_rezayi_db", "rezayi_local", "test_other"]:
             with self.assertRaises(ImproperlyConfigured):
-                isolated_database(f"postgres://u:p@postgres/{name}")
+                isolated_database(f"postgres://u:p@127.0.0.1/{name}")
         self.assertEqual(
-            isolated_database("postgres://u:p@postgres/test_rezayi_phase02_unit")["TEST"]["NAME"],
+            isolated_database("postgres://u:p@127.0.0.1/test_rezayi_phase02_unit")["TEST"]["NAME"],
             "test_rezayi_phase02_unit",
         )
         from tests.runner import IdentityTestRunner
 
         with self.assertRaises(ImproperlyConfigured):
             IdentityTestRunner.validate_target(
-                {"HOST": "host.docker.internal", "USER": "business", "NAME": "bazar_rezayi_db"}
+                {"HOST": "unrelated-host", "USER": "business", "NAME": "bazar_rezayi_db"}
             )
 
 
@@ -113,7 +111,7 @@ urlpatterns = [
 ]
 
 
-class ApiTests(SimpleTestCase):
+class ApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
@@ -124,7 +122,7 @@ class ApiTests(SimpleTestCase):
         self.assertEqual(response.json()["supported_locales"], ["fa-AF", "en", "ps", "ar"])
         self.assertEqual(response.json()["currencies"], ["AFN", "USD"])
         self.assertNotIn("Set-Cookie", response)
-        self.assertEqual(response["Cache-Control"], "public, max-age=60")
+        self.assertEqual(response["Cache-Control"], "no-store")
         UUID(response["X-Request-ID"])
 
     def test_origin_allowlist_and_preflight(self):

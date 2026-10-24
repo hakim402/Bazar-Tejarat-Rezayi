@@ -933,19 +933,16 @@ class CatalogueMigrationTests(TransactionTestCase):
         try:
             executor.migrate([("catalogue", None)])
             user = User.objects.create_user("catalogue-upgrade@example.test", PASSWORD, email_verified=True)
-            from apps.content.models import ContentItem, ContentRevision
-
-            item = ContentItem.objects.create(key="phase-six-preserve", kind="article")
-            revision = ContentRevision.objects.create(
-                item=item, number=1, locale="fa-AF", payload={"title": "Preserved"}, author=user
-            )
+            from tests.legacy_content import predecessor, fingerprints
+            predecessor(user)
+            preserved = fingerprints(("site", "catalogue"))
             password = user.password
             before = set(connection.introspection.table_names())
             MigrationExecutor(connection).migrate(latest)
             user.refresh_from_db()
-            revision.refresh_from_db()
             self.assertEqual(user.password, password)
-            self.assertEqual(revision.payload, {"title": "Preserved"})
+            after = fingerprints(("site", "catalogue"))
+            self.assertEqual(preserved, {key: after[key] for key in preserved})
             self.assertTrue(before.issubset(set(connection.introspection.table_names())))
         finally:
             MigrationExecutor(connection).migrate(latest)

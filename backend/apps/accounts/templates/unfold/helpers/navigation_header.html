@@ -1,0 +1,5 @@
+{% load i18n %}
+<div class="ra:mb-3 ra:flex ra:h-20 ra:items-center ra:gap-2 ra:border-b ra:border-line ra:px-6">
+  <div class="ra:min-w-0 ra:flex-1">{% include 'unfold/helpers/site_logo.html' %}</div>
+  <button type="button" id="owner-sidebar-close" x-on:owner-nav-opened.window="$el.focus()" x-on:keydown.escape.stop.prevent="sidebarToggle(); document.getElementById('owner-nav-toggle').focus()" x-on:click="sidebarToggle(); document.getElementById('owner-nav-toggle').focus()" aria-label="{% translate 'Close navigation' %}" class="ra:flex ra:size-11 ra:shrink-0 ra:items-center ra:justify-center ra:rounded-lg ra:text-muted ra:hover:bg-tint ra:xl:hidden"><span data-admin-icon class="material-symbols-outlined" aria-hidden="true">close</span></button>
+</div>

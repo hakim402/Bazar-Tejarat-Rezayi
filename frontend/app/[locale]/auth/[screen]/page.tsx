@@ -19,6 +19,14 @@ export default async function Page({
 	return (
 		<AccountShell
 			locale={locale}
+			splitAuth={screen === "seller-registration" ? true : undefined}
+			context={
+				screen.startsWith("seller")
+					? "seller"
+					: screen.startsWith("staff")
+						? "staff"
+						: "buyer"
+			}
 			title={screenTitle(locale, screen as AuthScreen)}
 		>
 			<AuthForm locale={locale} screen={screen as AuthScreen} />

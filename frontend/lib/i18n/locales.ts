@@ -1,7 +1,7 @@
 export const locales = ["fa-AF", "en", "ps", "ar"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "fa-AF";
-export function isLocale(value: string): value is Locale {
+export function isLocale(value: unknown): value is Locale {
 	return locales.some((locale) => locale === value);
 }
 export function direction(locale: Locale) {

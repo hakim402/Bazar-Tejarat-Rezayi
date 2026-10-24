@@ -1,0 +1,13 @@
+{% load i18n static %}
+<div data-locale-group class="ra:space-y-5">
+  <div role="tablist" aria-label="{% translate 'Content languages' %}" class="ra:flex ra:flex-wrap ra:gap-2">{% for tab in editor.localized_tabs %}<button type="button" id="tab-{{ editor.prefix }}-{{ tab.code }}" role="tab" aria-controls="panel-{{ editor.prefix }}-{{ tab.code }}" class="ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:px-4 ra:py-2 ra:text-sm ra:font-bold ra:aria-selected:bg-tint ra:aria-selected:text-action">{{ tab.caption }}{% if tab.code == 'fa-AF' %} · {% translate 'Source' %}{% endif %}</button>{% endfor %}</div>
+  {% for tab in editor.localized_tabs %}
+  <section id="panel-{{ editor.prefix }}-{{ tab.code }}" role="tabpanel" aria-labelledby="tab-{{ editor.prefix }}-{{ tab.code }}" class="ra:min-w-0 ra:space-y-5">
+    {% if editor.section.logos %}<div class="ra:grid ra:gap-4 ra:sm:grid-cols-2">
+      <div class="ra:space-y-2"><p class="ra:text-xs ra:font-bold ra:text-muted">{% translate 'On light backgrounds' %}</p><div class="ra:flex ra:min-h-24 ra:items-center ra:rounded-lg ra:border ra:border-line ra:bg-white ra:p-4"><img src="{% if tab.logo_light %}{% url 'site_media' pk=tab.logo_light.pk %}{% else %}{% static tab.logo_light_static %}{% endif %}" alt="{% translate 'Current logo for light backgrounds' %}" class="ra:h-12 ra:w-full ra:object-contain"></div></div>
+      <div class="ra:space-y-2"><p class="ra:text-xs ra:font-bold ra:text-muted">{% translate 'On dark backgrounds' %}</p><div class="ra:flex ra:min-h-24 ra:items-center ra:rounded-lg ra:bg-brand-navy ra:p-4"><img src="{% if tab.logo_dark %}{% url 'site_media' pk=tab.logo_dark.pk %}{% else %}{% static tab.logo_dark_static %}{% endif %}" alt="{% translate 'Current logo for dark backgrounds' %}" class="ra:h-12 ra:w-full ra:object-contain"></div></div>
+    </div>{% endif %}
+    <div class="ra:grid ra:gap-5 ra:lg:grid-cols-2">{% for field in tab.fields %}{% include 'site/field.html' %}{% endfor %}</div>
+  </section>
+  {% endfor %}
+</div>

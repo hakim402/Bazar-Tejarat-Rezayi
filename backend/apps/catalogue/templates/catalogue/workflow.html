@@ -1,7 +1,6 @@
 {% extends 'admin/base_site.html' %}
 {% block content %}
 <div class="max-w-5xl space-y-6" lang="{{ locale }}" dir="{{ direction }}">
-<nav><a href="?locale=fa-AF">دری</a> · <a href="?locale=ps">پښتو</a> · <a href="?locale=ar">العربية</a> · <a href="?locale=en">English</a></nav>
 <p>{{ t.revision }}</p>
 {% if item %}<p>{{ item.id }} · {{ item.currency }} · {{ item.pricing_mode }} · {{ item.version }}</p>
 <p><a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a> · <a href="?locale={{ locale }}">{{ t.source }}</a></p>{% endif %}

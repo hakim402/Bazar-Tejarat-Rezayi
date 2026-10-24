@@ -15,7 +15,7 @@ from config.testing import assert_owned_database  # noqa: E402
 assert_owned_database(connection)
 call_command("migrate", interactive=False, verbosity=0)
 values = json.load(sys.stdin)
-for command in ("seed_identity_examples", "seed_organization_examples", "seed_content_examples"):
+for command in ("seed_identity_examples", "seed_organization_examples"):
     sys.stdin = io.StringIO(json.dumps(values))
     call_command(command, stdin=True, verbosity=0)
 

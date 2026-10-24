@@ -12,11 +12,11 @@
     "lint": "biome lint .",
     "typecheck": "next typegen && tsc --noEmit",
     "api:generate": "openapi-typescript ../backend/schema.json -o lib/api/schema.d.ts",
-    "test": "node --experimental-strip-types --test tests/api.test.ts tests/auth.test.ts tests/organizations.test.ts tests/content.test.ts tests/catalogue.test.ts",
+    "test": "node --experimental-strip-types --test tests/api.test.ts tests/auth.test.ts tests/organizations.test.ts tests/site.test.ts tests/catalogue.test.ts",
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "next": "16.4.0",
+    "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "0.0.1"

@@ -1,6 +1,5 @@
 "use client";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
-import { contentCopy } from "../../../lib/i18n/content";
 import { organizationCopy } from "../../../lib/i18n/organizations";
 import { Button } from "../../../components/ui/button";
 import {
@@ -190,7 +189,7 @@ export function AccountPanel({
 	);
 	return (
 		<>
-			<p className="eyebrow">
+			<p className="mb-2 text-sm font-bold text-action">
 				{t[context]} · {t.privateView}
 			</p>
 			<AccountHeading>
@@ -275,11 +274,7 @@ export function AccountPanel({
 										<Link href={`/${locale}/account/staff/catalogue`}>
 											{catalogueCopy[locale].title}
 										</Link>
-										{data.accounts[0].permissions.includes("read_drafts") && (
-											<Link href={`/${locale}/account/staff/content`}>
-												{contentCopy[locale].editor}
-											</Link>
-										)}
+
 										<Link href={`/${locale}/account/staff/transfers`}>
 											{organizationCopy[locale].transfers}
 										</Link>
@@ -319,7 +314,7 @@ export function AccountPanel({
 						</>
 					)}
 					<form
-						className="flex flex-col gap-2"
+						className="flex max-w-2xl flex-col gap-3 rounded-card border border-border bg-page p-5"
 						onSubmit={submit}
 						aria-busy={busy}
 					>

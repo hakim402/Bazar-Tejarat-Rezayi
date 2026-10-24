@@ -67,7 +67,7 @@ export function CaseQueue({ locale }: { locale: Locale }) {
 						{state.data.results.map((item) => (
 							<li
 								key={item.id}
-								className="rounded-card border border-border p-4"
+								className="rounded-card border border-border bg-page p-5"
 							>
 								<Link
 									href={`/${locale}/account/staff/verification/${item.id}`}
