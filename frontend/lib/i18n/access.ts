@@ -12,7 +12,7 @@ const en = {
 	steps: "Your path to selling",
 	ready: "Prepare before you apply",
 	readyBody:
-		"Use an email you can access, choose your account type and prepare accurate profile information. Submit private evidence only through your account.",
+		"Use an email you can access and create your individual account. Add company or business details later in Account settings. Submit private evidence only through your account.",
 	help: "Need a hand?",
 	helpBody:
 		"Read the verification guide or contact platform support for help with your application.",
@@ -42,7 +42,7 @@ export const accessCopy: Record<Locale, Copy> = {
 		steps: "مسیر شما برای فروشندگی",
 		ready: "پیش از درخواست آماده شوید",
 		readyBody:
-			"از ایمیلی که به آن دسترسی دارید استفاده کنید، نوع حساب را برگزینید و معلومات دقیق پروفایل را آماده سازید. اسناد خصوصی را تنها از طریق حساب خود بفرستید.",
+			"با ایمیلی که به آن دسترسی دارید حساب انفرادی بسازید. معلومات شرکت یا کسب‌وکار را بعداً در تنظیمات حساب اضافه کنید. اسناد خصوصی را تنها از طریق حساب خود بفرستید.",
 		help: "به کمک نیاز دارید؟",
 		helpBody:
 			"رهنمای تأیید را بخوانید یا برای کمک در درخواست با پشتیبانی پلتفرم تماس بگیرید.",
@@ -71,7 +71,7 @@ export const accessCopy: Record<Locale, Copy> = {
 		steps: "ستاسو د پلور لاره",
 		ready: "له غوښتنلیک مخکې چمتو شئ",
 		readyBody:
-			"د لاسرسي وړ برېښنالیک وکاروئ، د حساب ډول وټاکئ او دقیق معلومات چمتو کړئ. شخصي اسناد یوازې د خپل حساب له لارې وسپارئ.",
+			"په هغه برېښنالیک چې لاسرسی ورته لرئ خپل انفرادي حساب جوړ کړئ. د شرکت یا سوداګرۍ معلومات وروسته د حساب په تنظیماتو کې زیات کړئ. شخصي اسناد یوازې له خپل حسابه ولېږئ.",
 		help: "مرستې ته اړتیا لرئ؟",
 		helpBody:
 			"د تایید لارښود ولولئ یا د غوښتنلیک لپاره د پلېټفارم له ملاتړ سره اړیکه ونیسئ.",
@@ -98,7 +98,7 @@ export const accessCopy: Record<Locale, Copy> = {
 		steps: "طريقك إلى البيع",
 		ready: "استعد قبل التقديم",
 		readyBody:
-			"استخدم بريداً يمكنك الوصول إليه واختر نوع الحساب وجهّز معلومات دقيقة. أرسل المستندات الخاصة عبر حسابك فقط.",
+			"استخدم بريدًا إلكترونيًا يمكنك الوصول إليه وأنشئ حسابك الفردي. أضف بيانات الشركة أو الأعمال لاحقًا في إعدادات الحساب. أرسل المستندات الخاصة من خلال حسابك فقط.",
 		help: "هل تحتاج إلى مساعدة؟",
 		helpBody: "اقرأ دليل التحقق أو تواصل مع دعم المنصة للمساعدة في طلبك.",
 		account: "حسابي",

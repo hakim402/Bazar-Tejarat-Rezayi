@@ -7,7 +7,7 @@ from django.core.validators import validate_email
 from django.db import transaction
 
 from apps.accounts.models import User, normalize_email
-from apps.accounts.services import audit, owner_mfa_required, password_check
+from apps.accounts.services import audit, admin_mfa_required, password_check
 
 
 class Command(BaseCommand):
@@ -42,6 +42,6 @@ class Command(BaseCommand):
         audit("owner_bootstrapped_local", user=user, context="owner")
         self.stdout.write(
             "Owner created. Complete authenticator enrollment at /admin/login/ before accessing administration."
-            if owner_mfa_required()
+            if admin_mfa_required()
             else "Owner created. Sign in at /admin/login/."
         )

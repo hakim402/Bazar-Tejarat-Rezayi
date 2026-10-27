@@ -40,10 +40,10 @@ def available_port():
 
 
 class TestRun:
-    def __init__(self, backend_only=False, labels=(), phase="phase-03-identity", browser_spec=None):
+    def __init__(self, backend_only=False, labels=(), phase="phase-03-identity", browser_spec=None, work_package=None):
         self.identifier = secrets.token_hex(8)
         self.project = "rezayi-test-" + self.identifier
-        self.browser_spec = browser_spec
+        self.browser_spec = [browser_spec] if isinstance(browser_spec, str) else browser_spec
         self.phase = phase
         self.backend_only = backend_only
         self.labels = labels
@@ -62,9 +62,9 @@ class TestRun:
             "REZAYI_TEST_FRONTEND_PORT": str(self.frontend_port),
         }
         self.env = {**os.environ, **self.generated}
-        if phase == "phase-06-catalogue":
+        if phase in {"phase-06-catalogue", "phase-07-inventory"}:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
-        self.evidence = ROOT / "doc/progress/native-python-migration/evidence/runs" / self.identifier
+        self.evidence = ROOT / ("doc/progress/staff-admin-transition/evidence/runs" if work_package == "staff-admin-transition" else "doc/progress/frontend-consolidation/evidence/runs" if work_package == "frontend-consolidation" else "doc/progress/phase-07-inventory/evidence/runs" if phase == "phase-07-inventory" else "doc/progress/native-python-migration/evidence/runs") / self.identifier
         self.evidence.mkdir(parents=True)
         self.frontend = None
         self.dist_owned = False
@@ -96,6 +96,10 @@ class TestRun:
         for private in (self.password, *self.generated.values()):
             if len(private) >= 24:
                 value = value.replace(private, "[temporary credential redacted]")
+        value = re.sub(r'(name=\\?["\']csrfmiddlewaretoken\\?["\'][^>]*?value=\\?["\'])[A-Za-z0-9]+',
+                       r'\1[temporary CSRF redacted]', value)
+        value = re.sub(r'(<code\b[^>]*>)(?:[A-Z2-7]{32,}|[0-9a-f]{16})(</code>)',
+                       r'\1[temporary MFA material redacted]\2', value)
         return value
 
     def command(self, args, name, *, cwd=BACKEND, data=None, env=None, check=True):
@@ -234,9 +238,10 @@ class TestRun:
                 "PLAYWRIGHT_EVIDENCE_DIR": str(self.evidence / "screenshots"),
                 "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
                 "PLAYWRIGHT_BROWSER_CHANNEL": "chromium", "IDENTITY_BROWSER_TESTS": "1",
-                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-06-catalogue"} else "0",
+                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-06-catalogue", "phase-07-inventory"} else "0",
                 "SITE_BROWSER_TESTS": "1", "ADMIN_DASHBOARD_BROWSER_TESTS": "1",
-                "CATALOGUE_BROWSER_TESTS": "1" if self.phase == "phase-06-catalogue" else "0",
+                "CATALOGUE_BROWSER_TESTS": "1" if self.phase in {"phase-06-catalogue", "phase-07-inventory"} else "0",
+                "INVENTORY_BROWSER_TESTS": "1" if self.phase == "phase-07-inventory" else "0",
                 "REZAYI_TEST_PROJECT": self.project, "REZAYI_TEST_FIXTURE_PASSWORD": self.password}
 
     @staticmethod
@@ -273,6 +278,12 @@ class TestRun:
         self.command(["npx", "openapi-typescript", "../backend/schema.json", "-o", str(generated_types)], "frontend-schema", cwd=FRONTEND, env=env)
         if generated_types.read_bytes() != (FRONTEND / "lib/api/schema.d.ts").read_bytes():
             raise TestFailure("Generated TypeScript API schema is stale.")
+        # Validate only this run's generated routes; other builds may describe retired pages.
+        # Cleanup restores the exact original tsconfig and next-env files.
+        config = json.loads(self.tsconfig)
+        config["include"] = [value.replace(".next/", self.dist + "/") for value in config.get("include", [])]
+        config["exclude"] = list(dict.fromkeys([*config.get("exclude", []), ".next"]))
+        (FRONTEND / "tsconfig.json").write_text(json.dumps(config, indent=2) + "\n")
         for script in ("lint", "typecheck", "test"):
             self.command(["npm", "run", script], "frontend-" + script, cwd=FRONTEND, env=env)
         build = ["npm", "run", "build", "--", "--webpack"]
@@ -295,15 +306,15 @@ class TestRun:
                                          stdout=self.frontend_log, stderr=subprocess.STDOUT)
         self.processes.append(self.frontend)
         self.wait_ready(env["PLAYWRIGHT_BASE_URL"] + "/en/auth/buyer-sign-in", self.frontend)
-        self.command(["npx", "playwright", "test", *(["tests/" + self.browser_spec] if self.browser_spec else []), "--output", str(self.evidence / "browser-results"),
-                      "--global-timeout=1200000"], "browser-tests", cwd=FRONTEND, env=env)
-        if self.phase == "phase-06-catalogue":
+        self.command(["npx", "playwright", "test", *(["tests/" + spec for spec in self.browser_spec] if self.browser_spec else []), "--output", str(self.evidence / "browser-results"),
+                      ("--global-timeout=1800000" if self.phase == "phase-07-inventory" else "--global-timeout=1200000")], "browser-tests", cwd=FRONTEND, env=env)
+        if self.phase in {"phase-06-catalogue", "phase-07-inventory"}:
             self.python("-c", "import django;django.setup();import json;from config.celery import app;from apps.catalogue.models import TranslationJob;registered=app.control.inspect(timeout=5).registered() or {};expected={'catalogue.generate_translation','catalogue.dispatch_translations'};assert any(expected.issubset(set(tasks)) for tasks in registered.values());print(json.dumps({'registered':sorted(expected),'completed_jobs':TranslationJob.objects.filter(status='completed').count()}))", name="catalogue-worker-result")
-        if self.phase == "phase-06-catalogue":
+        if self.phase in {"phase-06-catalogue", "phase-07-inventory"}:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
             self.start_web()
             self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/")
-            self.command(["npx", "playwright", "test", "tests/catalogue-disabled.browser.ts", "--output", str(self.evidence / "disabled-provider-results"), "--global-timeout=90000"], "browser-catalogue-disabled", cwd=FRONTEND, env={**env,"CATALOGUE_DISABLED_BROWSER_TESTS":"1"})
+            self.command(["npx", "playwright", "test", "tests/catalogue-disabled.browser.ts", "--output", str(self.evidence / "disabled-provider-results"), "--global-timeout=90000"], "browser-catalogue-disabled", cwd=FRONTEND, env={**self.browser_environment(), "CATALOGUE_DISABLED_BROWSER_TESTS": "1"})
         self.stop_process(self.web)
         self.command(["npx", "playwright", "test", "tests/foundation.browser.ts", "--grep", "actual API outage",
                       "--output", str(self.evidence / "outage-results"), "--global-timeout=60000"],
@@ -324,6 +335,8 @@ class TestRun:
         for path in self.evidence.rglob('error-context.md'):
             value = self.redact(path.read_text())
             value = re.sub(r'(?im)(textbox[^\n]*(?:password|code|رمز|کد|کوډ|پټنوم|كلمة)[^\n]*:)\s*[^\n]+', r'\1 [private input redacted]', value)
+            value = re.sub(r'(?im)^([ \t]*- code(?:[ \t]+\[[^\n]*?\])?:[ \t]*)(?:[A-Z2-7]{32,}|[0-9a-f]{16})[ \t]*$',
+                           r'\1[temporary MFA material redacted]', value)
             path.write_text(value)
             path.chmod(0o600)
 
@@ -381,6 +394,13 @@ class TestRun:
             current = json.loads(path.read_text())
             original = json.loads(self.tsconfig)
             current["include"] = [s for s in current["include"] if not s.startswith(self.dist + "/")]
+            original_include = original.get("include", [])
+            if current["include"] == [s for s in original_include if not s.startswith(".next/")]:
+                current["include"] = original_include
+            if ".next" not in original.get("exclude", []):
+                current["exclude"] = [s for s in current.get("exclude", []) if s != ".next"]
+                if "exclude" not in original and not current["exclude"]:
+                    current.pop("exclude")
             path.write_text(self.tsconfig if current == original else json.dumps(current, indent=2) + "\n")
 
     def restore_next_env(self):
@@ -446,8 +466,9 @@ def main():
             raise SystemExit("Install native dependencies into backend/.venv; see doc/hosting/Native_Python_cPanel_Deployment.md.")
         os.execv(str(PYTHON), [str(PYTHON), __file__, *sys.argv[1:]])
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-06-catalogue"], default="phase-03-identity")
-    parser.add_argument("--browser-spec", choices=["site.browser.ts", "admin-dashboard.browser.ts", "approved-design.browser.ts", "catalogue-review.browser.ts", "catalogue.browser.ts", "identity.browser.ts", "organizations.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; default runs every browser spec")
+    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-06-catalogue", "phase-07-inventory"], default="phase-03-identity")
+    parser.add_argument("--browser-spec", action="append", choices=["staff-admin-transition.browser.ts", "google-email.browser.ts", "frontend-consolidation.browser.ts", "inventory.browser.ts", "seller-dashboard.browser.ts", "site.browser.ts", "admin-dashboard.browser.ts", "approved-design.browser.ts", "catalogue-review.browser.ts", "catalogue.browser.ts", "identity.browser.ts", "organizations.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; repeat to select multiple specs; default runs every browser spec")
+    parser.add_argument("--work-package", choices=["frontend-consolidation", "staff-admin-transition"], help="Scoped evidence location; does not change fixture or permission policy")
     parser.add_argument("--backend-only", action="store_true")
     parser.add_argument("--test-label", action="append", default=[])
     parser.add_argument("--cleanup-probe", choices=["failure", "interrupt"], help="Provision then fail/interrupt to verify teardown")
@@ -457,7 +478,7 @@ def main():
     for executable in ("initdb", "postgres", "redis-server", *(() if args.backend_only else ("node", "npm", "npx", "ffmpeg", "ffprobe"))):
         if not shutil.which(executable):
             parser.error(f"Required local executable is unavailable: {executable}")
-    run = TestRun(args.backend_only, args.test_label, args.phase, args.browser_spec)
+    run = TestRun(args.backend_only, args.test_label, args.phase, args.browser_spec, args.work_package)
     run.cleanup_probe = args.cleanup_probe
     def interrupted(signum, frame):
         raise KeyboardInterrupt

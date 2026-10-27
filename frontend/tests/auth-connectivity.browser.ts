@@ -11,7 +11,7 @@ import {
 } from "./support/identity-runtime";
 test.skip(!enabled, "Run with the maintained isolated services.");
 for (const locale of locales) {
-	test(`local alias company seller registration ${locale}`, async ({
+	test(`local alias basic seller registration ${locale}`, async ({
 		page,
 		baseURL,
 	}) => {
@@ -23,18 +23,18 @@ for (const locale of locales) {
 		await page.goto(alias.href);
 		await expect(page).toHaveURL(
 			new RegExp(
-				`^http://127\\.0\\.0\\.1:[0-9]+/${locale}/auth/seller-registration\\?return=`,
+				`^http://127\\.0\\.0\\.1:[0-9]+/${locale}/sell\\?return=`,
 			),
 		);
 		const t = authCopy[locale],
 			email = `company-${locale.toLowerCase()}-${randomBytes(5).toString("hex")}@example.test`;
-		await page.getByRole("radio", { name: t.company, exact: true }).check();
+		await expect(page.getByRole("radio", {name:t.company,exact:true})).toHaveCount(0);
 		await page
-			.locator('main input[name="display_name"]')
+			.locator('dialog input[name="display_name"]')
 			.fill("Synthetic Company Applicant");
-		await page.locator('main input[name="email"]').fill(email);
-		await page.locator('main input[name="password"]').fill(password);
-		await page.locator('main input[name="consent"]').check();
+		await page.locator('dialog input[name="email"]').fill(email);
+		await page.locator('dialog input[name="password"]').fill(password);
+		await page.locator('dialog input[name="consent"]').check();
 		const received = page.waitForResponse(
 			(r) =>
 				r.url() === `${apiOrigin}/api/v1/auth/seller/register/` &&
@@ -51,13 +51,13 @@ for (const locale of locales) {
 			),
 		);
 		expect(row).toEqual({
-			intent: "company",
+			intent: "individual",
 			review: "pending",
 			verified: false,
 		});
 		if (locale === "en" || locale === "fa-AF")
 			await page.screenshot({
-				path: `../doc/progress/auth-connectivity/company-${locale}.png`,
+				path: `${process.env.PLAYWRIGHT_EVIDENCE_DIR}/basic-seller-${locale}.png`,
 				fullPage: true,
 			});
 	});
@@ -74,7 +74,7 @@ for (const locale of locales) {
 		expect((await availability).status()).toBe(200);
 		await expect(page).toHaveURL(
 			new RegExp(
-				`^http://127\\.0\\.0\\.1:[0-9]+/${locale}/auth/buyer-sign-in$`,
+				`^http://127\\.0\\.0\\.1:[0-9]+/${locale}\\?auth=buyer-sign-in$`,
 			),
 		);
 		// Providers stay disabled in the disposable runtime; reaching the real API is the assertion.

@@ -42,6 +42,7 @@ class SiteAdmin(ReadOnlyAdmin):
 
     @method_decorator(require_http_methods(['GET']))
     def legacy(self, request, section='general'):
+        self.context(request, 'Site Setting')
         return redirect(reverse('admin:site_settings_section', kwargs={'section': section}))
 
     def context(self, request, title):

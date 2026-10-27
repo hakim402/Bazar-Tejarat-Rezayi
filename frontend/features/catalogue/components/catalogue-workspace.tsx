@@ -25,8 +25,6 @@ import { CatalogueOverview } from "./catalogue-overview";
 import { ProductEditor } from "./product-editor";
 import { ProductRevisionPreview } from "./product-revision-preview";
 import { LivePrices } from "./live-prices";
-import { TranslationReviewPanel } from "./translation-review-panel";
-import { SourceReviewPanel } from "./source-review-panel";
 import { TaxonomyEditor } from "./taxonomy-editor";
 function blank(locale: Locale): ProductBody {
 	return {
@@ -59,7 +57,7 @@ export function CatalogueWorkspace({
 	id,
 }: {
 	locale: Locale;
-	context: "seller" | "staff";
+	context: "seller";
 	id?: string;
 }) {
 	const t = catalogueCopy[locale];
@@ -79,18 +77,13 @@ export function CatalogueWorkspace({
 		[reason, setReason] = useState("");
 	const [pending, setPending] = useState<(() => void) | null>(null),
 		[epoch, setEpoch] = useState(0),
-		[translationDirty, setTranslationDirty] = useState(false),
 		[priceDirty, setPriceDirty] = useState(false);
 	const [state, setState] = useState(""),
 		[page, setPage] = useState(1);
 	const sourceDirty = !!body && JSON.stringify(body) !== baseline;
-	const dirty = sourceDirty || translationDirty || priceDirty;
+	const dirty = sourceDirty || priceDirty;
 	const navigationFocus = useRef<HTMLElement | null>(null);
-	const previous = item?.revisions.find((r) => r.id === item.published);
-	const setTranslation = useCallback(
-		(v: boolean) => setTranslationDirty(v),
-		[],
-	);
+
 	const setPrice = useCallback((v: boolean) => setPriceDirty(v), []);
 	const install = useCallback(
 		(value: ProductDetail, revisionId?: string | null) => {
@@ -103,7 +96,7 @@ export function CatalogueWorkspace({
 			setSelected(revision);
 			setBody(next);
 			setBaseline(JSON.stringify(next));
-			setTranslationDirty(false);
+
 			setPriceDirty(false);
 			setEpoch((v) => v + 1);
 		},
@@ -225,7 +218,7 @@ export function CatalogueWorkspace({
 								const next = pending;
 								setFeedback(null);
 								setPending(null);
-								setTranslationDirty(false);
+
 								setPriceDirty(false);
 								setEpoch((e) => e + 1);
 								next();
@@ -463,7 +456,7 @@ export function CatalogueWorkspace({
 								body={body}
 								item={item}
 								taxonomy={taxonomy}
-								busy={busy || translationDirty || priceDirty}
+								busy={busy || priceDirty}
 								onChange={setBody}
 								onSave={() =>
 									void run(
@@ -525,34 +518,7 @@ export function CatalogueWorkspace({
 										revision={savedPreview.id}
 									/>
 								)}
-								{context === "staff" &&
-									item.published &&
-									item.published !== selected.id && (
-										<details>
-											<summary>{t.previous}</summary>
-											{item.revisions
-												.filter((r) => r.id === item.published)
-												.map((r) => (
-													<ProductRevisionPreview
-														key={r.id}
-														locale={locale}
-														body={r.body}
-														item={item}
-														label={t.previous}
-														revision={r.id}
-													/>
-												))}
-										</details>
-									)}
-								{context === "staff" &&
-									previous &&
-									item.published !== selected.id && (
-										<SourceReviewPanel
-											locale={locale}
-											selected={selected}
-											previous={previous}
-										/>
-									)}
+
 								<Control
 									path="reason"
 									label={t.reason}
@@ -565,10 +531,7 @@ export function CatalogueWorkspace({
 									</p>
 								)}
 								<div className="flex flex-wrap gap-3">
-									{(context === "seller"
-										? ["submit", "withdraw", "unpublish"]
-										: ["publish", "reject", "unpublish"]
-									).map((action) => (
+									{["submit", "withdraw", "unpublish"].map((action) => (
 										<Button
 											key={action}
 											variant={action === "publish" ? "primary" : "secondary"}
@@ -580,12 +543,7 @@ export function CatalogueWorkspace({
 													selected.state !== "submitted") ||
 												(action === "unpublish" &&
 													item.published !== selected.id) ||
-												(context === "staff" &&
-													!item.permissions.includes(
-														action === "unpublish"
-															? "moderate_catalogue"
-															: "review_source",
-													))
+												false
 											}
 											onClick={() => void transition(action)}
 										>
@@ -631,27 +589,6 @@ export function CatalogueWorkspace({
 								}
 							/>
 						)}
-						{context === "staff" &&
-							selected &&
-							item.permissions.includes("review_translation") && (
-								<TranslationReviewPanel
-									key={`${selected.id}-${epoch}`}
-									item={item}
-									revision={selected}
-									locale={locale}
-									busy={busy || sourceDirty}
-									onDirty={setTranslation}
-									onAction={(target, data) =>
-										run(() =>
-											api(
-												context,
-												`products/${item.id}/translations/${selected.id}/${target}/`,
-												data,
-											),
-										)
-									}
-								/>
-							)}
 					</>
 				)}
 				{!list && !item && !feedback && <p role="status">{t.loading}</p>}

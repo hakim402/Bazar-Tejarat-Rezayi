@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { accountSettingsCopy } from "../../../lib/i18n/account-settings";
 import { useState } from "react";
 import { organizationCopy, label } from "../../../lib/i18n/organizations";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -55,18 +56,27 @@ export function OrganizationWorkspace({
 							))}
 						</ul>
 						{!state.data.profiles.length && <p>{t.empty}</p>}
-						<details className="my-4" open={!state.data.profiles.length}>
-							<summary className="cursor-pointer py-3 text-xl font-bold">
-								{t.create}
-							</summary>
-							<ProfileEditor
-								locale={locale}
-								context={context}
-								busy={state.busy}
-								errors={state.fields}
-								onSave={(data) => state.mutate(profilePath(context), data)}
-							/>
-						</details>
+						{context === "seller" && (
+							<details className="my-4" open={!state.data.profiles.length}>
+								<summary className="cursor-pointer py-3 text-xl font-bold">
+									{t.create}
+								</summary>
+								<ProfileEditor
+									locale={locale}
+									context={context}
+									kinds={["individual"]}
+									busy={state.busy}
+									errors={state.fields}
+									onSave={(data) => state.mutate(profilePath(context), data)}
+								/>
+							</details>
+						)}
+						<Link
+							className="inline-flex min-h-11 items-center font-semibold text-action"
+							href={`/${locale}/account/${context}/settings`}
+						>
+							{accountSettingsCopy[locale].upgrade}
+						</Link>
 					</>
 				) : selected ? (
 					<>

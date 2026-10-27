@@ -1,0 +1,5 @@
+{% extends 'admin/base_site.html' %}{% load i18n %}
+{% block content %}<section class="ra:max-w-xl ra:space-y-5">
+<p>{% translate 'Confirm your password and current authenticator or one unused recovery code. This signs you out and requires new enrollment.' %}</p>
+<form method="post" class="ra:space-y-4">{% csrf_token %}{{ form.as_p }}<button type="submit" class="ra:min-h-11 ra:rounded-lg ra:bg-action ra:px-4 ra:py-2 ra:font-bold ra:text-on-action">{% translate 'Reset authenticator' %}</button></form>
+</section>{% endblock %}

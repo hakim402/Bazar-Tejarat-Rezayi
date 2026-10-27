@@ -1,4 +1,1 @@
-import { notFound } from "next/navigation";
-export default function Missing() {
-	notFound();
-}
+export { default } from "./components/not-found-content";

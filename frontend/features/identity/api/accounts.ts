@@ -1,9 +1,10 @@
-import type { components } from "../../../lib/api/schema";
+import { sellerAccountRoute } from "../../../lib/routes/account-routes.ts";
+import type { components } from "../../../lib/api/schema.d";
 import { ApiError } from "../../../lib/api/client.ts";
 
 export type AuthResult = components["schemas"]["AuthResult"];
 export type SessionData = components["schemas"]["SessionData"];
-export type AccountContext = "buyer" | "seller" | "staff";
+export type AccountContext = "buyer" | "seller";
 import { privateCall } from "../../../lib/api/private-client.ts";
 export { AccountError } from "../../../lib/api/private-client.ts";
 export const ACCOUNT_SESSION_CHANGED = "rezayi:account-session-changed";
@@ -52,9 +53,20 @@ export function safeReturn(
 		return fallback;
 	try {
 		const url = new URL(value, "https://return.example");
+		if (
+			context === "seller" &&
+			url.pathname.startsWith(`/${locale}/account/`)
+		) {
+			const parts = url.pathname.split("/").filter(Boolean);
+			if (parts[2] !== "seller" || !sellerAccountRoute(parts.slice(3)))
+				return fallback;
+		}
 		return url.origin === "https://return.example" &&
 			url.pathname.startsWith(`/${locale}/`) &&
-			!url.pathname.startsWith(`/${locale}/auth/`)
+			!url.pathname.startsWith(`/${locale}/auth/`) &&
+			!url.pathname.startsWith(`/${locale}/account/staff`) &&
+			!url.searchParams.has("auth") &&
+			!["staff", "owner"].includes(url.searchParams.get("context") ?? "")
 			? url.pathname + url.search + url.hash
 			: fallback;
 	} catch {

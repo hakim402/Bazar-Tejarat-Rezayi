@@ -9,7 +9,6 @@ from urllib.parse import quote
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import Permission
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied, ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
@@ -140,7 +139,7 @@ def consume_token(raw, purpose, *, password=None, request=None):
         logout(request)
 
 
-def owner_mfa_required():
+def admin_mfa_required():
     return settings.PRODUCTION or settings.OWNER_MFA_REQUIRED
 
 
@@ -195,7 +194,7 @@ def get_grant(request, context):
             and user.is_staff
             and user.is_superuser
             and (
-                not owner_mfa_required()
+                not admin_mfa_required()
                 or grant.get("mfa") and Authenticator.objects.filter(user=user, confirmed=True).exists()
             )
         ):
@@ -204,12 +203,18 @@ def get_grant(request, context):
     account = Account.objects.filter(
         pk=grant.get("account"), user=user, context=context, status=Account.Status.ACTIVE
     ).first()
-    if not account or grant.get("account_epoch") != account.access_epoch or context == "staff" and not grant.get("mfa"):
+    if not account or grant.get("account_epoch") != account.access_epoch:
+        raise AuthFailure()
+    if context == "staff" and (
+        not user.is_staff
+        or grant.get("entry") != "admin"
+        or admin_mfa_required() and not grant.get("mfa")
+    ):
         raise AuthFailure()
     return account
 
 
-def establish(request, user, context, *, mfa=False, device=None):
+def establish(request, user, context, *, mfa=False, device=None, admin_entry=False):
     # One authority lock serializes grant creation/rotation with every context logout.
     # Later whole-session saves cannot undo the monotonic grant revocations.
     with transaction.atomic():
@@ -256,6 +261,7 @@ def establish(request, user, context, *, mfa=False, device=None):
             "account_epoch": account.access_epoch if account else None,
             "at": time.time(),
             "mfa": mfa,
+            "entry": "admin" if admin_entry else request.session.get("pending_mfa", {}).get("entry"),
         }
         request.session["grants"] = grants
         request.session.pop("pending_mfa", None)
@@ -288,7 +294,7 @@ def revoke_context(request, context):
         request.session["grants"] = grants
 
 
-def begin_signin(request, email, password, context):
+def begin_signin(request, email, password, context, *, admin_entry=False):
     rate_limit(request, "login", identity=normalize_email(email), limit=12)
     user = authenticate(request, email=normalize_email(email), password=password)
     eligible = (
@@ -300,12 +306,13 @@ def begin_signin(request, email, password, context):
             and user.is_staff
             and user.is_superuser
             or context != "owner"
+            and (context != "staff" or user.is_staff)
             and Account.objects.filter(user=user, context=context, status="active").exists()
         )
     )
     if not eligible:
         raise AuthFailure()
-    if context == "staff" or context == "owner" and owner_mfa_required():
+    if context in {"staff", "owner"} and admin_mfa_required():
         if request.user.is_authenticated and request.user.pk != user.pk:
             logout(request)
         request.session.cycle_key()
@@ -319,9 +326,13 @@ def begin_signin(request, email, password, context):
         }
         audit("privileged_password_verified", request=request, user=user, context=context)
         return "challenge" if Authenticator.objects.filter(user=user, confirmed=True).exists() else "enroll"
-    establish(request, user, context)
+    if context == "staff" and not admin_entry:
+        raise AuthFailure()
+    establish(request, user, context, admin_entry=admin_entry)
     if context == "owner":
         audit("owner_development_password_signin", request=request, user=user, context=context)
+    elif context == "staff":
+        audit("staff_development_password_signin", request=request, user=user, context=context)
     return "signed_in"
 
 
@@ -338,7 +349,7 @@ def pending_identity(request):
     if context == "owner":
         if not (user.owner_authority and user.is_staff and user.is_superuser):
             raise AuthFailure()
-    elif context != "staff" or not Account.objects.filter(user=user, context="staff", status="active").exists():
+    elif context != "staff" or not user.is_staff or not Account.objects.filter(user=user, context="staff", status="active").exists():
         raise AuthFailure()
     return user, context
 
@@ -403,17 +414,9 @@ def finish_mfa(request, code, *, recovery=False):
 
 
 def permission_codes(account):
-    # Fresh queries, no cached Django superuser permission bypass for operational accounts.
-    return (
-        list(
-            Permission.objects.filter(group__in=account.permission_groups.all(), content_type__app_label__in=["accounts", "verification", "catalogue"])
-            .exclude(codename="manage_content")
-            .values_list("codename", flat=True)
-            .distinct()
-        )
-        if account.context == "staff"
-        else []
-    )
+    from .admin_access import permission_codes as effective_codes
+    return sorted({code for app in ("accounts", "verification", "catalogue", "inventory")
+                   for code in effective_codes(account, app)}) if account.context == "staff" else []
 
 
 def account_summary(account):
@@ -440,3 +443,33 @@ def compatibility_review_status(account):
     if "rejected" in statuses:
         return "rejected"
     return "pending" if statuses or account.context == "seller" or account.intent == "business" else "not_requested"
+
+
+def update_display_name(request, context, display_name):
+    account = get_grant(request, context)
+    with transaction.atomic():
+        user = User.objects.select_for_update().get(pk=request.user.pk)
+        request.user = user
+        get_grant(request, context)
+        user.display_name = display_name
+        user.save(update_fields=["display_name"])
+        audit("profile_updated", request=request, user=user, account=account,
+              context=context, fields=["display_name"])
+    return user
+
+
+def change_shared_password(request, context, current_password, password):
+    account = get_grant(request, context)
+    rate_limit(request, "password_change", identity=str(request.user.pk), limit=5)
+    with transaction.atomic():
+        user = User.objects.select_for_update().get(pk=request.user.pk)
+        request.user = user
+        get_grant(request, context)
+        if not user.check_password(current_password):
+            raise AuthFailure()
+        password_check(password, user)
+        user.set_password(password)
+        user.credential_epoch += 1
+        user.save()
+        audit("shared_password_changed", request=request, user=user, account=account, context=context)
+    logout(request)

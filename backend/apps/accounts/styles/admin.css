@@ -3,6 +3,7 @@
 @import "../../../../frontend/node_modules/tailwindcss/utilities.css" layer(utilities) prefix(ra) source(none);
 @source "../templates";
 @source "../../site";
+@source "../../verification/templates";
 @custom-variant dark (&:where(.dark, .dark *));
 @theme inline {
   --color-canvas: var(--admin-canvas);

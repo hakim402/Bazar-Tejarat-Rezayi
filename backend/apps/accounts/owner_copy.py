@@ -21,8 +21,8 @@ KEYS = [
 ]
 TEXT = {
     "en": [
-        "Owner sign-in",
-        "Owner administration · Password and authenticator required",
+        "Admin sign-in",
+        "Authorized administration · Password and authenticator required",
         "Email",
         "Password",
         "Continue",
@@ -38,7 +38,7 @@ TEXT = {
         "Save your recovery codes privately",
         "Shown once. Each code works once. Store them away from this device.",
         "I saved my codes — continue to administration",
-        "Signing out of owner administration signs this browser out of every account context.",
+        "Signing out of administration signs this browser out of every account context.",
         "Sign-in could not be verified. Retry or start again after the challenge expires.",
     ],
     "fa-AF": [

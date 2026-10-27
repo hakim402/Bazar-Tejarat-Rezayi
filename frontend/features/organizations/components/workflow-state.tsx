@@ -140,16 +140,10 @@ export function WorkspaceNav({
 	return (
 		<nav className="my-5 flex flex-wrap gap-4 text-action" aria-label={t.title}>
 			<Link href={`/${locale}/account/${context}`}>{t.back}</Link>
-			{context === "staff" ? (
-				<>
-					<Link href={`/${locale}/account/staff/verification`}>{t.review}</Link>
-					<Link href={`/${locale}/account/staff/transfers`}>{t.transfers}</Link>
-				</>
-			) : (
-				<Link href={`/${locale}/account/${context}/organizations`}>
-					{t.select}
-				</Link>
-			)}
+
+			<Link href={`/${locale}/account/${context}/organizations`}>
+				{t.select}
+			</Link>
 		</nav>
 	);
 }

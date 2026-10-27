@@ -1,4 +1,5 @@
 """Owner draft/publication, two-card selection, routes and permanent file lifecycle."""
+from tests.test_identity import native_auth
 from unittest.mock import patch
 from django.conf import settings
 from django.core.files.storage import storages
@@ -8,7 +9,7 @@ from apps.accounts.models import User, Authenticator
 from apps.site.defaults import initialize
 from apps.site.models import SiteSettings, HeroSlide, HeroLocale, SiteMedia, SiteDraft, SiteDraftUpload
 from apps.site.sections import SECTIONS
-from tests.test_identity import PASSWORD, signin, post, code
+from tests.test_identity import PASSWORD, signin, code
 from tests.test_site import image
 
 
@@ -18,8 +19,8 @@ class SiteWorkspaceTests(TestCase):
         self.owner = User.objects.create_superuser('workspace-owner@example.test', PASSWORD, email_verified=True)
         self.client = APIClient(enforce_csrf_checks=True)
         signin(self.client, "owner", self.owner.email)
-        post(self.client, "mfa/enroll/")
-        post(self.client, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=self.owner))})
+        native_auth(self.client, "enroll", {})
+        native_auth(self.client, "challenge", {"code": code(Authenticator.objects.get(user=self.owner))})
 
     def send(self, url, data):
         token = self.client.get('/api/v1/auth/csrf/').json()['csrf_token']

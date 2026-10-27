@@ -13,18 +13,12 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 	const t = authCopy[locale];
 	const context: AccountContext = screen.startsWith("seller")
 		? "seller"
-		: screen.startsWith("staff") || screen === "mfa"
-			? "staff"
-			: "buyer";
+		: "buyer";
 	const register = screen.endsWith("registration"),
 		signin = screen.endsWith("sign-in");
 	const [busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
 		[notice, setNotice] = useState(""),
-		[intent, setIntent] = useState("individual"),
-		[stage, setStage] = useState(""),
-		[secret, setSecret] = useState(""),
-		[codes, setCodes] = useState<string[]>([]),
 		[token, setToken] = useState("");
 	const inFlight = useRef(false);
 	const alertRef = useRef<HTMLParagraphElement>(null);
@@ -85,41 +79,18 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 					email: value("email"),
 					password: value("password"),
 					display_name: value("display_name"),
-					intent,
 					consent: values.has("consent"),
 					locale,
 				});
 				form.reset();
 				setNotice(t.requested);
-			} else if (signin && !stage) {
+			} else if (signin) {
 				const result = await authMutation(`${context}/signin/`, {
 					email: value("email"),
 					password: value("password"),
 				});
 				form.reset();
 				if (result.status === "signed_in") completeSignin();
-				else setStage(result.status);
-			} else if (
-				stage === "enroll" ||
-				stage === "challenge" ||
-				screen === "mfa"
-			) {
-				if (value("action") === "enroll") {
-					const result = await authMutation("mfa/enroll/");
-					setSecret(result.secret ?? "");
-					setStage("challenge");
-				} else {
-					const result = await authMutation("mfa/challenge/", {
-						code: value("code"),
-						recovery: values.has("recovery"),
-					});
-					setSecret("");
-					form.reset();
-					if (result.recovery_codes?.length) {
-						setCodes(result.recovery_codes);
-						setStage("complete");
-					} else completeSignin();
-				}
 			} else if (screen === "verify-email" && token) {
 				await authMutation("verify/", { token });
 				setToken("");
@@ -154,12 +125,6 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 		busy,
 		error,
 		notice,
-		intent,
-		setIntent,
-		stage,
-		secret,
-		codes,
-		setCodes,
 		token,
 		alertRef,
 		completeSignin,

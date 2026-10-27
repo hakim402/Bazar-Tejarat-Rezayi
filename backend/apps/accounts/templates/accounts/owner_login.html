@@ -22,7 +22,7 @@
     <div class="ra:mx-auto ra:grid ra:w-full ra:max-w-2xl ra:overflow-hidden ra:rounded-card ra:border ra:border-auth-line ra:bg-panel ra:shadow-auth ra:md:grid-cols-[13rem_minmax(0,1fr)]">
       <aside class="ra:hidden ra:flex-col ra:bg-brand-panel ra:p-5 ra:text-on-dark ra:md:flex">
         <img src="{% static 'accounts/brand-en-white.svg' %}" alt="Bazar Rezayi" width="128" height="36" class="ra:block ra:h-auto ra:w-32">
-        <h2 class="ra:mt-8 ra:text-xl ra:font-bold ra:leading-snug">{{ admin_copy.role_title }}</h2>
+        <h2 class="ra:mt-8 ra:text-xl ra:font-bold ra:leading-snug">{{ admin_copy.signin_role|default:admin_copy.role_title }}</h2>
         <p class="ra:mt-3 ra:text-sm ra:leading-6 ra:text-on-dark/90">{{ admin_copy.signin_panel_body }}</p>
         <div class="ra:mt-auto ra:pt-5"><img src="{% static 'accounts/owner-welcome.webp' %}" alt="" width="168" height="144" loading="lazy" class="ra:block ra:h-36 ra:w-full ra:rounded-control ra:object-cover ra:object-bottom"></div>
       </aside>
@@ -49,6 +49,7 @@
       </section>
     </div>
     <p class="ra:mx-auto ra:mt-4 ra:max-w-lg ra:text-center ra:text-xs ra:leading-5 ra:text-muted">{{ t.logout }}</p>
+    <p class="ra:mt-2 ra:text-center ra:text-sm"><a class="ra:font-semibold ra:text-action" href="{% if recovery_url %}{{ recovery_url }}{% else %}{{ frontend_url }}/auth/forgot-password{% endif %}">{% translate "Forgot password?" %}</a></p>
     </div>
   </main>
   <footer class="ra:text-center ra:text-xs ra:text-muted">{{ admin_copy.signin_restricted }}</footer>

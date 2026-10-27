@@ -156,7 +156,6 @@ test("private account, authentication, invitation and preview stay noindex in ev
 		for (const path of [
 			"/account/buyer",
 			"/account/seller",
-			"/account/staff",
 			"/auth/buyer-sign-in",
 			"/invitation",
 		]) {
@@ -166,6 +165,9 @@ test("private account, authentication, invitation and preview stay noindex in ev
 				/name="robots" content="noindex, nofollow"/,
 			);
 		}
+		const retired = await request.get(`/${locale}/account/staff`);
+		expect(retired.status()).toBe(404);
+		expect(retired.headers()["x-robots-tag"]).toContain("noindex");
 		expect(
 			(
 				await request.get(
@@ -340,6 +342,10 @@ test("maintenance, malformed/unavailable authority, recovery and unaffected auth
 			(await page.request.get(`${api}/api/v1/health/live/`)).status(),
 		).toBe(200);
 		expect((await page.goto("/en/auth/buyer-sign-in"))?.status()).toBe(200);
+		await expect(page).toHaveURL(/auth=buyer-sign-in/);
+		await expect(page.getByRole("dialog")).toBeVisible();
+		await page.keyboard.press("Escape");
+		await expect(page.getByRole("dialog")).toHaveCount(0);
 	}
 	configure({ maintenance: true });
 	await page.goto("/fa-AF");

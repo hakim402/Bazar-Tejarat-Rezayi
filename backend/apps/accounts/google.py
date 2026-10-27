@@ -252,8 +252,8 @@ def complete(request, data):
             payload = reveal(attempt.encrypted_payload)
             if not attempt.consumed_at or not payload.get("verified"):
                 raise AuthFailure()
-            context, intent = attempt.context, data["intent"]
-            if intent not in ({"individual", "business"} if context == "buyer" else {"individual", "company"}):
+            context, intent = attempt.context, data.get("intent", "individual")
+            if intent != "individual":
                 raise ValidationError("Invalid intent.")
             claims = payload["claims"]
             if attempt.action == "add-role":

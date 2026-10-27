@@ -1,4 +1,5 @@
 """Owner dashboard authorization, data accuracy and English-only UI regressions."""
+from tests.test_identity import native_auth
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -13,7 +14,7 @@ from apps.accounts.models import Account, Authenticator, User
 from apps.catalogue.models import Product
 from apps.organizations.models import BusinessProfile
 from apps.verification.models import ReviewCase
-from tests.test_identity import PASSWORD, code, post, signin
+from tests.test_identity import PASSWORD, code, signin
 
 
 class OwnerDashboardTests(TestCase):
@@ -25,8 +26,8 @@ class OwnerDashboardTests(TestCase):
 
     def authorize(self):
         self.assertEqual(signin(self.client, "owner", self.owner.email).json()["status"], "enroll")
-        self.assertEqual(post(self.client, "mfa/enroll/").status_code, 200)
-        self.assertEqual(post(self.client, "mfa/challenge/", {
+        self.assertEqual(native_auth(self.client, "enroll", {}).status_code, 200)
+        self.assertEqual(native_auth(self.client, "challenge", {
             "code": code(Authenticator.objects.get(user=self.owner))
         }).status_code, 200)
 
@@ -34,7 +35,7 @@ class OwnerDashboardTests(TestCase):
         with translation.override("fa-af"):
             response = self.client.get("/admin/login/?locale=fa-AF")
             self.assertContains(response, '<html lang="en" dir="ltr">')
-            self.assertContains(response, "Owner sign-in")
+            self.assertContains(response, "Admin sign-in")
             self.assertNotContains(response, '?locale=ps')
             self.assertEqual(response["Content-Language"], "en")
             self.assertEqual(translation.get_language(), "fa-af")
@@ -46,13 +47,14 @@ class OwnerDashboardTests(TestCase):
         self.assertEqual(self.client.get("/admin/").status_code, 302)
         signin(self.client, "owner", self.owner.email)
         self.assertEqual(self.client.get("/admin/").status_code, 302)
-        staff = User.objects.create_user("dashboard-staff@example.test", PASSWORD, email_verified=True)
+        staff = User.objects.create_user("dashboard-staff@example.test", PASSWORD, email_verified=True, is_staff=True)
         Account.objects.create(user=staff, context="staff")
         other = APIClient(enforce_csrf_checks=True)
         signin(other, "staff", staff.email)
-        post(other, "mfa/enroll/")
-        post(other, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=staff))})
-        self.assertEqual(other.get("/admin/").status_code, 302)
+        native_auth(other, "enroll", {})
+        native_auth(other, "challenge", {"code": code(Authenticator.objects.get(user=staff))})
+        self.assertEqual(other.get("/admin/").status_code, 200)
+        self.assertNotContains(other.get("/admin/"), "Registered users")
         # The summary callback itself also requires owner authority.
         request = other.get("/api/v1/auth/staff/session/").wsgi_request
         from apps.accounts.services import AuthFailure

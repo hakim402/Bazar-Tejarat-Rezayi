@@ -1,9 +1,9 @@
-{% extends 'admin/base_site.html' %}
+{% extends 'admin/base_site.html' %}{% load i18n %}
 {% block content %}
 <div class="max-w-5xl space-y-6" lang="{{ locale }}" dir="{{ direction }}">
 <p>{{ t.revision }}</p>
 {% if item %}<p>{{ item.id }} · {{ item.currency }} · {{ item.pricing_mode }} · {{ item.version }}</p>
-<p><a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a> · <a href="?locale={{ locale }}">{{ t.source }}</a></p>{% endif %}
+<p>{% if can_translate or request.user.owner_authority and request.user.is_superuser %}<a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a>{% endif %}{% if can_review_source or request.user.owner_authority and request.user.is_superuser %} · <a href="?locale={{ locale }}">{{ t.source }}</a>{% endif %}</p>{% endif %}
 {% if selection %}
 <p>{{ t.load_help }}</p>
 <form method="get" class="space-y-4" id="translation-selection">
@@ -15,7 +15,10 @@
 <form method="post" class="space-y-4" id="catalogue-operation">{% csrf_token %}
 {% if translation %}<input type="hidden" name="form" value="translation">{% endif %}
 {{ form.as_p }}<button type="submit" class="px-4 py-3 border rounded">{{ t.action }}</button></form>
+{% for image in private_images %}<p><a href="{{ image.url }}">Protected image {{ image.id }}</a></p>{% endfor %}
 {% for revision in revisions %}<details class="border rounded p-4"><summary>{{ revision.id }} · #{{ revision.number }} · {{ revision.state }} · {{ revision.body.locale }}</summary><pre class="whitespace-pre-wrap break-words">{{ revision.body }}</pre><p>{{ revision.reason }}</p></details>{% endfor %}
 {% for t in translations %}<p>{{ t.revision_id }} · {{ t.locale }} · {{ t.version }} · {{ t.state }} · {{ t.title }}</p>{% endfor %}
+{% if translation %}<p>{% if provider == 'groq' or provider == 'test_adapter' %}{% translate "Automatic draft provider enabled" %}{% else %}{% translate "Automatic draft provider disabled. Manual translation remains available." %}{% endif %}</p>{% endif %}
+{% for job in translation_jobs %}<p>{{ job.translation.locale }} · {{ job.status }} · {% translate "Attempts" %} {{ job.attempts }} · {{ job.error_code }}</p>{% endfor %}
 {% for event in events %}<p>{{ event.created_at }} · {{ event.action }} · {{ event.revision_id }} · {{ event.reason }}</p>{% endfor %}
 </div>{% endblock %}

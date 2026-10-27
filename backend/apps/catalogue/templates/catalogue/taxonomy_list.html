@@ -1,0 +1,2 @@
+{% extends "admin/change_list.html" %}
+{% block content %}{% if taxonomy_create_url %}<div class="ra:mb-4"><a href="{{ taxonomy_create_url }}" class="ra:inline-flex ra:min-h-11 ra:items-center ra:rounded-lg ra:bg-action ra:px-4 ra:py-2 ra:font-semibold ra:text-on-action">{{ taxonomy_create_label }}</a></div>{% endif %}{{ block.super }}{% endblock %}

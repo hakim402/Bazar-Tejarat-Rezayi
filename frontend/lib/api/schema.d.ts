@@ -36,22 +36,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/{context}/mfa/reset/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["auth_mfa_reset_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/{context}/password/": {
         parameters: {
             query?: never;
@@ -244,38 +228,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/mfa/challenge/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["auth_mfa_challenge_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/mfa/enroll/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["auth_mfa_enroll_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/reset/": {
         parameters: {
             query?: never;
@@ -420,22 +372,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/catalogue/{context}/products/{id}/translations/{revision_id}/{locale}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["catalogue_translation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/catalogue/{context}/taxonomy/": {
         parameters: {
             query?: never;
@@ -445,23 +381,7 @@ export interface paths {
         };
         get: operations["catalogue_taxonomy"];
         put?: never;
-        post: operations["catalogue_taxonomy_save"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/catalogue/{context}/units/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["catalogue_unit_save"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -526,6 +446,118 @@ export interface paths {
         get: operations["readiness"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/movements/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["inventory_movements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/overview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["inventory_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["inventory_profiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/variants/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["inventory_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/variants/{id}/adjustments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["inventory_adjust"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/variants/{id}/receipts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["inventory_receive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/seller/variants/{id}/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["inventory_configure"];
         delete?: never;
         options?: never;
         head?: never;
@@ -740,22 +772,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/verification/cases/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["CaseView_get"];
-        put?: never;
-        post: operations["CaseView_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/verification/evidence/{context}/{id}/": {
         parameters: {
             query?: never;
@@ -766,54 +782,6 @@ export interface paths {
         get: operations["EvidenceDownloadView_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/verification/queue/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["QueueView_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/verification/transfers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["TransferQueueView_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/verification/transfers/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["TransferReviewView_get"];
-        put?: never;
-        post: operations["TransferReviewView_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -856,14 +824,22 @@ export interface components {
             csrf_token?: string;
             identity?: components["schemas"]["IdentityData"];
             account?: components["schemas"]["AccountData"];
-            recovery_codes?: string[];
-            secret?: string;
-            uri?: string;
             /** Format: uri */
             authorization_url?: string;
             /** Format: uuid */
             attempt_id?: string;
             return_path?: string;
+        };
+        Batch: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            /** Format: date */
+            expires_on: string | null;
+            physical: string;
+            held: string;
+            available: string;
+            expired: boolean;
         };
         Bootstrap: {
             default_locale: components["schemas"]["LocaleEnum"];
@@ -875,11 +851,15 @@ export interface components {
         };
         /**
          * @description * `individual` - individual
-         *     * `business` - business
          *     * `company` - company
+         *     * `business` - business
          * @enum {string}
          */
-        BusinessProfileKindEnum: "individual" | "business" | "company";
+        BusinessProfileKindEnum: "individual" | "company" | "business";
+        Capabilities: {
+            read: boolean;
+            write: boolean;
+        };
         CaseData: {
             /** Format: uuid */
             id: string;
@@ -905,13 +885,6 @@ export interface components {
             };
             evidence: components["schemas"]["EvidenceData"][];
             history: components["schemas"]["ReviewEventData"][];
-        };
-        /** @description Action acknowledgment only; private details require a separately authorized GET. */
-        CaseOperation: {
-            /** Format: uuid */
-            id: string;
-            version: number;
-            status: string;
         };
         /**
          * @description * `submit` - submit
@@ -1036,46 +1009,6 @@ export interface components {
             categories: unknown[];
             units: unknown[];
         };
-        CatalogueTaxonomyInputRequest: {
-            version: number;
-            code: string;
-            labels: {
-                [key: string]: string;
-            };
-            parent?: string | null;
-            attributes?: unknown;
-            units: string[];
-            /** @default true */
-            active: boolean;
-        };
-        /**
-         * @description * `save` - save
-         *     * `approve` - approve
-         *     * `reject` - reject
-         *     * `generate` - generate
-         *     * `retry` - retry
-         * @enum {string}
-         */
-        CatalogueTranslationInputActionEnum: "save" | "approve" | "reject" | "generate" | "retry";
-        CatalogueTranslationInputRequest: {
-            version: number;
-            action: components["schemas"]["CatalogueTranslationInputActionEnum"];
-            title?: string;
-            description?: string;
-            image_alts?: {
-                [key: string]: string;
-            };
-            reason?: string;
-        };
-        CatalogueUnitInputRequest: {
-            version: number;
-            code: string;
-            labels: {
-                [key: string]: string;
-            };
-            fractional: boolean;
-            active: boolean;
-        };
         CatalogueVariantInputRequest: {
             /** Format: uuid */
             id?: string | null;
@@ -1099,11 +1032,6 @@ export interface components {
          * @enum {string}
          */
         CategoryEnum: "identity" | "business" | "representative_identity" | "representative_authority";
-        ChallengeRequest: {
-            code: string;
-            /** @default false */
-            recovery: boolean;
-        };
         /**
          * @description * `catalogue` - catalogue
          *     * `orders_negotiation` - orders_negotiation
@@ -1113,6 +1041,16 @@ export interface components {
          * @enum {string}
          */
         CompanyBundleEnum: "catalogue" | "orders_negotiation" | "payments_refunds" | "fulfilment" | "messaging";
+        ConfigureRequest: {
+            /** Format: uuid */
+            token: string;
+            version: number;
+            reason: string;
+            reference?: string;
+            tracking: components["schemas"]["TrackingEnum"];
+            expiry_required: boolean;
+            threshold?: string | null;
+        };
         Contacts: {
             email: string;
             phone: string;
@@ -1161,17 +1099,12 @@ export interface components {
             /** Format: uuid */
             replace_id?: string;
         };
-        FactorResetRequest: {
-            code: string;
-            /** @default false */
-            recovery: boolean;
-            password: string;
-        };
         GoogleCompleteRequestRequest: {
             /** Format: uuid */
             attempt_id: string;
             consent: boolean;
-            intent: components["schemas"]["BusinessProfileKindEnum"];
+            /** @default individual */
+            intent: components["schemas"]["IntentEnum"];
             display_name: string;
         };
         /**
@@ -1199,6 +1132,12 @@ export interface components {
             slides: components["schemas"]["Slide"][];
             cards: components["schemas"]["PromotionalCard"][];
         };
+        History: {
+            results: components["schemas"]["Movement"][];
+            count: number;
+            page: number;
+            page_size: number;
+        };
         Identity: {
             name: string;
             tagline: string;
@@ -1219,6 +1158,11 @@ export interface components {
             display_name: string;
             email_verified: boolean;
         };
+        /**
+         * @description * `individual` - individual
+         * @enum {string}
+         */
+        IntentEnum: "individual";
         InvitationCreateRequest: {
             /** Format: email */
             email: string;
@@ -1246,7 +1190,8 @@ export interface components {
         };
         LinkRequestRequest: {
             password: string;
-            intent: components["schemas"]["BusinessProfileKindEnum"];
+            /** @default individual */
+            intent: components["schemas"]["IntentEnum"];
         };
         /**
          * @description * `fa-AF` - fa-AF
@@ -1297,6 +1242,31 @@ export interface components {
          * @enum {string}
          */
         ModeEnum: "image_carousel" | "video_carousel";
+        Movement: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            variant: string;
+            /** Format: uuid */
+            batch: string | null;
+            sku: string;
+            unit: string;
+            unit_labels: {
+                [key: string]: string;
+            };
+            action: string;
+            physical_delta: string;
+            held_delta: string;
+            physical_after: string;
+            held_after: string;
+            actor: string;
+            reason: string;
+            reference: string;
+            /** Format: uuid */
+            operation: string;
+            /** Format: date-time */
+            at: string;
+        };
         Notice: {
             enabled: boolean;
             text: string;
@@ -1306,8 +1276,26 @@ export interface components {
             content_locale: components["schemas"]["LocaleEnum"];
             fallback: boolean;
         };
+        Operation: {
+            /** Format: uuid */
+            operation: string;
+            status: string;
+            version: number;
+        };
         OperationResult: {
             status: string;
+        };
+        Overview: {
+            results: components["schemas"]["Position"][];
+            count: number;
+            page: number;
+            page_size: number;
+            counts: {
+                [key: string]: number;
+            };
+            catalogue_count: number;
+            capabilities: components["schemas"]["Capabilities"];
+            recent: components["schemas"]["Movement"][];
         };
         /**
          * @description * `home` - home
@@ -1341,12 +1329,47 @@ export interface components {
         PatchedProfileUpdateRequest: {
             display_name?: string;
         };
+        Position: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            product: string;
+            title: string;
+            sku: string;
+            unit: string;
+            unit_labels: {
+                [key: string]: string;
+            };
+            increment: string;
+            eligible: boolean;
+            configured: boolean;
+            tracking: string | null;
+            expiry_required: boolean;
+            version: number;
+            threshold: string | null;
+            physical: string;
+            held: string;
+            available: string | null;
+            expired: string;
+            state: string;
+            capabilities: components["schemas"]["Capabilities"];
+            batches?: components["schemas"]["Batch"][];
+            movements?: components["schemas"]["Movement"][];
+        };
         /**
          * @description * `fixed` - fixed
          *     * `negotiable` - negotiable
          * @enum {string}
          */
         PricingModeEnum: "fixed" | "negotiable";
+        Profile: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: string;
+            verification: string;
+            capabilities: components["schemas"]["Capabilities"];
+        };
         ProfileCreateRequest: {
             display_name: string;
             legal_name?: string;
@@ -1374,6 +1397,9 @@ export interface components {
             /** Format: uuid */
             my_membership_id: string | null;
             bundles: string[];
+        };
+        Profiles: {
+            profiles: components["schemas"]["Profile"][];
         };
         ProfilesResult: {
             profiles: components["schemas"]["ProfileData"][];
@@ -1416,36 +1442,26 @@ export interface components {
             seo: components["schemas"]["SEO"][];
             media_hosts: string[];
         };
-        QueueItem: {
+        ReceiptRequest: {
             /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            profile_id: string;
-            display_name: string;
-            kind: string;
-            revision: number;
+            token: string;
             version: number;
-            status: string;
+            reason: string;
+            reference?: string;
+            quantity: string;
             /** Format: uuid */
-            assigned_to: string | null;
-            /** Format: date-time */
-            created_at: string;
-        };
-        QueueResult: {
-            /** Format: uuid */
-            current_account_id: string;
-            results: components["schemas"]["QueueItem"][];
-            count: number;
-            page: number;
-            reviewers: components["schemas"]["ReviewerData"][];
-            permissions: string[];
+            batch?: string | null;
+            batch_code?: string;
+            /** Format: date */
+            expires_on?: string | null;
         };
         RegistrationRequest: {
             /** Format: email */
             email: string;
             password: string;
             display_name: string;
-            intent: components["schemas"]["BusinessProfileKindEnum"];
+            /** @default individual */
+            intent: components["schemas"]["IntentEnum"];
             consent: boolean;
             /** @default fa-AF */
             locale: components["schemas"]["LocaleEnum"];
@@ -1453,26 +1469,6 @@ export interface components {
         ResetRequestRequest: {
             token: string;
             password: string;
-        };
-        /**
-         * @description * `assign` - assign
-         *     * `approved` - approved
-         *     * `rejected` - rejected
-         *     * `needs_information` - needs_information
-         * @enum {string}
-         */
-        ReviewActionActionEnum: "assign" | "approved" | "rejected" | "needs_information";
-        ReviewActionRequest: {
-            version: number;
-            action: components["schemas"]["ReviewActionActionEnum"];
-            /** Format: uuid */
-            assigned_to?: string;
-            reason: string;
-            /** @default  */
-            internal_note: string;
-            accepted_alternatives?: {
-                [key: string]: string;
-            };
         };
         ReviewEventData: {
             /** Format: uuid */
@@ -1482,11 +1478,6 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             context: string;
-        };
-        ReviewerData: {
-            /** Format: uuid */
-            id: string;
-            name: string;
         };
         SEO: {
             page: components["schemas"]["PageEnum"];
@@ -1554,6 +1545,12 @@ export interface components {
             token: string;
         };
         /**
+         * @description * `plain` - plain
+         *     * `batch` - batch
+         * @enum {string}
+         */
+        TrackingEnum: "plain" | "batch";
+        /**
          * @description * `accept` - accept
          *     * `cancel` - cancel
          *     * `approve` - approve
@@ -1595,11 +1592,6 @@ export interface components {
             reason: string;
             /** Format: date-time */
             created_at: string;
-        };
-        TransferQueue: {
-            results: components["schemas"]["TransferData"][];
-            count: number;
-            page: number;
         };
         /**
          * @description * `resend` - resend
@@ -1662,33 +1654,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResult"];
-                };
-            };
-        };
-    };
-    auth_mfa_reset_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FactorResetRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["FactorResetRequest"];
-                "multipart/form-data": components["schemas"]["FactorResetRequest"];
-            };
-        };
         responses: {
             200: {
                 headers: {
@@ -1972,50 +1937,6 @@ export interface operations {
         };
         responses: {
             202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResult"];
-                };
-            };
-        };
-    };
-    auth_mfa_challenge_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChallengeRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["ChallengeRequest"];
-                "multipart/form-data": components["schemas"]["ChallengeRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResult"];
-                };
-            };
-        };
-    };
-    auth_mfa_enroll_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2324,36 +2245,6 @@ export interface operations {
             };
         };
     };
-    catalogue_translation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-                id: string;
-                locale: string;
-                revision_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CatalogueTranslationInputRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CatalogueTranslationInputRequest"];
-                "multipart/form-data": components["schemas"]["CatalogueTranslationInputRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogueOperation"];
-                };
-            };
-        };
-    };
     catalogue_taxonomy: {
         parameters: {
             query?: never;
@@ -2364,60 +2255,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogueTaxonomy"];
-                };
-            };
-        };
-    };
-    catalogue_taxonomy_save: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CatalogueTaxonomyInputRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CatalogueTaxonomyInputRequest"];
-                "multipart/form-data": components["schemas"]["CatalogueTaxonomyInputRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogueTaxonomy"];
-                };
-            };
-        };
-    };
-    catalogue_unit_save: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                context: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CatalogueUnitInputRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CatalogueUnitInputRequest"];
-                "multipart/form-data": components["schemas"]["CatalogueUnitInputRequest"];
-            };
-        };
         responses: {
             200: {
                 headers: {
@@ -2514,6 +2351,186 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Status"];
+                };
+            };
+        };
+    };
+    inventory_movements: {
+        parameters: {
+            query: {
+                action?: "adjust" | "cod" | "consume" | "receive" | "release" | "reserve";
+                batch?: string;
+                page?: number;
+                q?: string;
+                seller: string;
+                variant?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["History"];
+                };
+            };
+        };
+    };
+    inventory_overview: {
+        parameters: {
+            query: {
+                page?: number;
+                q?: string;
+                seller: string;
+                sort?: "-available" | "-sku" | "available" | "sku";
+                state?: "available" | "expired" | "held" | "inactive" | "low" | "unconfigured" | "zero";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+        };
+    };
+    inventory_profiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profiles"];
+                };
+            };
+        };
+    };
+    inventory_detail: {
+        parameters: {
+            query: {
+                seller: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Position"];
+                };
+            };
+        };
+    };
+    inventory_adjust: {
+        parameters: {
+            query: {
+                seller: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReceiptRequest"];
+                "multipart/form-data": components["schemas"]["ReceiptRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+        };
+    };
+    inventory_receive: {
+        parameters: {
+            query: {
+                seller: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReceiptRequest"];
+                "multipart/form-data": components["schemas"]["ReceiptRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+        };
+    };
+    inventory_configure: {
+        parameters: {
+            query: {
+                seller: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigureRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConfigureRequest"];
+                "multipart/form-data": components["schemas"]["ConfigureRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
                 };
             };
         };
@@ -2929,54 +2946,6 @@ export interface operations {
             };
         };
     };
-    CaseView_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CaseData"];
-                };
-            };
-        };
-    };
-    CaseView_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewActionRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["ReviewActionRequest"];
-                "multipart/form-data": components["schemas"]["ReviewActionRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CaseOperation"];
-                };
-            };
-        };
-    };
     EvidenceDownloadView_get: {
         parameters: {
             query?: never;
@@ -2995,92 +2964,6 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
-                };
-            };
-        };
-    };
-    QueueView_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QueueResult"];
-                };
-            };
-        };
-    };
-    TransferQueueView_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferQueue"];
-                };
-            };
-        };
-    };
-    TransferReviewView_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferData"];
-                };
-            };
-        };
-    };
-    TransferReviewView_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TransferActionRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["TransferActionRequest"];
-                "multipart/form-data": components["schemas"]["TransferActionRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransferData"];
                 };
             };
         };

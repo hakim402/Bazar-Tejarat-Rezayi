@@ -80,7 +80,7 @@
                         "name": "context",
                         "schema": {
                             "type": "string",
-                            "pattern": "^buyer|seller|staff$"
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -88,63 +88,6 @@
                 "tags": [
                     "auth"
                 ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AuthResult"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/{context}/mfa/reset/": {
-            "post": {
-                "operationId": "auth_mfa_reset_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string",
-                            "pattern": "^staff|owner$"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/FactorResetRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/FactorResetRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/FactorResetRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "security": [
                     {
                         "cookieAuth": []
@@ -174,7 +117,7 @@
                         "name": "context",
                         "schema": {
                             "type": "string",
-                            "pattern": "^buyer|seller|staff$"
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -231,7 +174,7 @@
                         "name": "context",
                         "schema": {
                             "type": "string",
-                            "pattern": "^buyer|seller|staff$"
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -344,7 +287,7 @@
                         "name": "context",
                         "schema": {
                             "type": "string",
-                            "pattern": "^buyer|seller|staff$"
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -381,7 +324,7 @@
                         "name": "context",
                         "schema": {
                             "type": "string",
-                            "pattern": "^buyer|seller|staff|owner$"
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -675,78 +618,6 @@
                 }
             }
         },
-        "/api/v1/auth/mfa/challenge/": {
-            "post": {
-                "operationId": "auth_mfa_challenge_create",
-                "tags": [
-                    "auth"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ChallengeRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ChallengeRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ChallengeRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AuthResult"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/mfa/enroll/": {
-            "post": {
-                "operationId": "auth_mfa_enroll_create",
-                "tags": [
-                    "auth"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AuthResult"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
         "/api/v1/auth/reset/": {
             "post": {
                 "operationId": "auth_reset_create",
@@ -897,7 +768,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     },
@@ -943,7 +815,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     }
@@ -977,7 +850,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     }
@@ -1033,7 +907,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     },
@@ -1076,7 +951,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     },
@@ -1141,7 +1017,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     },
@@ -1206,7 +1083,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     },
@@ -1269,7 +1147,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     },
@@ -1301,88 +1180,6 @@
                         "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/CataloguePricesRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CatalogueOperation"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/catalogue/{context}/products/{id}/translations/{revision_id}/{locale}/": {
-            "post": {
-                "operationId": "catalogue_translation",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "locale",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "revision_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "catalogue"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueTranslationInputRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueTranslationInputRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueTranslationInputRequest"
                             }
                         }
                     },
@@ -1416,7 +1213,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^seller$"
                         },
                         "required": true
                     }
@@ -1424,116 +1222,6 @@
                 "tags": [
                     "catalogue"
                 ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CatalogueTaxonomy"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "catalogue_taxonomy_save",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "catalogue"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueTaxonomyInputRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueTaxonomyInputRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueTaxonomyInputRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CatalogueTaxonomy"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/catalogue/{context}/units/": {
-            "post": {
-                "operationId": "catalogue_unit_save",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "context",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "catalogue"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueUnitInputRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueUnitInputRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CatalogueUnitInputRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "security": [
                     {
                         "cookieAuth": []
@@ -1681,6 +1369,430 @@
                 }
             }
         },
+        "/api/v1/inventory/seller/movements/": {
+            "get": {
+                "operationId": "inventory_movements",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "action",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "adjust",
+                                "cod",
+                                "consume",
+                                "receive",
+                                "release",
+                                "reserve"
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "batch",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "variant",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/History"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/inventory/seller/overview/": {
+            "get": {
+                "operationId": "inventory_overview",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "sort",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "-available",
+                                "-sku",
+                                "available",
+                                "sku"
+                            ]
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "available",
+                                "expired",
+                                "held",
+                                "inactive",
+                                "low",
+                                "unconfigured",
+                                "zero"
+                            ]
+                        }
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Overview"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/inventory/seller/profiles/": {
+            "get": {
+                "operationId": "inventory_profiles",
+                "tags": [
+                    "inventory"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Profiles"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/inventory/seller/variants/{id}/": {
+            "get": {
+                "operationId": "inventory_detail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Position"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/inventory/seller/variants/{id}/adjustments/": {
+            "post": {
+                "operationId": "inventory_adjust",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Operation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/inventory/seller/variants/{id}/receipts/": {
+            "post": {
+                "operationId": "inventory_receive",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Operation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/inventory/seller/variants/{id}/settings/": {
+            "post": {
+                "operationId": "inventory_configure",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfigureRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfigureRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfigureRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Operation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/organizations/{context}/profiles/": {
             "get": {
                 "operationId": "ProfilesView_get",
@@ -1689,7 +1801,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -1723,7 +1836,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     }
@@ -1779,7 +1893,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -1822,7 +1937,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -1886,7 +2002,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -1951,7 +2068,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2025,7 +2143,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2099,7 +2218,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2144,7 +2264,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2209,7 +2330,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2408,7 +2530,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2451,7 +2574,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2516,7 +2640,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2568,98 +2693,6 @@
                 }
             }
         },
-        "/api/v1/verification/cases/{id}/": {
-            "get": {
-                "operationId": "CaseView_get",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "verification"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CaseData"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "CaseView_post",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "verification"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ReviewActionRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ReviewActionRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ReviewActionRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CaseOperation"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
         "/api/v1/verification/evidence/{context}/{id}/": {
             "get": {
                 "operationId": "EvidenceDownloadView_get",
@@ -2668,7 +2701,8 @@
                         "in": "path",
                         "name": "context",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
                         },
                         "required": true
                     },
@@ -2698,150 +2732,6 @@
                                 "schema": {
                                     "type": "string",
                                     "format": "binary"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/verification/queue/": {
-            "get": {
-                "operationId": "QueueView_get",
-                "tags": [
-                    "verification"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/QueueResult"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/verification/transfers/": {
-            "get": {
-                "operationId": "TransferQueueView_get",
-                "tags": [
-                    "verification"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TransferQueue"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/verification/transfers/{id}/": {
-            "get": {
-                "operationId": "TransferReviewView_get",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "verification"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TransferData"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "TransferReviewView_post",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "verification"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/TransferActionRequest"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/TransferActionRequest"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/TransferActionRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TransferData"
                                 }
                             }
                         },
@@ -2954,18 +2844,6 @@
                     "account": {
                         "$ref": "#/components/schemas/AccountData"
                     },
-                    "recovery_codes": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "secret": {
-                        "type": "string"
-                    },
-                    "uri": {
-                        "type": "string"
-                    },
                     "authorization_url": {
                         "type": "string",
                         "format": "uri"
@@ -2980,6 +2858,44 @@
                 },
                 "required": [
                     "status"
+                ]
+            },
+            "Batch": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "expires_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "physical": {
+                        "type": "string"
+                    },
+                    "held": {
+                        "type": "string"
+                    },
+                    "available": {
+                        "type": "string"
+                    },
+                    "expired": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "available",
+                    "code",
+                    "expired",
+                    "expires_on",
+                    "held",
+                    "id",
+                    "physical"
                 ]
             },
             "Bootstrap": {
@@ -3017,11 +2933,26 @@
             "BusinessProfileKindEnum": {
                 "enum": [
                     "individual",
-                    "business",
-                    "company"
+                    "company",
+                    "business"
                 ],
                 "type": "string",
-                "description": "* `individual` - individual\n* `business` - business\n* `company` - company"
+                "description": "* `individual` - individual\n* `company` - company\n* `business` - business"
+            },
+            "Capabilities": {
+                "type": "object",
+                "properties": {
+                    "read": {
+                        "type": "boolean"
+                    },
+                    "write": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "read",
+                    "write"
+                ]
             },
             "CaseData": {
                 "type": "object",
@@ -3108,27 +3039,6 @@
                     "reason",
                     "revision",
                     "snapshot",
-                    "status",
-                    "version"
-                ]
-            },
-            "CaseOperation": {
-                "type": "object",
-                "description": "Action acknowledgment only; private details require a separately authorized GET.",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "version": {
-                        "type": "integer"
-                    },
-                    "status": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "id",
                     "status",
                     "version"
                 ]
@@ -3570,137 +3480,6 @@
                     "units"
                 ]
             },
-            "CatalogueTaxonomyInputRequest": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "code": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 40,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
-                    },
-                    "labels": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 100
-                        }
-                    },
-                    "parent": {
-                        "type": "string",
-                        "nullable": true,
-                        "minLength": 1,
-                        "maxLength": 40,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
-                    },
-                    "attributes": {},
-                    "units": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 16
-                        },
-                        "maxItems": 9
-                    },
-                    "active": {
-                        "type": "boolean",
-                        "default": true
-                    }
-                },
-                "required": [
-                    "code",
-                    "labels",
-                    "units",
-                    "version"
-                ]
-            },
-            "CatalogueTranslationInputActionEnum": {
-                "enum": [
-                    "save",
-                    "approve",
-                    "reject",
-                    "generate",
-                    "retry"
-                ],
-                "type": "string",
-                "description": "* `save` - save\n* `approve` - approve\n* `reject` - reject\n* `generate` - generate\n* `retry` - retry"
-            },
-            "CatalogueTranslationInputRequest": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "action": {
-                        "$ref": "#/components/schemas/CatalogueTranslationInputActionEnum"
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 200
-                    },
-                    "description": {
-                        "type": "string",
-                        "maxLength": 6000
-                    },
-                    "image_alts": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    },
-                    "reason": {
-                        "type": "string",
-                        "maxLength": 1000
-                    }
-                },
-                "required": [
-                    "action",
-                    "version"
-                ]
-            },
-            "CatalogueUnitInputRequest": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "code": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 16,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
-                    },
-                    "labels": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 100
-                        }
-                    },
-                    "fractional": {
-                        "type": "boolean"
-                    },
-                    "active": {
-                        "type": "boolean"
-                    }
-                },
-                "required": [
-                    "active",
-                    "code",
-                    "fractional",
-                    "labels",
-                    "version"
-                ]
-            },
             "CatalogueVariantInputRequest": {
                 "type": "object",
                 "properties": {
@@ -3765,24 +3544,6 @@
                 "type": "string",
                 "description": "* `identity` - identity\n* `business` - business\n* `representative_identity` - representative_identity\n* `representative_authority` - representative_authority"
             },
-            "ChallengeRequest": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "writeOnly": true,
-                        "minLength": 6,
-                        "maxLength": 32
-                    },
-                    "recovery": {
-                        "type": "boolean",
-                        "default": false
-                    }
-                },
-                "required": [
-                    "code"
-                ]
-            },
             "CompanyBundleEnum": {
                 "enum": [
                     "catalogue",
@@ -3793,6 +3554,46 @@
                 ],
                 "type": "string",
                 "description": "* `catalogue` - catalogue\n* `orders_negotiation` - orders_negotiation\n* `payments_refunds` - payments_refunds\n* `fulfilment` - fulfilment\n* `messaging` - messaging"
+            },
+            "ConfigureRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                    },
+                    "reference": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "tracking": {
+                        "$ref": "#/components/schemas/TrackingEnum"
+                    },
+                    "expiry_required": {
+                        "type": "boolean"
+                    },
+                    "threshold": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    }
+                },
+                "required": [
+                    "expiry_required",
+                    "reason",
+                    "token",
+                    "tracking",
+                    "version"
+                ]
             },
             "Contacts": {
                 "type": "object",
@@ -3933,31 +3734,6 @@
                     "version"
                 ]
             },
-            "FactorResetRequest": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "writeOnly": true,
-                        "minLength": 6,
-                        "maxLength": 32
-                    },
-                    "recovery": {
-                        "type": "boolean",
-                        "default": false
-                    },
-                    "password": {
-                        "type": "string",
-                        "writeOnly": true,
-                        "minLength": 1,
-                        "maxLength": 128
-                    }
-                },
-                "required": [
-                    "code",
-                    "password"
-                ]
-            },
             "GoogleCompleteRequestRequest": {
                 "type": "object",
                 "properties": {
@@ -3969,7 +3745,12 @@
                         "type": "boolean"
                     },
                     "intent": {
-                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/IntentEnum"
+                            }
+                        ],
+                        "default": "individual"
                     },
                     "display_name": {
                         "type": "string",
@@ -3980,8 +3761,7 @@
                 "required": [
                     "attempt_id",
                     "consent",
-                    "display_name",
-                    "intent"
+                    "display_name"
                 ]
             },
             "GoogleStartRequestActionEnum": {
@@ -4069,6 +3849,32 @@
                     "slides"
                 ]
             },
+            "History": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Movement"
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "page_size",
+                    "results"
+                ]
+            },
             "Identity": {
                 "type": "object",
                 "properties": {
@@ -4150,6 +3956,13 @@
                     "email_verified",
                     "id"
                 ]
+            },
+            "IntentEnum": {
+                "enum": [
+                    "individual"
+                ],
+                "type": "string",
+                "description": "* `individual` - individual"
             },
             "InvitationCreateRequest": {
                 "type": "object",
@@ -4254,11 +4067,15 @@
                         "maxLength": 128
                     },
                     "intent": {
-                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/IntentEnum"
+                            }
+                        ],
+                        "default": "individual"
                     }
                 },
                 "required": [
-                    "intent",
                     "password"
                 ]
             },
@@ -4397,6 +4214,86 @@
                 "type": "string",
                 "description": "* `image_carousel` - image_carousel\n* `video_carousel` - video_carousel"
             },
+            "Movement": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "variant": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "batch": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "sku": {
+                        "type": "string"
+                    },
+                    "unit": {
+                        "type": "string"
+                    },
+                    "unit_labels": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "physical_delta": {
+                        "type": "string"
+                    },
+                    "held_delta": {
+                        "type": "string"
+                    },
+                    "physical_after": {
+                        "type": "string"
+                    },
+                    "held_after": {
+                        "type": "string"
+                    },
+                    "actor": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "reference": {
+                        "type": "string"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "action",
+                    "actor",
+                    "at",
+                    "batch",
+                    "held_after",
+                    "held_delta",
+                    "id",
+                    "operation",
+                    "physical_after",
+                    "physical_delta",
+                    "reason",
+                    "reference",
+                    "sku",
+                    "unit",
+                    "unit_labels",
+                    "variant"
+                ]
+            },
             "Notice": {
                 "type": "object",
                 "properties": {
@@ -4432,6 +4329,26 @@
                     "url"
                 ]
             },
+            "Operation": {
+                "type": "object",
+                "properties": {
+                    "operation": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "operation",
+                    "status",
+                    "version"
+                ]
+            },
             "OperationResult": {
                 "type": "object",
                 "properties": {
@@ -4441,6 +4358,54 @@
                 },
                 "required": [
                     "status"
+                ]
+            },
+            "Overview": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Position"
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "counts": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    },
+                    "catalogue_count": {
+                        "type": "integer"
+                    },
+                    "capabilities": {
+                        "$ref": "#/components/schemas/Capabilities"
+                    },
+                    "recent": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Movement"
+                        }
+                    }
+                },
+                "required": [
+                    "capabilities",
+                    "catalogue_count",
+                    "count",
+                    "counts",
+                    "page",
+                    "page_size",
+                    "recent",
+                    "results"
                 ]
             },
             "PageEnum": {
@@ -4526,6 +4491,109 @@
                     }
                 }
             },
+            "Position": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "product": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "sku": {
+                        "type": "string"
+                    },
+                    "unit": {
+                        "type": "string"
+                    },
+                    "unit_labels": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "increment": {
+                        "type": "string"
+                    },
+                    "eligible": {
+                        "type": "boolean"
+                    },
+                    "configured": {
+                        "type": "boolean"
+                    },
+                    "tracking": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "expiry_required": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "threshold": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "physical": {
+                        "type": "string"
+                    },
+                    "held": {
+                        "type": "string"
+                    },
+                    "available": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "expired": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "capabilities": {
+                        "$ref": "#/components/schemas/Capabilities"
+                    },
+                    "batches": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Batch"
+                        }
+                    },
+                    "movements": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Movement"
+                        }
+                    }
+                },
+                "required": [
+                    "available",
+                    "capabilities",
+                    "configured",
+                    "eligible",
+                    "expired",
+                    "expiry_required",
+                    "held",
+                    "id",
+                    "increment",
+                    "physical",
+                    "product",
+                    "sku",
+                    "state",
+                    "threshold",
+                    "title",
+                    "tracking",
+                    "unit",
+                    "unit_labels",
+                    "version"
+                ]
+            },
             "PricingModeEnum": {
                 "enum": [
                     "fixed",
@@ -4533,6 +4601,34 @@
                 ],
                 "type": "string",
                 "description": "* `fixed` - fixed\n* `negotiable` - negotiable"
+            },
+            "Profile": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "verification": {
+                        "type": "string"
+                    },
+                    "capabilities": {
+                        "$ref": "#/components/schemas/Capabilities"
+                    }
+                },
+                "required": [
+                    "capabilities",
+                    "id",
+                    "kind",
+                    "name",
+                    "verification"
+                ]
             },
             "ProfileCreateRequest": {
                 "type": "object",
@@ -4643,6 +4739,20 @@
                     "review_status",
                     "revision",
                     "version"
+                ]
+            },
+            "Profiles": {
+                "type": "object",
+                "properties": {
+                    "profiles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Profile"
+                        }
+                    }
+                },
+                "required": [
+                    "profiles"
                 ]
             },
             "ProfilesResult": {
@@ -4821,93 +4931,51 @@
                     "seo"
                 ]
             },
-            "QueueItem": {
+            "ReceiptRequest": {
                 "type": "object",
                 "properties": {
-                    "id": {
+                    "token": {
                         "type": "string",
                         "format": "uuid"
-                    },
-                    "profile_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "display_name": {
-                        "type": "string"
-                    },
-                    "kind": {
-                        "type": "string"
-                    },
-                    "revision": {
-                        "type": "integer"
                     },
                     "version": {
-                        "type": "integer"
+                        "type": "integer",
+                        "minimum": 0
                     },
-                    "status": {
-                        "type": "string"
+                    "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
                     },
-                    "assigned_to": {
+                    "reference": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "quantity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                    },
+                    "batch": {
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
                     },
-                    "created_at": {
+                    "batch_code": {
                         "type": "string",
-                        "format": "date-time"
+                        "maxLength": 80
+                    },
+                    "expires_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
                     }
                 },
                 "required": [
-                    "assigned_to",
-                    "created_at",
-                    "display_name",
-                    "id",
-                    "kind",
-                    "profile_id",
-                    "revision",
-                    "status",
+                    "quantity",
+                    "reason",
+                    "token",
                     "version"
-                ]
-            },
-            "QueueResult": {
-                "type": "object",
-                "properties": {
-                    "current_account_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/QueueItem"
-                        }
-                    },
-                    "count": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "reviewers": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ReviewerData"
-                        }
-                    },
-                    "permissions": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "required": [
-                    "count",
-                    "current_account_id",
-                    "page",
-                    "permissions",
-                    "results",
-                    "reviewers"
                 ]
             },
             "RegistrationRequest": {
@@ -4931,7 +4999,12 @@
                         "maxLength": 150
                     },
                     "intent": {
-                        "$ref": "#/components/schemas/BusinessProfileKindEnum"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/IntentEnum"
+                            }
+                        ],
+                        "default": "individual"
                     },
                     "consent": {
                         "type": "boolean"
@@ -4949,7 +5022,6 @@
                     "consent",
                     "display_name",
                     "email",
-                    "intent",
                     "password"
                 ]
             },
@@ -4972,55 +5044,6 @@
                 "required": [
                     "password",
                     "token"
-                ]
-            },
-            "ReviewActionActionEnum": {
-                "enum": [
-                    "assign",
-                    "approved",
-                    "rejected",
-                    "needs_information"
-                ],
-                "type": "string",
-                "description": "* `assign` - assign\n* `approved` - approved\n* `rejected` - rejected\n* `needs_information` - needs_information"
-            },
-            "ReviewActionRequest": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "action": {
-                        "$ref": "#/components/schemas/ReviewActionActionEnum"
-                    },
-                    "assigned_to": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "reason": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 1000
-                    },
-                    "internal_note": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 1000
-                    },
-                    "accepted_alternatives": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 1000
-                        }
-                    }
-                },
-                "required": [
-                    "action",
-                    "reason",
-                    "version"
                 ]
             },
             "ReviewEventData": {
@@ -5050,22 +5073,6 @@
                     "created_at",
                     "id",
                     "reason"
-                ]
-            },
-            "ReviewerData": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "id",
-                    "name"
                 ]
             },
             "SEO": {
@@ -5306,6 +5313,14 @@
                     "token"
                 ]
             },
+            "TrackingEnum": {
+                "enum": [
+                    "plain",
+                    "batch"
+                ],
+                "type": "string",
+                "description": "* `plain` - plain\n* `batch` - batch"
+            },
             "TransferActionActionEnum": {
                 "enum": [
                     "accept",
@@ -5429,28 +5444,6 @@
                     "retained_bundles",
                     "status",
                     "version"
-                ]
-            },
-            "TransferQueue": {
-                "type": "object",
-                "properties": {
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/TransferData"
-                        }
-                    },
-                    "count": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    }
-                },
-                "required": [
-                    "count",
-                    "page",
-                    "results"
                 ]
             },
             "VersionActionActionEnum": {

@@ -1,11 +1,16 @@
-from django.urls import include, path, re_path
+from django.urls import include, path, re_path, register_converter
+from apps.foundation.converters import MarketplaceContext, SellerContext
 from drf_spectacular.views import SpectacularAPIView
 
 from apps.foundation.errors import not_found
 from apps.foundation.views import BootstrapView, LiveView, ReadyView
 from apps.accounts.admin import owner_site
 
+register_converter(MarketplaceContext, "marketplace")
+register_converter(SellerContext, "seller")
+
 urlpatterns = [
+    path("api/v1/inventory/", include("apps.inventory.urls")),
     path("api/v1/catalogue/", include("apps.catalogue.urls")),
     path("api/v1/site/", include("apps.site.urls")),
     path("admin/", owner_site.urls),

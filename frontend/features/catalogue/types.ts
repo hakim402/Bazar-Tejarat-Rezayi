@@ -1,4 +1,4 @@
-import type { components } from "../../lib/api/schema";
+import type { components } from "../../lib/api/schema.d";
 import type { Locale } from "../../lib/i18n/locales";
 export type Labels = Record<Locale, string>;
 export type Attribute = {

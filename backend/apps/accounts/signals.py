@@ -50,17 +50,17 @@ def identity_state(sender, instance, **kwargs):
     if not instance._state.adding:
         old = (
             sender.objects.filter(pk=instance.pk)
-            .values("is_active", "is_staff", "owner_authority", "credential_epoch")
+            .values("is_active", "is_staff", "is_superuser", "owner_authority", "credential_epoch")
             .first()
         )
-        if old and any(old[key] != getattr(instance, key) for key in ("is_active", "is_staff", "owner_authority")):
+        if old and any(old[key] != getattr(instance, key) for key in ("is_active", "is_staff", "is_superuser", "owner_authority")):
             instance.credential_epoch = old["credential_epoch"] + 1
             AuditEvent.objects.create(
                 subject_id=instance.pk,
                 action="identity_authority_changed",
                 changed_fields=[
                     f"{key}:{old[key]}:{getattr(instance, key)}"
-                    for key in ("is_active", "is_staff", "owner_authority")
+                    for key in ("is_active", "is_staff", "is_superuser", "owner_authority")
                     if old[key] != getattr(instance, key)
                 ],
             )
@@ -70,3 +70,11 @@ def identity_state(sender, instance, **kwargs):
 def revoke_browser(sender, request, **kwargs):
     if request is not None:
         BrowserAuthority.objects.filter(pk=request.session.get("authority")).update(revoked=True)
+
+
+@receiver(m2m_changed, sender=User.groups.through)
+def canonical_staff_groups(sender, instance, action, reverse, **kwargs):
+    if action.startswith("post_"):
+        AuditEvent.objects.create(subject=instance if not reverse else None,
+            context="staff", action="admin_groups_changed",
+            changed_fields=["groups"])

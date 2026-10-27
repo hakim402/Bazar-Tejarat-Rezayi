@@ -1,4 +1,5 @@
 """Catalogue outcomes in an owned PostgreSQL database, without live providers."""
+from tests.test_identity import native_auth
 
 import copy
 import io
@@ -42,7 +43,7 @@ from apps.catalogue.models import (
 from apps.catalogue.queries import public, public_image
 from apps.catalogue.media import upload, StorageUnavailable
 from apps.catalogue.translation_provider import translate, provider_status
-from tests.test_identity import PASSWORD, signin, post, code, ORIGIN
+from tests.test_identity import PASSWORD, signin, code, ORIGIN
 from config.testing import assert_owned_database
 
 
@@ -62,7 +63,7 @@ class CatalogueFixture:
         self.reviewer = self.actor("staff", "reviewer")
         group = Group.objects.create(name="Synthetic catalogue full")
         group.permissions.set(Permission.objects.filter(content_type__app_label="catalogue"))
-        self.reviewer.account.permission_groups.add(group)
+        self.reviewer.user.groups.add(group)
         self.profile = BusinessProfile.objects.create(
             account=self.seller.account,
             kind="individual",
@@ -100,7 +101,7 @@ class CatalogueFixture:
 
     def actor(self, context, name):
         user = User.objects.create_user(
-            name + "@example.test", PASSWORD, display_name="Synthetic " + name, email_verified=True
+            name + "@example.test", PASSWORD, display_name="Synthetic " + name, email_verified=True, is_staff=context == "staff"
         )
         account = Account.objects.create(user=user, context=context)
         return Actor(SimpleNamespace(user=user, account=account), context)
@@ -436,7 +437,7 @@ class CatalogueTests(CatalogueFixture, TestCase):
     def test_staff_permissions_scoped_to_catalogue(self):
         source = self.save()
         self.action(source, "submit")
-        group = self.reviewer.account.permission_groups.first()
+        group = self.reviewer.user.groups.first()
         group.permissions.clear()
         group.permissions.add(Permission.objects.get(content_type__app_label="verification", codename="decide_review"))
         with self.assertRaises(PermissionDenied):
@@ -809,10 +810,11 @@ class CatalogueTests(CatalogueFixture, TestCase):
         self.assertEqual(client.get(f"/api/v1/catalogue/seller/products/{self.product.pk}/").status_code, 200)
         staff = APIClient(enforce_csrf_checks=True)
         signin(staff, "staff", self.reviewer.user.email)
-        self.assertEqual(staff.get("/api/v1/catalogue/staff/products/").status_code, 403)
-        post(staff, "mfa/enroll/")
-        post(staff, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=self.reviewer.user))})
-        self.assertEqual(staff.get("/api/v1/catalogue/staff/products/").status_code, 200)
+        self.assertEqual(staff.get("/api/v1/catalogue/staff/products/").status_code, 404)
+        native_auth(staff, "enroll", {})
+        native_auth(staff, "challenge", {"code": code(Authenticator.objects.get(user=self.reviewer.user))})
+        self.assertEqual(staff.get("/api/v1/catalogue/staff/products/").status_code, 404)
+        self.assertEqual(staff.get("/admin/catalogue/product/").status_code, 200)
         token = staff.get("/api/v1/auth/csrf/").json()["csrf_token"]
         response = staff.post(
             f"/api/v1/catalogue/staff/products/{self.product.pk}/",
@@ -821,7 +823,7 @@ class CatalogueTests(CatalogueFixture, TestCase):
             HTTP_X_CSRFTOKEN=token,
             HTTP_ORIGIN=ORIGIN,
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
         self.grants.start()
 
 
@@ -935,13 +937,14 @@ class CatalogueMigrationTests(TransactionTestCase):
             user = User.objects.create_user("catalogue-upgrade@example.test", PASSWORD, email_verified=True)
             from tests.legacy_content import predecessor, fingerprints
             predecessor(user)
-            preserved = fingerprints(("site", "catalogue"))
+            # Inventory depends on catalogue, so this predecessor replay legitimately creates its new migration history.
+            preserved = fingerprints(("site", "catalogue", "inventory"))
             password = user.password
             before = set(connection.introspection.table_names())
             MigrationExecutor(connection).migrate(latest)
             user.refresh_from_db()
             self.assertEqual(user.password, password)
-            after = fingerprints(("site", "catalogue"))
+            after = fingerprints(("site", "catalogue", "inventory"))
             self.assertEqual(preserved, {key: after[key] for key in preserved})
             self.assertTrue(before.issubset(set(connection.introspection.table_names())))
         finally:
@@ -953,7 +956,7 @@ class CatalogueReviewFixTests(CatalogueFixture, TestCase):
     def test_publication_schedules_three_targets_after_commit_without_translation_permission(self):
         only_source = Group.objects.create(name="Synthetic source only")
         only_source.permissions.set(Permission.objects.filter(content_type__app_label="catalogue", codename="review_source"))
-        self.reviewer.account.permission_groups.set([only_source])
+        self.reviewer.user.groups.set([only_source])
         source = self.save()
         with patch("apps.catalogue.translations.enqueue") as enqueue:
             with self.captureOnCommitCallbacks(execute=True):
@@ -1101,7 +1104,7 @@ class CatalogueReviewFixTests(CatalogueFixture, TestCase):
         from apps.catalogue.admin import ProductAdmin
         from apps.accounts.admin import owner_site
         request.user, request.account = self.reviewer.user, self.reviewer.account
-        with patch("apps.catalogue.admin.render", side_effect=lambda request, template, context: context), patch.object(owner_site, "each_context", return_value={}):
+        with patch("apps.catalogue.admin.admin_actor", return_value=self.reviewer), patch("apps.catalogue.admin.permits", return_value=True), patch("apps.catalogue.admin.render", side_effect=lambda request, template, context: context), patch.object(owner_site, "each_context", return_value={}):
             return ProductAdmin(Product, owner_site).workflow(request, self.product.pk)
 
     def test_owner_initial_and_selected_versions_never_use_product_version(self):

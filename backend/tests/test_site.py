@@ -1,4 +1,5 @@
 """Site contracts, owner authority, inspected media, atomic forms and retained schema."""
+from tests.test_identity import native_auth
 import io
 import json
 from pathlib import Path
@@ -23,7 +24,7 @@ from apps.site.services import save_settings
 from apps.site.sections import SECTION_MAP, SECTIONS
 from apps.site.validation import destination, external_media
 from apps.site.media import inspect_upload, store_upload
-from tests.test_identity import PASSWORD, signin, post, code
+from tests.test_identity import PASSWORD, signin, code
 from tests.legacy_content import predecessor, fingerprints, TABLES
 from config.testing import assert_owned_database
 
@@ -61,8 +62,8 @@ class SiteTests(TestCase):
 
     def authorize(self):
         signin(self.client, "owner", self.owner.email)
-        post(self.client, "mfa/enroll/")
-        post(self.client, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=self.owner))})
+        native_auth(self.client, "enroll", {})
+        native_auth(self.client, "challenge", {"code": code(Authenticator.objects.get(user=self.owner))})
 
     def test_independent_cards_save_translate_and_hide_across_hero_modes(self):
         from apps.site.models import HeroLocale
@@ -282,10 +283,10 @@ class SiteTests(TestCase):
         from django.contrib.auth.models import Permission
         user.user_permissions.add(Permission.objects.get(codename="manage_content", content_type__app_label="accounts"))
         signin(self.client, "staff", user.email)
-        post(self.client, "mfa/enroll/")
-        post(self.client, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=user))})
+        native_auth(self.client, "enroll", {})
+        native_auth(self.client, "challenge", {"code": code(Authenticator.objects.get(user=user))})
         for path in ["/admin/site-setting/", *[f"/admin/site-setting/{section.key}/" for section in SECTIONS]]:
-            self.assertEqual(self.client.get(path).status_code, 302)
+            self.assertEqual(self.client.get(path).status_code, 403)
         forms = bound(form_data())
         self.assertTrue(all(form.is_valid() for form in forms))
         request = self.client.get("/api/v1/auth/staff/session/").wsgi_request

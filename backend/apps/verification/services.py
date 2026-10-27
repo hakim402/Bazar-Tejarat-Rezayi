@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import Account
+from apps.accounts.admin_access import permission_codes
 from apps.foundation.storage import FileLocation
 from apps.organizations.access import Conflict, assert_version, company_lock, event, independent, manage_profile
 from apps.organizations.profiles import MATERIAL, current_case, next_revision, snapshot
@@ -144,9 +145,7 @@ def review_action(actor, pk, data):
         )
         if (
             not target
-            or not target.permission_groups.filter(
-                permissions__content_type__app_label="verification", permissions__codename="decide_review"
-            ).exists()
+            or "decide_review" not in permission_codes(target, "verification")
         ):
             raise ValidationError({"assigned_to": ["Select an active authorized reviewer."]})
         if (

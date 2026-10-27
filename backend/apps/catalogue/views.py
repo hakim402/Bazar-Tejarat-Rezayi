@@ -10,7 +10,7 @@ from apps.organizations.access import visible_profiles
 from apps.organizations.eligibility import require_seller_approval
 from apps.foundation.storage import FileLocation
 from apps.foundation.observability import log_failure
-from . import access, contracts as c, queries, services, taxonomy, translations
+from . import access, contracts as c, queries, services, taxonomy
 from .models import ProductImage
 from .media import upload, StorageUnavailable
 from .validation import fail
@@ -170,28 +170,4 @@ class Taxonomy(CatalogueView):
         actor = self.actor(context)
         if context != "seller":
             access.staff(actor)
-        return Response(taxonomy.taxonomy())
-
-    @extend_schema(
-        operation_id="catalogue_taxonomy_save", request=c.CatalogueTaxonomyInput, responses=c.CatalogueTaxonomy
-    )
-    def post(self, request, context):
-        taxonomy.save_category(self.actor(context), self.data(c.CatalogueTaxonomyInput))
-        return Response(taxonomy.taxonomy())
-
-
-class Translations(CatalogueView):
-    @extend_schema(
-        operation_id="catalogue_translation", request=c.CatalogueTranslationInput, responses=c.CatalogueOperation
-    )
-    def post(self, request, context, pk, revision_id, locale):
-        actor = self.actor(context)
-        rate_limit(request, "catalogue_translation", identity=str(actor.account.pk), limit=100)
-        return Response(translations.edit(actor, pk, revision_id, locale, self.data(c.CatalogueTranslationInput)))
-
-
-class Units(CatalogueView):
-    @extend_schema(operation_id="catalogue_unit_save", request=c.CatalogueUnitInput, responses=c.CatalogueTaxonomy)
-    def post(self, request, context):
-        taxonomy.save_unit(self.actor(context), self.data(c.CatalogueUnitInput))
         return Response(taxonomy.taxonomy())

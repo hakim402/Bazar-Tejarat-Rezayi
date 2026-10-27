@@ -1,11 +1,10 @@
+import { ModalEntry } from "./components/modal-entry";
 import { notFound } from "next/navigation";
-import { AuthForm } from "../../../../features/identity/components/auth-form";
 import {
 	screenTitle,
 	authScreens,
 	type AuthScreen,
 } from "../../../../lib/i18n/auth-screens";
-import { AccountShell } from "../../../../components/layout/account-shell";
 import { isLocale } from "../../../../lib/i18n/locales";
 export const dynamic = "force-dynamic";
 export default async function Page({
@@ -16,22 +15,7 @@ export default async function Page({
 	const { locale, screen } = await params;
 	if (!isLocale(locale) || !authScreens.includes(screen as AuthScreen))
 		notFound();
-	return (
-		<AccountShell
-			locale={locale}
-			splitAuth={screen === "seller-registration" ? true : undefined}
-			context={
-				screen.startsWith("seller")
-					? "seller"
-					: screen.startsWith("staff")
-						? "staff"
-						: "buyer"
-			}
-			title={screenTitle(locale, screen as AuthScreen)}
-		>
-			<AuthForm locale={locale} screen={screen as AuthScreen} />
-		</AccountShell>
-	);
+	return <ModalEntry locale={locale} screen={screen as AuthScreen} />;
 }
 
 export async function generateMetadata({

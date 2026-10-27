@@ -9,6 +9,7 @@ export function ProfileEditor({
 	locale,
 	context,
 	profile,
+	kinds,
 	busy,
 	errors = [],
 	onSave,
@@ -16,6 +17,7 @@ export function ProfileEditor({
 	locale: Locale;
 	context: string;
 	profile?: Profile;
+	kinds?: ("individual" | "company" | "business")[];
 	busy: boolean;
 	errors?: string[];
 	onSave: (data: Record<string, unknown>) => Promise<unknown>;
@@ -39,10 +41,7 @@ export function ProfileEditor({
 			{!profile && (
 				<Field name="kind" label={t.profile}>
 					<Select name="kind">
-						{(context === "buyer"
-							? ["business"]
-							: ["individual", "company"]
-						).map((kind) => (
+						{(kinds ?? (context === "buyer" ? ["business"] : ["individual", "company"])).map((kind) => (
 							<option key={kind} value={kind}>
 								{t[kind as "individual" | "company" | "business"]}
 							</option>

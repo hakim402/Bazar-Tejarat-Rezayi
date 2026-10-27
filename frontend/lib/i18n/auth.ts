@@ -3,14 +3,12 @@ import type { Locale } from "./locales";
 const en = {
 	buyer: "Buyer",
 	seller: "Seller",
-	staff: "Staff",
 	register: "Create account",
 	signin: "Sign in",
 	buyerRegister: "Buyer registration",
 	sellerRegister: "Seller registration",
 	buyerSignin: "Buyer sign-in",
 	sellerSignin: "Seller sign-in",
-	staffSignin: "Staff sign-in",
 	email: "Email",
 	password: "Password",
 	name: "Full name",
@@ -41,11 +39,9 @@ const en = {
 	separationBody:
 		"Buyer and seller sign-ins are separate. Email verification, seller approval and business-buyer verification are distinct.",
 	sellerNote:
-		"Individual and company sellers can apply. Staff verification follows; registration does not approve selling.",
+		"Start with an individual seller account. Company setup is available later in Account settings; seller verification is still required.",
 	buyerNote:
-		"Choose individual or business intent. Business verification and wholesale eligibility follow separately.",
-	staffNote:
-		"For provisioned Rezayi staff only. No public staff registration. Password and authenticator are required.",
+		"Start with an individual buyer account. Business setup and verification are available later in Account settings.",
 	consent: "I acknowledge the development draft terms and privacy notice.",
 	policy:
 		"Development notice: policies are drafts awaiting approval. Do not enter real personal information. Public launch registration requires approved policies.",
@@ -86,22 +82,7 @@ const en = {
 	logout: "Sign out of this account",
 	logoutAll: "Sign out of all accounts in this browser",
 	signedOut: "Signed out.",
-	mfa: "Authenticator verification",
 	enroll: "Set up your authenticator",
-	enrollBody:
-		"Add this private key to an authenticator app, then enter its six-digit code. Do not share or screenshot it. No staff access is granted until verification.",
-	beginEnroll: "Show private setup key",
-	code: "Authenticator code",
-	recoveryCode: "Use a recovery code",
-	saveCodes:
-		"Save these recovery codes privately. They are shown once; each works once. Keep them away from this device.",
-	codesSaved: "I saved my codes — continue",
-	factorReset: "Replace authenticator",
-	factorResetNote:
-		"Requires your current password and authenticator or recovery code. All grants end; fresh enrollment is required.",
-	permissions: "Assigned responsibilities",
-	future:
-		"Your current responsibilities are shown here. Only assigned actions are permitted; additional account features are not yet available.",
 	home: "Home",
 	loading: "Checking account…",
 	backSignin: "Back to sign-in",
@@ -111,7 +92,6 @@ const en = {
 		"Prove this is the same person using your current password. Existing suspended or archived accounts cannot be recreated here.",
 	privateView: "Private account",
 	invalidLink: "Open your private email link again, or request a new link.",
-	emptyPermissions: "No operational responsibility assigned.",
 	draftLink: "Read draft notice",
 	authLinks: "Account access",
 };
@@ -119,14 +99,12 @@ type Copy = typeof en;
 const fa: Copy = {
 	buyer: "خریدار",
 	seller: "فروشنده",
-	staff: "کارمند",
 	register: "ساخت حساب",
 	signin: "ورود",
 	buyerRegister: "ثبت‌نام خریدار",
 	sellerRegister: "ثبت‌نام فروشنده",
 	buyerSignin: "ورود خریدار",
 	sellerSignin: "ورود فروشنده",
-	staffSignin: "ورود کارمندان",
 	email: "ایمیل",
 	password: "رمز عبور",
 	name: "نام کامل",
@@ -157,11 +135,9 @@ const fa: Copy = {
 	separationBody:
 		"ورود خریدار و فروشنده جداست. تأیید ایمیل، تأیید فروشنده و تأیید کسب‌وکار خریدار یکسان نیستند.",
 	sellerNote:
-		"افراد و شرکت‌ها می‌توانند درخواست دهند. بررسی کارمندان بعداً انجام می‌شود؛ ثبت‌نام به معنای تأیید فروش نیست.",
+		"با حساب فروشندهٔ انفرادی آغاز کنید. راه‌اندازی شرکت بعداً در تنظیمات حساب انجام می‌شود؛ تأیید فروشنده همچنان لازم است.",
 	buyerNote:
-		"حساب انفرادی یا تجارتی انتخاب کنید. تأیید کسب‌وکار و صلاحیت خرید عمده جدا بررسی می‌شود.",
-	staffNote:
-		"این ورودی ویژهٔ کارمندان تعیین‌شدهٔ رضایی است. ثبت‌نام عمومی کارمند وجود ندارد. رمز عبور و برنامهٔ تأیید لازم است.",
+		"با حساب خریدار انفرادی آغاز کنید. راه‌اندازی و تأیید حساب تجارتی بعداً در تنظیمات حساب انجام می‌شود.",
 	consent: "اطلاعیهٔ پیش‌نویس شرایط و حریم خصوصی محیط آزمایشی را خوانده‌ام.",
 	policy:
 		"اطلاعیهٔ آزمایشی: شرایط و حریم خصوصی هنوز پیش‌نویس است. اطلاعات واقعی شخصی وارد نکنید. ثبت‌نام عمومی به متن تأییدشده نیاز دارد.",
@@ -201,22 +177,7 @@ const fa: Copy = {
 	logout: "خروج از این حساب",
 	logoutAll: "خروج از همهٔ حساب‌ها در این مرورگر",
 	signedOut: "از حساب خارج شدید.",
-	mfa: "تأیید با برنامهٔ رمزساز",
 	enroll: "تنظیم برنامهٔ تأیید",
-	enrollBody:
-		"این کلید خصوصی را در برنامهٔ رمزساز اضافه کنید و رمز شش‌رقمی آن را وارد نمایید. کلید را شریک نسازید و عکس نگیرید. پیش از تأیید، دسترسی کارمند داده نمی‌شود.",
-	beginEnroll: "نمایش کلید خصوصی تنظیم",
-	code: "رمز برنامهٔ تأیید",
-	recoveryCode: "استفاده از رمز بازیابی",
-	saveCodes:
-		"رمزهای بازیابی را خصوصی نگه دارید. تنها یک بار نمایش داده می‌شوند و هر رمز یک بار کار می‌کند. آن‌ها را جدا از این دستگاه نگه دارید.",
-	codesSaved: "رمزها را نگه داشتم — ادامه",
-	factorReset: "تعویض برنامهٔ تأیید",
-	factorResetNote:
-		"رمز فعلی و رمز برنامه یا بازیابی لازم است. همهٔ دسترسی‌ها پایان می‌یابد و تنظیم تازه لازم می‌شود.",
-	permissions: "مسؤولیت‌های سپرده‌شده",
-	future:
-		"مسؤولیت‌های فعلی در اینجا نمایش داده می‌شود. تنها کارهای مجاز در دسترس شما قرار می‌گیرند؛ خدمات دیگر حساب هنوز فعال نیستند.",
 	home: "خانه",
 	loading: "در حال بررسی حساب…",
 	backSignin: "بازگشت به ورود",
@@ -227,21 +188,18 @@ const fa: Copy = {
 	privateView: "حساب خصوصی",
 	invalidLink:
 		"پیوند خصوصی ایمیل را دوباره باز کنید یا پیوند تازه درخواست دهید.",
-	emptyPermissions: "هنوز مسؤولیت کاری سپرده نشده است.",
 	draftLink: "خواندن اطلاعیهٔ پیش‌نویس",
 	authLinks: "دسترسی حساب",
 };
 const ps: Copy = {
 	buyer: "پېرودونکی",
 	seller: "پلورونکی",
-	staff: "کارکوونکی",
 	register: "حساب جوړول",
 	signin: "ننوتل",
 	buyerRegister: "د پېرودونکي نوم‌لیکنه",
 	sellerRegister: "د پلورونکي نوم‌لیکنه",
 	buyerSignin: "د پېرودونکي ننوتل",
 	sellerSignin: "د پلورونکي ننوتل",
-	staffSignin: "د کارکوونکو ننوتل",
 	email: "برېښنالیک",
 	password: "پټنوم",
 	name: "بشپړ نوم",
@@ -272,11 +230,9 @@ const ps: Copy = {
 	separationBody:
 		"د پېرودونکي او پلورونکي ننوتل جلا دي. د برېښنالیک تایید، د پلورونکي تایید او د سوداګرۍ تایید یو شان نه دي.",
 	sellerNote:
-		"افراد او شرکتونه غوښتنه کولای شي. د کارکوونکو ارزونه وروسته کېږي؛ نوم‌لیکنه د پلور تایید نه دی.",
+		"د انفرادي پلورونکي حساب جوړ کړئ. د شرکت جوړول وروسته د حساب په تنظیماتو کې شته؛ د پلورونکي تایید لا هم اړین دی.",
 	buyerNote:
-		"انفرادي یا سوداګریز ډول وټاکئ. د سوداګرۍ او عمده پېرود تایید جلا ارزول کېږي.",
-	staffNote:
-		"یوازې د رضايي ټاکل شوو کارکوونکو لپاره. عامه نوم‌لیکنه نشته. پټنوم او تاییدوونکی اړین دي.",
+		"د انفرادي پېرودونکي حساب جوړ کړئ. سوداګریز حساب او تایید وروسته د حساب په تنظیماتو کې ترسره کېږي.",
 	consent: "د ازمایښتي شرایطو او محرمیت مسوده مې لوستې ده.",
 	policy:
 		"ازمایښتي خبرتیا: شرایط او محرمیت لا مسوده ده. رښتیني شخصي معلومات مه لیکئ. عامه نوم‌لیکنه تایید شوې تګلارې ته اړتیا لري.",
@@ -316,22 +272,7 @@ const ps: Copy = {
 	logout: "له دې حسابه وتل",
 	logoutAll: "په دې لټونګر کې له ټولو حسابونو وتل",
 	signedOut: "ووتلئ.",
-	mfa: "د تاییدوونکي کتنه",
 	enroll: "تاییدوونکی برابر کړئ",
-	enrollBody:
-		"دا شخصي کیلي په تاییدوونکي کې زیات کړئ او شپږ عددي کوډ ولیکئ. کیلي مه شریکوئ او انځور یې مه اخلئ. تر تایید مخکې کاري لاسرسی نشته.",
-	beginEnroll: "شخصي کیلي وښایئ",
-	code: "د تاییدوونکي کوډ",
-	recoveryCode: "د بېرته ترلاسه کولو کوډ کارول",
-	saveCodes:
-		"د بېرته ترلاسه کولو کوډونه خوندي وساتئ. یو ځل ښکاري؛ هر یو یو ځل کار کوي. له دې وسیلې جلا یې وساتئ.",
-	codesSaved: "کوډونه مې خوندي کړل — دوام",
-	factorReset: "تاییدوونکی بدل کړئ",
-	factorResetNote:
-		"اوسنی پټنوم او د تاییدوونکي یا بېرته ترلاسه کولو کوډ اړین دي. ټول لاسرسي ختمېږي او نوی برابرول لازم دي.",
-	permissions: "سپارل شوي مسؤولیتونه",
-	future:
-		"اوسني مسؤولیتونه دلته ښکاري. یوازې سپارل شوي کارونه اجازه لري؛ د حساب نور خدمتونه لا فعال نه دي.",
 	home: "کور",
 	loading: "حساب کتل کېږي…",
 	backSignin: "ننوتلو ته ستنېدل",
@@ -341,21 +282,18 @@ const ps: Copy = {
 		"په اوسني پټنوم خپل هویت ثابت کړئ. ځنډول شوي یا ارشیف شوي حسابونه دلته بیا نه جوړېږي.",
 	privateView: "شخصي حساب",
 	invalidLink: "د برېښنالیک شخصي تړونی بیا پرانیزئ یا نوی وغواړئ.",
-	emptyPermissions: "لا کاري مسؤولیت نشته.",
 	draftLink: "مسوده ولولئ",
 	authLinks: "حساب ته لاسرسی",
 };
 const ar: Copy = {
 	buyer: "المشتري",
 	seller: "البائع",
-	staff: "الموظف",
 	register: "إنشاء حساب",
 	signin: "تسجيل الدخول",
 	buyerRegister: "تسجيل المشتري",
 	sellerRegister: "تسجيل البائع",
 	buyerSignin: "دخول المشتري",
 	sellerSignin: "دخول البائع",
-	staffSignin: "دخول الموظفين",
 	email: "البريد الإلكتروني",
 	password: "كلمة المرور",
 	name: "الاسم الكامل",
@@ -386,11 +324,9 @@ const ar: Copy = {
 	separationBody:
 		"دخول المشتري والبائع منفصل. تأكيد البريد وموافقة البائع والتحقق التجاري للمشتري أمور مختلفة.",
 	sellerNote:
-		"يمكن للأفراد والشركات التقديم. تلي ذلك مراجعة الموظفين؛ التسجيل لا يمنح موافقة البيع.",
+		"ابدأ بحساب بائع فردي. إعداد الشركة متاح لاحقًا من إعدادات الحساب؛ يبقى التحقق من البائع مطلوبًا.",
 	buyerNote:
-		"اختر فرداً أو مشترياً تجارياً. يتم التحقق التجاري وأهلية الشراء بالجملة بصورة منفصلة.",
-	staffNote:
-		"للموظفين المعيّنين فقط. لا يوجد تسجيل عام للموظفين. يلزم المرور وتطبيق المصادقة.",
+		"ابدأ بحساب مشترٍ فردي. إعداد الأعمال والتحقق متاحان لاحقًا من إعدادات الحساب.",
 	consent: "قرأت مسودة الشروط وإشعار الخصوصية للتجربة.",
 	policy:
 		"إشعار تجريبي: السياسات مسودات بانتظار الموافقة. لا تدخل بيانات شخصية حقيقية. التسجيل العام يتطلب سياسات معتمدة.",
@@ -430,22 +366,7 @@ const ar: Copy = {
 	logout: "الخروج من هذا الحساب",
 	logoutAll: "الخروج من جميع الحسابات في هذا المتصفح",
 	signedOut: "تم تسجيل الخروج.",
-	mfa: "التحقق بتطبيق المصادقة",
 	enroll: "إعداد تطبيق المصادقة",
-	enrollBody:
-		"أضف هذا المفتاح الخاص إلى تطبيق المصادقة ثم أدخل رمزه المكوّن من ستة أرقام. لا تشاركه أو تصوّره. لا تُمنح صلاحيات الموظف قبل التحقق.",
-	beginEnroll: "إظهار مفتاح الإعداد الخاص",
-	code: "رمز تطبيق المصادقة",
-	recoveryCode: "استخدام رمز استرداد",
-	saveCodes:
-		"احفظ رموز الاسترداد بشكل خاص. تظهر مرة واحدة ويُستخدم كل منها مرة واحدة. احتفظ بها بعيداً عن هذا الجهاز.",
-	codesSaved: "حفظت الرموز — متابعة",
-	factorReset: "استبدال تطبيق المصادقة",
-	factorResetNote:
-		"يلزم المرور الحالي ورمز المصادقة أو الاسترداد. تنتهي جميع الصلاحيات ويلزم إعداد جديد.",
-	permissions: "المسؤوليات المعيّنة",
-	future:
-		"تظهر مسؤولياتك الحالية هنا. يُسمح بالإجراءات المعيّنة فقط؛ ميزات الحساب الإضافية غير متاحة بعد.",
 	home: "الرئيسية",
 	loading: "جارٍ التحقق من الحساب…",
 	backSignin: "العودة للدخول",
@@ -455,39 +376,7 @@ const ar: Copy = {
 		"أثبت هويتك بكلمة مرورك الحالية. لا يمكن إعادة إنشاء الحسابات المعلقة أو المؤرشفة هنا.",
 	privateView: "حساب خاص",
 	invalidLink: "افتح رابط البريد الخاص مجدداً أو اطلب رابطاً جديداً.",
-	emptyPermissions: "لم تُعيّن مسؤولية تشغيلية.",
 	draftLink: "قراءة المسودة",
 	authLinks: "الوصول إلى الحساب",
 };
 export const authCopy: Record<Locale, Copy> = { en, "fa-AF": fa, ps, ar };
-
-export const responsibilityLabels: Record<Locale, Record<string, string>> = {
-	en: {
-		review_identity: "Identity review",
-		manage_content: "Content management",
-		review_payments: "Payment review",
-		manage_logistics: "Logistics",
-		handle_support: "Support cases",
-	},
-	"fa-AF": {
-		review_identity: "بررسی هویت",
-		manage_content: "مدیریت محتوا",
-		review_payments: "بررسی پرداخت",
-		manage_logistics: "هماهنگی تحویل",
-		handle_support: "رسیدگی به درخواست‌های پشتیبانی",
-	},
-	ps: {
-		review_identity: "د هویت ارزونه",
-		manage_content: "د منځپانګې اداره",
-		review_payments: "د تادیاتو ارزونه",
-		manage_logistics: "د لېږد همغږي",
-		handle_support: "د ملاتړ قضیې",
-	},
-	ar: {
-		review_identity: "مراجعة الهوية",
-		manage_content: "إدارة المحتوى",
-		review_payments: "مراجعة المدفوعات",
-		manage_logistics: "تنسيق التوصيل",
-		handle_support: "حالات الدعم",
-	},
-};

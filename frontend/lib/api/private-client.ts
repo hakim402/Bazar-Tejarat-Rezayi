@@ -49,7 +49,7 @@ export async function privateCall<T>(
 			credentials: "include",
 			cache: "no-store",
 			signal: AbortSignal.timeout(
-				(namespace === "auth/" && path === "mfa/challenge/") ||
+
 					data instanceof FormData
 					? 30000
 					: 10000,

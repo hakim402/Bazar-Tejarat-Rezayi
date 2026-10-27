@@ -131,10 +131,6 @@ class InvitationPreview(s.Serializer):
     bundles = s.ListField(child=s.CharField(), required=False)
 
 
-class TransferQueue(s.Serializer):
-    results = TransferData(many=True)
-    count = s.IntegerField()
-    page = s.IntegerField()
 
 
 class OperationResult(s.Serializer):

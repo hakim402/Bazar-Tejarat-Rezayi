@@ -1,5 +1,7 @@
+import { accountSettingsCopy } from "../lib/i18n/account-settings";
 import { messages } from "../lib/i18n/messages";
 import { choosePreference } from "./support/site-preferences";
+import { adminActor, adminAppearance } from "./support/admin-runtime";
 import {
 	test,
 	expect,
@@ -8,9 +10,7 @@ import {
 	type Page,
 } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
 import { organizationCopy } from "../lib/i18n/organizations";
-import { authCopy } from "../lib/i18n/auth";
 import { locales, direction, type Locale } from "../lib/i18n/locales";
 import {
 	apiOrigin,
@@ -26,20 +26,19 @@ let reviewerState: Awaited<ReturnType<BrowserContext["storageState"]>>;
 async function login(
 	page: Page,
 	email: string,
-	context = "seller",
+	context: "buyer" | "seller" = "seller",
 	locale: Locale = "en",
 ) {
 	await page.goto(`/${locale}/auth/${context}-sign-in`);
 	await page.locator("[name=email]").fill(email);
 	await page.locator("[name=password]").fill(fixturePassword);
 	await page.locator(".account-card > form button[type=submit]").click();
-	if (context !== "staff")
-		await expect(page).toHaveURL(new RegExp(`/account/${context}`));
+	await expect(page).toHaveURL(new RegExp(`/account/${context}`));
 }
 function fixture(name: string, context = "seller") {
 	return JSON.parse(
 		disposablePython(
-			"import json,sys\nfrom apps.accounts.models import User,Account\nd=json.load(sys.stdin)\nu=User.objects.create_user(d['email'],d['password'],display_name='Synthetic browser applicant',email_verified=True)\na=Account.objects.create(user=u,context=d['context'])\nif d['context']=='staff':\n from django.contrib.auth.models import Group\n g=Group.objects.create(name='Synthetic browser reviewer '+str(a.pk))\n g.permissions.set(Group.objects.get(name='Rezayi: Business review').permissions.all())\n a.permission_groups.add(g)\nprint(json.dumps({'email':u.email,'account':str(a.pk)}))",
+			"import json,sys\nfrom apps.accounts.models import User,Account\nd=json.load(sys.stdin)\nu=User.objects.create_user(d['email'],d['password'],display_name='Synthetic browser applicant',email_verified=True,is_staff=d['context']=='staff')\na=Account.objects.create(user=u,context=d['context'])\nif d['context']=='staff':\n from django.contrib.auth.models import Group\n g=Group.objects.create(name='Synthetic browser reviewer '+str(a.pk))\n g.permissions.set(Group.objects.get(name='Rezayi: Business review').permissions.all())\n u.groups.add(g)\nprint(json.dumps({'email':u.email,'account':str(a.pk)}))",
 			JSON.stringify({
 				email: `phase04-browser-${name}@example.test`,
 				password: fixturePassword,
@@ -50,35 +49,15 @@ function fixture(name: string, context = "seller") {
 }
 async function reviewer(browser: Browser) {
 	if (!reviewerState) {
-		const context = await browser.newContext();
-		const page = await context.newPage();
-		const actor = fixture(
-			`reviewer-${randomBytes(6).toString("hex")}`,
-			"staff",
-		);
-		await login(page, actor.email, "staff");
-		await Promise.all([
-			page.waitForResponse(
-				(response) =>
-					response.url().endsWith("/api/v1/auth/mfa/enroll/") &&
-					response.status() === 200,
-			),
-			page
-				.getByRole("button", { name: authCopy.en.beginEnroll, exact: true })
-				.click(),
+		const actor = await adminActor(browser, "verification", [
+			"view_queue",
+			"assign_review",
+			"read_evidence",
+			"decide_review",
+			"review_transfer",
 		]);
-		const code = disposablePython(
-			"import json,sys\nfrom apps.accounts.models import Authenticator\nfrom django_otp.oath import TOTP\nd=Authenticator.objects.get(user__email=json.load(sys.stdin)['email'])\nprint(f'{TOTP(d.secret).token():06}')",
-			JSON.stringify({ email: actor.email }),
-		).trim();
-		await page.locator("[name=code]").fill(code);
-		await page.locator(".account-card > form button[type=submit]").click();
-		await page
-			.getByRole("button", { name: authCopy.en.codesSaved, exact: true })
-			.click();
-		await expect(page).toHaveURL(/account\/staff/);
-		reviewerState = await context.storageState();
-		await context.close();
+		reviewerState = await actor.context.storageState();
+		await actor.context.close();
 	}
 	return browser.newContext({ storageState: reviewerState });
 }
@@ -110,7 +89,13 @@ async function createProfile(
 	displayName = `Synthetic browser ${locale}`,
 ) {
 	const t = organizationCopy[locale];
-	await page.goto(`/${locale}/account/seller/organizations`);
+	await page.goto(
+		`/${locale}/account/seller/${kind === "company" ? "settings" : "organizations"}`,
+	);
+	if (kind === "company")
+		await page
+			.getByText(accountSettingsCopy[locale].create, { exact: true })
+			.click();
 	await page.locator("[name=kind]").selectOption(kind);
 	for (const [key, value] of Object.entries({
 		display_name: displayName,
@@ -123,7 +108,7 @@ async function createProfile(
 		await page.locator(`[name=${key}]`).fill(value);
 	}
 	await page.getByRole("button", { name: t.create, exact: true }).click();
-	await page.getByRole("link", { name: displayName, exact: true }).click();
+	await page.getByRole("link").filter({ hasText: displayName }).click();
 	await page.getByRole("button", { name: t.application, exact: true }).click();
 }
 async function upload(page: Page, locale: Locale) {
@@ -143,27 +128,23 @@ async function upload(page: Page, locale: Locale) {
 	).toHaveCount(1);
 }
 async function decide(page: Page, name: string, action: string) {
-	const t = organizationCopy.en;
-	await page.goto("/en/account/staff/verification");
-	await page.locator("[name=filter]").selectOption("submitted");
-	const row = page
-		.locator("li")
-		.filter({ has: page.getByRole("link", { name, exact: true }) })
-		.first();
-	const href = await row
-		.getByRole("link", { name, exact: true })
-		.getAttribute("href");
-	if (!href) throw new Error("Synthetic case link is missing");
-	await Promise.all([
-		page.waitForResponse(
-			(response) =>
-				response.url().includes("/api/v1/verification/cases/") &&
-				response.request().method() === "POST" &&
-				response.status() === 200,
-		),
-		row.getByRole("button", { name: t.assign, exact: true }).click(),
-	]);
-	await page.goto(href);
+	await page.goto(
+		`${apiOrigin}/admin/verification/reviewcase/?q=${encodeURIComponent(name)}`,
+	);
+	await page.getByRole("link", { name, exact: true }).first().click();
+	await expect(page).toHaveURL(/\/workflow\/$/);
+	await page.locator("[name=action]").selectOption("assign");
+	const own = await page
+		.locator("[name=assigned_to] option")
+		.evaluateAll((options) =>
+			options.map((e) => (e as HTMLOptionElement).value).find(Boolean),
+		);
+	if (!own) throw new Error("Missing disposable reviewer");
+	await page.locator("[name=assigned_to]").selectOption(own);
+	await page.locator("[name=reason]").fill("Synthetic assignment");
+	await page
+		.getByRole("button", { name: "Save review decision", exact: true })
+		.click();
 	await page.locator("[name=action]").selectOption(action);
 	await page
 		.locator("[name=reason]")
@@ -175,10 +156,10 @@ async function decide(page: Page, name: string, action: string) {
 	await page
 		.locator("[name=internal_note]")
 		.fill("PRIVATE synthetic internal note");
-	await page.getByRole("button", { name: t.decision, exact: true }).click();
-	await expect(page.getByTestId("staff-case-status")).toContainText(
-		action === "needs_information" ? t.needs_information : t.approved,
-	);
+	await page
+		.getByRole("button", { name: "Save review decision", exact: true })
+		.click();
+	await expect(page.getByTestId("review-status")).toContainText(action);
 }
 test.beforeAll(async () => {
 	if (enabled)
@@ -326,7 +307,9 @@ test("Phase04 invitation correct account explicit acceptance permission reductio
 	const invited = await browser.newContext();
 	const guest = await invited.newPage();
 	await guest.goto(`/en/invitation#token=${token}`);
-	await expect(guest.getByRole("status")).toContainText(t.signin_required);
+	await expect(
+		guest.getByRole("status").filter({ hasText: t.signin_required }),
+	).toBeVisible();
 	await guest.getByRole("link", { name: t.signin, exact: true }).click();
 	await guest.locator("[name=email]").fill("phase04-invitee@example.test");
 	await guest.locator("[name=password]").fill(fixturePassword);
@@ -339,7 +322,9 @@ test("Phase04 invitation correct account explicit acceptance permission reductio
 		fullPage: true,
 	});
 	await guest.getByRole("button", { name: t.accept, exact: true }).click();
-	await expect(guest.getByRole("status")).toContainText(t.joined);
+	await expect(
+		guest.getByRole("status").filter({ hasText: t.joined }),
+	).toBeVisible();
 	await guest.goto(companyUrl);
 	await expect(guest.getByTestId("profile-entitlement")).toHaveText(
 		`${t.entitlement}: ${t.eligible}`,
@@ -384,7 +369,7 @@ test("Phase04 invitation correct account explicit acceptance permission reductio
 	const denied = await guest.request.get(
 		`${apiOrigin}/api/v1/verification/queue/`,
 	);
-	expect(denied.status()).toBe(403);
+	expect(denied.status()).toBe(404);
 	await invited.close();
 });
 test("Phase04 recipient accepts and staff reviews ownership transfer; outgoing owner loses team administration", async ({
@@ -407,16 +392,22 @@ test("Phase04 recipient accepts and staff reviews ownership transfer; outgoing o
 	await expect(page.getByText(t.accepted, { exact: true })).toBeVisible();
 	const context = await reviewer(browser);
 	const staff = await context.newPage();
-	await staff.goto("/en/account/staff/transfers");
+	await staff.goto(`${apiOrigin}/admin/organizations/ownershiptransfer/`);
 	await staff
 		.getByRole("link", { name: "Synthetic company team", exact: true })
+		.click();
+	await staff
+		.getByRole("link", { name: "Open guarded workflow", exact: true })
 		.click();
 	staff.on("dialog", (dialog) => dialog.accept());
 	await staff
 		.locator("[name=reason]")
 		.fill("Synthetic browser transfer review");
-	await staff.getByRole("button", { name: t.decision, exact: true }).click();
-	await expect(staff.getByText(t.approved, { exact: true })).toBeVisible();
+	await staff.locator("[name=action]").selectOption("approve");
+	await staff
+		.getByRole("button", { name: "Apply guarded transition", exact: true })
+		.click();
+	await expect(staff.locator("body")).toContainText("approved");
 	await page.reload();
 	await page.getByRole("button", { name: t.team, exact: true }).click();
 	await page.getByRole("button", { name: t.invitations, exact: true }).click();
@@ -550,91 +541,67 @@ function alternativeFixture(name: string) {
 	);
 }
 
-test("Phase04 reviewed P1 assignment acknowledgment and active-session read removal stay private", async ({
+test("native assignment redirects contain no case payload; active read removal hides private fields", async ({
 	browser,
 }) => {
-	test.setTimeout(60000);
-	const item = alternativeFixture("Synthetic-review-fix-assignment");
-	const target = fixture("assignment-other", "staff");
-	const context = await reviewer(browser);
-	const page = await context.newPage();
-	const t = organizationCopy.en;
-	const path = `${apiOrigin}/api/v1/verification/cases/${item.id}/`;
-	await page.goto("/en/account/staff/verification");
-	const row = page
-		.locator("li")
-		.filter({ has: page.getByRole("link", { name: item.name, exact: true }) })
-		.first();
-	const currentAccount = await page.evaluate(async (origin) => {
-		const r = await fetch(`${origin}/api/v1/verification/queue/`, {
-			credentials: "include",
-		});
-		const data: { current_account_id?: unknown } = await r.json();
-		if (typeof data.current_account_id !== "string")
-			throw new Error("Missing current account");
-		return data.current_account_id;
-	}, apiOrigin);
-	let response = page.waitForResponse(
-		(r) => r.url() === path && r.request().method() === "POST",
-	);
-	await row.getByRole("button", { name: t.assign, exact: true }).click();
-	expect(Object.keys(await (await response).json()).sort()).toEqual([
-		"id",
-		"status",
-		"version",
+	const actor = await adminActor(browser, "verification", [
+		"view_queue",
+		"assign_review",
+		"read_evidence",
+		"decide_review",
 	]);
-	await page.goto(`/en/account/staff/verification/${item.id}`);
-	await expect(
-		page.getByText("PRIVATE synthetic legal", { exact: true }),
-	).toBeVisible();
-	disposablePython(
-		"import json,sys\nfrom apps.accounts.models import Account\nfrom django.contrib.auth.models import Permission\na=Account.objects.get(pk=json.load(sys.stdin)['account'])\ng=a.permission_groups.get()\nassert g.name.startswith('Synthetic browser reviewer ')\ng.permissions.remove(Permission.objects.get(content_type__app_label='verification',codename='read_evidence'))",
-		JSON.stringify({ account: currentAccount }),
-	);
-	await page.reload();
-	await expect(
-		page.getByRole("alert").filter({ hasText: t.denied }),
-	).toBeVisible();
-	await expect(
-		page.getByText("PRIVATE synthetic legal", { exact: true }),
-	).toHaveCount(0);
-	await page.setViewportSize({ width: 390, height: 900 });
-	await page.screenshot({
-		path: `${evidence}/phase04-review-fix-staff-denied-mobile.png`,
-		fullPage: true,
-	});
-	await page.goto("/en/account/staff/verification");
-	await page.locator("[name=filter]").selectOption("under_review");
-	const assignedRow = page
-		.locator("li")
-		.filter({ has: page.getByRole("link", { name: item.name, exact: true }) })
-		.first();
-	await assignedRow.locator("[name=reviewer]").selectOption(target.account);
-	response = page.waitForResponse(
-		(r) => r.url() === path && r.request().method() === "POST",
-	);
-	await assignedRow
-		.getByRole("button", { name: t.assign, exact: true })
+	const item = alternativeFixture("Synthetic-native-assignment");
+	const target = fixture("native-assignment-other", "staff");
+	const path = `${apiOrigin}/admin/verification/reviewcase/${item.id}/workflow/`;
+	await actor.page.goto(path);
+	await actor.page.locator("[name=action]").selectOption("assign");
+	await actor.page.locator("[name=assigned_to]").selectOption(actor.account);
+	await actor.page
+		.locator("[name=reason]")
+		.fill("Synthetic independent assignment");
+	await actor.page
+		.getByRole("button", { name: "Save review decision", exact: true })
 		.click();
-	expect((await response).status()).toBe(200);
-	expect(Object.keys(await (await response).json()).sort()).toEqual([
-		"id",
-		"status",
-		"version",
-	]);
-	await expect(
-		page.getByRole("status").filter({ hasText: t.saved }),
-	).toBeVisible();
-	await page.setViewportSize({ width: 1440, height: 900 });
-	await page.screenshot({
-		path: `${evidence}/phase04-review-fix-staff-assigned.png`,
-		fullPage: true,
-	});
-	await page.goto(`/en/account/staff/verification/${item.id}`);
-	await expect(
-		page.getByRole("alert").filter({ hasText: t.denied }),
-	).toBeVisible();
-	await context.close();
+	await expect(actor.page.locator("body")).toContainText(
+		"PRIVATE synthetic legal",
+	);
+	for (const width of [1440, 390])
+		for (const theme of ["light", "dark"] as const) {
+			await adminAppearance(actor.page, width, theme);
+			await actor.page.screenshot({
+				path: `${evidence}/staff-case-review-${width}-${theme}.png`,
+				fullPage: true,
+			});
+			expect(
+				await actor.page.evaluate(
+					() => document.documentElement.scrollWidth <= innerWidth,
+				),
+			).toBe(true);
+		}
+	disposablePython(
+		"import json,sys\nfrom django.contrib.auth.models import Group,Permission\ng=Group.objects.get(pk=json.load(sys.stdin)['group'])\ng.permissions.remove(Permission.objects.get(content_type__app_label='verification',codename='read_evidence'))",
+		JSON.stringify({ group: actor.group }),
+	);
+	await actor.page.reload();
+	await expect(actor.page.locator("body")).not.toContainText(
+		"PRIVATE synthetic legal",
+	);
+	await actor.page.locator("[name=action]").selectOption("assign");
+	await actor.page.locator("[name=assigned_to]").selectOption(target.account);
+	await actor.page.locator("[name=reason]").fill("Synthetic reassignment");
+	const pending = actor.page.waitForResponse(
+		(r) => r.url() === path && r.request().method() === "POST",
+	);
+	await actor.page
+		.getByRole("button", { name: "Save review decision", exact: true })
+		.click();
+	const response = await pending;
+	expect(response.status()).toBe(302);
+	expect(response.headers()["content-length"]).toBe("0");
+	await expect(actor.page.locator("body")).not.toContainText(
+		"PRIVATE synthetic legal",
+	);
+	await actor.context.close();
 });
 
 test("Phase04 reviewed P2 owner submits rendered alternative form with preserved errors and reasons", async ({

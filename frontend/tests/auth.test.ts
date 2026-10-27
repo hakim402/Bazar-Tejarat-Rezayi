@@ -65,7 +65,7 @@ test("credentialed mutation obtains fresh CSRF and never replays a failed action
 	}
 });
 
-test("MFA recovery-code hashing can finish beyond the ordinary ten-second request budget without replay", async () => {
+test("multipart evidence uploads can finish beyond the ordinary ten-second budget without replay", async () => {
 	const previous = process.env.NEXT_PUBLIC_API_URL;
 	const original = globalThis.fetch;
 	process.env.NEXT_PUBLIC_API_URL = "http://127.0.0.1:8103";
@@ -87,16 +87,22 @@ test("MFA recovery-code hashing can finish beyond the ordinary ten-second reques
 			signal?.addEventListener("abort", aborted, { once: true });
 		});
 		return Response.json({
-			status: "signed_in",
-			recovery_codes: ["synthetic-private-recovery"],
+			status: "uploaded",
 		});
 	};
 	try {
-		const result = await authMutation("mfa/challenge/", {
-			code: "000000",
-			recovery: false,
-		});
-		assert.equal(result.status, "signed_in");
+		const { privateRequest } = await import("../lib/api/private-client.ts");
+		const upload = new FormData();
+		upload.append(
+			"file",
+			new Blob(["synthetic evidence"], { type: "application/pdf" }),
+			"synthetic.pdf",
+		);
+		const result = await privateRequest<{ status: string }>(
+			"verification/seller/profiles/synthetic/evidence/",
+			upload,
+		);
+		assert.equal(result.status, "uploaded");
 		assert.equal(mutations, 1);
 	} finally {
 		globalThis.fetch = original;

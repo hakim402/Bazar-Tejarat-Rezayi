@@ -60,12 +60,12 @@ class Command(BaseCommand):
                 display_name="Synthetic " + name.title(),
                 email_verified=verified,
                 is_active=active,
-                is_staff=name == "owner",
+                is_staff=name in {"owner", "support", "logistics"},
                 is_superuser=name == "owner",
                 owner_authority=name == "owner",
             )
             for context in contexts:
-                account = Account.objects.create(
+                Account.objects.create(
                     user=user,
                     context=context,
                     intent="business" if name == "business" else "individual",
@@ -73,7 +73,7 @@ class Command(BaseCommand):
                     review_status="pending" if context == "seller" or name == "business" else "not_requested",
                 )
                 if context == "staff":
-                    account.permission_groups.add(
+                    user.groups.add(
                         Group.objects.get(name="Rezayi: " + ("Support" if name == "support" else "Logistics"))
                     )
             audit("synthetic_identity_seeded", user=user)

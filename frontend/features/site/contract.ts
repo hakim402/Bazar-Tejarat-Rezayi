@@ -1,7 +1,7 @@
 import { isLocale, type Locale } from "../../lib/i18n/locales.ts";
 import { messages } from "../../lib/i18n/messages.ts";
 import { destinationAllowed, pageKeys } from "../pages/registry.ts";
-import type { components } from "../../lib/api/schema";
+import type { components } from "../../lib/api/schema.d";
 export type Site = components["schemas"]["PublicSite"];
 export type Media = components["schemas"]["Media"];
 export type Notice = components["schemas"]["Notice"];

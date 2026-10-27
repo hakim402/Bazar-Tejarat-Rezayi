@@ -53,14 +53,14 @@ class Command(BaseCommand):
         def account(name, context="seller", group=None):
             user, created = User.objects.get_or_create(
                 email=f"phase04-{name}@example.test",
-                defaults={"display_name": "Synthetic " + name, "email_verified": True},
+                defaults={"display_name": "Synthetic " + name, "email_verified": True, "is_staff": context == "staff"},
             )
             if created:
                 user.set_password(password)
                 user.save()
             result = Account.objects.create(user=user, context=context)
             if group:
-                result.permission_groups.add(Group.objects.get(name=group))
+                user.groups.add(Group.objects.get(name=group))
             return result
 
         reviewer = FixtureActor(account("reviewer", "staff", "Rezayi: Business review"))

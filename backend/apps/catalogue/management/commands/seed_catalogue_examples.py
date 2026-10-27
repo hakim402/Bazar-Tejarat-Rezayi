@@ -46,14 +46,14 @@ class Command(BaseCommand):
                 f"phase06-{name}@example.test",
                 password,
                 display_name="Synthetic catalogue " + name,
-                email_verified=True,
+                email_verified=True, is_staff=True,
             )
-            account = Account.objects.create(user=user, context="staff")
+            Account.objects.create(user=user, context="staff")
             group = Group.objects.create(name="Synthetic catalogue " + name)
             group.permissions.set(
                 Permission.objects.filter(content_type__app_label="catalogue", codename__in=permissions)
             )
-            account.permission_groups.add(group)
+            user.groups.add(group)
         for name, kind, approved in [
             ("seller", "individual", True),
             ("company", "company", True),

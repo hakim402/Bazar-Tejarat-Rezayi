@@ -1,4 +1,3 @@
-import { AccessProvider } from "../../features/identity/components/access-provider";
 import type { ReactNode } from "react";
 import type { Locale } from "../../lib/i18n/locales";
 import { direction } from "../../lib/i18n/locales";
@@ -94,48 +93,46 @@ export function PublicShell({
 }) {
 	const announcement = site?.announcement;
 	return (
-		<AccessProvider locale={locale}>
-			<div className="flex min-h-screen flex-col">
-				<SkipLink label={messages[locale].skip} />
-				<SiteHeader locale={locale} />
-				{announcement?.enabled && (
-					<aside className="border-b border-border bg-info">
-						<Container
-							className="flex flex-wrap items-center gap-4 py-3"
-							lang={announcement.content_locale}
-							dir={direction(announcement.content_locale)}
-						>
-							{announcement.fallback && (
-								<span lang={locale} dir={direction(locale)}>
-									{siteCopy[locale].fallback}
-								</span>
-							)}
-							<p>{announcement.text}</p>
-							{announcement.label && announcement.url && (
-								<a
-									className="inline-flex min-h-11 items-center font-bold"
-									href={
-										announcement.url.startsWith("/")
-											? `/${locale}${announcement.url === "/" ? "" : announcement.url}`
-											: announcement.url
-									}
-								>
-									{announcement.label}
-								</a>
-							)}
-						</Container>
-					</aside>
+		<div className="flex min-h-screen flex-col">
+			<SkipLink label={messages[locale].skip} />
+			<SiteHeader locale={locale} />
+			{announcement?.enabled && (
+				<aside className="border-b border-border bg-info">
+					<Container
+						className="flex flex-wrap items-center gap-4 py-3"
+						lang={announcement.content_locale}
+						dir={direction(announcement.content_locale)}
+					>
+						{announcement.fallback && (
+							<span lang={locale} dir={direction(locale)}>
+								{siteCopy[locale].fallback}
+							</span>
+						)}
+						<p>{announcement.text}</p>
+						{announcement.label && announcement.url && (
+							<a
+								className="inline-flex min-h-11 items-center font-bold"
+								href={
+									announcement.url.startsWith("/")
+										? `/${locale}${announcement.url === "/" ? "" : announcement.url}`
+										: announcement.url
+								}
+							>
+								{announcement.label}
+							</a>
+						)}
+					</Container>
+				</aside>
+			)}
+			<main id="main" tabIndex={-1} className="flex-1">
+				{hero}
+				{children && (
+					<Container className="space-y-7 py-7 desktop:py-10">
+						{children}
+					</Container>
 				)}
-				<main id="main" tabIndex={-1} className="flex-1">
-					{hero}
-					{children && (
-						<Container className="space-y-7 py-7 desktop:py-10">
-							{children}
-						</Container>
-					)}
-				</main>
-				<SiteFooter locale={locale} />
-			</div>
-		</AccessProvider>
+			</main>
+			<SiteFooter locale={locale} />
+		</div>
 	);
 }

@@ -40,7 +40,11 @@ export function InvitationEntry({ locale }: { locale: Locale }) {
 	useEffect(() => {
 		const fragment = new URLSearchParams(window.location.hash.slice(1));
 		const incoming = fragment.get("token");
-		history.replaceState(null, "", window.location.pathname);
+		history.replaceState(
+			null,
+			"",
+			window.location.pathname + window.location.search,
+		);
 		const raw =
 			incoming && /^[A-Za-z0-9_-]{40,100}$/.test(incoming)
 				? incoming

@@ -12,7 +12,7 @@ class Registration(StrictSerializer):
     email = serializers.EmailField(max_length=254)
     password = serializers.CharField(min_length=12, max_length=128, write_only=True, trim_whitespace=False)
     display_name = serializers.CharField(max_length=150)
-    intent = serializers.ChoiceField(choices=["individual", "business", "company"])
+    intent = serializers.ChoiceField(choices=["individual"], default="individual")
     consent = serializers.BooleanField()
     locale = serializers.ChoiceField(choices=["fa-AF", "en", "ps", "ar"], default="fa-AF")
 
@@ -47,20 +47,11 @@ class PasswordChange(StrictSerializer):
 
 class LinkRequest(StrictSerializer):
     password = serializers.CharField(max_length=128, write_only=True, trim_whitespace=False)
-    intent = serializers.ChoiceField(choices=["individual", "business", "company"])
+    intent = serializers.ChoiceField(choices=["individual"], default="individual")
 
 
 class ProfileUpdate(StrictSerializer):
     display_name = serializers.CharField(max_length=150)
-
-
-class Challenge(StrictSerializer):
-    code = serializers.CharField(min_length=6, max_length=32, write_only=True, trim_whitespace=False)
-    recovery = serializers.BooleanField(default=False)
-
-
-class FactorReset(Challenge):
-    password = serializers.CharField(max_length=128, write_only=True, trim_whitespace=False)
 
 
 class Empty(StrictSerializer):
@@ -88,9 +79,6 @@ class AuthResult(serializers.Serializer):
     csrf_token = serializers.CharField(required=False)
     identity = IdentityData(required=False)
     account = AccountData(required=False)
-    recovery_codes = serializers.ListField(child=serializers.CharField(), required=False)
-    secret = serializers.CharField(required=False)
-    uri = serializers.CharField(required=False)
     authorization_url = serializers.URLField(required=False)
     attempt_id = serializers.UUIDField(required=False)
     return_path = serializers.CharField(required=False)
@@ -118,5 +106,5 @@ class GoogleStartRequest(StrictSerializer):
 class GoogleCompleteRequest(StrictSerializer):
     attempt_id = serializers.UUIDField()
     consent = serializers.BooleanField()
-    intent = serializers.ChoiceField(choices=["individual", "business", "company"])
+    intent = serializers.ChoiceField(choices=["individual"], default="individual")
     display_name = serializers.CharField(max_length=150)

@@ -7,8 +7,7 @@ from rest_framework.exceptions import APIException
 from unfold.admin import ModelAdmin
 
 from apps.accounts.admin import owner_site
-from apps.accounts.models import Account
-from .access import Actor
+from apps.accounts.admin_access import admin_actor, permits
 from .models import BusinessProfile, Invitation, Membership, OwnershipTransfer
 from .forms import WorkflowForm
 from .owner_copy import COPY
@@ -19,6 +18,9 @@ class ReadOnlyAdmin(ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         return [field.name for field in self.model._meta.fields]
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request):
         return False
@@ -50,60 +52,34 @@ class WorkflowAdmin(ReadOnlyAdmin):
         ]
 
     def workflow(self, request, pk):
-        from apps.verification.models import ReviewCase
-        from apps.verification.services import authorize_case, review_action
-        from apps.verification.forms import ReviewWorkflowForm
         from .transfers import transfer_action
         from .teams import change_member
 
-        obj = get_object_or_404(self.model, pk=pk)
+        obj = get_object_or_404(self.get_queryset(request), pk=pk)
         locale = "en"
         t = COPY[locale]
-        actor = Actor(request, "owner")
-        if self.model is ReviewCase:
-            from django.core.exceptions import PermissionDenied
-
-            try:
-                authorize_case(actor, obj)
-            except APIException:
-                raise PermissionDenied from None
+        actor = admin_actor(request)
         choices = [
             (v, t[v])
             for v in (
-                ["assign", "approved", "rejected", "needs_information"]
-                if self.model is ReviewCase
-                else ["approve", "reject"]
+                ["approve", "reject"]
                 if self.model is OwnershipTransfer
                 else ["revoke"]
             )
         ]
         current_version = obj.company.version if self.model is Membership else obj.version
-        form_class = ReviewWorkflowForm if self.model is ReviewCase else WorkflowForm
-        form = form_class(
+        form = WorkflowForm(
             request.POST if request.method == "POST" else None,
             initial={"version": current_version}, locale=locale,
-            **({"case": obj} if self.model is ReviewCase else {}),
         )
         form.fields["action"].choices = choices
-        if self.model is ReviewCase:
-            form.fields["assigned_to"].queryset = Account.objects.filter(
-                context="staff",
-                status="active",
-                user__is_active=True,
-                user__email_verified=True,
-                permission_groups__permissions__content_type__app_label="verification",
-                permission_groups__permissions__codename="decide_review",
-            ).distinct()
-        else:
-            form.fields.pop("assigned_to")
+        form.fields.pop("assigned_to")
         if request.method == "POST" and form.is_valid():
             data = form.cleaned_data
             if data.get("assigned_to") is not None:
                 data["assigned_to"] = data["assigned_to"].pk
             try:
-                if self.model is ReviewCase:
-                    review_action(actor, obj.pk, data)
-                elif self.model is OwnershipTransfer:
+                if self.model is OwnershipTransfer:
                     transfer_action(actor, obj.pk, data)
                 else:
                     change_member(actor, obj.company_id, obj.pk, data)
@@ -133,6 +109,14 @@ class MembershipAdmin(WorkflowAdmin):
 
 
 class TransferAdmin(WorkflowAdmin):
+    def staff_view(self, request, obj=None):
+        return permits(request, "verification", "review_transfer") and (
+            obj is None or self.staff_queryset(request, OwnershipTransfer.objects.filter(pk=obj.pk)).exists())
+
+    def staff_queryset(self, request, qs):
+        return qs.exclude(company__account__user=request.user).exclude(
+            company__memberships__account__user=request.user).distinct()
+
     list_display = ["company", "requester", "recipient", "status", "version"]
     list_filter = ["status"]
 

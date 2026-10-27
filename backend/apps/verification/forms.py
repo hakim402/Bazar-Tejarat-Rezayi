@@ -7,6 +7,7 @@ from .services import categories
 
 
 class ReviewWorkflowForm(WorkflowForm):
+    internal_note = forms.CharField(max_length=1000, required=False, label="Internal note", widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
     def __init__(self, *args, case, **kwargs):
         super().__init__(*args, **kwargs)
         self.categories = categories(case.profile)

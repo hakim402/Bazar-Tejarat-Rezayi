@@ -19,7 +19,7 @@ class DevelopmentEmailVerificationTests(TestCase):
         self.user = User.objects.create_user("dev-company@example.test", PASSWORD)
         self.account = Account.objects.create(user=self.user, context="seller", intent="company", review_status="pending")
         self.client = APIClient(enforce_csrf_checks=True)
-        self.assertEqual(signin(self.client, "owner", self.owner.email).status_code, 200)
+        self.assertEqual(signin(self.client, "owner", self.owner.email).status_code, 302)
 
     def action(self, users=None, csrf=True):
         headers = {}

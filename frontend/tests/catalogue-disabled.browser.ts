@@ -1,10 +1,8 @@
 import { test, expect } from "@playwright/test";
 import {
 	catalogueActor,
-	catalogueApi,
 	catalogueReviewProduct,
 } from "./support/catalogue-runtime";
-import { catalogueCopy, catalogueStatuses } from "../lib/i18n/catalogue";
 import { apiOrigin, disposablePython } from "./support/identity-runtime";
 test.skip(
 	process.env.CATALOGUE_DISABLED_BROWSER_TESTS !== "1",
@@ -16,29 +14,33 @@ test("unconfigured Groq remains visibly pending and never reports a completed dr
 	test.setTimeout(60000);
 	const context = await catalogueActor(browser, "full"),
 		page = await context.newPage();
-	await page.goto("/en/account/staff/catalogue");
 	const product = catalogueReviewProduct("food");
-	await page.goto(`/en/account/staff/catalogue/${product.id}`);
-	await expect(page.getByText(catalogueCopy.en.providerPending)).toBeVisible();
-	const generated = page.waitForResponse(
-		(r) =>
-			r.url().includes("/translations/") && r.request().method() === "POST",
+	await page.goto(
+		`${apiOrigin}/admin/catalogue/product/${product.id}/workflow/?translation=1&revision=${product.revision}&target=en`,
 	);
-	await page
-		.getByRole("button", { name: catalogueCopy.en.generate, exact: true })
-		.click();
-	expect((await generated).status()).toBe(200);
 	await expect(
-		page.getByRole("status").filter({ hasText: catalogueStatuses.en.blocked }),
+		page.getByText(
+			"Automatic draft provider disabled. Manual translation remains available.",
+			{ exact: true },
+		),
 	).toBeVisible();
-	const detail = (await catalogueApi(page, `staff/products/${product.id}/`))
-		.body;
-	expect(detail.provider).toBe("groq_unconfigured");
-	const row = detail.translations.find(
-		(t: { locale: string }) => t.locale === "en",
+	await page.locator("#id_action").selectOption("generate");
+	await page.locator("#catalogue-operation button").click();
+	await expect(
+		page.getByText(/en · blocked · Attempts 0 · provider_disabled/),
+	).toBeVisible();
+	const persisted = JSON.parse(
+		disposablePython(
+			"import json,sys\nfrom apps.catalogue.models import Translation\nfrom apps.catalogue.translation_provider import provider_status\nd=json.load(sys.stdin)\nt=Translation.objects.get(revision_id=d['revision'],locale='en')\nprint(json.dumps({'provider':provider_status(),'status':t.job.status,'title':t.title,'state':t.state}))",
+			JSON.stringify({ revision: product.revision }),
+		),
 	);
-	expect(row.job.status).toBe("blocked");
-	expect(row.title).toBe("");
+	expect(persisted).toEqual({
+		provider: "groq_unconfigured",
+		status: "blocked",
+		title: "",
+		state: "draft",
+	});
 	expect(
 		(
 			await (

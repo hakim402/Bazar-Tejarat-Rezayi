@@ -1,4 +1,4 @@
-"""Environment policy for owner authentication; production always requires MFA."""
+"""Admin MFA policy; the historical OWNER_MFA_REQUIRED key covers owner and staff."""
 
 from django.core.exceptions import ImproperlyConfigured
 

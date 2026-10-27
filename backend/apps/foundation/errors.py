@@ -2,6 +2,7 @@ from uuid import uuid4
 import re
 
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
@@ -71,13 +72,17 @@ def api_exception_handler(exc, context):
     return response
 
 
+@csrf_exempt
 def not_found(request, exception=None):
-    return JsonResponse(
+    # Unknown/retired routes have no actions; their 404 must not depend on a CSRF cookie.
+    response = JsonResponse(
         error_data(
             "not_found", "The requested resource was not found.", request.request_id
         ),
         status=404,
     )
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 def server_error(request):

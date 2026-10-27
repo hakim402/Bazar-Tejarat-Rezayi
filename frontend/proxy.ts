@@ -1,3 +1,5 @@
+import { modalScreens } from "./lib/routes/auth-routes";
+import { sellerAccountRoute, uuidPattern } from "./lib/routes/account-routes";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiOrigin } from "./lib/api/client";
 import { defaultLocale, isLocale, type Locale } from "./lib/i18n/locales";
@@ -55,6 +57,17 @@ export async function proxy(request: NextRequest) {
 		if (status === 503) response.headers.set("Retry-After", "300");
 		return response;
 	}
+	if (
+		(parts[1] === "account" && parts[2] === "staff") ||
+		(parts[1] === "auth" && ["staff-sign-in", "mfa"].includes(parts[2])) ||
+		["staff", "owner"].includes(
+			request.nextUrl.searchParams.get("context") ?? "",
+		) ||
+		["staff-sign-in", "mfa"].includes(
+			request.nextUrl.searchParams.get("auth") ?? "",
+		)
+	)
+		return statusResponse(request, locale, 404);
 	const path = `/${parts.slice(1).join("/")}`,
 		key = pageAtPath(path);
 	if (key) {
@@ -64,6 +77,12 @@ export async function proxy(request: NextRequest) {
 		const response = NextResponse.next({ request: { headers } });
 		response.headers.set("Cache-Control", "no-store");
 		applyMediaPolicy(response, site);
+		if (
+			modalScreens.includes(
+				request.nextUrl.searchParams.get("auth") as AuthScreen,
+			)
+		)
+			response.headers.set("X-Robots-Tag", "noindex, nofollow");
 		return response;
 	}
 	if (
@@ -87,24 +106,19 @@ export async function proxy(request: NextRequest) {
 		return NextResponse.next({ request: { headers } });
 	}
 	const account =
-		parts[1] === "account" && ["buyer", "seller", "staff"].includes(parts[2]);
+		parts[1] === "account" && ["buyer", "seller"].includes(parts[2]);
 	const screen = parts[3] ?? "profile",
 		context = parts[2],
 		id = parts[4];
-	const business = screen === "organizations" && context !== "staff";
-	const review =
-		["verification", "transfers"].includes(screen) && context === "staff";
-	const catalogue = screen === "catalogue" && context !== "buyer";
-	const ordinary =
-		["profile", "password", "link", "mfa-reset"].includes(screen) &&
-		!(context === "staff" && screen === "link") &&
-		!(context !== "staff" && screen === "mfa-reset");
+	const business = screen === "organizations";
+	const ordinary = ["profile", "password", "link", "settings"].includes(screen);
 	const validAccount =
 		account &&
-		((ordinary && parts.length <= 4) ||
-			((business || review || catalogue) &&
-				parts.length <= 5 &&
-				(!id || /^[0-9a-f-]{36}$/.test(id))));
+		(context === "seller"
+			? sellerAccountRoute(parts.slice(3))
+			: (ordinary && parts.length <= 4) ||
+				(business && parts.length <= 5 && (!id || uuidPattern.test(id))));
+
 	const privateRoute =
 		(parts[1] === "invitation" && parts.length === 2) ||
 		(parts[1] === "auth" &&
@@ -113,7 +127,10 @@ export async function proxy(request: NextRequest) {
 		validAccount;
 
 	if (!privateRoute) return statusResponse(request, locale, 404);
-	return NextResponse.next({ request: { headers } });
+	const response = NextResponse.next({ request: { headers } });
+	response.headers.set("Cache-Control", "no-store");
+	response.headers.set("X-Robots-Tag", "noindex, nofollow");
+	return response;
 }
 function statusResponse(
 	request: NextRequest,
@@ -124,7 +141,13 @@ function statusResponse(
 	headers.set("x-rezayi-locale", locale);
 	const url = request.nextUrl.clone();
 	url.pathname = `/${locale}/${status === 503 ? "site-unavailable" : "site-not-found"}`;
-	url.search = "";
+	if (
+		status === 404 ||
+		!modalScreens.includes(
+			request.nextUrl.searchParams.get("auth") as AuthScreen,
+		)
+	)
+		url.search = "";
 	const response = NextResponse.rewrite(url, { status, request: { headers } });
 	response.headers.set("Cache-Control", "no-store");
 	response.headers.set("X-Robots-Tag", "noindex, nofollow");

@@ -11,7 +11,7 @@ export function CatalogueOverview({
 }: {
 	locale: Locale;
 	list: ProductList;
-	context: "seller" | "staff";
+	context: "seller";
 }) {
 	const t = interfaceCopy[locale];
 	const counts = [

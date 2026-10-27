@@ -1,12 +1,15 @@
 """Owner workflows call the same locked services; ordinary save and bulk changes are disabled."""
 
 from django import forms
+from django.core.exceptions import PermissionDenied
+from apps.accounts.admin_access import admin_actor, permits
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 from urllib.parse import urlencode
 from rest_framework.exceptions import APIException
 from apps.accounts.admin import owner_site
+from apps.accounts.admin_copy import COPY as ADMIN_COPY
 from apps.organizations.admin import ReadOnlyAdmin
 from . import contracts, access, services, translations, taxonomy
 from .owner_copy import localize
@@ -23,6 +26,38 @@ from .models import (
     SaleUnit,
     LOCALES,
 )
+
+
+class CatalogueRecordAdmin(ReadOnlyAdmin):
+    def staff_view(self, request, obj=None):
+        return permits(request, "catalogue", "view_" + self.model._meta.model_name) and permits(
+            request, "catalogue", "review_source", "review_translation", "moderate_catalogue")
+
+    def staff_queryset(self, request, qs):
+        path = "revision__product" if self.model in (Translation, TranslationJob) else "product"
+        return qs.exclude(**{path + "__seller__account__user": request.user}).exclude(
+            **{path + "__seller__memberships__account__user": request.user}).distinct()
+
+
+class PrivateImageAdmin(CatalogueRecordAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return ["id", "product", "content_type", "width", "height", "size", "created_at", "protected_preview"]
+
+    def protected_preview(self, obj):
+        return format_html('<a href="{}">Protected image</a>', reverse("admin:catalogue_private_image", args=[obj.pk]))
+
+    def get_urls(self):
+        return [path("<uuid:pk>/download/", self.admin_site.admin_view(self.download),
+                     name="catalogue_private_image"), *super().get_urls()]
+
+    def download(self, request, pk):
+        from .views import image_response
+        image = get_object_or_404(ProductImage, pk=pk)
+        actor = admin_actor(request)
+        access.resource(actor, image.product_id)
+        from apps.organizations.access import independent
+        independent(image.product.seller, actor)
+        return image_response(image, request)
 
 
 class RevisionChoice(forms.ModelChoiceField):
@@ -54,6 +89,14 @@ class TranslationForm(forms.Form):
 
 
 class ProductAdmin(ReadOnlyAdmin):
+    def staff_view(self, request, obj=None):
+        return permits(request, "catalogue", "review_source", "review_translation", "moderate_catalogue") and (
+            obj is None or self.staff_queryset(request, Product.objects.filter(pk=obj.pk)).exists())
+
+    def staff_queryset(self, request, qs):
+        return qs.exclude(seller__account__user=request.user).exclude(
+            seller__memberships__account__user=request.user).distinct()
+
     list_display = ["id", "seller", "currency", "pricing_mode", "version", "workflow_link"]
     list_filter = ["currency", "pricing_mode"]
     search_fields = ["seller__display_name", "variants__sku"]
@@ -71,10 +114,17 @@ class ProductAdmin(ReadOnlyAdmin):
 
     def workflow(self, request, pk):
         locale = "en"
-        item = get_object_or_404(Product, pk=pk)
-        actor = access.actor_for(request, "owner")
+        item = get_object_or_404(self.get_queryset(request), pk=pk)
+        actor = admin_actor(request)
         access.resource(actor, pk)
         translation = request.POST.get("form") == "translation" or request.GET.get("translation") == "1"
+        if translation and not permits(request, "catalogue", "review_translation"):
+            raise PermissionDenied
+        if not translation and not permits(request, "catalogue", "review_source", "moderate_catalogue"):
+            # A translation-only reviewer starts at its own deliberate source/target selector.
+            if request.method == "GET" and permits(request, "catalogue", "review_translation"):
+                return redirect(request.path + "?translation=1")
+            raise PermissionDenied
         revisions = item.revisions.order_by("-number")
         selection, selected_revision, selected_translation = None, None, None
         if translation:
@@ -118,6 +168,11 @@ class ProductAdmin(ReadOnlyAdmin):
             form.fields["locale"].choices = [(x, x) for x in targets]
         else:
             form = ReviewForm(request.POST if request.method == "POST" else None, initial={"version": item.version})
+        if not translation:
+            form.fields["action"].choices = [
+                (action, action) for action in ("publish", "reject", "unpublish")
+                if permits(request, "catalogue", "moderate_catalogue" if action == "unpublish" else "review_source")
+            ]
         t = localize(form, locale)
         form.fields["revision"].queryset = revisions
         if request.method == "POST" and form.is_valid():
@@ -153,11 +208,17 @@ class ProductAdmin(ReadOnlyAdmin):
                 item=item,
                 revisions=item.revisions.order_by("-number"),
                 translation=translation,
+                can_review_source=permits(request, "catalogue", "review_source", "moderate_catalogue"),
+                can_translate=permits(request, "catalogue", "review_translation"),
                 selection=selection,
                 selected_revision=selected_revision,
                 selected_translation=selected_translation,
                 translations=Translation.objects.filter(revision__product=item),
+                translation_jobs=TranslationJob.objects.filter(translation__revision__product=item).select_related("translation"),
+                provider=translations.provider_status(),
                 events=item.events.order_by("-created_at")[:50],
+                private_images=[{"id": image.pk, "url": reverse("admin:catalogue_private_image", args=[image.pk])}
+                                for image in item.images.all()],
             ),
         )
 
@@ -166,7 +227,28 @@ class CategoryForm(forms.Form):
     payload = forms.JSONField(widget=forms.Textarea(attrs={"rows": 20, "dir": "ltr"}))
 
 
-class CategoryAdmin(ReadOnlyAdmin):
+class TaxonomyAdmin(ReadOnlyAdmin):
+    change_list_template = "catalogue/taxonomy_list.html"
+
+    def staff_view(self, request, obj=None):
+        return permits(request, "catalogue", "manage_taxonomy")
+
+    def changelist_view(self, request, extra_context=None):
+        kind = "taxonomy" if self.model is Category else "unit"
+        return super().changelist_view(request, {
+            **(extra_context or {}),
+            "taxonomy_create_url": reverse("admin:catalogue_" + kind + "_add"),
+            "taxonomy_create_label": ADMIN_COPY["create_category"] if self.model is Category else ADMIN_COPY["create_unit"],
+        })
+
+    def create(self, request):
+        return self.workflow(request, None)
+
+
+class CategoryAdmin(TaxonomyAdmin):
+    def staff_view(self, request, obj=None):
+        return permits(request, "catalogue", "manage_taxonomy")
+
     def get_readonly_fields(self, request, obj=None):
         return [*super().get_readonly_fields(request, obj), "units"]
 
@@ -174,27 +256,34 @@ class CategoryAdmin(ReadOnlyAdmin):
     list_filter = ["active"]
 
     def workflow_link(self, obj):
-        return format_html('<a href="{}">Taxonomy / دسته‌بندی</a>', reverse("admin:catalogue_taxonomy", args=[obj.pk]))
+        return format_html('<a href="{}">Taxonomy</a>', reverse("admin:catalogue_taxonomy", args=[obj.pk]))
 
     def get_urls(self):
         return [
+            path("new/", self.admin_site.admin_view(self.create), name="catalogue_taxonomy_add"),
             path("<slug:code>/workflow/", self.admin_site.admin_view(self.workflow), name="catalogue_taxonomy"),
             *super().get_urls(),
         ]
 
     def workflow(self, request, code):
         locale = "en"
-        actor = access.actor_for(request, "owner")
+        actor = admin_actor(request)
         access.staff(actor, "manage_taxonomy")
         row = next((r for r in taxonomy.taxonomy()["categories"] if r["code"] == code), None)
+        if code is None:
+            row = {"version": 0, "code": "", "labels": {locale: "" for locale in LOCALES},
+                   "parent": None, "attributes": [], "units": [], "active": True}
         form = CategoryForm(request.POST if request.method == "POST" else None, initial={"payload": row})
         t = localize(form, locale)
         if request.method == "POST" and form.is_valid():
             try:
                 contract = contracts.CatalogueTaxonomyInput(data=form.cleaned_data["payload"])
                 contract.is_valid(raise_exception=True)
-                taxonomy.save_category(actor, contract.validated_data)
-                return redirect(request.get_full_path())
+                if code is None and contract.validated_data["version"] != 0 or code is not None and contract.validated_data["code"] != code:
+                    form.add_error("payload", ADMIN_COPY["category_identity_guard"])
+                else:
+                    taxonomy.save_category(actor, contract.validated_data)
+                    return redirect("admin:catalogue_taxonomy", code=contract.validated_data["code"])
             except APIException:
                 form.add_error(None, t["error"])
         return render(
@@ -211,31 +300,41 @@ class CategoryAdmin(ReadOnlyAdmin):
         )
 
 
-class UnitAdmin(ReadOnlyAdmin):
+class UnitAdmin(TaxonomyAdmin):
+    def staff_view(self, request, obj=None):
+        return permits(request, "catalogue", "manage_taxonomy")
+
     list_display = ["code", "active", "fractional", "version", "workflow_link"]
 
     def workflow_link(self, obj):
-        return format_html('<a href="{}">Unit / واحد</a>', reverse("admin:catalogue_unit", args=[obj.pk]))
+        return format_html('<a href="{}">Unit</a>', reverse("admin:catalogue_unit", args=[obj.pk]))
 
     def get_urls(self):
         return [
+            path("new/", self.admin_site.admin_view(self.create), name="catalogue_unit_add"),
             path("<slug:code>/workflow/", self.admin_site.admin_view(self.workflow), name="catalogue_unit"),
             *super().get_urls(),
         ]
 
     def workflow(self, request, code):
-        actor = access.actor_for(request, "owner")
+        actor = admin_actor(request)
         access.staff(actor, "manage_taxonomy")
         locale = "en"
         row = next((r for r in taxonomy.taxonomy()["units"] if r["code"] == code), None)
+        if code is None:
+            row = {"version": 0, "code": "", "labels": {locale: "" for locale in LOCALES},
+                   "fractional": False, "active": True}
         form = CategoryForm(request.POST if request.method == "POST" else None, initial={"payload": row})
         t = localize(form, locale)
         if request.method == "POST" and form.is_valid():
             try:
                 contract = contracts.CatalogueUnitInput(data=form.cleaned_data["payload"])
                 contract.is_valid(raise_exception=True)
-                taxonomy.save_unit(actor, contract.validated_data)
-                return redirect(request.get_full_path())
+                if code is None and contract.validated_data["version"] != 0 or code is not None and contract.validated_data["code"] != code:
+                    form.add_error("payload", ADMIN_COPY["unit_identity_guard"])
+                else:
+                    taxonomy.save_unit(actor, contract.validated_data)
+                    return redirect("admin:catalogue_unit", code=contract.validated_data["code"])
             except APIException:
                 form.add_error(None, t["error"])
         return render(
@@ -258,10 +357,10 @@ owner_site.register(Category, CategoryAdmin)
 for model in (
     SourceRevision,
     Variant,
-    ProductImage,
     PriceChange,
     Translation,
     TranslationJob,
     CatalogueEvent,
 ):
-    owner_site.register(model, ReadOnlyAdmin)
+    owner_site.register(model, CatalogueRecordAdmin)
+owner_site.register(ProductImage, PrivateImageAdmin)

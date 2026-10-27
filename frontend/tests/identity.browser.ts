@@ -1,5 +1,6 @@
 import { messages } from "../lib/i18n/messages";
 import { choosePreference } from "./support/site-preferences";
+import { adminLogin, openAdminAccountMenu } from "./support/admin-runtime";
 import { test, expect, type Page } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import { createHmac, randomBytes } from "node:crypto";
@@ -32,7 +33,7 @@ test.beforeEach(async ({ page }) => {
 	page.on("requestfinished", (request) => {
 		const path = new URL(request.url()).pathname;
 		if (
-			!/^\/api\/v1\/auth\/(csrf\/|(?:buyer|seller)\/(?:signin\/|link\/(?:buyer|seller)\/))/.test(
+			!/^\/api\/v1\/auth\/(csrf\/|(?:buyer|seller)\/(?:signin\/|session\/|logout\/|link\/(?:buyer|seller)\/))/.test(
 				path,
 			)
 		)
@@ -95,32 +96,43 @@ async function login(
 	pass = password,
 ) {
 	await page.goto(`/${locale}/auth/${context}-sign-in`);
-	await page.locator("[name=email]").fill(email);
-	await page.locator("[name=password]").fill(pass);
-	await page.locator(".account-card > form button[type=submit]").click();
+	const surface =
+		context === "staff"
+			? page.locator(".account-card")
+			: page.getByRole("dialog");
+	await expect(surface).toBeVisible();
+	await surface.locator("[name=email]").fill(email);
+	await surface.locator("[name=password]").fill(pass);
+	await surface.locator("form button[type=submit]").first().click();
+	if (context !== "staff")
+		await page.waitForURL(new RegExp(`/account/${context}$`), {
+			waitUntil: "load",
+		});
 }
 
 function privilegedFixture(owner: boolean) {
 	const email = `browser-${owner ? "owner" : "staff"}-${randomBytes(6).toString("hex")}@example.test`;
 	const script =
-		"import sys,json,os\nos.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings.development')\nimport django;django.setup()\nfrom apps.accounts.models import User,Account\nfrom apps.accounts.services import audit\nfrom django.contrib.auth.models import Group\ndata=json.load(sys.stdin)\nu=User.objects.create_user(data['email'],data['password'],display_name='Synthetic browser privileged',email_verified=True,is_staff=data['owner'],is_superuser=data['owner'],owner_authority=data['owner'])\nif not data['owner']:\n a=Account.objects.create(user=u,context='staff')\n a.permission_groups.add(Group.objects.get(name='Rezayi: Support'))\naudit('synthetic_browser_fixture_created',user=u)";
+		"import sys,json,os\nos.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings.development')\nimport django;django.setup()\nfrom apps.accounts.models import User,Account\nfrom apps.accounts.services import audit\nfrom django.contrib.auth.models import Group\ndata=json.load(sys.stdin)\nu=User.objects.create_user(data['email'],data['password'],display_name='Synthetic browser privileged',email_verified=True,is_staff=True,is_superuser=data['owner'],owner_authority=data['owner'])\nif not data['owner']:\n a=Account.objects.create(user=u,context='staff')\n u.groups.add(Group.objects.get(name='Rezayi: Support'))\naudit('synthetic_browser_fixture_created',user=u)";
 	disposablePython(script, JSON.stringify({ email, password, owner }));
 	return email;
 }
 async function newBuyer(page: Page) {
 	const email = `browser-${randomBytes(6).toString("hex")}@example.test`;
 	await page.goto("/en/auth/buyer-registration");
+	const modal = page.getByRole("dialog");
+	await expect(modal).toBeVisible();
 	await page.locator("[name=display_name]").fill("Synthetic Browser Person");
 	await page.locator("[name=email]").fill(email);
 	await page.locator("[name=password]").fill(password);
 	await page.locator("[name=consent]").check();
 	await page.locator(".account-card > form button[type=submit]").click();
-	await expect(page.getByRole("status")).toContainText("Request received");
+	await expect(modal.getByRole("status")).toContainText("Request received");
 	const url = mailbox(email);
 	await page.goto(url);
 	await expect(page).not.toHaveURL(/#token=/);
 	await page.locator(".account-card > form button[type=submit]").click();
-	await expect(page.getByRole("status")).toContainText("Email verified");
+	await expect(modal.getByRole("status")).toContainText("Email verified");
 	return email;
 }
 
@@ -138,9 +150,9 @@ for (const locale of locales) {
 				"dir",
 				direction(locale),
 			);
-			await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-				authCopy[locale].buyerRegister,
-			);
+			await expect(
+				page.getByRole("dialog").getByRole("heading", { level: 1 }),
+			).toHaveText(authCopy[locale].buyerRegister);
 			await page.evaluate(() => document.fonts.ready);
 			expect(
 				await page.evaluate(
@@ -212,26 +224,45 @@ test("identity registration verification profile linking and recovery through pr
 	await page.locator(".account-card > form button[type=submit]").click();
 	expect((await linked).status()).toBe(200);
 	await expect(page.getByRole("status")).toHaveText(authCopy.en.linkDone);
-	await page.goto("/en/account/seller");
+	await page.goto("/en/account/seller/profile");
 	await expect(page.locator(".account-error")).toContainText(
 		authCopy.en.anonymous,
 	);
 	await login(page, "seller", email);
+	const sellerSession = await page.request.get(
+		`${api}/api/v1/auth/seller/session/`,
+	);
+	if (sellerSession.status() !== 200) {
+		const audit = JSON.parse(
+			disposablePython(
+				"import json,sys\nfrom apps.accounts.models import User,Account,AuditEvent,BrowserAuthority,ContextGrant\nu=User.objects.get(email=json.load(sys.stdin)['email'])\nprint(json.dumps(dict(verified=u.email_verified,epoch=u.credential_epoch,accounts=list(u.accounts.values('context','status','intent','review_status','access_epoch')),authorities=list(BrowserAuthority.objects.filter(user=u).values('revoked')),grants=list(ContextGrant.objects.filter(authority__user=u).values('context','revoked')),events=list(AuditEvent.objects.filter(subject=u).order_by('-created_at').values_list('action',flat=True)[:12]))))",
+				JSON.stringify({ email }),
+			),
+		);
+		writeFileSync(
+			`${evidence}/linked-seller-session-diagnostic.json`,
+			JSON.stringify({ status: sellerSession.status(), audit }, null, 2),
+		);
+	}
+	expect(sellerSession.status()).toBe(200);
 	await expect(page).toHaveURL(/\/account\/seller$/);
+	await page.goto("/en/account/seller/profile");
 	await expect(page.locator(".account-summary")).toContainText(
 		authCopy.en.pending,
 	);
 	await page.goto("/en/auth/forgot-password");
 	await page.locator("[name=email]").fill(email);
 	await page.locator(".account-card > form button[type=submit]").click();
-	await expect(page.getByRole("status")).toContainText("Request received");
+	await expect(page.getByRole("dialog").getByRole("status")).toContainText(
+		"Request received",
+	);
 	await page.goto(mailbox(email));
 	await expect(page).not.toHaveURL(/#token=/);
 	const next = `${password}-changed`;
 	await page.locator("[name=password]").fill(next);
 	await page.locator("[name=repeat]").fill(next);
 	await page.locator(".account-card > form button[type=submit]").click();
-	await expect(page.getByRole("status")).toHaveText(
+	await expect(page.getByRole("dialog").getByRole("status")).toHaveText(
 		authCopy.en.passwordUpdated,
 	);
 	await page.goto("/en/account/buyer");
@@ -253,12 +284,13 @@ test("identity distinct tab contexts, context logout and identity replacement", 
 		.nth(1)
 		.textContent();
 	const seller = await context.newPage();
-	await seller.goto("/en/account/seller");
+	await seller.goto("/en/account/seller/profile");
 	await expect(seller.locator(".account-error")).toContainText(
 		authCopy.en.anonymous,
 	);
 	await login(seller, "seller");
 	await expect(seller).toHaveURL(/\/account\/seller$/);
+	await seller.goto("/en/account/seller/profile");
 	const sellerId = await seller
 		.locator(".account-summary bdi")
 		.nth(1)
@@ -267,6 +299,7 @@ test("identity distinct tab contexts, context logout and identity replacement", 
 	await page.reload();
 	await expect(page.locator(".account-summary")).toBeVisible();
 	await seller
+		.locator(".account-signout")
 		.getByRole("button", { name: authCopy.en.logout, exact: true })
 		.click();
 	await expect(seller.getByRole("status")).toHaveText(authCopy.en.signedOut);
@@ -292,45 +325,39 @@ test("identity distinct tab contexts, context logout and identity replacement", 
 	);
 });
 
-test("identity staff enrollment recovery and admin denial", async ({
-	page,
+test("identity staff native enrollment, single-use recovery and owner data denial", async ({
+	browser,
 }) => {
-	const email = privilegedFixture(false);
-	await login(page, "staff", email);
-	await expect(page.getByText(authCopy.en.enrollBody)).toBeVisible();
-	await page.getByRole("button", { name: authCopy.en.beginEnroll }).click();
-	const secret = await page.locator(".setup-key").textContent();
-	expect(secret).toBeTruthy();
-	await page.locator("[name=code]").fill(otp(secret ?? ""));
-	// Enrollment hashes one-time recovery codes with the runtime password hasher.
-	// Wait for its response rather than racing the default five-second UI assertion.
-	const confirmation = page.waitForResponse(
-		(response) =>
-			response.url() === `${api}/api/v1/auth/mfa/challenge/` &&
-			response.request().method() === "POST",
-		{ timeout: 20000 },
-	);
-	await page.locator(".account-card > form button[type=submit]").click();
-	expect((await confirmation).status()).toBe(200);
-	await expect(page.locator(".recovery-codes")).toBeVisible({ timeout: 10000 });
-	const recovery = await page
-		.locator(".recovery-codes code")
-		.first()
-		.textContent();
-	await page.getByRole("button", { name: authCopy.en.codesSaved }).click();
-	await expect(page).toHaveURL(/\/account\/staff$/);
-	await expect(page.locator("main")).toContainText("Support cases");
-	await page.screenshot({
-		path: `${evidence}/staff-permitted.png`,
-		fullPage: true,
-	});
+	test.setTimeout(90000);
+	const email = privilegedFixture(false),
+		context = await browser.newContext(),
+		page = await context.newPage();
+	const codes = await adminLogin(page, email);
+	expect(codes.length).toBe(8);
+	await expect(page.locator("body")).not.toContainText("Registered users");
+	expect((await page.goto(`${api}/admin/accounts/user/`))?.status()).toBe(403);
 	await page.goto(`${api}/admin/`);
-	await expect(page).toHaveURL(/\/admin\/login\//);
-	await login(page, "staff", email);
+	await openAdminAccountMenu(page);
+	await page.locator('form[action$="/logout/"] button').click();
+	await page.goto(`${api}/admin/login/`);
+	await page.locator("[name=email]").fill(email);
+	await page.locator("[name=password]").fill(password);
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await page.locator("[name=recovery]").check();
-	await page.locator("[name=code]").fill(recovery ?? "");
-	await page.locator(".account-card > form button[type=submit]").click();
-	await expect(page).toHaveURL(/\/account\/staff$/);
+	await page.locator("[name=code]").fill(codes[0]);
+	await page.getByRole("button", { name: "Verify", exact: true }).click();
+	await expect(page).toHaveURL(`${api}/admin/`);
+	await openAdminAccountMenu(page);
+	await page.locator('form[action$="/logout/"] button').click();
+	await page.goto(`${api}/admin/login/`);
+	await page.locator("[name=email]").fill(email);
+	await page.locator("[name=password]").fill(password);
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.locator("[name=recovery]").check();
+	await page.locator("[name=code]").fill(codes[0]);
+	await page.getByRole("button", { name: "Verify", exact: true }).click();
+	await expect(page.locator("#owner-error")).toBeVisible();
+	await context.close();
 });
 
 test("identity owner admin MFA and actual permitted styled administration", async ({
@@ -410,7 +437,7 @@ test("identity browser CSRF cookie protection and honest anonymous SSR", async (
 	).toEqual([]);
 });
 
-test("identity A01–A08 Dari desktop and mobile design inventory", async ({
+test("identity public auth Dari desktop and mobile design inventory", async ({
 	page,
 }) => {
 	test.setTimeout(60000);
@@ -419,7 +446,6 @@ test("identity A01–A08 Dari desktop and mobile design inventory", async ({
 		"seller-registration",
 		"buyer-sign-in",
 		"seller-sign-in",
-		"staff-sign-in",
 		"verify-email",
 		"forgot-password",
 		"reset-password",

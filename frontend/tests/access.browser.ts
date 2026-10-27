@@ -152,16 +152,14 @@ for (const locale of locales) {
 			}
 			await page.getByRole("button", { name: t.close }).click();
 			await page.goto(`/${locale}/auth/seller-registration`);
-			await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-				auth.sellerRegister,
-			);
+			await expect(
+				page.getByRole("dialog").getByRole("heading", { level: 1 }),
+			).toHaveText(auth.sellerRegister);
 			await expect(
 				page.getByRole("radio", { name: auth.company, exact: true }),
-			).toBeVisible();
+			).toHaveCount(0);
 			await expect(
-				page
-					.locator("main .account-card")
-					.getByLabel(auth.email, { exact: true }),
+				page.getByRole("dialog").getByLabel(auth.email, { exact: true }),
 			).toBeVisible();
 			expect(
 				await page.evaluate(
@@ -252,7 +250,7 @@ test("real login separate buyer and seller grants appear in navbar", async ({
 		).toHaveCount(0);
 	}
 	// Use the real account sign-out controls on the overview.
-	await page.goto("/en/account/seller");
+	await page.goto("/en/account/seller/profile");
 	await page
 		.getByRole("button", { name: authCopy.en.logoutAll, exact: true })
 		.click();
@@ -261,13 +259,10 @@ test("real login separate buyer and seller grants appear in navbar", async ({
 			.locator("header")
 			.getByRole("link", { name: accessCopy.en.login, exact: true }),
 	).toBeVisible();
-	// Opening a modal over a standalone auth route must keep every label association unique.
+	// A legacy auth URL opens only the shared modal with unique label associations.
 	await page.context().clearCookies();
 	await page.goto("/en/auth/buyer-sign-in");
-	await page
-		.locator("header")
-		.getByRole("link", { name: accessCopy.en.login, exact: true })
-		.click();
+	await expect(page.getByRole("dialog")).toHaveCount(1);
 	await expect(
 		page.getByRole("dialog").getByLabel(authCopy.en.email, { exact: true }),
 	).toBeVisible();
@@ -277,23 +272,26 @@ test("real login separate buyer and seller grants appear in navbar", async ({
 	expect(new Set(ids).size).toBe(ids.length);
 });
 
-test("access MFA error labels remain associated", async ({ page }) => {
-	await page.goto("/en/auth/staff-sign-in");
+test("native admin MFA error labels remain associated", async ({ page }) => {
+	const { apiOrigin, disposablePython, fixturePassword } = await import(
+		"./support/identity-runtime"
+	);
+	const email = disposablePython(
+		"import uuid,json,sys\nfrom apps.accounts.models import User,Account\nu=User.objects.create_user('native-error-'+str(uuid.uuid4())+'@example.test',json.load(sys.stdin)['password'],email_verified=True,is_staff=True)\nAccount.objects.create(user=u,context='staff')\nprint(u.email)",
+		JSON.stringify({ password: fixturePassword }),
+	).trim();
+	await page.goto(`${apiOrigin}/admin/login/`);
+	await page.locator("[name=email]").fill(email);
+	await page.locator("[name=password]").fill(fixturePassword);
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await page
-		.locator("main input[name=email]")
-		.fill("phase03-support@example.test");
-	await page.locator("main input[name=password]").fill(password);
-	await page.locator(".account-card > form button[type=submit]").click();
-	await page
-		.getByRole("button", { name: authCopy.en.beginEnroll, exact: true })
+		.getByRole("button", { name: "Set up authenticator", exact: true })
 		.click();
-	const code = page.locator('input[name="code"]');
-	await code.fill("invalid");
-	await page.locator(".account-card > form button[type=submit]").click();
-	const error = page.locator(".account-error");
-	await expect(error).toContainText(authCopy.en.denied);
-	await expect(error).toBeFocused();
-	const id = await error.getAttribute("id");
-	expect(id).toBeTruthy();
-	await expect(code).toHaveAttribute("aria-describedby", id ?? "");
+	await page.locator("[name=code]").fill("invalid");
+	await page.getByRole("button", { name: "Verify", exact: true }).click();
+	await expect(page.locator("#owner-error")).toBeVisible();
+	await expect(page.locator("[name=code]")).toHaveAttribute(
+		"aria-describedby",
+		"owner-error",
+	);
 });

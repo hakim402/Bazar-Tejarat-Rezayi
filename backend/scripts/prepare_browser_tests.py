@@ -19,6 +19,10 @@ for command in ("seed_identity_examples", "seed_organization_examples"):
     sys.stdin = io.StringIO(json.dumps(values))
     call_command(command, stdin=True, verbosity=0)
 
-if values.get("phase") == "phase-06-catalogue":
+if values.get("phase") in {"phase-06-catalogue", "phase-07-inventory"}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_catalogue_examples", stdin=True, verbosity=0)
+
+if values.get("phase") == "phase-07-inventory":
+    sys.stdin = io.StringIO(json.dumps(values))
+    call_command("seed_inventory_examples", stdin=True, verbosity=0)

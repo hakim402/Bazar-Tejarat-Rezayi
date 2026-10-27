@@ -5,8 +5,12 @@ import { googleCopy } from "../lib/i18n/google";
 import { authCopy } from "../lib/i18n/auth";
 import { screenTitle } from "../lib/i18n/auth-screens";
 import { locales } from "../lib/i18n/locales";
-const folder = process.env.PLAYWRIGHT_EVIDENCE_DIR ?? "../doc/progress/phase-03-identity/addendum";
-const emailPreviews = process.env.PLAYWRIGHT_EMAIL_PREVIEWS_DIR ?? "../doc/progress/phase-03-identity/email-previews";
+const folder =
+	process.env.PLAYWRIGHT_EVIDENCE_DIR ??
+	"../doc/progress/phase-03-identity/addendum";
+const emailPreviews =
+	process.env.PLAYWRIGHT_EMAIL_PREVIEWS_DIR ??
+	"../doc/progress/phase-03-identity/email-previews";
 for (const locale of locales) {
 	test(`Google account entry and safe failure states ${locale}`, async ({
 		page,
@@ -21,12 +25,16 @@ for (const locale of locales) {
 			}),
 		);
 		await page.goto(`/${locale}/auth/buyer-sign-in`);
-		await expect(page.locator(".account-breadcrumb")).toContainText(
+		const modal = page.getByRole("dialog");
+		await expect(modal).toBeVisible();
+		await expect(modal).toHaveAttribute(
+			"aria-label",
 			screenTitle(locale, "buyer-sign-in"),
 		);
-		await expect(page).toHaveTitle(
-			new RegExp(screenTitle(locale, "buyer-sign-in")),
+		await expect(modal.getByRole("heading", { level: 1 })).toHaveText(
+			screenTitle(locale, "buyer-sign-in"),
 		);
+		await expect(page).toHaveURL(/auth=buyer-sign-in/);
 		const button = page.getByRole("button", {
 			name: googleCopy[locale].button,
 			exact: true,
@@ -67,7 +75,7 @@ for (const locale of locales) {
 			await page.goto(
 				`/${locale}/auth/google-result?google=${state}&context=buyer`,
 			);
-			await expect(page.getByRole("main").getByRole("status")).toHaveText(
+			await expect(modal.getByRole("status")).toHaveText(
 				googleCopy[locale][state],
 			);
 			await expect(page).not.toHaveURL(/google=/);
@@ -95,17 +103,16 @@ for (const locale of locales) {
 		await expect(
 			page.getByText(googleCopy[locale].unavailable, { exact: true }),
 		).toBeVisible();
-		await page.goto(`/${locale}/auth/staff-sign-in`);
+		expect((await page.goto(`/${locale}/auth/staff-sign-in`))?.status()).toBe(
+			404,
+		);
 		await expect(page.locator(".google-button")).toHaveCount(0);
 	});
 	test(`Email templates desktop mobile ${locale}`, async ({ page }) => {
 		for (const purpose of ["verify", "reset"]) {
 			await page.goto(
-				pathToFileURL(
-					resolve(
-						`${emailPreviews}/${locale}-${purpose}.html`,
-					),
-				).href,
+				pathToFileURL(resolve(`${emailPreviews}/${locale}-${purpose}.html`))
+					.href,
 			);
 			await expect(page.locator("html")).toHaveAttribute(
 				"dir",
@@ -145,7 +152,9 @@ test("Owner auth stays English independently of marketplace locale", async ({
 	page,
 }) => {
 	for (const locale of locales) {
-		await page.goto(`${process.env.PLAYWRIGHT_API_ORIGIN ?? "http://127.0.0.1:8100"}/admin/login/?locale=${locale}`);
+		await page.goto(
+			`${process.env.PLAYWRIGHT_API_ORIGIN ?? "http://127.0.0.1:8100"}/admin/login/?locale=${locale}`,
+		);
 		await expect(page.locator("html")).toHaveAttribute("lang", "en");
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.evaluate(() => document.fonts.ready);

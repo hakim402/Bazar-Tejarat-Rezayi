@@ -17,20 +17,18 @@ from django.http import JsonResponse
 from apps.foundation.errors import error_data
 
 from . import contracts as c
-from .models import Account, Authenticator, RecoveryCode, User, normalize_email
+from .models import Account, User, normalize_email
 from .services import (
     AuthFailure,
     account_summary,
     audit,
     begin_signin,
     consume_token,
-    finish_mfa,
     get_grant,
     revoke_context,
     password_check,
     rate_limit,
     request_mail,
-    start_enrollment,
 )
 
 
@@ -155,19 +153,10 @@ class SessionView(AuthView):
 class ProfileView(AuthView):
     @extend_schema(request=c.ProfileUpdate, responses=c.AuthResult)
     def patch(self, request, context):
-        account = get_grant(request, context)
+        from .services import update_display_name
         data = self.data(c.ProfileUpdate)
-        request.user.display_name = data["display_name"]
-        request.user.save(update_fields=["display_name"])
-        audit(
-            "profile_updated",
-            request=request,
-            user=request.user,
-            account=account,
-            context=context,
-            fields=["display_name"],
-        )
-        return Response({"status": "updated", "identity": identity_data(request.user)})
+        user = update_display_name(request, context, data["display_name"])
+        return Response({"status": "updated", "identity": identity_data(user)})
 
 
 class LinkView(AuthView):
@@ -199,19 +188,9 @@ class LinkView(AuthView):
 class PasswordView(AuthView):
     @extend_schema(request=c.PasswordChange, responses=c.AuthResult)
     def post(self, request, context):
-        account = get_grant(request, context)
+        from .services import change_shared_password
         data = self.data(c.PasswordChange)
-        rate_limit(request, "password_change", identity=str(request.user.pk), limit=5)
-        with transaction.atomic():
-            user = User.objects.select_for_update().get(pk=request.user.pk)
-            if not user.check_password(data["current_password"]):
-                raise AuthFailure()
-            password_check(data["password"], user)
-            user.set_password(data["password"])
-            user.credential_epoch += 1
-            user.save()
-            audit("shared_password_changed", request=request, user=user, account=account, context=context)
-        logout(request)
+        change_shared_password(request, context, data["current_password"], data["password"])
         return Response({"status": "password_updated"})
 
 
@@ -230,44 +209,3 @@ class LogoutAllView(AuthView):
         audit("session_signed_out", request=request, user=request.user if request.user.is_authenticated else None)
         logout(request)
         return Response({"status": "signed_out"})
-
-
-class EnrollmentView(AuthView):
-    @extend_schema(request=c.Empty, responses=c.AuthResult)
-    def post(self, request):
-        self.data(c.Empty)
-        return Response({"status": "enroll", **start_enrollment(request)})
-
-
-class ChallengeView(AuthView):
-    @extend_schema(request=c.Challenge, responses=c.AuthResult)
-    def post(self, request):
-        data = self.data(c.Challenge)
-        codes = finish_mfa(request, data["code"], recovery=data["recovery"])
-        return Response({"status": "signed_in", "csrf_token": get_token(request), "recovery_codes": codes})
-
-
-class FactorResetView(AuthView):
-    @extend_schema(request=c.FactorReset, responses=c.AuthResult)
-    def post(self, request, context):
-        account = get_grant(request, context)
-        data = self.data(c.FactorReset)
-        rate_limit(request, "factor_reset", identity=str(request.user.pk), limit=5)
-        with transaction.atomic():
-            user = User.objects.select_for_update().get(pk=request.user.pk)
-            device = Authenticator.objects.select_for_update().filter(user=user, confirmed=True).first()
-            if (
-                not user.check_password(data["password"])
-                or not device
-                or not (
-                    RecoveryCode.consume(user, data["code"]) if data["recovery"] else device.verify_token(data["code"])
-                )
-            ):
-                raise AuthFailure()
-            device.delete()
-            RecoveryCode.objects.filter(user=user).delete()
-            user.credential_epoch += 1
-            user.save()
-            audit("mfa_reset", request=request, user=user, account=account, context=context)
-        logout(request)
-        return Response({"status": "factor_removed"})

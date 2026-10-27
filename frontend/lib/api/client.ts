@@ -1,4 +1,4 @@
-import type { components } from "./schema";
+import type { components } from "./schema.d";
 export type Bootstrap = components["schemas"]["Bootstrap"];
 export type ApiFailure = "unavailable" | "timeout" | "invalid" | "cancelled";
 export class ApiError extends Error {

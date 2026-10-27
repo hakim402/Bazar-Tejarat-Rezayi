@@ -1,5 +1,5 @@
 "use client";
-import { AccessLink } from "../../features/identity/components/access-provider";
+import { AccessLink } from "../authentication/access-provider";
 import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "../../lib/i18n/locales";

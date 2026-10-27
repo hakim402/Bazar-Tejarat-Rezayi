@@ -11,16 +11,11 @@ from .models import Product, PERMISSIONS, CatalogueEvent
 
 
 def permissions(actor):
+    from apps.accounts.admin_access import permission_codes
     account = actor.account
     if actor.context == "owner":
         return list(PERMISSIONS)
-    if actor.context != "staff":
-        return []
-    return list(
-        account.permission_groups.filter(permissions__content_type__app_label="catalogue")
-        .values_list("permissions__codename", flat=True)
-        .distinct()
-    )
+    return permission_codes(account, "catalogue") if actor.context == "staff" else []
 
 
 def staff(actor, permission=None, product=None):

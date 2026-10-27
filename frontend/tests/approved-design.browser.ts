@@ -1,3 +1,4 @@
+import { inventoryCopy } from "../lib/i18n/inventory";
 import { choosePreference } from "./support/site-preferences";
 import { writeFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
@@ -63,9 +64,18 @@ for (const locale of locales)
 					fullPage: true,
 				});
 			}
+			await page.goto(`/${locale}/sell`);
+			for (const theme of ["light", "dark"]) {
+				await choosePreference(page, messages[locale].theme, theme);
+				await reflow(page);
+				await page.screenshot({
+					path: `${evidence}/approved-sell-${locale}-${width}-${theme}.png`,
+					fullPage: true,
+				});
+			}
 			for (const screen of authScreens) {
 				await page.goto(`/${locale}/auth/${screen}`);
-				await expect(page.locator("h1")).toHaveCount(1);
+				await expect(page.getByRole("dialog").locator("h1")).toHaveCount(1);
 				await reflow(page);
 			}
 			await page.goto(
@@ -173,8 +183,10 @@ for (const width of [390, 1440])
 		const input = page.locator("#catalogue-body-title");
 		await input.fill("DEMO · ویرایش ذخیره‌نشده");
 		const nav = page.getByRole("navigation", {
-			name: interfaceCopy["fa-AF"].workspace,
+			name: inventoryCopy["fa-AF"].menu,
 		});
+		const menu = page.locator("aside summary");
+		if (await menu.isVisible()) await menu.click();
 		await nav.getByRole("link").first().click();
 		const alert = page
 			.getByRole("alert")

@@ -1,4 +1,5 @@
 """Phase 04 API and business invariants, using owned disposable PostgreSQL only."""
+from tests.test_identity import native_auth
 
 import io
 import json
@@ -46,7 +47,7 @@ class ServiceActor:
 
         if (
             self.context != "staff"
-            or not self.account.permission_groups.filter(
+            or not self.user.groups.filter(
                 permissions__codename=code, permissions__content_type__app_label="verification"
             ).exists()
         ):
@@ -56,7 +57,7 @@ class ServiceActor:
 
 def identity(name, context="seller"):
     user = User.objects.create_user(
-        name + "@example.test", PASSWORD, display_name="Synthetic " + name, email_verified=True
+        name + "@example.test", PASSWORD, display_name="Synthetic " + name, email_verified=True, is_staff=context == "staff"
     )
     return Account.objects.create(user=user, context=context)
 
@@ -65,7 +66,7 @@ def review_actor(name="reviewer"):
     account = identity(name, "staff")
     group, _ = Group.objects.get_or_create(name="Synthetic review " + name)
     group.permissions.add(*Permission.objects.filter(content_type__app_label="verification"))
-    account.permission_groups.add(group)
+    account.user.groups.add(group)
     account.refresh_from_db()
     return ServiceActor(account)
 
@@ -120,6 +121,8 @@ class OrganizationTests(TransactionTestCase):
 
     def request(self, path, data=None, method="post", client=None, format="json"):
         client = client or self.client
+        if path.startswith("/admin/"):
+            format = "multipart"
         token = client.get("/api/v1/auth/csrf/").json()["csrf_token"]
         with self.captureOnCommitCallbacks(execute=True):
             return getattr(client, method)(
@@ -725,30 +728,30 @@ class OrganizationTests(TransactionTestCase):
         self.assertFalse(storage.exists(saved[0]))
 
     def staff_client(self, account=None):
-        from tests.test_identity import post, code
+        from tests.test_identity import code
         from apps.accounts.models import Authenticator
 
         account = account or self.reviewer.account
         client = APIClient(enforce_csrf_checks=True)
         signin(client, "staff", account.user.email)
-        post(client, "mfa/enroll/")
-        post(client, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=account.user)), "recovery": False})
+        native_auth(client, "enroll", {})
+        native_auth(client, "challenge", {"code": code(Authenticator.objects.get(user=account.user)), "recovery": False})
         return client
 
     def test_staff_queue_file_and_decision_authorization_at_each_endpoint(self):
         case = self.submit()
         staff = self.staff_client()
-        self.assertEqual(self.client.get("/api/v1/verification/queue/").status_code, 403)
-        queue = staff.get("/api/v1/verification/queue/")
+        self.assertEqual(self.client.get("/admin/verification/reviewcase/").status_code, 302)
+        queue = staff.get("/admin/verification/reviewcase/")
         self.assertEqual(queue.status_code, 200)
         self.assertNotIn("contact_phone", queue.content.decode())
         self.assertNotIn("Synthetic test location", queue.content.decode())
-        self.assertEqual(staff.get(f"/api/v1/verification/cases/{case.pk}/").status_code, 403)
+        self.assertNotContains(staff.get(f"/admin/verification/reviewcase/{case.pk}/workflow/"), "Synthetic test location")
         evidence = case.evidence.first()
-        download = f"/api/v1/verification/evidence/staff/{evidence.pk}/"
-        self.assertEqual(staff.get(download).status_code, 403)
+        download = f"/admin/verification/evidence/{evidence.pk}/download/"
+        self.assertEqual(staff.get(download).status_code, 404)
         result = self.request(
-            f"/api/v1/verification/cases/{case.pk}/",
+            f"/admin/verification/reviewcase/{case.pk}/workflow/",
             {
                 "version": case.version,
                 "action": "assign",
@@ -757,20 +760,20 @@ class OrganizationTests(TransactionTestCase):
             },
             client=staff,
         )
-        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.status_code, 302)
         applicant = self.client.get(f"/api/v1/verification/seller/profiles/{self.profile.pk}/application/")
         self.assertNotIn("PRIVATE ASSIGNMENT NOTE", applicant.content.decode())
-        self.assertIn("PRIVATE ASSIGNMENT NOTE", staff.get(f"/api/v1/verification/cases/{case.pk}/").content.decode())
+        self.assertIn("PRIVATE ASSIGNMENT NOTE", staff.get(f"/admin/verification/reviewcase/{case.pk}/workflow/").content.decode())
         assignment = AuditEvent.objects.get(resource_id=case.pk, action="verification_assign")
         self.assertIsNone(assignment.state["before"]["assigned_to"])
         self.assertEqual(assignment.state["after"]["assigned_to"], str(self.reviewer.account.pk))
-        self.assertEqual(staff.get(f"/api/v1/verification/cases/{case.pk}/").status_code, 200)
+        self.assertEqual(staff.get(f"/admin/verification/reviewcase/{case.pk}/workflow/").status_code, 200)
         response = staff.get(download)
         self.assertEqual(response.status_code, 200)
         response.close()
-        self.reviewer.account.permission_groups.clear()
-        self.assertEqual(staff.get(download).status_code, 403)
-        self.assertEqual(staff.get("/api/v1/verification/queue/").status_code, 403)
+        self.reviewer.user.groups.clear()
+        self.assertEqual(staff.get(download).status_code, 404)
+        self.assertEqual(staff.get("/admin/verification/reviewcase/").status_code, 403)
 
     def test_membership_revocation_takes_effect_with_already_open_session(self):
         client = APIClient()
@@ -784,11 +787,11 @@ class OrganizationTests(TransactionTestCase):
     def test_queue_metadata_authority_does_not_grant_private_evidence(self):
         case = self.submit()
         self.assign(case)
-        group = self.reviewer.account.permission_groups.first()
+        group = self.reviewer.user.groups.first()
         group.permissions.set(Permission.objects.filter(content_type__app_label="verification", codename="view_queue"))
         staff = self.staff_client()
-        self.assertEqual(staff.get("/api/v1/verification/queue/").status_code, 200)
-        self.assertEqual(staff.get(f"/api/v1/verification/cases/{case.pk}/").status_code, 403)
+        self.assertEqual(staff.get("/admin/verification/reviewcase/").status_code, 200)
+        self.assertEqual(staff.get(f"/admin/verification/reviewcase/{case.pk}/workflow/").status_code, 403)
 
     def test_no_csrf_or_get_side_effect_and_suspended_member_fail_closed(self):
         self.assertEqual(self.client.post(self.base + "invitations/", {}, format="json").status_code, 403)
@@ -815,23 +818,23 @@ class OrganizationTests(TransactionTestCase):
         })
 
     def assert_minimal_review_response(self, response):
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(set(response.json()), {"id", "status", "version"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.content, b"")
 
     def test_review_decision_without_read_authority_returns_only_acknowledgment(self):
         case = self.assign(self.submit())
         staff = self.staff_client()
-        path = f"/api/v1/verification/cases/{case.pk}/"
+        path = f"/admin/verification/reviewcase/{case.pk}/workflow/"
         self.assertEqual(staff.get(path).status_code, 200)
-        self.reviewer.account.permission_groups.first().permissions.remove(
+        self.reviewer.user.groups.first().permissions.remove(
             Permission.objects.get(content_type__app_label="verification", codename="read_evidence")
         )
-        self.assertEqual(staff.get(path).status_code, 403)
-        self.assertEqual(staff.get(f"/api/v1/verification/evidence/staff/{case.evidence.first().pk}/").status_code, 403)
+        self.assertNotContains(staff.get(path), "Synthetic test location")
+        self.assertEqual(staff.get(f"/admin/verification/evidence/{case.evidence.first().pk}/download/").status_code, 404)
         result = self.request(path, {"version": case.version, "action": "needs_information",
             "reason": "Synthetic correction", "internal_note": "PRIVATE decision note"}, client=staff)
         self.assert_minimal_review_response(result)
-        self.assertEqual(staff.get(path).status_code, 403)
+        self.assertNotContains(staff.get(path), "Synthetic test location")
         case.refresh_from_db()
         self.assertEqual(case.status, "needs_information")
         self.assertTrue(AuditEvent.objects.filter(resource_id=case.pk, action="verification_internal_note").exists())
@@ -839,18 +842,20 @@ class OrganizationTests(TransactionTestCase):
     def test_review_mutations_keep_stale_target_conflict_and_active_guards(self):
         case = self.submit()
         staff = self.staff_client()
-        path = f"/api/v1/verification/cases/{case.pk}/"
+        path = f"/admin/verification/reviewcase/{case.pk}/workflow/"
         data = {"version": case.version, "action": "assign", "reason": "Synthetic guarded assignment",
             "assigned_to": str(self.reviewer.account.pk)}
-        self.assertEqual(self.request(path, data).status_code, 403)
-        self.assertEqual(self.request(path, data | {"version": case.version + 1}, client=staff).status_code, 409)
-        self.assertEqual(self.request(path, data | {"assigned_to": str(self.member_account.pk)}, client=staff).status_code, 400)
+        self.assertEqual(self.request(path, data).status_code, 302)
+        self.assertContains(self.request(path, data | {"version": case.version + 1}, client=staff), "This record changed")
+        self.assertEqual(self.request(path, data | {"assigned_to": str(self.member_account.pk)}, client=staff).status_code, 200)
         conflicted = Account.objects.create(user=self.account.user, context="staff")
-        conflicted.permission_groups.add(self.reviewer.account.permission_groups.first())
-        self.assertEqual(self.request(path, data | {"assigned_to": str(conflicted.pk)}, client=staff).status_code, 403)
+        conflicted.user.groups.add(self.reviewer.user.groups.first())
+        conflicted.user.is_staff = True
+        conflicted.user.save()
+        self.assertEqual(self.request(path, data | {"assigned_to": str(conflicted.pk)}, client=staff).status_code, 200)
         self.reviewer.account.status = "suspended"
         self.reviewer.account.save()
-        self.assertEqual(self.request(path, data, client=staff).status_code, 403)
+        self.assertEqual(self.request(path, data, client=staff).status_code, 302)
         case.refresh_from_db()
         self.assertEqual(case.status, "submitted")
 
@@ -978,48 +983,48 @@ class OrganizationTests(TransactionTestCase):
     def test_assignment_only_response_must_not_disclose_private_case(self):
         case = self.submit()
         target = review_actor("independent-assignment-target")
-        self.reviewer.account.permission_groups.first().permissions.set(
+        self.reviewer.user.groups.first().permissions.set(
             Permission.objects.filter(
                 content_type__app_label="verification", codename__in=["view_queue", "assign_review"]
             )
         )
         client = self.staff_client()
-        path = f"/api/v1/verification/cases/{case.pk}/"
-        self.assertEqual(client.get(path).status_code, 403)
+        path = f"/admin/verification/reviewcase/{case.pk}/workflow/"
+        self.assertNotContains(client.get(path), "Synthetic test location")
         response = self.request(path, {
             "version": case.version, "action": "assign", "assigned_to": str(target.account.pk),
             "reason": "Synthetic assignment-only review",
         }, client=client)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(client.get(path).status_code, 403)
-        self.assertNotIn("snapshot", response.json())
-        self.assertNotIn("evidence", response.json())
-        self.assertNotIn("history", response.json())
-        self.assertNotIn("alternative_requests", response.json())
+        self.assertEqual(response.status_code, 302)
+        self.assertNotContains(client.get(path), "Synthetic test location")
+        self.assertEqual(response.content, b"")
+        self.assertEqual(response.content, b"")
+        self.assertEqual(response.content, b"")
+        self.assertEqual(response.content, b"")
         self.assert_minimal_review_response(response)
-        self.assertEqual(client.get(f"/api/v1/verification/evidence/staff/{case.evidence.first().pk}/").status_code, 403)
+        self.assertEqual(client.get(f"/admin/verification/evidence/{case.evidence.first().pk}/download/").status_code, 404)
         assigned = self.staff_client(target.account)
         self.assertEqual(assigned.get(path).status_code, 200)
-        result = self.request(path, {"version": response.json()["version"], "action": "approved",
+        result = self.request(path, {"version": ReviewCase.objects.get(pk=case.pk).version, "action": "approved",
             "reason": "Synthetic independent assigned decision"}, client=assigned)
         self.assert_minimal_review_response(result)
-        self.assertEqual(assigned.get(path).json()["status"], "approved")
+        self.assertEqual(assigned.get(path).context["resource"].status, "approved")
 
     def test_reassignment_response_must_not_disclose_case_assigned_to_another_staff_member(self):
         case = self.assign(self.submit())
         other = review_actor("independent-other-reviewer")
         client = self.staff_client()
-        path = f"/api/v1/verification/cases/{case.pk}/"
+        path = f"/admin/verification/reviewcase/{case.pk}/workflow/"
         self.assertEqual(client.get(path).status_code, 200)
         response = self.request(path, {
             "version": case.version, "action": "assign", "assigned_to": str(other.account.pk),
             "reason": "Synthetic reassignment",
         }, client=client)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(client.get(path).status_code, 403)
-        self.assertNotIn("snapshot", response.json())
-        self.assertNotIn("evidence", response.json())
-        self.assertNotIn("history", response.json())
+        self.assertEqual(response.status_code, 302)
+        self.assertNotContains(client.get(path), "Synthetic test location")
+        self.assertEqual(response.content, b"")
+        self.assertEqual(response.content, b"")
+        self.assertEqual(response.content, b"")
 
     def test_owner_admin_can_record_accepted_alternatives_when_approving(self):
         from django.test import override_settings
@@ -1040,7 +1045,7 @@ class OrganizationTests(TransactionTestCase):
                 "version": case.version, "action": "approved", "reason": "Synthetic reasoned alternative review",
                 **{"alternative_" + key: value for key, value in reasons.items()},
             }, client=client, format="multipart")
-            self.assertIn(response.status_code, (200, 302))
+            self.assertEqual(response.status_code, 302)
         case.refresh_from_db()
         self.assertEqual(case.status, "approved")
         self.assertEqual(case.accepted_alternatives, reasons)
@@ -1062,7 +1067,7 @@ class OrganizationTests(TransactionTestCase):
                 client=client,
                 format="multipart",
             )
-            self.assertIn(response.status_code, (200, 302))
+            self.assertEqual(response.status_code, 403)
             owner.refresh_from_db()
             self.assertTrue(owner.is_owner)
             self.assertTrue(owner.active)

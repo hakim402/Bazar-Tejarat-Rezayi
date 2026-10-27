@@ -9,61 +9,51 @@ import {
 	disposablePython,
 	fixturePassword,
 } from "./identity-runtime";
-import { authCopy } from "../../lib/i18n/auth";
+import { adminActor } from "./admin-runtime";
 const states: Record<
 	string,
 	Awaited<ReturnType<BrowserContext["storageState"]>>
 > = {};
 export async function catalogueActor(browser: Browser, role = "seller") {
+	const permissions: Record<string, string[]> = {
+		full: [
+			"review_source",
+			"review_translation",
+			"moderate_catalogue",
+			"manage_taxonomy",
+		],
+		source: ["review_source"],
+		translator: ["review_translation"],
+		taxonomy: ["manage_taxonomy"],
+		moderator: ["moderate_catalogue"],
+		inventory: ["read_shortages"],
+	};
+	if (role in permissions) {
+		return (
+			await adminActor(
+				browser,
+				role === "inventory" ? "inventory" : "catalogue",
+				permissions[role],
+			)
+		).context;
+	}
 	if (!states[role]) {
-		const context = await browser.newContext();
-		const page = await context.newPage();
-		const staff = [
-			"full",
-			"source",
-			"translator",
-			"taxonomy",
-			"moderator",
-		].includes(role);
-		let email = `phase06-${role}@example.test`;
-		if (staff)
-			email = disposablePython(
-				"import json,sys,uuid\nfrom apps.accounts.models import User,Account\nfrom django.contrib.auth.models import Group\nd=json.load(sys.stdin)\nu=User.objects.create_user('phase06-browser-'+str(uuid.uuid4())+'@example.test',d['password'],display_name='Synthetic catalogue reviewer',email_verified=True)\na=Account.objects.create(user=u,context='staff')\na.permission_groups.add(Group.objects.get(name='Synthetic catalogue '+d['role']))\nprint(u.email)",
-				JSON.stringify({ role, password: fixturePassword }),
-			).trim();
-		await page.goto(`/en/auth/${staff ? "staff" : "seller"}-sign-in`);
+		const context = await browser.newContext(),
+			page = await context.newPage();
+		const email = role.startsWith("stock")
+			? `phase07-${role === "stock" ? "seller" : role.slice(6)}@example.test`
+			: `phase06-${role}@example.test`;
+		await page.goto("/en/auth/seller-sign-in");
 		await page.locator("[name=email]").fill(email);
 		await page.locator("[name=password]").fill(fixturePassword);
 		const signed = page.waitForResponse(
 			(r) =>
-				r
-					.url()
-					.endsWith(`/api/v1/auth/${staff ? "staff" : "seller"}/signin/`) &&
+				r.url().endsWith("/api/v1/auth/seller/signin/") &&
 				r.request().method() === "POST",
 		);
 		await page.locator(".account-card > form button[type=submit]").click();
-		const response = await signed;
-		expect(response.status()).toBe(200);
-		const stage = staff ? (await response.json()).status : null;
-		if (staff) {
-			if (stage === "enroll")
-				await page
-					.getByRole("button", { name: authCopy.en.beginEnroll, exact: true })
-					.click();
-			const code = disposablePython(
-				"import json,sys\nfrom apps.accounts.models import Authenticator\nfrom django_otp.oath import TOTP\nd=Authenticator.objects.get(user__email=json.load(sys.stdin)['email'])\nprint(f'{TOTP(d.secret).token():06}')",
-				JSON.stringify({ email }),
-			).trim();
-			await page.locator("[name=code]").fill(code);
-			await page.locator(".account-card > form button[type=submit]").click();
-			if (stage === "enroll")
-				await page
-					.getByRole("button", { name: authCopy.en.codesSaved, exact: true })
-					.click();
-		}
-		await expect(page).toHaveURL(
-			new RegExp(`/account/${staff ? "staff" : "seller"}$`),
-		);
+		expect((await signed).status()).toBe(200);
+		await expect(page).toHaveURL(/\/account\/seller$/);
 		states[role] = await context.storageState();
 		await context.close();
 	}

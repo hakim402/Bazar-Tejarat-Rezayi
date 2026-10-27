@@ -28,7 +28,20 @@ def post(client, path, data=None, *, origin=ORIGIN):
         return client.post("/api/v1/auth/" + path, data or {}, format="json", HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN=origin)
 
 
+def native_auth(client, stage, data=None):
+    """Submit real admin HTML forms. json() exposes parsed template state for older unit assertions only."""
+    client.get("/admin/login/")
+    response = client.post("/admin/login/", {"stage": stage, **(data or {})}, format="multipart",
+                           HTTP_X_CSRFTOKEN=client.cookies["csrftoken"].value)
+    state = response.context or {}
+    response.json = lambda: {"status": {"enroll_start": "enroll", "complete": "signed_in"}.get(state.get("stage"), state.get("stage", "signed_in")),
+                             "secret": state.get("secret", ""), "recovery_codes": state.get("codes", [])}
+    return response
+
+
 def signin(client, context="buyer", email="person@example.test", password=PASSWORD):
+    if context in {"owner", "staff"}:
+        return native_auth(client, "password", {"email": email, "password": password})
     return post(client, context + "/signin/", {"email": email, "password": password})
 
 
@@ -92,22 +105,18 @@ class IdentityTests(TestCase):
         self.assertEqual(self.registration(intent="company").status_code, 400)
         self.assertFalse(User.objects.filter(email="new@example.test").exists())
 
-    def test_buyer_business_and_seller_are_pending_separate_reviews(self):
-        self.assertEqual(self.registration(intent="business").status_code, 202)
-        self.assertEqual(Account.objects.get(user__email="new@example.test").review_status, "pending")
-        response = post(
-            self.client,
-            "seller/register/",
-            {
-                "email": "seller@example.test",
-                "password": PASSWORD,
-                "display_name": "Seller",
-                "intent": "company",
-                "consent": True,
-            },
-        )
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(Account.objects.get(user__email="seller@example.test").review_status, "pending")
+    def test_public_registration_starts_basic_and_seller_still_requires_review(self):
+        self.assertEqual(self.registration(intent="business").status_code, 400)
+        self.assertEqual(post(self.client, "buyer/register/", {"email":"new@example.test", "password":PASSWORD, "display_name":"Buyer", "consent":True}).status_code, 202)
+        buyer = Account.objects.get(user__email="new@example.test")
+        self.assertEqual((buyer.intent, buyer.review_status), ("individual", "not_requested"))
+        values = {"email": "seller@example.test", "password": PASSWORD,
+                  "display_name": "Seller", "consent": True}
+        self.assertEqual(post(self.client, "seller/register/", values | {"intent": "company"}).status_code, 400)
+        self.assertEqual(post(self.client, "seller/register/", values).status_code, 202)
+        seller = Account.objects.get(user__email="seller@example.test")
+        self.assertEqual((seller.intent, seller.review_status), ("individual", "pending"))
+        self.assertFalse(seller.permission_groups.exists())
 
     @override_settings(DEVELOPMENT_SIGNUP_ENABLED=False)
     def test_launch_registration_fails_closed_without_approved_policies(self):
@@ -213,7 +222,7 @@ class IdentityTests(TestCase):
         self.assertEqual(signin(self.client).status_code, 200)
         self.assertEqual(self.client.get("/api/v1/auth/buyer/session/").json()["accounts"][0]["id"], str(self.buyer.pk))
         self.assertEqual(self.client.get("/api/v1/auth/seller/session/").status_code, 403)
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 403)
+        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
         self.assertEqual(signin(self.client, "seller").status_code, 200)
         self.assertEqual(
             self.client.get("/api/v1/auth/seller/session/").json()["accounts"][0]["id"], str(self.seller.pk)
@@ -282,12 +291,16 @@ class IdentityTests(TestCase):
         Account.objects.create(user=user, context="buyer")
         signin(self.client, email=user.email)
         self.assertEqual(
-            post(self.client, "buyer/link/seller/", {"password": PASSWORD, "intent": "individual"}).status_code, 200
+            post(self.client, "buyer/link/seller/", {"password": PASSWORD, "intent": "company"}).status_code, 400
         )
+        self.assertFalse(Account.objects.filter(user=user, context="seller").exists())
+        self.assertEqual(post(self.client, "buyer/link/seller/", {"password": PASSWORD}).status_code, 200)
         user.refresh_from_db()
         self.assertTrue(user.check_password(PASSWORD))
         self.assertEqual(self.client.get("/api/v1/auth/seller/session/").status_code, 403)
-        self.assertEqual(Account.objects.get(user=user, context="seller").review_status, "pending")
+        seller = Account.objects.get(user=user, context="seller")
+        self.assertEqual((seller.intent, seller.review_status), ("individual", "pending"))
+        self.assertFalse(seller.permission_groups.exists())
         self.assertEqual(
             post(self.client, "buyer/link/seller/", {"password": PASSWORD, "intent": "individual"}).status_code, 400
         )
@@ -355,25 +368,25 @@ class IdentityTests(TestCase):
 
 class PrivilegedTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("staff@example.test", PASSWORD, display_name="Staff", email_verified=True)
+        self.user = User.objects.create_user("staff@example.test", PASSWORD, display_name="Staff", email_verified=True, is_staff=True)
         self.account = Account.objects.create(user=self.user, context="staff")
         self.client = APIClient(enforce_csrf_checks=True)
 
     def enroll(self, context="staff"):
         self.assertEqual(signin(self.client, context, self.user.email).json()["status"], "enroll")
-        response = post(self.client, "mfa/enroll/")
+        response = native_auth(self.client, "enroll", {})
         self.assertEqual(response.status_code, 200)
         device = Authenticator.objects.get(user=self.user)
         self.assertNotIn(base64.b32encode(device.secret).decode(), device.encrypted_secret)
-        result = post(self.client, "mfa/challenge/", {"code": code(device)})
+        result = native_auth(self.client, "challenge", {"code": code(device)})
         self.assertEqual(result.status_code, 200)
         return result.json()["recovery_codes"], device
 
     def test_password_only_cannot_open_staff_or_admin(self):
         self.assertEqual(signin(self.client, "staff", self.user.email).status_code, 200)
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 403)
         self.assertEqual(self.client.get("/admin/").status_code, 302)
-        self.assertFalse(self.user.is_staff)
+        self.assertEqual(self.client.get("/admin/").status_code, 302)
+        self.assertTrue(self.user.is_staff)
 
     def test_owner_form_retains_same_origin_csrf_protection(self):
         response = self.client.get("/admin/login/", HTTP_HOST="127.0.0.1:8100")
@@ -397,15 +410,14 @@ class PrivilegedTests(TestCase):
     def test_enrollment_challenge_replay_and_single_use_recovery(self):
         codes, device = self.enroll()
         self.assertEqual(len(codes), 8)
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 200)
-        self.assertEqual(self.client.get("/admin/").status_code, 302)
+        self.assertEqual(self.client.get("/admin/").status_code, 200)
         post(self.client, "logout-all/")
         signin(self.client, "staff", self.user.email)
-        self.assertEqual(post(self.client, "mfa/challenge/", {"code": code(device)}).status_code, 403)
-        self.assertEqual(post(self.client, "mfa/challenge/", {"code": codes[0], "recovery": True}).status_code, 200)
+        self.assertTrue(native_auth(self.client, "challenge", {"code": code(device)}).context["error"])
+        self.assertEqual(native_auth(self.client, "challenge", {"code": codes[0], "recovery": "on"}).status_code, 302)
         post(self.client, "logout-all/")
         signin(self.client, "staff", self.user.email)
-        self.assertEqual(post(self.client, "mfa/challenge/", {"code": codes[0], "recovery": True}).status_code, 403)
+        self.assertTrue(native_auth(self.client, "challenge", {"code": codes[0], "recovery": "on"}).context["error"])
 
     def test_owner_authority_and_completed_owner_context_required(self):
         self.user.is_staff = True
@@ -419,46 +431,41 @@ class PrivilegedTests(TestCase):
         response = self.client.get("/admin/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Bazar Rezayi")
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 403)
+        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
 
     def test_live_permission_group_revocation_and_no_superuser_business_bypass(self):
         self.user.is_superuser = True
         self.user.save()
         self.enroll()
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").json()["accounts"][0]["permissions"], [])
+        from apps.accounts.services import permission_codes
+        self.assertEqual(permission_codes(self.account), [])
         group = Group.objects.create(name="Rezayi: Support")
         group.permissions.add(Permission.objects.get(codename="handle_support"))
         self.account.permission_groups.add(group)
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 403)
+        self.assertEqual(self.client.get("/admin/").status_code, 302)
 
     def test_factor_reset_needs_password_and_factor_and_invalidates_grants(self):
         codes, device = self.enroll()
-        self.assertEqual(
-            post(
-                self.client, "staff/mfa/reset/", {"password": "wrong", "code": codes[0], "recovery": True}
-            ).status_code,
-            403,
-        )
-        self.assertEqual(
-            post(
-                self.client, "staff/mfa/reset/", {"password": PASSWORD, "code": codes[0], "recovery": True}
-            ).status_code,
-            200,
-        )
+        from tests.test_staff_admin import admin_post
+        response = admin_post(self.client, "/admin/factor-reset/", {"password":"wrong", "code":codes[0], "recovery":"on"})
+        self.assertTrue(response.context["form"].errors)
+        response = admin_post(self.client, "/admin/factor-reset/", {"password":PASSWORD, "code":codes[0], "recovery":"on"})
+        self.assertEqual(response.status_code, 302)
         self.assertFalse(Authenticator.objects.filter(user=self.user).exists())
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 403)
+        self.assertEqual(self.client.get("/admin/").status_code, 302)
 
     def test_expired_pending_challenge_and_rate_limit(self):
         signin(self.client, "staff", self.user.email)
         session = self.client.session
         session["pending_mfa"]["at"] = time.time() - 301
         session.save()
-        self.assertEqual(post(self.client, "mfa/enroll/").status_code, 403)
+        self.assertTrue(native_auth(self.client, "enroll", {}).context["error"])
         signin(self.client, "staff", self.user.email)
-        post(self.client, "mfa/enroll/")
+        native_auth(self.client, "enroll", {})
         for _ in range(9):
-            response = post(self.client, "mfa/challenge/", {"code": "000000"})
-        self.assertEqual(response.status_code, 429)
+            response = native_auth(self.client, "challenge", {"code": "000000"})
+        self.assertTrue(response.context["error"])
+        self.assertFalse(self.client.session.get("grants"))
 
     def test_audit_contains_no_password_token_or_factor_material(self):
         codes, device = self.enroll()
@@ -469,8 +476,8 @@ class PrivilegedTests(TestCase):
 
     def test_bad_challenge_is_durably_audited(self):
         signin(self.client, "staff", self.user.email)
-        post(self.client, "mfa/enroll/")
-        self.assertEqual(post(self.client, "mfa/challenge/", {"code": "not-valid"}).status_code, 403)
+        native_auth(self.client, "enroll", {})
+        self.assertTrue(native_auth(self.client, "challenge", {"code": "not-valid"}).context["error"])
         self.assertTrue(
             AuditEvent.objects.filter(
                 action="mfa_challenge_failed", subject=self.user, request_id__isnull=False
@@ -479,7 +486,7 @@ class PrivilegedTests(TestCase):
 
     def test_reset_credential_during_pending_challenge_is_rechecked_under_lock(self):
         signin(self.client, "staff", self.user.email)
-        post(self.client, "mfa/enroll/")
+        native_auth(self.client, "enroll", {})
         from apps.accounts.services import pending_identity
 
         pending = pending_identity(self.client.get("/api/v1/auth/csrf/").wsgi_request)
@@ -487,49 +494,17 @@ class PrivilegedTests(TestCase):
         self.user.save()
         with patch("apps.accounts.services.pending_identity", return_value=pending):
             self.assertEqual(
-                post(
-                    self.client, "mfa/challenge/", {"code": code(Authenticator.objects.get(user=self.user))}
-                ).status_code,
-                403,
+                native_auth(self.client, "challenge", {"code": code(Authenticator.objects.get(user=self.user))}).context["error"] != "",
+                True,
             )
 
-    def test_owner_can_provision_staff_and_assign_groups_without_admin_flags(self):
-        self.user.is_staff = self.user.is_superuser = self.user.owner_authority = True
+    def test_owner_identity_editor_keeps_legacy_role_source_readonly(self):
+        self.user.is_superuser = self.user.owner_authority = True
         self.user.save()
         self.enroll("owner")
-        token = self.client.get("/api/v1/auth/csrf/").json()["csrf_token"]
-        response = self.client.post(
-            "/admin/accounts/user/add/",
-            {
-                "email": "new-staff@example.test",
-                "display_name": "New Staff",
-                "password1": PASSWORD,
-                "password2": PASSWORD,
-                "_save": "Save",
-            },
-            HTTP_X_CSRFTOKEN=token,
-            HTTP_ORIGIN=ORIGIN,
-        )
-        self.assertEqual(response.status_code, 302)
-        new = User.objects.get(email="new-staff@example.test")
-        self.assertFalse(new.is_staff)
-        group = Group.objects.create(name="Rezayi: Support")
-        group.permissions.add(Permission.objects.get(codename="handle_support"))
-        response = self.client.post(
-            "/admin/accounts/account/add/",
-            {"user": str(new.pk), "status": "active", "permission_groups": [str(group.pk)], "_save": "Save"},
-            HTTP_X_CSRFTOKEN=token,
-            HTTP_ORIGIN=ORIGIN,
-        )
-        self.assertEqual(response.status_code, 302)
-        account = Account.objects.get(user=new)
-        self.assertEqual(account.context, "staff")
-        self.assertEqual(list(account.permission_groups.values_list("name", flat=True)), ["Rezayi: Support"])
-        self.assertTrue(
-            AuditEvent.objects.filter(
-                action="owner_staff_permissions_changed", actor=self.user, account=account
-            ).exists()
-        )
+        response = self.client.get(f"/admin/accounts/account/{self.account.pk}/change/")
+        self.assertNotContains(response, 'name="permission_groups"')
+
 
 
 class RaceTests(TransactionTestCase):

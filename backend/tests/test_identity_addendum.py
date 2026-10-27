@@ -182,7 +182,7 @@ class ConfigTests(SimpleTestCase):
         for locale in ["fa-AF", "en", "ps", "ar"]:
             response = self.client.get("/admin/login/?locale=" + locale)
             self.assertContains(response, 'lang="en"')
-        self.assertContains(self.client.get("/admin/login/"), "Owner sign-in")
+        self.assertContains(self.client.get("/admin/login/"), "Admin sign-in")
 
 
 @override_settings(**GOOGLE)
@@ -226,8 +226,10 @@ class GoogleTests(TestCase):
         _, q = self.start(action="register", context="seller")
         response = self.callback(q)
         self.assertFalse(User.objects.exists())
-        response = self.onboard(response, "company")
+        self.assertEqual(self.onboard(response, "company").status_code, 400)
+        response = self.onboard(response)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(Account.objects.get().intent, "individual")
         user = User.objects.get()
         self.assertFalse(user.has_usable_password())
         self.assertTrue(user.email_verified)
@@ -298,7 +300,10 @@ class GoogleTests(TestCase):
         self.callback(q)
         _, q = self.start(context="seller", source_context="buyer", action="add-role")
         self.assertEqual(q["prompt"], ["consent select_account"])
-        self.assertEqual(self.onboard(self.callback(q), "company").status_code, 200)
+        response = self.callback(q)
+        self.assertEqual(self.onboard(response, "company").status_code, 400)
+        self.assertEqual(self.onboard(response).status_code, 200)
+        self.assertEqual(Account.objects.get(context="seller").intent, "individual")
         self.assertEqual(Account.objects.get(context="seller").review_status, "pending")
         self.assertEqual(self.client.get("/api/v1/auth/seller/session/").status_code, 403)
         self.assertEqual(self.client.get("/api/v1/auth/buyer/session/").status_code, 200)
@@ -321,7 +326,7 @@ class GoogleTests(TestCase):
         self.assertEqual(self.callback(q)["Location"], settings.FRONTEND_ORIGIN + "/en/account/buyer")
         user.refresh_from_db()
         self.assertEqual(user.email, "original@example.test")
-        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 403)
+        self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
         self.assertEqual(self.client.get("/admin/").status_code, 302)
 
     @patch("apps.accounts.google.exchange")

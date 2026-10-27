@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { accountSettingsCopy } from "../../lib/i18n/account-settings";
 import { usePathname } from "next/navigation";
 import type { AccountContext } from "../../features/identity/api/accounts";
 import type { Locale } from "../../lib/i18n/locales";
@@ -18,34 +19,27 @@ export function WorkspaceNavigation({
 	const a = authCopy[locale],
 		path = usePathname(),
 		base = `/${locale}/account/${context}`;
-	const links: { href: string; label: string; icon: IconName }[] = [
-		{ href: base, label: interfaceCopy[locale].overview, icon: "home" },
-	];
+	const links: {
+		href: string;
+		label: string;
+		icon: IconName;
+	}[] = [{ href: base, label: interfaceCopy[locale].overview, icon: "home" }];
 	if (context !== "buyer")
 		links.push({
 			href: `${base}/catalogue`,
 			label: catalogueCopy[locale].title,
 			icon: "box",
 		});
-	if (context !== "staff")
-		links.push({
-			href: `${base}/organizations`,
-			label: organizationCopy[locale].title,
-			icon: "store",
-		});
-	else
-		links.push(
-			{
-				href: `${base}/verification`,
-				label: organizationCopy[locale].review,
-				icon: "shield",
-			},
-			{
-				href: `${base}/transfers`,
-				label: organizationCopy[locale].transfers,
-				icon: "team",
-			},
-		);
+	links.push({
+		href: `${base}/organizations`,
+		label: organizationCopy[locale].title,
+		icon: "store",
+	});
+	links.push({
+		href: `${base}/settings`,
+		label: accountSettingsCopy[locale].title,
+		icon: "user",
+	});
 	links.push({
 		href: `${base}/password`,
 		label: a.passwordChange,

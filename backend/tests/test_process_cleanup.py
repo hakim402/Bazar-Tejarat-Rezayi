@@ -14,6 +14,25 @@ from scripts.run_tests import TestFailure, TestRun
 
 
 class NativeProcessCleanupTests(SimpleTestCase):
+    def test_native_authentication_material_is_removed_from_failed_diagnostics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "error-context.md"
+            secret, recovery = "A" * 32, "a1" * 8
+            value = (f'<input name="csrfmiddlewaretoken" value="{"x" * 64}">'
+                     f'<code class="private">{secret}</code>\n'
+                     f'- code [ref=e1]: {secret}\n- code: {recovery}\n'
+                     'heading: Authenticator challenge\ntextbox "Code": 123456\n')
+            path.write_text(value)
+            run = TestRun.__new__(TestRun)
+            run.evidence, run.generated, run.password = root, {}, "synthetic-unused"
+            run.sanitize_browser_diagnostics()
+            sanitized = path.read_text()
+            for private in [secret, recovery, "x" * 64, "123456"]:
+                self.assertNotIn(private, sanitized)
+            self.assertIn("heading: Authenticator challenge", sanitized)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
     def sleeping_process(self):
         process = OwnedProcess([sys.executable, "-c", "import time;time.sleep(60)"])
         self.addCleanup(process.stop, 0.2)
@@ -119,6 +138,26 @@ class NativeProcessCleanupTests(SimpleTestCase):
             self.assertTrue(result["owned_process_groups_exited"])
             self.assertEqual(result["errors"], [{"step": "restore-typescript-config", "error": "JSONDecodeError"}])
             self.assertEqual((root / "tsconfig.json").read_text(), "{invalid")
+
+    def test_run_owned_route_types_restore_exact_config_without_losing_concurrent_changes(self):
+        original = {"include": ["app/**/*.ts", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
+                    "exclude": ["node_modules", ".next-review"]}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "tsconfig.json"
+            run = TestRun.__new__(TestRun)
+            run.dist_owned, run.dist = True, ".next-test-synthetic"
+            run.tsconfig = json.dumps(original, indent=2) + "\n"
+            temporary = {"include": ["app/**/*.ts", run.dist + "/types/**/*.ts"],
+                         "exclude": ["node_modules", ".next-review", ".next"]}
+            with patch("scripts.run_tests.FRONTEND", root):
+                path.write_text(json.dumps(temporary))
+                run.restore_typescript_config()
+                self.assertEqual(path.read_text(), run.tsconfig)
+                temporary["compilerOptions"] = {"strict": True}
+                path.write_text(json.dumps(temporary))
+                run.restore_typescript_config()
+                self.assertEqual(json.loads(path.read_text()), {**original, "compilerOptions": {"strict": True}})
 
     def test_one_stop_error_does_not_skip_other_servers_or_delete_runtime(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -13,7 +13,13 @@ const Context = createContext({
 	navigate: (action: () => void) => action(),
 	register: (_guard: Guard | null) => {},
 });
-export function NavigationGuard({ children }: { children: ReactNode }) {
+export function NavigationGuard({
+	children,
+	guardHistory = false,
+}: {
+	children: ReactNode;
+	guardHistory?: boolean;
+}) {
 	const guard = useRef<Guard | null>(null),
 		leaving = useRef(false);
 	const register = useCallback((value: Guard | null) => {
@@ -35,6 +41,35 @@ export function NavigationGuard({ children }: { children: ReactNode }) {
 		window.addEventListener("beforeunload", unload);
 		return () => window.removeEventListener("beforeunload", unload);
 	}, []);
+	useEffect(() => {
+		if (!guardHistory) return;
+		const surface = (window as Window & { navigation?: EventTarget })
+			.navigation;
+		const traversal = (event: Event) => {
+			if (
+				!guard.current ||
+				!event.cancelable ||
+				!("navigationType" in event) ||
+				event.navigationType !== "traverse" ||
+				!("destination" in event)
+			)
+				return;
+			const destination = event.destination;
+			if (
+				!destination ||
+				typeof destination !== "object" ||
+				!("url" in destination) ||
+				typeof destination.url !== "string"
+			)
+				return;
+			const url = new URL(destination.url);
+			if (url.origin !== location.origin) return;
+			event.preventDefault();
+			navigate(() => location.assign(url.href));
+		};
+		surface?.addEventListener("navigate", traversal);
+		return () => surface?.removeEventListener("navigate", traversal);
+	}, [guardHistory, navigate]);
 	const value = useMemo(() => ({ register, navigate }), [register, navigate]);
 	return (
 		<Context.Provider value={value}>

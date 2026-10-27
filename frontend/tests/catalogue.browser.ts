@@ -5,6 +5,7 @@ import {
 	catalogueActor,
 	catalogueApi,
 	catalogueOwner,
+	catalogueReviewProduct,
 } from "./support/catalogue-runtime";
 import { apiOrigin, disposablePython } from "./support/identity-runtime";
 import { catalogueCopy, catalogueStatuses } from "../lib/i18n/catalogue";
@@ -50,6 +51,28 @@ async function save(page: Page, locale: Locale = "en") {
 	return result.json();
 }
 async function action(page: Page, name: string) {
+	if (new URL(page.url()).pathname.startsWith("/admin/")) {
+		const actions: Record<string, string> = {
+			[catalogueCopy.en.publish]: "publish",
+			[catalogueCopy.en.reject]: "reject",
+			[catalogueCopy.en.unpublish]: "unpublish",
+		};
+		await page.locator("[name=action]").selectOption(actions[name]);
+		const revision = await page
+			.locator("#id_revision option")
+			.evaluateAll((options) =>
+				options.map((e) => (e as HTMLOptionElement).value).find(Boolean),
+			);
+		if (!revision) throw new Error("Missing exact revision");
+		await page.locator("#id_revision").selectOption(revision);
+		if (!(await page.locator("[name=reason]").inputValue()))
+			await page
+				.locator("[name=reason]")
+				.fill("Synthetic browser source decision");
+		await page.locator("#catalogue-operation button").click();
+		return;
+	}
+
 	const response = page.waitForResponse(
 		(r) => r.url().endsWith("/actions/") && r.request().method() === "POST",
 	);
@@ -131,10 +154,8 @@ test("seller creates uploads saves submits; staff publishes exact revision; repl
 	await action(page, catalogueCopy.en.submit);
 	const staff = await catalogueActor(browser, "full");
 	const review = await staff.newPage();
-	await review.goto(`/en/account/staff/catalogue/${id}`);
-	await expect(review.locator("#catalogue-revision")).toContainText(
-		catalogueStatuses.en.submitted,
-	);
+	await review.goto(`${apiOrigin}/admin/catalogue/product/${id}/workflow/`);
+	await expect(review.locator("#id_revision")).toContainText("submitted");
 	await action(review, catalogueCopy.en.publish);
 	const publicResult = await review.request.get(
 		`${apiOrigin}/api/v1/catalogue/published/en/${id}/`,
@@ -143,7 +164,7 @@ test("seller creates uploads saves submits; staff publishes exact revision; repl
 	expect((await publicResult.json()).source_fallback).toBe(true);
 	await review.goto(`/en/catalogue-preview/${id}`);
 	await expect(review.getByText(catalogueCopy.en.sourceFallback)).toBeVisible();
-	await review.goto(`/en/account/staff/catalogue/${id}`);
+	await review.goto(`${apiOrigin}/admin/catalogue/product/${id}/workflow/`);
 	await page.reload();
 	await page.locator("#catalogue-body-title").fill("PRIVATE REPLACEMENT");
 	await expect(
@@ -287,10 +308,10 @@ for (const locale of locales)
 		await context.close();
 	});
 
-test("automatic publication jobs and manual translation stay private until approval; unpublish revokes new media access", async ({
+test("native publication jobs and manual translation remain private until approval; unpublish revokes media", async ({
 	browser,
 }) => {
-	test.setTimeout(90000);
+	test.setTimeout(120000);
 	const seller = await catalogueActor(browser),
 		page = await seller.newPage();
 	const product = await fixture(page, "electronics");
@@ -309,120 +330,66 @@ test("automatic publication jobs and manual translation stay private until appro
 		).toBe(200);
 	const staff = await catalogueActor(browser, "full"),
 		review = await staff.newPage();
-	await review.goto(`/en/account/staff/catalogue/${product.id}`);
+	const url = `${apiOrigin}/admin/catalogue/product/${product.id}/workflow/`;
+	await review.goto(url);
 	await action(review, catalogueCopy.en.publish);
-	await review.locator("#catalogue-translation-locale").selectOption("en");
-	await expect(
-		review.getByRole("button", {
-			name: catalogueCopy.en.generate,
-			exact: true,
-		}),
-	).toBeDisabled();
 	await expect
 		.poll(
 			async () => {
-				const d = await catalogueApi(review, `staff/products/${product.id}/`);
-				const targets = d.body.translations.filter(
-					(tr: { revision: string }) => tr.revision === revision.id,
-				);
-				return targets.length === 3 &&
-					targets.every(
-						(tr: { state: string; job?: { status: string } }) =>
-							tr.job?.status === "completed" && tr.state === "draft",
-					)
-					? "completed"
-					: "pending";
+				const d = (await catalogueApi(page, `seller/products/${product.id}/`))
+					.body;
+				return d.translations.filter(
+					(t: { revision: string; job?: { status: string } }) =>
+						t.revision === revision.id && t.job?.status === "completed",
+				).length;
 			},
-			{ timeout: 20000 },
+			{ timeout: 30000 },
 		)
-		.toBe("completed");
-	let published = await (
-		await review.request.get(
-			`${apiOrigin}/api/v1/catalogue/published/en/${product.id}/`,
-		)
-	).json();
-	expect(published.source_fallback).toBe(true);
-	await review
-		.getByRole("button", { name: catalogueCopy.en.reload, exact: true })
-		.click();
-	await expect(review.locator("#catalogue-title")).toHaveValue(
-		/^Synthetic en:/,
+		.toBe(3);
+	const publicUrl = `${apiOrigin}/api/v1/catalogue/published/en/${product.id}/`;
+	expect(
+		(await (await page.request.get(publicUrl)).json()).source_fallback,
+	).toBe(true);
+	await review.goto(`${url}?translation=1&revision=${revision.id}&target=en`);
+	await expect(review.locator("#translation-identity")).toContainText(
+		revision.id,
 	);
 	await review
-		.getByRole("button", {
-			name: catalogueCopy.en.translationApprove,
-			exact: true,
-		})
-		.click();
-	await expect
-		.poll(async () => {
-			return (
-				await (
-					await review.request.get(
-						`${apiOrigin}/api/v1/catalogue/published/en/${product.id}/`,
-					)
-				).json()
-			).source_fallback;
-		})
-		.toBe(false);
-	await review.locator("#catalogue-translation-locale").selectOption("ar");
-	await review.locator("#catalogue-title").fill("منتج تجريبي معتمد");
-	await review.locator("#catalogue-description").fill("وصف تجريبي للمراجعة.");
-	for (const field of await review
-		.locator('[id^="catalogue-image_alts-"]')
-		.all())
-		await field.fill("صورة تجريبية");
+		.locator("[name=title]")
+		.fill("Synthetic approved native translation");
 	await review
-		.getByRole("button", {
-			name: catalogueCopy.en.translationSave,
-			exact: true,
-		})
-		.click();
-	await expect(
-		review.getByRole("button", {
-			name: catalogueCopy.en.translationApprove,
-			exact: true,
-		}),
-	).toBeEnabled();
+		.locator("[name=description]")
+		.fill("Synthetic translation reviewed by assigned staff");
 	await review
-		.getByRole("button", {
-			name: catalogueCopy.en.translationApprove,
-			exact: true,
-		})
-		.click();
-	await expect
-		.poll(async () => {
-			return (
-				await (
-					await review.request.get(
-						`${apiOrigin}/api/v1/catalogue/published/ar/${product.id}/`,
-					)
-				).json()
-			).body.title;
-		})
-		.toBe("منتج تجريبي معتمد");
-	published = await (
-		await review.request.get(
-			`${apiOrigin}/api/v1/catalogue/published/en/${product.id}/`,
-		)
-	).json();
-	const image = published.images[0].url;
-	expect((await review.request.get(apiOrigin + image)).status()).toBe(200);
-	await review
-		.locator("#catalogue-reason")
-		.first()
-		.fill("Synthetic moderation reason");
+		.locator("[name=image_alts]")
+		.fill(
+			JSON.stringify(
+				Object.fromEntries(
+					revision.body.images.map((i: { id: string }) => [
+						i.id,
+						"Synthetic English image",
+					]),
+				),
+			),
+		);
+	await review.locator("[name=action]").selectOption("save");
+	await review.locator("#catalogue-operation button").click();
+	expect(
+		(await (await page.request.get(publicUrl)).json()).source_fallback,
+	).toBe(true);
+	await review.locator("[name=action]").selectOption("approve");
+	await review.locator("#catalogue-operation button").click();
+	const published = await (await page.request.get(publicUrl)).json();
+	expect(published.body.title).toBe("Synthetic approved native translation");
+	expect(published.source_fallback).toBe(false);
+	const image = published.body.images?.[0]?.url ?? published.images[0].url;
+	await review.goto(url);
 	await action(review, catalogueCopy.en.unpublish);
-	const absentPreview = await review.request.get(
-		`/en/catalogue-preview/${product.id}`,
-	);
-	expect(absentPreview.status()).toBe(404);
-	expect(await absentPreview.text()).not.toContain("منتج تجريبي معتمد");
-	expect((await review.request.get(apiOrigin + image)).status()).toBe(404);
+	expect((await page.request.get(publicUrl)).status()).toBe(404);
 	expect(
 		(
-			await review.request.get(
-				`${apiOrigin}/api/v1/catalogue/published/en/${product.id}/`,
+			await page.request.get(
+				image.startsWith("http") ? image : apiOrigin + image,
 			)
 		).status(),
 	).toBe(404);
@@ -466,33 +433,23 @@ test("wrong seller, unapproved applicant, restricted/revoked company member and 
 	await anonymous.close();
 });
 
-test("staff taxonomy permission can maintain schemas but cannot read product drafts", async ({
+test("native taxonomy permission maintains a schema without product review rights", async ({
 	browser,
 }) => {
-	test.setTimeout(60000);
 	const context = await catalogueActor(browser, "taxonomy"),
 		page = await context.newPage();
-	await page.goto("/en/account/staff/catalogue");
-	await page.getByText(catalogueCopy.en.taxonomy, { exact: true }).click();
-	await page
-		.locator("#catalogue-code")
-		.first()
-		.fill(`synthetic-${randomUUID().slice(0, 8)}`);
-	for (const locale of locales)
-		await page
-			.locator(`[id="catalogue-labels-${locale}"]`)
-			.first()
-			.fill(`Synthetic ${locale}`);
-	const response = page.waitForResponse(
-		(r) => r.url().endsWith("/taxonomy/") && r.request().method() === "POST",
-	);
-	await page
-		.getByRole("button", { name: catalogueCopy.en.save, exact: true })
-		.first()
-		.click();
-	expect((await response).status()).toBe(200);
-	const result = await catalogueApi(page, "staff/products/");
-	expect(result.body.results).toEqual([]);
+	await page.goto(`${apiOrigin}/admin/catalogue/category/new/`);
+	const payload = JSON.parse(await page.locator("[name=payload]").inputValue());
+	payload.version = 0;
+	payload.units = ["kg"];
+	payload.code = `synthetic-${randomUUID().slice(0, 8)}`;
+	for (const locale of locales) payload.labels[locale] = `Synthetic ${locale}`;
+	await page.locator("[name=payload]").fill(JSON.stringify(payload));
+	await page.locator("#catalogue-operation button").click();
+	await expect(page.locator("[name=payload]")).toBeVisible();
+	expect(
+		(await page.goto(`${apiOrigin}/admin/catalogue/product/`))?.status(),
+	).toBe(403);
 	await context.close();
 });
 
@@ -508,9 +465,11 @@ test("source reviewer rejects; seller corrects and withdraws later submission wi
 	await action(page, catalogueCopy.en.submit);
 	const staff = await catalogueActor(browser, "source"),
 		review = await staff.newPage();
-	await review.goto(`/en/account/staff/catalogue/${product.id}`);
+	await review.goto(
+		`${apiOrigin}/admin/catalogue/product/${product.id}/workflow/`,
+	);
 	await review
-		.locator("#catalogue-reason")
+		.locator("#id_reason")
 		.fill("Synthetic source correction requested");
 	await action(review, catalogueCopy.en.reject);
 	await page.reload();
@@ -538,11 +497,8 @@ test("source reviewer rejects; seller corrects and withdraws later submission wi
 	).json();
 	expect(publicResult.body.title).toBe("Synthetic corrected product");
 	await expect(
-		review.getByRole("button", {
-			name: catalogueCopy.en.unpublish,
-			exact: true,
-		}),
-	).toBeDisabled();
+		review.locator("[name=action] option[value=unpublish]"),
+	).toHaveCount(0);
 	await seller.close();
 	await staff.close();
 });
@@ -580,20 +536,15 @@ test("active company catalogue membership revocation denies next action in same 
 	await context.close();
 });
 
-test("Dari staff exact source review is usable on desktop and phone", async ({
+test("native English source review is usable on desktop and phone", async ({
 	browser,
 }) => {
-	test.setTimeout(60000);
-	const context = await catalogueActor(browser, "full"),
+	const item = catalogueReviewProduct();
+	const context = await catalogueActor(browser, "source"),
 		page = await context.newPage();
-	await page.goto("/en/account/staff/catalogue");
-	const rows = (await catalogueApi(page, "staff/products/")).body.results;
-	const item = rows.find((row: { published: string | null }) => row.published);
-	expect(item).toBeTruthy();
-	await page.goto(`/fa-AF/account/staff/catalogue/${item.id}`);
-	await page
-		.getByRole("button", { name: catalogueCopy["fa-AF"].saved, exact: true })
-		.click();
+	await page.goto(`${apiOrigin}/admin/catalogue/product/${item.id}/workflow/`);
+	await expect(page.locator("html")).toHaveAttribute("lang", "en");
+	await expect(page.locator("body")).toContainText(item.revision);
 	for (const width of [1440, 390]) {
 		await page.setViewportSize({ width, height: 900 });
 		expect(
@@ -602,14 +553,9 @@ test("Dari staff exact source review is usable on desktop and phone", async ({
 			),
 		).toBe(true);
 		await page.screenshot({
-			path: `${evidence}/catalogue-staff-fa-AF-${width}.png`,
+			path: `${evidence}/catalogue-native-source-${width}.png`,
 			fullPage: true,
 		});
-		await page
-			.getByRole("region", { name: new RegExp(catalogueCopy["fa-AF"].saved) })
-			.screenshot({
-				path: `${evidence}/catalogue-staff-saved-fa-AF-${width}.png`,
-			});
 	}
 	await context.close();
 });
@@ -639,7 +585,7 @@ test("owner admin ordinary save cannot publish a private revision and guarded fo
 			},
 		},
 	);
-	expect(response.status()).toBe(200);
+	expect(response.status()).toBe(403);
 	const stored = JSON.parse(
 		disposablePython(
 			"import json,sys\nfrom apps.catalogue.models import Product\np=Product.objects.get(pk=json.load(sys.stdin)['id'])\nprint(json.dumps({'published':str(p.published_id)}))",

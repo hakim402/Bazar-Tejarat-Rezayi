@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Locale } from "../../lib/i18n/locales";
-import { NavbarAccount } from "../../features/identity/components/navbar-account";
+import { NavbarAccount } from "../authentication/navbar-account";
 import { BrandLogo } from "../brand/brand-logo";
 import { Container } from "./container";
 import { StorefrontNavigation } from "../../features/storefront/navigation";
