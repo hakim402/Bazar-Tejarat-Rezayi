@@ -53,8 +53,10 @@ const en = {
 	anonymous:
 		"Sign in to view this account. The account may also be unavailable or its access revoked.",
 	unavailable: "The service could not be reached. Please retry.",
+	registrationClosed:
+		"Account registration is currently closed. Please try again later.",
 	denied:
-		"Access could not be verified. Check your credentials, email verification and selected account. Privileged access also needs an authenticator.",
+		"Access could not be verified. Check your credentials, email verification and selected account.",
 	invalid:
 		"Check the form. Use a password of at least 12 characters. A link may be invalid, expired or already used.",
 	limited: "Too many attempts. Please wait before trying again.",
@@ -149,8 +151,9 @@ const fa: Copy = {
 	anonymous:
 		"برای دیدن این حساب وارد شوید. ممکن است حساب در دسترس نباشد یا صلاحیت آن برداشته شده باشد.",
 	unavailable: "ارتباط با خدمت برقرار نشد. دوباره تلاش کنید.",
+	registrationClosed: "ثبت‌نام حساب فعلاً بسته است. لطفاً بعداً دوباره تلاش کنید.",
 	denied:
-		"دسترسی تأیید نشد. رمز، تأیید ایمیل و نوع حساب را بررسی کنید. دسترسی کارمندان به برنامهٔ تأیید نیز نیاز دارد.",
+		"دسترسی تأیید نشد. ایمیل، رمز عبور، تأیید ایمیل و نوع حساب را بررسی کنید.",
 	invalid:
 		"فورم را بررسی کنید. رمز باید دست‌کم ۱۲ نویسه داشته باشد. ممکن است پیوند نادرست، منقضی یا قبلاً استفاده شده باشد.",
 	limited: "تلاش‌ها زیاد شده است. کمی صبر کنید و دوباره تلاش نمایید.",
@@ -244,8 +247,10 @@ const ps: Copy = {
 	anonymous:
 		"د حساب لیدلو لپاره ننوځئ. حساب ښايي نه وي یا لاسرسی یې لغوه شوی وي.",
 	unavailable: "خدمت ته اړیکه جوړه نه شوه. بیا هڅه وکړئ.",
+	registrationClosed:
+		"د حساب ثبت‌نام اوس بند دی. مهرباني وکړئ وروسته بیا هڅه وکړئ.",
 	denied:
-		"لاسرسی تایید نه شو. پټنوم، برېښنالیک او د حساب ډول وګورئ. د کارکوونکو لپاره تاییدوونکی هم اړین دی.",
+		"لاسرسی تایید نه شو. خپل ایمیل، پټنوم، د ایمیل تایید او ټاکل شوی حساب وګورئ.",
 	invalid:
 		"فورمه وګورئ. پټنوم لږ تر لږه ۱۲ توري وي. تړونی ښايي ناسم، تېر یا کارول شوی وي.",
 	limited: "هڅې ډېرې شوې. لږ تم شئ او بیا هڅه وکړئ.",
@@ -338,8 +343,9 @@ const ar: Copy = {
 	anonymous:
 		"سجّل الدخول لعرض الحساب. قد يكون الحساب غير متاح أو أُلغيت صلاحياته.",
 	unavailable: "تعذّر الاتصال بالخدمة. حاول مجدداً.",
+	registrationClosed: "إنشاء الحسابات مغلق حالياً. يُرجى المحاولة لاحقاً.",
 	denied:
-		"تعذّر التحقق من الوصول. راجع بيانات الدخول وتأكيد البريد ونوع الحساب. يتطلب الموظفون تطبيق المصادقة أيضاً.",
+		"تعذّر التحقق من الوصول. راجع بيانات الدخول وتأكيد البريد ونوع الحساب.",
 	invalid:
 		"راجع النموذج. استخدم كلمة مرور من 12 حرفاً على الأقل. قد يكون الرابط غير صالح أو منتهياً أو مستخدماً.",
 	limited: "محاولات كثيرة. انتظر قبل المحاولة مجدداً.",

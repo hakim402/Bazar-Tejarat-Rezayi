@@ -31,6 +31,18 @@ from .models import (
 )
 
 
+class RegistrationClosed(APIException):
+    status_code = 403
+    default_detail = "Account registration is currently closed."
+    default_code = "registration_closed"
+
+
+def require_registration_open():
+    enabled = settings.PUBLIC_SIGNUP_ENABLED if settings.PRODUCTION else settings.DEVELOPMENT_SIGNUP_ENABLED
+    if not enabled:
+        raise RegistrationClosed()
+
+
 class AuthFailure(APIException):
     status_code = 403
     default_detail = "Access could not be verified."

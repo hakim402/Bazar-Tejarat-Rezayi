@@ -38,7 +38,7 @@ def main():
         DJANGO_CSRF_TRUSTED_ORIGINS="https://bazartejaratrezayi.com",
         FRONTEND_ORIGIN="https://bazartejaratrezayi.com", OWNER_MFA_REQUIRED=args.mfa,
         CELERY_BROKER_URL="redis://127.0.0.1:1/0", CELERY_RESULT_BACKEND="redis://127.0.0.1:1/0",
-        GOOGLE_OAUTH_ENABLED="false", GOOGLE_CLIENT_ID="", GOOGLE_CLIENT_SECRET="", GOOGLE_REDIRECT_URI="",
+        PUBLIC_SIGNUP_ENABLED="false", GOOGLE_OAUTH_ENABLED="false", GOOGLE_CLIENT_ID="", GOOGLE_CLIENT_SECRET="", GOOGLE_REDIRECT_URI="",
         ACCOUNT_EMAIL_TRANSPORT="smtp", EMAIL_HOST="smtp.example.test", EMAIL_HOST_USER="sender@example.test",
         EMAIL_HOST_PASSWORD=secrets.token_urlsafe(32), DEFAULT_FROM_EMAIL="sender@example.test",
         EMAIL_PORT="587", EMAIL_USE_TLS="true", EMAIL_USE_SSL="false", EMAIL_TIMEOUT="3",
@@ -63,6 +63,7 @@ assert settings.PRODUCTION and not settings.DEBUG
 assert settings.SESSION_COOKIE_SECURE and settings.CSRF_COOKIE_SECURE
 assert settings.SECURE_SSL_REDIRECT
 assert settings.OWNER_MFA_REQUIRED == (sys.argv[1] == 'true')
+assert settings.PUBLIC_SIGNUP_ENABLED == (sys.argv[2] == 'true')
 """
         for value, expected in ((None, 'true'), ('true', 'true'), ('false', 'false'),
                                 ('', None), ('tru', None), ('0', None), ('disabled', None)):
@@ -71,9 +72,19 @@ assert settings.OWNER_MFA_REQUIRED == (sys.argv[1] == 'true')
                 child_env.pop('OWNER_MFA_REQUIRED', None)
             else:
                 child_env['OWNER_MFA_REQUIRED'] = value
-            result = subprocess.run([sys.executable, '-c', probe, expected or 'invalid'],
+            result = subprocess.run([sys.executable, '-c', probe, expected or 'invalid', 'false'],
                                     env=child_env, capture_output=True, timeout=20)
             assert result.returncode == (0 if expected else 42), 'Production startup policy regression'
+        for value, expected in ((None, 'false'), ('true', 'true'), ('false', 'false'), ('', None), ('yes', None)):
+            child_env = dict(os.environ)
+            if value is None:
+                child_env.pop('PUBLIC_SIGNUP_ENABLED', None)
+            else:
+                child_env['PUBLIC_SIGNUP_ENABLED'] = value
+            result = subprocess.run([sys.executable, '-c', probe, args.mfa, expected or 'invalid'],
+                                    env=child_env, capture_output=True, timeout=20)
+            assert result.returncode == (0 if expected else 42), 'Production signup initialization regression'
+
     if development:
         os.environ.update(
             DJANGO_SETTINGS_MODULE="config.settings.development", DJANGO_DEBUG="true",

@@ -1,6 +1,5 @@
 import hashlib
 
-from django.conf import settings
 from django.contrib.auth import logout
 from django.db import IntegrityError, transaction
 from django.middleware.csrf import get_token
@@ -9,7 +8,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,6 +28,7 @@ from .services import (
     password_check,
     rate_limit,
     request_mail,
+    require_registration_open,
 )
 
 
@@ -85,8 +85,7 @@ class RegisterView(AuthView):
             raise ValidationError({"intent": ["Invalid intent for this account."]})
         draft = User(email=email, display_name=data["display_name"])
         password_check(data["password"], draft)
-        if not settings.DEVELOPMENT_SIGNUP_ENABLED:
-            raise PermissionDenied("Registration requires approved published policies.")
+        require_registration_open()
         try:
             with transaction.atomic():
                 user = User.objects.create_user(email, data["password"], display_name=data["display_name"])

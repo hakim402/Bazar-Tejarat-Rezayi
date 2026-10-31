@@ -8,6 +8,7 @@ import {
 	googleAvailability,
 	safeReturn,
 } from "../../features/identity/api/accounts";
+import { AccountError } from "../../lib/api/private-client";
 import { authCopy } from "../../lib/i18n/auth";
 import { googleCopy } from "../../lib/i18n/google";
 import type { Locale } from "../../lib/i18n/locales";
@@ -75,8 +76,12 @@ export function GoogleButton({
 			)
 				throw new Error();
 			window.location.assign(url.href);
-		} catch {
-			setError(t.provider_error);
+		} catch (error) {
+			setError(
+				error instanceof AccountError && error.code === "registration_closed"
+					? a.registrationClosed
+					: t.provider_error,
+			);
 			setBusy(false);
 		}
 	}

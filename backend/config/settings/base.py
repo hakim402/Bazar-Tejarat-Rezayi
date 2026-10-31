@@ -1,4 +1,5 @@
 import os
+from hashlib import sha256
 import environ
 from apps.accounts.provider_settings import provider_settings
 from cryptography.fernet import Fernet
@@ -6,7 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from config.environment import database_config, load_environment
-from config.security import owner_mfa_setting
+from config.security import owner_mfa_setting, public_signup_setting
 from django.core.exceptions import ImproperlyConfigured
 from django.conf.locale import LANG_INFO
 
@@ -147,6 +148,7 @@ if (
 ):
     raise ImproperlyConfigured("FRONTEND_ORIGIN must be an explicit trusted origin without a path.")
 DEVELOPMENT_SIGNUP_ENABLED = not PRODUCTION and env.bool("DEVELOPMENT_SIGNUP_ENABLED", default=True)
+PUBLIC_SIGNUP_ENABLED = public_signup_setting(env)
 MFA_ENCRYPTION_KEY = env("MFA_ENCRYPTION_KEY", default="")
 if not MFA_ENCRYPTION_KEY:
     raise ImproperlyConfigured("A separate private MFA_ENCRYPTION_KEY is required.")
@@ -156,6 +158,8 @@ except (ValueError, TypeError):
     raise ImproperlyConfigured("MFA_ENCRYPTION_KEY must be a valid private Fernet key.") from None
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS[1]["OPTIONS"] = {"min_length": 12}
+ADMIN_CSS_VERSION = sha256((BASE_DIR / "apps/accounts/static/accounts/admin.css").read_bytes()).hexdigest()[:16]
+
 UNFOLD = {
     "SITE_TITLE": "Bazar Rezayi",
     "SITE_HEADER": "Bazar Rezayi",
@@ -183,7 +187,7 @@ UNFOLD = {
         }
     },
     "SITE_URL": FRONTEND_ORIGIN,
-    "STYLES": [lambda request: "/static/accounts/admin.css"],
+    "STYLES": [lambda request: f"/static/accounts/admin.css?v={ADMIN_CSS_VERSION}"],
     "SITE_LOGO": {
         "light": lambda request: "/static/accounts/brand-en.svg",
         "dark": lambda request: "/static/accounts/brand-en-white.svg",

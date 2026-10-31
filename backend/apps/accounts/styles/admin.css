@@ -44,7 +44,10 @@ html[lang^="en"] body {line-height:1.6}
 .admin-login button,.admin-login input {font-family:inherit}
 .admin-login button {cursor:pointer}
 .admin-login .private {overflow-wrap:anywhere;user-select:all}
-#nav-sidebar-inner {background:var(--admin-panel);height:100dvh;min-height:0}
+#nav-sidebar-inner {background:var(--admin-panel);display:flex;flex-direction:column;height:100dvh;max-height:100dvh;min-height:0;overflow:hidden}
+/* Keep only the navigation list scrollable; native search/account controls stay reachable. */
+#nav-sidebar-inner > :not(#nav-sidebar-apps) {flex-shrink:0}
+#nav-sidebar-apps {flex:1 1 0%;height:auto;min-height:0;overflow-y:auto;overscroll-behavior-y:contain}
 #nav-sidebar-apps a {min-height:44px;height:auto;padding-block:10px;font-size:14px;line-height:1.5}
 #nav-sidebar-apps a.active {background:var(--admin-tint);color:var(--admin-action)}
 #nav-sidebar-inner a img.h-8 {width:174px;height:auto;max-height:48px;object-fit:contain;margin-inline-end:0}

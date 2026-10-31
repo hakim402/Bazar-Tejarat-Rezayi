@@ -14,6 +14,7 @@ os.environ.update(
     DJANGO_SETTINGS_MODULE="config.settings.test",
     DATABASE_URL=os.environ["REZAYI_TEST_DATABASE_URL"],
     GOOGLE_OAUTH_ENABLED="false",
+    PUBLIC_SIGNUP_ENABLED="false",
     ACCOUNT_EMAIL_TRANSPORT="capture",
     GOOGLE_CLIENT_ID="",
     GOOGLE_CLIENT_SECRET="",

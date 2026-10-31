@@ -1,5 +1,5 @@
 {% load i18n unfold %}
-<div id="nav-sidebar-apps" class="ra:h-0 ra:min-h-0 ra:flex-1 ra:overflow-y-auto ra:px-3 ra:pb-4">
+<div id="nav-sidebar-apps" tabindex="0" aria-label="{% translate 'Administration navigation' %}" class="ra:h-auto ra:min-h-0 ra:flex-1 ra:overflow-y-auto ra:px-3 ra:pb-4">
 {% for group in sidebar_navigation %}{% if group.items %}
 {% has_nav_item_active group.items as has_active %}
 <section class="ra:mb-2" x-data="{navigationOpen: {% if has_active or not group.collapsible %}true{% else %}sessionStorage.getItem('rezayi-nav-{{ group.key }}') === 'true'{% endif %}}">

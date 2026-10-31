@@ -246,7 +246,7 @@ class GoogleTests(TestCase):
         attempt = parse_qs(urlsplit(response["Location"]).query)["attempt"][0]
         data = {"attempt_id": attempt, "display_name": "Social", "intent": "individual", "consent": False}
         self.assertEqual(post(self.client, "google/complete/", data).status_code, 403)
-        with override_settings(DEVELOPMENT_SIGNUP_ENABLED=False):
+        with override_settings(DEVELOPMENT_SIGNUP_ENABLED=False, PUBLIC_SIGNUP_ENABLED=False):
             self.assertEqual(post(self.client, "google/complete/", {**data, "consent": True}).status_code, 403)
         self.assertEqual(self.onboard(response).status_code, 200)
         self.assertEqual(post(self.client, "google/complete/", {**data, "consent": True}).status_code, 403)
