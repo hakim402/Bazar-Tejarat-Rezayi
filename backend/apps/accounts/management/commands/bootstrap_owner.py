@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.management.base import BaseCommand, CommandError
 from rest_framework.exceptions import ValidationError as APIValidationError
 from django.core.validators import validate_email
-from django.db import transaction
+from django.db import transaction, connection
 
 from apps.accounts.models import User, normalize_email
 from apps.accounts.services import audit, admin_mfa_required, password_check
@@ -15,7 +15,9 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, **options):
-        if User.objects.filter(owner_authority=True).exists():
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [728102803])
+        if User.objects.filter(is_superuser=True).exists():
             raise CommandError("An owner already exists; this command never overwrites identities.")
         email = normalize_email(input("Owner email (local input only): "))
         try:

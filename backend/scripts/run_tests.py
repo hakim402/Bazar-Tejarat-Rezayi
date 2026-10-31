@@ -46,6 +46,7 @@ class TestRun:
         self.browser_spec = [browser_spec] if isinstance(browser_spec, str) else browser_spec
         self.phase = phase
         self.backend_only = backend_only
+        self.frontend_only = False
         self.labels = labels
         self.warnings = []
         self.api_port, self.frontend_port = available_port(), available_port()
@@ -62,9 +63,9 @@ class TestRun:
             "REZAYI_TEST_FRONTEND_PORT": str(self.frontend_port),
         }
         self.env = {**os.environ, **self.generated}
-        if phase in {"phase-06-catalogue", "phase-07-inventory"}:
+        if phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"}:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
-        self.evidence = ROOT / ("doc/progress/staff-admin-transition/evidence/runs" if work_package == "staff-admin-transition" else "doc/progress/frontend-consolidation/evidence/runs" if work_package == "frontend-consolidation" else "doc/progress/phase-07-inventory/evidence/runs" if phase == "phase-07-inventory" else "doc/progress/native-python-migration/evidence/runs") / self.identifier
+        self.evidence = ROOT / ("doc/progress/phase-10-commerce/evidence/runs" if phase == "phase-10-commerce" else "doc/progress/phase-09-messaging/evidence/runs" if phase == "phase-09-messaging" else "doc/progress/admin-superuser-and-phase08-fixes/evidence/runs" if work_package == "admin-superuser-and-phase08-fixes" else "doc/progress/phase-08-marketplace/evidence/runs" if phase in {"phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"} else ("doc/progress/staff-admin-transition/evidence/runs" if work_package == "staff-admin-transition" else "doc/progress/frontend-consolidation/evidence/runs" if work_package == "frontend-consolidation" else "doc/progress/phase-07-inventory/evidence/runs" if phase == "phase-07-inventory" else "doc/progress/native-python-migration/evidence/runs")) / self.identifier
         self.evidence.mkdir(parents=True)
         self.frontend = None
         self.dist_owned = False
@@ -100,6 +101,8 @@ class TestRun:
                        r'\1[temporary CSRF redacted]', value)
         value = re.sub(r'(<code\b[^>]*>)(?:[A-Z2-7]{32,}|[0-9a-f]{16})(</code>)',
                        r'\1[temporary MFA material redacted]\2', value)
+        value = re.sub(r'(?im)((?:set-cookie|cookie|x-csrftoken)\s*:\s*)[^\n]+',
+                       r'\1[temporary credential redacted]', value)
         return value
 
     def command(self, args, name, *, cwd=BACKEND, data=None, env=None, check=True):
@@ -204,7 +207,10 @@ class TestRun:
 
     def backend_checks(self):
         self.python("-m", "ruff", "check", "--no-cache", ".", name="backend-lint")
-        self.python("manage.py", "test", *self.labels, "--settings=config.settings.test", "--noinput", name="backend-tests")
+        if not self.frontend_only:
+            self.python("manage.py", "test", *self.labels, "--settings=config.settings.test", "--noinput", name="backend-tests")
+        else:
+            print("Explicit frontend-only scope: backend test suite not rerun; schema/migrations/native checks remain required.", flush=True)
         self.python("manage.py", "check", name="backend-check")
         self.python("manage.py", "makemigrations", "--check", "--dry-run", name="migration-consistency")
         self.python("-m", "pip", "check", name="backend-dependencies")
@@ -221,6 +227,7 @@ class TestRun:
         self.python("-m", "scripts.check_native_runtime", name="native-scheduler-and-redis")
         self.python("-m", "scripts.check_native_deployment", "--development", name="native-development-wsgi")
         self.python("-m", "scripts.check_native_deployment", name="synthetic-production-wsgi")
+        self.python("-m", "scripts.check_native_deployment", "--mfa", "false", name="synthetic-production-password-only-wsgi")
         self.env["BROWSER_TEST_RUNTIME"] = "false"
 
     def start_web(self):
@@ -238,10 +245,13 @@ class TestRun:
                 "PLAYWRIGHT_EVIDENCE_DIR": str(self.evidence / "screenshots"),
                 "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
                 "PLAYWRIGHT_BROWSER_CHANNEL": "chromium", "IDENTITY_BROWSER_TESTS": "1",
-                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-06-catalogue", "phase-07-inventory"} else "0",
+                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"} else "0",
                 "SITE_BROWSER_TESTS": "1", "ADMIN_DASHBOARD_BROWSER_TESTS": "1",
-                "CATALOGUE_BROWSER_TESTS": "1" if self.phase in {"phase-06-catalogue", "phase-07-inventory"} else "0",
-                "INVENTORY_BROWSER_TESTS": "1" if self.phase == "phase-07-inventory" else "0",
+                "CATALOGUE_BROWSER_TESTS": "1" if self.phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"} else "0",
+                "COMMERCE_BROWSER_TESTS": "1" if self.phase == "phase-10-commerce" else "0",
+                "MESSAGING_BROWSER_TESTS": "1" if self.phase in {"phase-09-messaging", "phase-10-commerce"} else "0",
+                "MARKETPLACE_BROWSER_TESTS": "1" if self.phase in {"phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"} else "0",
+                "INVENTORY_BROWSER_TESTS": "1" if self.phase in {"phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"} else "0",
                 "REZAYI_TEST_PROJECT": self.project, "REZAYI_TEST_FIXTURE_PASSWORD": self.password}
 
     @staticmethod
@@ -266,6 +276,10 @@ class TestRun:
         self.env["BROWSER_TEST_RUNTIME"] = "true"
         self.python("-m", "scripts.prepare_browser_tests", name="browser-fixtures",
                     data=json.dumps({"password": self.password, "phase": self.phase}))
+        if self.phase in {"phase-09-messaging", "phase-10-commerce"}:
+            self.python("-m", "scripts.check_messaging_worker", name="native-communication-dispatch")
+        if self.phase == "phase-10-commerce":
+            self.python("-m", "scripts.check_commerce_documents", "--output", str(self.evidence / "invoices"), name="commerce-documents")
         self.start_web()
         env = self.browser_environment()
         previews = self.evidence / "email-previews"
@@ -307,10 +321,10 @@ class TestRun:
         self.processes.append(self.frontend)
         self.wait_ready(env["PLAYWRIGHT_BASE_URL"] + "/en/auth/buyer-sign-in", self.frontend)
         self.command(["npx", "playwright", "test", *(["tests/" + spec for spec in self.browser_spec] if self.browser_spec else []), "--output", str(self.evidence / "browser-results"),
-                      ("--global-timeout=1800000" if self.phase == "phase-07-inventory" else "--global-timeout=1200000")], "browser-tests", cwd=FRONTEND, env=env)
-        if self.phase in {"phase-06-catalogue", "phase-07-inventory"}:
+                      ("--global-timeout=5400000" if self.phase == "phase-10-commerce" else "--global-timeout=2700000" if self.phase == "phase-09-messaging" else "--global-timeout=1800000" if self.phase in {"phase-07-inventory", "phase-08-marketplace"} else "--global-timeout=1200000")], "browser-tests", cwd=FRONTEND, env=env)
+        if self.phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"}:
             self.python("-c", "import django;django.setup();import json;from config.celery import app;from apps.catalogue.models import TranslationJob;registered=app.control.inspect(timeout=5).registered() or {};expected={'catalogue.generate_translation','catalogue.dispatch_translations'};assert any(expected.issubset(set(tasks)) for tasks in registered.values());print(json.dumps({'registered':sorted(expected),'completed_jobs':TranslationJob.objects.filter(status='completed').count()}))", name="catalogue-worker-result")
-        if self.phase in {"phase-06-catalogue", "phase-07-inventory"}:
+        if self.phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"}:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
             self.start_web()
             self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/")
@@ -457,7 +471,7 @@ class TestRun:
                 raise
             finally:
                 (self.evidence / "result.json").write_text(json.dumps({"run_id": self.identifier, "status": status,
-                    "warnings": getattr(self, "warnings", []), "backend_only": self.backend_only, "phase": self.phase, "browser_spec": self.browser_spec, "evidence": str(self.evidence.relative_to(ROOT))}, indent=2) + "\n")
+                    "warnings": getattr(self, "warnings", []), "backend_only": self.backend_only, "frontend_only": getattr(self, "frontend_only", False), "phase": self.phase, "browser_spec": self.browser_spec, "evidence": str(self.evidence.relative_to(ROOT))}, indent=2) + "\n")
 
 
 def main():
@@ -466,19 +480,23 @@ def main():
             raise SystemExit("Install native dependencies into backend/.venv; see doc/hosting/Native_Python_cPanel_Deployment.md.")
         os.execv(str(PYTHON), [str(PYTHON), __file__, *sys.argv[1:]])
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-06-catalogue", "phase-07-inventory"], default="phase-03-identity")
-    parser.add_argument("--browser-spec", action="append", choices=["staff-admin-transition.browser.ts", "google-email.browser.ts", "frontend-consolidation.browser.ts", "inventory.browser.ts", "seller-dashboard.browser.ts", "site.browser.ts", "admin-dashboard.browser.ts", "approved-design.browser.ts", "catalogue-review.browser.ts", "catalogue.browser.ts", "identity.browser.ts", "organizations.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; repeat to select multiple specs; default runs every browser spec")
-    parser.add_argument("--work-package", choices=["frontend-consolidation", "staff-admin-transition"], help="Scoped evidence location; does not change fixture or permission policy")
+    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce"], default="phase-03-identity")
+    parser.add_argument("--browser-spec", action="append", choices=["commerce-corrections.browser.ts", "commerce.browser.ts", "site-workspace.browser.ts", "messaging.browser.ts", "admin-superuser.browser.ts", "marketplace.browser.ts", "store-settings.browser.ts", "staff-admin-transition.browser.ts", "google-email.browser.ts", "frontend-consolidation.browser.ts", "inventory.browser.ts", "seller-dashboard.browser.ts", "site.browser.ts", "admin-dashboard.browser.ts", "approved-design.browser.ts", "catalogue-review.browser.ts", "catalogue.browser.ts", "identity.browser.ts", "organizations.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; repeat to select multiple specs; default runs every browser spec")
+    parser.add_argument("--work-package", choices=["frontend-consolidation", "staff-admin-transition", "admin-superuser-and-phase08-fixes"], help="Scoped evidence location; does not change fixture or permission policy")
     parser.add_argument("--backend-only", action="store_true")
+    parser.add_argument("--frontend-only", action="store_true", help="Explicit client/browser correction scope; retains schema, migration, dependency and native checks but does not rerun backend tests")
     parser.add_argument("--test-label", action="append", default=[])
     parser.add_argument("--cleanup-probe", choices=["failure", "interrupt"], help="Provision then fail/interrupt to verify teardown")
     args = parser.parse_args()
+    if args.frontend_only and args.backend_only:
+        parser.error("--frontend-only and --backend-only are mutually exclusive")
     if args.test_label and not args.backend_only:
         parser.error("--test-label requires --backend-only")
     for executable in ("initdb", "postgres", "redis-server", *(() if args.backend_only else ("node", "npm", "npx", "ffmpeg", "ffprobe"))):
         if not shutil.which(executable):
             parser.error(f"Required local executable is unavailable: {executable}")
     run = TestRun(args.backend_only, args.test_label, args.phase, args.browser_spec, args.work_package)
+    run.frontend_only = args.frontend_only
     run.cleanup_probe = args.cleanup_probe
     def interrupted(signum, frame):
         raise KeyboardInterrupt

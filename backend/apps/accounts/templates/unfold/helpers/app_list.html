@@ -1,22 +1,16 @@
 {% load i18n unfold %}
-{% if sidebar_navigation %}
-<div id="nav-sidebar-apps" class="h-0 grow overflow-auto scrollbar-default-hover" x-on:keydown.escape.stop.prevent="if (sidebarOpen && innerWidth &lt; 1280) { sidebarToggle(); document.getElementById('owner-nav-toggle').focus(); }">
-  {% for group in sidebar_navigation %}{% if group.items %}
-  {% has_nav_item_active group.items as has_active %}
-  <div class="ra:mb-3" {% if group.collapsible %}x-data="{ navigationOpen: {% if has_active %}true{% else %}false{% endif %} }"{% endif %}>
-    {% if group.separator %}<hr class="ra:mx-6 ra:my-3 ra:border-line">{% endif %}
-    {% if group.title %}
-      {% if group.collapsible %}
-      <h2><button type="button" x-on:click="navigationOpen = !navigationOpen" x-bind:aria-expanded="navigationOpen" aria-controls="owner-navigation-group-{{ forloop.counter }}" class="ra:flex ra:min-h-11 ra:w-full ra:items-center ra:justify-between ra:px-6 ra:text-sm ra:font-bold ra:text-ink">{{ group.title }}<span class="material-symbols-outlined ra:transition-transform" data-admin-icon aria-hidden="true" x-bind:class="{ 'rotate-90': navigationOpen }">chevron_right</span></button></h2>
-      {% else %}<h2 class="ra:px-6 ra:py-2 ra:text-xs ra:font-bold ra:uppercase ra:tracking-wider ra:text-muted">{{ group.title }}</h2>{% endif %}
-    {% endif %}
-    <ol id="owner-navigation-group-{{ forloop.counter }}" class="ra:space-y-1 ra:px-6" {% if group.collapsible %}x-show="navigationOpen"{% endif %}>
-    {% for item in group.items %}{% if item.has_permission %}
-      <li><a href="{% if item.link_callback %}{{ item.link_callback }}{% else %}{{ item.link }}{% endif %}" {% if item.active %}aria-current="page"{% endif %} class="ra:-mx-3 ra:flex ra:min-h-11 ra:items-center ra:gap-3 ra:rounded-lg ra:px-3 ra:py-2 ra:text-sm ra:font-medium ra:text-muted ra:hover:bg-tint ra:hover:text-action {% if item.active %}active ra:bg-tint ra:font-bold ra:text-action{% endif %}">{% if item.icon %}<span class="material-symbols-outlined" data-admin-icon aria-hidden="true">{{ item.icon }}</span>{% endif %}<span>{{ item.title }}</span>{% include 'unfold/helpers/app_list_badge.html' with item=item %}</a></li>
-    {% endif %}{% endfor %}
-    </ol>
-  </div>
-  {% endif %}{% endfor %}
+<div id="nav-sidebar-apps" class="ra:h-0 ra:min-h-0 ra:flex-1 ra:overflow-y-auto ra:px-3 ra:pb-4">
+{% for group in sidebar_navigation %}{% if group.items %}
+{% has_nav_item_active group.items as has_active %}
+<section class="ra:mb-2" x-data="{navigationOpen: {% if has_active or not group.collapsible %}true{% else %}sessionStorage.getItem('rezayi-nav-{{ group.key }}') === 'true'{% endif %}}">
+{% if group.collapsible %}
+<h2><button type="button" class="ra:flex ra:min-h-11 ra:w-full ra:items-center ra:justify-between ra:rounded-lg ra:px-3 ra:text-start ra:text-sm ra:font-bold ra:text-ink ra:hover:bg-tint" x-bind:aria-expanded="navigationOpen" aria-controls="nav-group-{{ group.key }}" x-on:click="navigationOpen = !navigationOpen; sessionStorage.setItem('rezayi-nav-{{ group.key }}', String(navigationOpen))">{{ group.title }}<span data-admin-icon aria-hidden="true" class="material-symbols-outlined" x-text="navigationOpen ? 'expand_less' : 'expand_more'"></span></button></h2>
+{% endif %}
+<ol id="nav-group-{{ group.key }}" x-show="navigationOpen" class="ra:space-y-1">
+{% for item in group.items %}{% if item.has_permission %}
+<li><a href="{{ item.link }}" {% if item.active %}aria-current="page"{% endif %} class="ra:flex ra:min-h-11 ra:items-center ra:gap-3 ra:rounded-lg ra:px-3 ra:py-2 ra:text-sm ra:hover:bg-tint {% if item.active %}ra:bg-tint ra:font-bold ra:text-action{% else %}ra:text-muted{% endif %}"><span data-admin-icon aria-hidden="true" class="material-symbols-outlined ra:text-lg">{{ item.icon }}</span><span class="ra:min-w-0 ra:break-words">{{ item.title }}</span></a></li>
+{% endif %}{% endfor %}
+</ol></section>
+{% endif %}{% endfor %}
 </div>
 {% include 'unfold/helpers/app_list_all.html' %}
-{% else %}<p class="ra:p-6 ra:text-sm">{% translate 'You do not have permission to view this workspace.' %}</p>{% endif %}

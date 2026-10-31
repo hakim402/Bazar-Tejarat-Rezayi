@@ -11,10 +11,13 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
 					allow: "/",
 					disallow: [
 						"/*/account/",
+                        "/*/cart",
 						"/*/auth/",
 						"/*/invitation",
 						"/*/catalogue-preview/",
 						"/api/",
+						"/*/search",
+						"/*?*",
 					],
 				},
 				sitemap: `${publicOrigin}/sitemap.xml`,

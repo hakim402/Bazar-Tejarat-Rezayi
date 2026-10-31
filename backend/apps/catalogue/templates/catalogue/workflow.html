@@ -1,9 +1,10 @@
 {% extends 'admin/base_site.html' %}{% load i18n %}
 {% block content %}
+{% if item and not independent_decision %}<p role="status" class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-ink">You can inspect this product. An independent reviewer must decide source and translation submissions for your own or historically linked business.</p>{% endif %}
 <div class="max-w-5xl space-y-6" lang="{{ locale }}" dir="{{ direction }}">
 <p>{{ t.revision }}</p>
 {% if item %}<p>{{ item.id }} · {{ item.currency }} · {{ item.pricing_mode }} · {{ item.version }}</p>
-<p>{% if can_translate or request.user.owner_authority and request.user.is_superuser %}<a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a>{% endif %}{% if can_review_source or request.user.owner_authority and request.user.is_superuser %} · <a href="?locale={{ locale }}">{{ t.source }}</a>{% endif %}</p>{% endif %}
+<p>{% if can_translate or is_owner_admin %}<a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a>{% endif %}{% if can_review_source or is_owner_admin %} · <a href="?locale={{ locale }}">{{ t.source }}</a>{% endif %}</p>{% endif %}
 {% if selection %}
 <p>{{ t.load_help }}</p>
 <form method="get" class="space-y-4" id="translation-selection">

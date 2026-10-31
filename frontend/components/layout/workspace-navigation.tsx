@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { commerceCopy } from "../../features/orders/copy";
+import { communicationCopy } from "../../features/messaging/copy";
 import { accountSettingsCopy } from "../../lib/i18n/account-settings";
 import { usePathname } from "next/navigation";
 import type { AccountContext } from "../../features/identity/api/accounts";
@@ -30,6 +32,20 @@ export function WorkspaceNavigation({
 			label: catalogueCopy[locale].title,
 			icon: "box",
 		});
+	links.push(...(["orders", "invoices"] as const).map(route=>({href:`${base}/${route}`,label:commerceCopy[locale][route],icon:"file" as const})));
+ if(context==="buyer")links.push({href:`/${locale}/cart`,label:commerceCopy[locale].cart,icon:"box"},{href:`${base}/checkouts`,label:commerceCopy[locale].history,icon:"file"});
+	links.push(
+		{
+			href: `${base}/messages`,
+			label: communicationCopy[locale].messages,
+			icon: "mail",
+		},
+		{
+			href: `${base}/notifications`,
+			label: communicationCopy[locale].notifications,
+			icon: "bell",
+		},
+	);
 	links.push({
 		href: `${base}/organizations`,
 		label: organizationCopy[locale].title,

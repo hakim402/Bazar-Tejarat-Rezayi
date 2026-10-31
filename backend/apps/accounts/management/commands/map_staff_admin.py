@@ -26,7 +26,7 @@ class Command(BaseCommand):
                 legacy = set(account.permission_groups.values_list('pk', flat=True))
                 current = set(user.groups.values_list('pk', flat=True))
                 safe = (account.status == 'active' and user.is_active and user.email_verified
-                        and not user.owner_authority and not user.is_superuser and (not current or current == legacy))
+                        and not user.is_superuser and (not current or current == legacy))
                 self.stdout.write(json.dumps({'account': str(account.pk), 'legacy_groups': sorted(legacy),
                     'current_groups': sorted(current), 'would_enable_admin': not user.is_staff,
                     'eligible': safe, 'apply': options['apply']}))

@@ -937,14 +937,17 @@ class CatalogueMigrationTests(TransactionTestCase):
             user = User.objects.create_user("catalogue-upgrade@example.test", PASSWORD, email_verified=True)
             from tests.legacy_content import predecessor, fingerprints
             predecessor(user)
-            # Inventory depends on catalogue, so this predecessor replay legitimately creates its new migration history.
-            preserved = fingerprints(("site", "catalogue", "inventory"))
+            # Only actually replayed migration timestamps may change. Preserve
+            # every surviving domain row/schema and all unrelated migration history.
+            replayed_apps = {app for app, _ in executor.loader.graph.backwards_plan(("catalogue", "0001_initial"))}
+            excluded_history = tuple(sorted({"site", *replayed_apps}))
+            preserved = fingerprints(excluded_history)
             password = user.password
             before = set(connection.introspection.table_names())
             MigrationExecutor(connection).migrate(latest)
             user.refresh_from_db()
             self.assertEqual(user.password, password)
-            after = fingerprints(("site", "catalogue", "inventory"))
+            after = fingerprints(excluded_history)
             self.assertEqual(preserved, {key: after[key] for key in preserved})
             self.assertTrue(before.issubset(set(connection.introspection.table_names())))
         finally:

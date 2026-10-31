@@ -22,6 +22,9 @@ def destination(value):
     if CONTROL.search(value) or any(c.isspace() for c in value) or "\\" in value:
         raise ValidationError("Use a supported route or a safe HTTPS URL.")
     if value.startswith("/"):
+        resource = re.fullmatch(r"/(products|stores)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/(?:about|reviews))?", value)
+        if value in {"/categories", "/products", "/search", "/stores"} or re.fullmatch(r"/categories/[a-z0-9][a-z0-9_-]{0,39}", value) or resource and (resource[1] == "stores" or resource[2] is None):
+            return value
         if value in {"/#demo-product-" + name for name in ["dried-fruit", "clothing", "beauty", "furniture"]} or re.fullmatch(r"/catalogue-preview/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", value):
             return value
         routes = {"/", "/help", *["/" + p for p in PAGES if p not in {"home", "payment-and-delivery", "cancellations-and-disputes", "verification"}], *["/help/" + p for p in ["payment-and-delivery", "cancellations-and-disputes", "verification"]], *["/auth/" + p for p in ["buyer-sign-in", "seller-sign-in", "buyer-registration", "seller-registration"]]}

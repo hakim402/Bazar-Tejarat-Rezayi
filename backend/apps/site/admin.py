@@ -15,7 +15,7 @@ from rest_framework.exceptions import APIException
 from apps.accounts.admin import owner_site
 from apps.accounts.services import get_grant
 from apps.organizations.admin import ReadOnlyAdmin
-from .models import SiteSettings, HeroSlide, PageSEO, SiteDraft, SiteMedia
+from .models import SiteSettings, HeroSlide, PageSEO, SiteDraft, SiteMedia, SiteLocale, HeroLocale, SiteDraftUpload
 from .forms import SettingsForm, SEOForms, PostForm
 from .sections import SECTION_MAP
 from .services import save_settings
@@ -167,3 +167,66 @@ class SiteAdmin(ReadOnlyAdmin):
 
 
 owner_site.register(SiteSettings, SiteAdmin)
+
+
+class SiteRecordAdmin(ReadOnlyAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+    def settings_workflow(self, obj):
+        from django.utils.html import format_html
+        section = getattr(obj, 'section', 'general')
+        if obj._meta.model_name in {'heroslide', 'herolocale'}:
+            section = 'hero'
+        if obj._meta.model_name == 'pageseo':
+            section = 'seo'
+        return format_html('<a href="{}">Open validated Site Settings</a>', reverse('admin:site_settings_section', kwargs={'section': section}))
+
+
+class SiteLocaleAdmin(SiteRecordAdmin):
+    fields = ['settings', 'locale', 'name', 'tagline', 'description', 'settings_workflow']
+    list_display = ['locale', 'name']
+
+
+class SEOAdmin(SiteRecordAdmin):
+    fields = ['settings', 'page', 'locale', 'title', 'description', 'image', 'settings_workflow']
+    list_display = ['page', 'locale', 'title']
+    list_filter = ['locale', 'page']
+
+
+class HeroAdmin(SiteRecordAdmin):
+    fields = ['settings', 'label', 'placement', 'is_draft', 'draft_of', 'enabled', 'kind', 'updated_at', 'settings_workflow']
+    list_display = ['label', 'placement', 'is_draft', 'enabled', 'kind']
+    list_filter = ['placement', 'is_draft', 'enabled']
+    search_fields = ['label']
+
+
+class HeroLocaleAdmin(SiteRecordAdmin):
+    fields = ['slide', 'locale', 'title', 'description', 'alt', 'cta_label', 'cta_url', 'transcript', 'settings_workflow']
+    list_display = ['slide', 'locale', 'title']
+    list_filter = ['locale']
+
+
+class MediaMetadataAdmin(SiteRecordAdmin):
+    fields = ['kind', 'content_type', 'size', 'width', 'height', 'duration', 'has_audio', 'pending_delete', 'settings_workflow']
+    list_display = ['id', 'kind', 'size', 'width', 'height', 'pending_delete']
+    list_filter = ['kind', 'pending_delete']
+
+
+class DraftAdmin(SiteRecordAdmin):
+    fields = ['settings', 'section', 'updated_at', 'settings_workflow']
+    list_display = ['section', 'updated_at']
+
+
+class DraftUploadAdmin(SiteRecordAdmin):
+    fields = ['draft', 'field', 'asset', 'settings_workflow']
+    list_display = ['draft', 'field', 'asset']
+
+
+owner_site.register(SiteLocale, SiteLocaleAdmin)
+owner_site.register(PageSEO, SEOAdmin)
+owner_site.register(HeroSlide, HeroAdmin)
+owner_site.register(HeroLocale, HeroLocaleAdmin)
+owner_site.register(SiteMedia, MediaMetadataAdmin)
+owner_site.register(SiteDraft, DraftAdmin)
+owner_site.register(SiteDraftUpload, DraftUploadAdmin)

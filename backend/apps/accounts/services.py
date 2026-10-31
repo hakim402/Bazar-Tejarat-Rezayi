@@ -140,7 +140,7 @@ def consume_token(raw, purpose, *, password=None, request=None):
 
 
 def admin_mfa_required():
-    return settings.PRODUCTION or settings.OWNER_MFA_REQUIRED
+    return settings.OWNER_MFA_REQUIRED
 
 
 @transaction.atomic
@@ -169,6 +169,10 @@ def verify_development_emails(request, user_ids):
 
 def get_grant(request, context):
     user = request.user
+    if not user.is_authenticated:
+        raise AuthFailure()
+    # Fresh identity flags/epoch also protect already-open requests and forms.
+    user = User.objects.get(pk=user.pk)
     grant = request.session.get("grants", {}).get(context, {})
     max_age = 3600 if context in {"staff", "owner"} else 28800
     if (
@@ -190,9 +194,9 @@ def get_grant(request, context):
         raise AuthFailure()
     if context == "owner":
         if not (
-            user.owner_authority
-            and user.is_staff
+            user.is_staff
             and user.is_superuser
+            and grant.get("entry") == "admin"
             and (
                 not admin_mfa_required()
                 or grant.get("mfa") and Authenticator.objects.filter(user=user, confirmed=True).exists()
@@ -227,6 +231,10 @@ def establish(request, user, context, *, mfa=False, device=None, admin_entry=Fal
         ):
             raise AuthFailure()
         user = fresh_user
+        if context in {"owner", "staff"}:
+            entry = admin_entry or request.session.get("pending_mfa", {}).get("entry") == "admin"
+            if not entry or not user.is_staff or context == "owner" and not user.is_superuser:
+                raise AuthFailure()
         if request.user.is_authenticated and request.user.pk != user.pk:
             logout(request)
         authority = (
@@ -297,12 +305,13 @@ def revoke_context(request, context):
 def begin_signin(request, email, password, context, *, admin_entry=False):
     rate_limit(request, "login", identity=normalize_email(email), limit=12)
     user = authenticate(request, email=normalize_email(email), password=password)
+    if context in {"owner", "staff"} and not admin_entry:
+        raise AuthFailure()
     eligible = (
         user
         and user.email_verified
         and (
             context == "owner"
-            and user.owner_authority
             and user.is_staff
             and user.is_superuser
             or context != "owner"
@@ -323,6 +332,7 @@ def begin_signin(request, email, password, context, *, admin_entry=False):
             "context": context,
             "at": time.time(),
             "nonce": secrets.token_hex(16),
+            "entry": "admin" if admin_entry else None,
         }
         audit("privileged_password_verified", request=request, user=user, context=context)
         return "challenge" if Authenticator.objects.filter(user=user, confirmed=True).exists() else "enroll"
@@ -330,9 +340,11 @@ def begin_signin(request, email, password, context, *, admin_entry=False):
         raise AuthFailure()
     establish(request, user, context, admin_entry=admin_entry)
     if context == "owner":
-        audit("owner_development_password_signin", request=request, user=user, context=context)
+        audit("owner_password_signin" if settings.PRODUCTION else "owner_development_password_signin",
+              request=request, user=user, context=context)
     elif context == "staff":
-        audit("staff_development_password_signin", request=request, user=user, context=context)
+        audit("staff_password_signin" if settings.PRODUCTION else "staff_development_password_signin",
+              request=request, user=user, context=context)
     return "signed_in"
 
 
@@ -343,11 +355,13 @@ def pending_identity(request):
         if pending.get("identity")
         else None
     )
+    if pending.get("entry") != "admin":
+        raise AuthFailure()
     if not user or time.time() - pending.get("at", 0) > 300 or pending.get("state") != credential_state(user):
         raise AuthFailure()
     context = pending.get("context")
     if context == "owner":
-        if not (user.owner_authority and user.is_staff and user.is_superuser):
+        if not (user.is_staff and user.is_superuser):
             raise AuthFailure()
     elif context != "staff" or not user.is_staff or not Account.objects.filter(user=user, context="staff", status="active").exists():
         raise AuthFailure()

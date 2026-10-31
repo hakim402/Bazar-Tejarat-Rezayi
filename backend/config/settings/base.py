@@ -47,6 +47,11 @@ INSTALLED_APPS = [
     "apps.site.apps.SiteConfig",
     "apps.catalogue.apps.CatalogueConfig",
     "apps.inventory.apps.InventoryConfig",
+    "apps.marketplace.apps.MarketplaceConfig",
+    "apps.messaging.apps.MessagingConfig",
+    "apps.notifications.apps.NotificationsConfig",
+    "apps.cart.apps.CartConfig",
+    "apps.orders.apps.OrdersConfig",
     "django_otp",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -69,6 +74,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "apps.verification.uploads.EvidenceRequestLimitMiddleware",
     "apps.catalogue.media.CatalogueRequestLimitMiddleware",
+    "apps.messaging.media.MessageRequestLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
@@ -153,7 +159,7 @@ AUTH_PASSWORD_VALIDATORS[1]["OPTIONS"] = {"min_length": 12}
 UNFOLD = {
     "SITE_TITLE": "Bazar Rezayi",
     "SITE_HEADER": "Bazar Rezayi",
-    "SITE_SUBHEADER": "Owner workspace",
+    "SITE_SUBHEADER": "Administration",
     "SHOW_LANGUAGES": False,
     "DASHBOARD_CALLBACK": "apps.accounts.dashboard.dashboard_context",
     "SIDEBAR": {
@@ -204,6 +210,8 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "LocaleEnum": "apps.foundation.contracts.LOCALES",
         "CurrencyEnum": ["AFN", "USD"],
+        "GoodsPaymentMethodEnum": ["advance", "cod"],
+        "CartMutationActionEnum": ["set", "remove"],
         "CompanyBundleEnum": "apps.organizations.models.BUNDLES",
         "BusinessProfileKindEnum": ["individual", "company", "business"],
         "PublicAccountContextEnum": ["buyer", "seller"],
@@ -281,6 +289,10 @@ STORAGES["catalogue_local"] = {
     "BACKEND": "apps.foundation.storage.PrivateFileStorage",
     "OPTIONS": {"location": DATA_ROOT / "private-catalogue"},
 }
+STORAGES["marketplace_local"] = {
+    "BACKEND": "apps.foundation.storage.PrivateFileStorage",
+    "OPTIONS": {"location": DATA_ROOT / "private-stores"},
+}
 CATALOGUE_STORAGE_ALIAS = env("CATALOGUE_STORAGE_ALIAS", default="catalogue_local")
 if env("CATALOGUE_S3_BUCKET", default=""):
     STORAGES["catalogue_s3"] = {
@@ -318,3 +330,10 @@ for _host in SITE_MEDIA_HOSTS:
     if not __import__("re").fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}", _host) or "." not in _host or _host.endswith((".local", ".localhost", ".internal", ".test", ".invalid")) or _host.replace(".", "").isdigit():
         raise ImproperlyConfigured("SITE_MEDIA_HOSTS must contain explicit public lowercase DNS hostnames only.")
 STORAGES["site_local"] = {"BACKEND": "apps.foundation.storage.PrivateFileStorage", "OPTIONS": {"location": DATA_ROOT / "site-public"}}
+
+# Durable communication recovery; providers remain configured through the existing mail contract.
+CELERY_IMPORTS = (*CELERY_IMPORTS, "apps.notifications.tasks")
+CELERY_BEAT_SCHEDULE["communication-recovery"] = {"task": "notifications.sweep", "schedule": 30.0}
+
+CELERY_IMPORTS = (*CELERY_IMPORTS, 'apps.cart.tasks')
+CELERY_BEAT_SCHEDULE['expired-guest-carts'] = {'task': 'cart.expire_guests', 'schedule': 3600.0}

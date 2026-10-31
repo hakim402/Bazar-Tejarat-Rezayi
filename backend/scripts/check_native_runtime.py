@@ -43,7 +43,7 @@ def main():
         pass
     else:
         raise AssertionError("Disposable Redis must reject unauthenticated access.")
-    expected = {"accounts.dispatch_mail", "catalogue.dispatch_translations"}
+    expected = {"accounts.dispatch_mail", "catalogue.dispatch_translations", "notifications.sweep", "cart.expire_guests"}
     assert expected.issubset({value["task"] for value in app.conf.beat_schedule.values()})
     nonce, task_id = str(uuid4()), str(uuid4())
     root = Path(marker["root"])

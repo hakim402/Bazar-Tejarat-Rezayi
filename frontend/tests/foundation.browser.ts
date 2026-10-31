@@ -1,3 +1,4 @@
+import { loadRenderedImages } from "./support/rendered-images";
 import { choosePreference } from "./support/site-preferences";
 import { expect, test } from "@playwright/test";
 import { heroUI } from "../features/site/ui";
@@ -30,15 +31,7 @@ for (const locale of locales) {
 					() => document.documentElement.scrollWidth <= window.innerWidth,
 				),
 			).toBe(true);
-			await expect
-				.poll(() =>
-					page.evaluate(() =>
-						[...document.images]
-							.filter((img) => img.getBoundingClientRect().width > 0)
-							.every((img) => img.complete && img.naturalWidth > 0),
-					),
-				)
-				.toBe(true);
+			await loadRenderedImages(page);
 			expect(
 				await page.evaluate(
 					() =>

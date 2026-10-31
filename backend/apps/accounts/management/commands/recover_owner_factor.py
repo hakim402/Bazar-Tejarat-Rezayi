@@ -15,7 +15,7 @@ class Command(BaseCommand):
         email = normalize_email(input("Owner email (local input only): "))
         user = (
             User.objects.select_for_update()
-            .filter(email=email, is_active=True, owner_authority=True, is_staff=True, is_superuser=True)
+            .filter(email=email, is_active=True, email_verified=True, is_staff=True, is_superuser=True)
             .first()
         )
         password = getpass.getpass("Current owner password: ")

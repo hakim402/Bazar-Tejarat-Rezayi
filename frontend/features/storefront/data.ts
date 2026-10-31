@@ -26,7 +26,7 @@ export type DemoProduct = (typeof demoProducts)[number];
 export const productImage = (id: DemoProduct) =>
 	`/images/storefront/${id}.webp`;
 export const categoryHref = (locale: Locale, id: CategoryId) =>
-	`/${locale}#category-${id}`;
+	`/${locale}/categories/${({ "dried-fruit": "food", beauty: "cosmetics" } as Partial<Record<CategoryId, string>>)[id] || id}`;
 export const productHref = (locale: Locale, id: DemoProduct) =>
 	`/${locale}#demo-product-${id}`;
 export function isDemoProduct(value: string): value is DemoProduct {

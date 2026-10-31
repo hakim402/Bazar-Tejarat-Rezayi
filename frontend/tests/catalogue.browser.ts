@@ -8,7 +8,8 @@ import {
 	catalogueReviewProduct,
 } from "./support/catalogue-runtime";
 import { apiOrigin, disposablePython } from "./support/identity-runtime";
-import { catalogueCopy, catalogueStatuses } from "../lib/i18n/catalogue";
+import { marketplaceCopy } from "../features/marketplace/copy";
+import { catalogueCopy } from "../lib/i18n/catalogue";
 import { locales, type Locale } from "../lib/i18n/locales";
 const enabled = process.env.CATALOGUE_BROWSER_TESTS === "1";
 const evidence =
@@ -163,7 +164,10 @@ test("seller creates uploads saves submits; staff publishes exact revision; repl
 	expect(publicResult.status()).toBe(200);
 	expect((await publicResult.json()).source_fallback).toBe(true);
 	await review.goto(`/en/catalogue-preview/${id}`);
-	await expect(review.getByText(catalogueCopy.en.sourceFallback)).toBeVisible();
+	await expect(review).toHaveURL(`/en/products/${id}`);
+	await expect(
+		review.getByText(marketplaceCopy.en.fallback, { exact: true }),
+	).toBeVisible();
 	await review.goto(`${apiOrigin}/admin/catalogue/product/${id}/workflow/`);
 	await page.reload();
 	await page.locator("#catalogue-body-title").fill("PRIVATE REPLACEMENT");

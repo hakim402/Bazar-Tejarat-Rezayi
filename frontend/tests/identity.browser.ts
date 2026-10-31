@@ -1,3 +1,4 @@
+import { loadRenderedImages } from "./support/rendered-images";
 import { messages } from "../lib/i18n/messages";
 import { choosePreference } from "./support/site-preferences";
 import { adminLogin, openAdminAccountMenu } from "./support/admin-runtime";
@@ -379,9 +380,14 @@ test("identity owner admin MFA and actual permitted styled administration", asyn
 		})
 		.click();
 	await expect(page).toHaveURL(`${api}/admin/`);
+	const accounts = page
+		.locator("#nav-sidebar-apps")
+		.getByRole("button", { name: "Accounts & Access", exact: true });
+	if ((await accounts.getAttribute("aria-expanded")) !== "true")
+		await accounts.click();
 	await expect(
-		page.locator('a[href="/admin/accounts/account/"]:visible').first(),
-	).toBeVisible();
+		page.getByRole("link", { name: "Staff accounts", exact: true }),
+	).toHaveAttribute("href", "/admin/accounts/account/?context__exact=staff");
 	await page.screenshot({
 		path: `${evidence}/owner-admin-permitted.png`,
 		fullPage: true,
@@ -455,21 +461,8 @@ test("identity public auth Dari desktop and mobile design inventory", async ({
 		for (const screen of screens) {
 			await page.goto(`/fa-AF/auth/${screen}`);
 			await choosePreference(page, messages["fa-AF"].theme, "light");
-			await page.evaluate(async () => {
-				await document.fonts.ready;
-				await Promise.all(
-					[...document.images]
-						.filter((img) => img.getBoundingClientRect().width > 0)
-						.map((img) =>
-							img.complete
-								? Promise.resolve()
-								: new Promise((resolve) => {
-										img.onload = resolve;
-										img.onerror = resolve;
-									}),
-						),
-				);
-			});
+			await page.evaluate(() => document.fonts.ready);
+			await loadRenderedImages(page);
 			expect(
 				await page.evaluate(
 					() => document.documentElement.scrollWidth <= innerWidth,

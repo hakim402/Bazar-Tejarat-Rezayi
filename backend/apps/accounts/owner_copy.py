@@ -109,7 +109,7 @@ COPY = {locale: dict(zip(KEYS, values, strict=True)) for locale, values in TEXT.
 
 # Password-only owner sign-in is available solely through the explicit non-production setting.
 PASSWORD_ONLY_SUBTITLES = {
-    "en": "Owner administration · Password required",
+    "en": "Administration · Password required",
     "fa-AF": "مدیریت سیستم · رمز عبور لازم است",
     "ps": "د سیسټم اداره · پټنوم اړین دی",
     "ar": "إدارة النظام · كلمة المرور مطلوبة",

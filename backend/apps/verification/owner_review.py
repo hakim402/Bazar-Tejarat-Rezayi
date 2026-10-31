@@ -22,7 +22,9 @@ def workflow(admin, request, pk):
     )
     actor = admin_actor(request)
     try:
-        if not is_owner(request) and permits(request, "verification", "assign_review"):
+        if is_owner(request):
+            actor.account
+        elif permits(request, "verification", "assign_review"):
             from apps.organizations.access import independent
             independent(case.profile, actor)
         elif permits(request, "verification", "decide_review") and not permits(request, "verification", "read_evidence"):
@@ -44,7 +46,13 @@ def workflow(admin, request, pk):
     current = case.revision == case.profile.revision
     can_decide = permits(request, "verification", "decide_review") and (
         is_owner(request) or case.assigned_to_id == actor.account.pk)
-    can_act = can_decide or permits(request, "verification", "assign_review")
+    independent_decision = True
+    try:
+        from apps.organizations.access import independent
+        independent(case.profile, actor)
+    except APIException:
+        independent_decision = False
+    can_act = independent_decision and (can_decide or permits(request, "verification", "assign_review"))
     editable = current and case.status in {"submitted", "under_review"} and can_act
     t = COPY["en"]
     form = ReviewWorkflowForm(
@@ -66,6 +74,8 @@ def workflow(admin, request, pk):
         for name, field in form.fields.items():
             if name.startswith("alternative_"):
                 field.initial = ""
+    if request.method == "POST" and not independent_decision:
+        raise PermissionDenied("An independent reviewer must decide this submission.")
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         if data.get("assigned_to") is not None:
@@ -100,7 +110,7 @@ def workflow(admin, request, pk):
     latest = case.profile.cases.filter(revision=case.profile.revision).first() if not current else None
     context = dict(
         admin.admin_site.each_context(request), title=ADMIN_COPY["review_title"], resource=case, review_copy=ADMIN_COPY,
-        form=form, t=t, editable=editable, can_act=can_act, current=current, evidence_rows=rows if can_read else [], can_read=can_read,
+        form=form, t=t, independent_decision=independent_decision, editable=editable, can_act=can_act, current=current, evidence_rows=rows if can_read else [], can_read=can_read,
         snapshot=[{"label": label, "value": case.snapshot.get(key, "")} for key, label in fields] if can_read else [],
         has_reviewers=has_reviewers, review_events=AuditEvent.objects.filter(Q(resource_type="verification.reviewcase", resource_id=case.pk) | Q(resource_type="verification.evidence", state__case_id=str(case.pk))).order_by("created_at") if can_read else [], latest_url=(
             reverse("admin:verification_reviewcase_workflow", args=[latest.pk]) if latest else None

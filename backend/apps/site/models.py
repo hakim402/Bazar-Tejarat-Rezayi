@@ -4,7 +4,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 LOCALES = [("fa-AF", "Dari"), ("en", "English"), ("ps", "Pashto"), ("ar", "Arabic")]
-PAGES = ["home", "how-it-works", "wholesale", "sell", "about", "contact", "terms", "privacy", "help", "payment-and-delivery", "cancellations-and-disputes", "verification"]
+PAGES = ["home", "how-it-works", "wholesale", "sell", "about", "contact", "terms", "privacy", "help", "payment-and-delivery", "cancellations-and-disputes", "verification", "categories", "products", "search", "stores"]
 
 
 class SiteMedia(models.Model):

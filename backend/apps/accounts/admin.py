@@ -7,7 +7,7 @@ from django.contrib.auth.admin import GroupAdmin
 from django import forms
 from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
-from django.db import transaction
+from django.db import transaction, connection
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render
 from django.urls import reverse, path
@@ -19,6 +19,7 @@ from rest_framework.exceptions import APIException
 from unfold.admin import ModelAdmin
 from unfold.sites import UnfoldAdminSite
 
+from . import admin_records
 from .owner_copy import COPY, PASSWORD_ONLY_SUBTITLES
 from .admin_copy import COPY as ADMIN_COPY
 from .models import Account, AuditEvent, User
@@ -43,7 +44,7 @@ class OwnerSite(UnfoldAdminSite):
             except APIException as error:
                 if error.status_code == 404:
                     raise Http404 from None
-                if error.status_code == 403:
+                if error.status_code in {401, 403}:
                     raise PermissionDenied from None
                 raise
         return super().admin_view(guarded, cacheable=cacheable)
@@ -51,6 +52,24 @@ class OwnerSite(UnfoldAdminSite):
     def register(self, model_or_iterable, admin_class=None, **options):
         guarded = type("Guarded" + admin_class.__name__, (GuardedAdminMixin, admin_class), {})
         return super().register(model_or_iterable, guarded, **options)
+
+    def get_app_list(self, request, app_label=None):
+        # One fresh authority check for a directory, instead of rechecking it for
+        # every permission of every model. Actual views/querysets/actions recheck.
+        try:
+            get_grant(request, 'owner')
+            root = True
+        except APIException:
+            root = False
+        previous = getattr(request, '_admin_directory_root', None)
+        request._admin_directory_root = root
+        try:
+            return super().get_app_list(request, app_label)
+        finally:
+            if previous is None:
+                del request._admin_directory_root
+            else:
+                request._admin_directory_root = previous
 
     def index(self, request, extra_context=None):
         if is_owner(request):
@@ -149,7 +168,7 @@ class OwnerSite(UnfoldAdminSite):
     def login_context(self, email):
         from .models import normalize_email
         user = User.objects.filter(email=normalize_email(email)).first()
-        return "owner" if user and user.owner_authority else "staff"
+        return "owner" if user and user.is_superuser else "staff"
 
     def logout(self, request, extra_context=None):
         if request.method == "POST":
@@ -166,8 +185,19 @@ class StaffProvisioningFormMixin:
     attest_staff_email = forms.BooleanField(required=False, label=ADMIN_COPY["staff_email_attest"],
         help_text=ADMIN_COPY["staff_email_attest_help"])
 
+    authority_version = forms.IntegerField(required=False, widget=forms.HiddenInput)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["authority_version"].required = not self.instance._state.adding
+        self.fields["authority_version"].initial = self.instance.credential_epoch if self.instance.pk else None
+        self.fields["is_superuser"].label = "Super admin"
+        self.fields["is_superuser"].help_text = "Full native administration; independent approvals and immutable history still apply. Requires active staff access and verified email."
+
     def clean(self):
         data = super().clean()
+        if data.get("is_superuser") and not data.get("is_staff"):
+            self.add_error("is_superuser", "Super admin requires staff access.")
         if data.get("is_staff") and not self.instance.email_verified and not data.get("attest_staff_email"):
             self.add_error("attest_staff_email", ADMIN_COPY["staff_email_attest_required"])
         return data
@@ -175,36 +205,38 @@ class StaffProvisioningFormMixin:
 
 class AddIdentityForm(StaffProvisioningFormMixin, UserCreationForm):
     attest_staff_email = StaffProvisioningFormMixin.attest_staff_email
+    authority_version = StaffProvisioningFormMixin.authority_version
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ["email", "display_name", "is_staff", "groups"]
+        fields = ["email", "display_name", "is_staff", "is_superuser", "groups"]
 
 
 class ChangeIdentityForm(StaffProvisioningFormMixin, UserChangeForm):
     attest_staff_email = StaffProvisioningFormMixin.attest_staff_email
+    authority_version = StaffProvisioningFormMixin.authority_version
     class Meta(UserChangeForm.Meta):
         model = User
-        fields = ["email", "display_name", "is_active", "is_staff", "groups"]
+        fields = ["email", "display_name", "is_active", "is_staff", "is_superuser", "groups"]
 
 
 class IdentityAdmin(UserAdmin, ModelAdmin):
     change_list_template = "accounts/admin/provision_list.html"
     form = ChangeIdentityForm
     add_form = AddIdentityForm
-    list_display = ["display_name", "email", "email_verified", "is_active", "owner_authority"]
+    list_display = ["display_name", "email", "email_verified", "is_active", "is_staff", "is_superuser"]
     ordering = ["email"]
     search_fields = ["email", "display_name", "is_staff", "groups__name"]
     list_filter = ["email_verified", *UserAdmin.list_filter]
     fieldsets = [
-        (None, {"fields": ["email", "display_name", "is_active", "is_staff", "groups", "attest_staff_email"]}),
+        (None, {"fields": ["email", "display_name", "is_active", "is_staff", "is_superuser", "groups", "attest_staff_email", "authority_version"]}),
         (
             "Protected identity state",
-            {"fields": ["email_verified", "owner_authority", "is_superuser", "credential_epoch"]},
+            {"fields": ["email_verified", "owner_authority", "credential_epoch"], "description": "The legacy owner flag is retained for history. Super admin above is the canonical administrative role."},
         ),
     ]
-    add_fieldsets = [(None, {"fields": ["email", "display_name", "password1", "password2", "is_staff", "groups", "attest_staff_email"]})]
+    add_fieldsets = [(None, {"fields": ["email", "display_name", "password1", "password2", "is_staff", "is_superuser", "groups", "attest_staff_email", "authority_version"]})]
     filter_horizontal = ["groups"]
-    readonly_fields = ["email", "email_verified", "owner_authority", "is_superuser", "credential_epoch"]
+    readonly_fields = ["email", "email_verified", "owner_authority", "credential_epoch"]
     actions = ["verify_email_for_development"]
 
     def get_actions(self, request):
@@ -219,7 +251,7 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
         self.message_user(request, ADMIN_COPY["development_verified_result"] % {"count": count})
 
     def get_readonly_fields(self, request, obj=None):
-        return [*self.readonly_fields, *(["is_staff", "groups", "attest_staff_email"] if obj and obj.owner_authority else [])] if obj else []
+        return self.readonly_fields if obj else []
 
     def get_urls(self):
         # Shared-credential password changes use the audited session-invalidating workflow.
@@ -230,20 +262,37 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
 
     @transaction.atomic
     def save_model(self, request, obj, form, change):
+        # One transaction-level lock serializes privileged changes, even when two
+        # admins target different identities. Never lock only the target row.
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [728102803])
         get_grant(request, "owner")
-        if obj.is_staff and form.cleaned_data.get("attest_staff_email") and not obj.email_verified:
+        current = User.objects.select_for_update().filter(pk=obj.pk).first() if change else None
+        if current and form.cleaned_data.get("authority_version") != current.credential_epoch:
+            raise PermissionDenied("Identity authority changed. Reload this form.")
+        removing = current and current.is_superuser and not (obj.is_superuser and obj.is_staff and obj.is_active)
+        if removing:
+            if obj.pk == request.user.pk:
+                raise PermissionDenied("You cannot remove your own administrative access.")
+            alternatives = User.objects.filter(is_superuser=True, is_staff=True, is_active=True, email_verified=True).exclude(pk=obj.pk)
+            if not any(user.has_usable_password() for user in alternatives):
+                raise PermissionDenied("Keep at least one usable super admin.")
+        if obj.is_superuser and not (obj.is_staff and obj.is_active):
+            raise PermissionDenied("Super admin requires active staff access.")
+        attested = obj.is_staff and form.cleaned_data.get("attest_staff_email") and not obj.email_verified
+        if attested:
             obj.email_verified = True
         super().save_model(request, obj, form, change)
-        if obj.is_staff and not obj.owner_authority:
+        if obj.is_staff and not obj.is_superuser:
             Account.objects.get_or_create(user=obj, context="staff")
-            if form.cleaned_data.get("attest_staff_email"):
-                audit("staff_email_attested", request=request, user=obj, context="owner", fields=["email_verified"])
+        if attested:
+            audit("staff_email_attested", request=request, user=obj, context="owner", fields=["email_verified"])
         audit(
             "owner_identity_updated" if change else "owner_identity_provisioned",
             request=request,
             user=obj,
             context="owner",
-            fields=[field for field in form.changed_data if field in {"email", "display_name", "is_active", "is_staff", "groups"}],
+            fields=[field for field in form.changed_data if field in {"email", "display_name", "is_active", "is_staff", "is_superuser", "groups"}],
         )
 
     def save_related(self, request, form, formsets, change):
@@ -331,3 +380,6 @@ class RoleAdmin(GroupAdmin, ModelAdmin):
 
 
 owner_site.register(Group, RoleAdmin)
+
+# Explicit allowlisted metadata; never register authentication backing fields wholesale.
+admin_records.register(owner_site)

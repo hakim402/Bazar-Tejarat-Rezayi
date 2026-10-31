@@ -1,4 +1,4 @@
-"""Development admin MFA opt-out preserves production, role, CSRF and session boundaries."""
+"""Explicit admin MFA policy preserves role, CSRF and session boundaries in both environments."""
 
 import time
 from unittest.mock import patch
@@ -20,8 +20,7 @@ class OwnerMFAPolicySettingsTests(SimpleTestCase):
             self.assertTrue(owner_mfa_setting(environ.Env(), production=True))
         with patch.dict("os.environ", {"OWNER_MFA_REQUIRED": "false"}):
             self.assertFalse(owner_mfa_setting(environ.Env(), production=False))
-            with self.assertRaisesMessage(ImproperlyConfigured, "must be true in production"):
-                owner_mfa_setting(environ.Env(), production=True)
+            self.assertFalse(owner_mfa_setting(environ.Env(), production=True))
         with patch.dict("os.environ", {"OWNER_MFA_REQUIRED": "true"}):
             self.assertTrue(owner_mfa_setting(environ.Env(), production=True))
 
@@ -30,10 +29,14 @@ class OwnerMFAPolicySettingsTests(SimpleTestCase):
             with self.subTest(value=value), patch.dict("os.environ", {"OWNER_MFA_REQUIRED": value}):
                 with self.assertRaisesMessage(ImproperlyConfigured, "must be true or false"):
                     owner_mfa_setting(environ.Env(), production=False)
+                with self.assertRaisesMessage(ImproperlyConfigured, "must be true or false"):
+                    owner_mfa_setting(environ.Env(), production=True)
 
 
 @override_settings(PRODUCTION=False, OWNER_MFA_REQUIRED=False)
 class OwnerDevelopmentMFATests(TestCase):
+    settings_production = False
+
     def setUp(self):
         self.owner = User.objects.create_superuser(
             "owner-policy@example.test", PASSWORD, display_name="Synthetic owner", email_verified=True
@@ -54,7 +57,7 @@ class OwnerDevelopmentMFATests(TestCase):
         self.assertFalse(self.client.session["grants"]["owner"]["mfa"])
         self.assertNotIn("pending_mfa", self.client.session)
         self.assertFalse(Authenticator.objects.filter(user=self.owner).exists())
-        self.assertTrue(AuditEvent.objects.filter(action="owner_development_password_signin").exists())
+        self.assertTrue(AuditEvent.objects.filter(action="owner_password_signin" if self.settings_production else "owner_development_password_signin").exists())
 
     @override_settings(OWNER_MFA_REQUIRED=True)
     def test_staff_enrollment_describes_mfa_when_requirement_is_enabled(self):
@@ -88,18 +91,17 @@ class OwnerDevelopmentMFATests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["stage"], "enroll_start")
 
-    def test_production_requires_mfa_even_if_boolean_setting_is_overridden(self):
-        self.login()
+    def test_production_false_honors_password_only_policy(self):
         with override_settings(PRODUCTION=True, OWNER_MFA_REQUIRED=False):
-            self.assertEqual(self.client.get("/admin/").status_code, 302)
-            self.assertEqual(self.login().status_code, 200)
-            self.assertIn("pending_mfa", self.client.session)
+            self.assertEqual(self.login().status_code, 302)
+            self.assertEqual(self.client.get("/admin/").status_code, 200)
+            self.assertNotIn("pending_mfa", self.client.session)
 
     def test_wrong_password_missing_csrf_and_unprivileged_identities_are_rejected(self):
         self.assertEqual(self.login(csrf=False).status_code, 403)
         self.assertEqual(self.login(password="wrong").status_code, 200)
         self.assertEqual(self.client.get("/admin/").status_code, 302)
-        for field in ("owner_authority", "is_staff", "is_superuser", "email_verified", "is_active"):
+        for field in ("is_staff", "is_superuser", "email_verified", "is_active"):
             setattr(self.owner, field, False)
             self.owner.save()
             client = APIClient(enforce_csrf_checks=True)
@@ -157,6 +159,8 @@ class OwnerDevelopmentMFATests(TestCase):
 
 @override_settings(PRODUCTION=False, OWNER_MFA_REQUIRED=False)
 class StaffDevelopmentMFATests(TestCase):
+    settings_production = False
+
     login = OwnerDevelopmentMFATests.login
 
     def setUp(self):
@@ -177,7 +181,7 @@ class StaffDevelopmentMFATests(TestCase):
         self.assertEqual(grant["entry"], "admin")
         self.assertNotIn("pending_mfa", self.client.session)
         self.assertFalse(Authenticator.objects.filter(user=self.owner).exists())
-        self.assertTrue(AuditEvent.objects.filter(action="staff_development_password_signin", context="staff").exists())
+        self.assertTrue(AuditEvent.objects.filter(action="staff_password_signin" if self.settings_production else "staff_development_password_signin", context="staff").exists())
 
     def test_staff_groups_still_control_models_and_revocation_is_immediate(self):
         from django.contrib.auth.models import Group, Permission
@@ -213,11 +217,11 @@ class StaffDevelopmentMFATests(TestCase):
             self.assertEqual(self.login().context["stage"], "enroll_start")
             self.assertEqual(self.client.session["pending_mfa"]["context"], "staff")
 
-    def test_production_requires_mfa_even_if_boolean_setting_is_overridden(self):
-        self.login()
+    def test_production_false_honors_password_only_policy(self):
         with override_settings(PRODUCTION=True, OWNER_MFA_REQUIRED=False):
-            self.assertEqual(self.client.get("/admin/").status_code, 302)
-            self.assertEqual(self.login().context["stage"], "enroll_start")
+            self.assertEqual(self.login().status_code, 302)
+            self.assertEqual(self.client.get("/admin/").status_code, 200)
+            self.assertNotIn("pending_mfa", self.client.session)
 
     def test_wrong_password_missing_csrf_and_unprivileged_identities_are_rejected(self):
         self.assertEqual(self.login(csrf=False).status_code, 403)
@@ -275,3 +279,13 @@ class StaffDevelopmentMFATests(TestCase):
         session.save()
         self.assertEqual(self.client.get("/admin/").status_code, 302)
         self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
+
+
+@override_settings(PRODUCTION=True, DEBUG=False, OWNER_MFA_REQUIRED=False)
+class OwnerProductionMFATests(OwnerDevelopmentMFATests):
+    settings_production = True
+
+
+@override_settings(PRODUCTION=True, DEBUG=False, OWNER_MFA_REQUIRED=False)
+class StaffProductionMFATests(StaffDevelopmentMFATests):
+    settings_production = True

@@ -2,7 +2,7 @@
 
 from django import forms
 from django.core.exceptions import PermissionDenied
-from apps.accounts.admin_access import admin_actor, permits
+from apps.accounts.admin_access import admin_actor, permits, is_owner
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -21,6 +21,7 @@ from .models import (
     PriceChange,
     Translation,
     TranslationJob,
+    TranslationBudget,
     CatalogueEvent,
     Category,
     SaleUnit,
@@ -56,7 +57,9 @@ class PrivateImageAdmin(CatalogueRecordAdmin):
         actor = admin_actor(request)
         access.resource(actor, image.product_id)
         from apps.organizations.access import independent
-        independent(image.product.seller, actor)
+        if not is_owner(request):
+            independent(image.product.seller, actor)
+        access.audit(actor, image.product, "private_media_inspected")
         return image_response(image, request)
 
 
@@ -117,6 +120,12 @@ class ProductAdmin(ReadOnlyAdmin):
         item = get_object_or_404(self.get_queryset(request), pk=pk)
         actor = admin_actor(request)
         access.resource(actor, pk)
+        from apps.organizations.access import independent
+        independent_decision = True
+        try:
+            independent(item.seller, actor)
+        except APIException:
+            independent_decision = False
         translation = request.POST.get("form") == "translation" or request.GET.get("translation") == "1"
         if translation and not permits(request, "catalogue", "review_translation"):
             raise PermissionDenied
@@ -205,7 +214,7 @@ class ProductAdmin(ReadOnlyAdmin):
                 locale=locale,
                 direction="ltr" if locale == "en" else "rtl",
                 form=form,
-                item=item,
+                item=item, independent_decision=independent_decision,
                 revisions=item.revisions.order_by("-number"),
                 translation=translation,
                 can_review_source=permits(request, "catalogue", "review_source", "moderate_catalogue"),
@@ -364,3 +373,11 @@ for model in (
 ):
     owner_site.register(model, CatalogueRecordAdmin)
 owner_site.register(ProductImage, PrivateImageAdmin)
+
+
+class BudgetAdmin(ReadOnlyAdmin):
+    list_display = ['day', 'calls', 'characters']
+    ordering = ['-day']
+
+
+owner_site.register(TranslationBudget, BudgetAdmin)

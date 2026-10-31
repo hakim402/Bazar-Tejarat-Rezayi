@@ -66,7 +66,7 @@ class OwnerBootstrapTests(TransactionTestCase):
         person.refresh_from_db()
         self.assertFalse(person.owner_authority)
         self.assertTrue(person.check_password(PASSWORD))
-        person.owner_authority = True
+        person.is_superuser = True
         person.save()
         with patch("builtins.input") as prompt:
             with self.assertRaisesMessage(CommandError, "An owner already exists"):

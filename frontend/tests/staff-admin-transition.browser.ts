@@ -169,7 +169,8 @@ test("all former frontend and staff REST routes are HTTP 404 for anonymous, buye
 test("staff least privilege, direct native URLs and next-action revocation", async ({
 	browser,
 }) => {
-	test.setTimeout(120000);
+	// Eight independently enrolled roles exercise every direct resource URL.
+	test.setTimeout(240000);
 	const roleMatrix: [string, string[], string[]][] = [
 		[
 			"verification",

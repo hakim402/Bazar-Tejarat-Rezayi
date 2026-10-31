@@ -10,6 +10,11 @@ register_converter(MarketplaceContext, "marketplace")
 register_converter(SellerContext, "seller")
 
 urlpatterns = [
+    path("api/v1/cart/", include("apps.cart.urls")),
+    path("api/v1/orders/", include("apps.orders.urls")),
+    path("api/v1/messaging/", include("apps.messaging.urls")),
+    path("api/v1/notifications/", include("apps.notifications.urls")),
+    path("api/v1/marketplace/", include("apps.marketplace.urls")),
     path("api/v1/inventory/", include("apps.inventory.urls")),
     path("api/v1/catalogue/", include("apps.catalogue.urls")),
     path("api/v1/site/", include("apps.site.urls")),

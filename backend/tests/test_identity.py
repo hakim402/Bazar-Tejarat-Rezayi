@@ -433,7 +433,7 @@ class PrivilegedTests(TestCase):
         self.assertContains(response, "Bazar Rezayi")
         self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
 
-    def test_live_permission_group_revocation_and_no_superuser_business_bypass(self):
+    def test_superuser_native_entry_and_no_business_grant_bypass(self):
         self.user.is_superuser = True
         self.user.save()
         self.enroll()
@@ -442,7 +442,9 @@ class PrivilegedTests(TestCase):
         group = Group.objects.create(name="Rezayi: Support")
         group.permissions.add(Permission.objects.get(codename="handle_support"))
         self.account.permission_groups.add(group)
-        self.assertEqual(self.client.get("/admin/").status_code, 302)
+        # Canonical superuser admission no longer requires owner_authority.
+        # Legacy Account groups still do not provide public/business authority.
+        self.assertEqual(self.client.get("/admin/").status_code, 200)
 
     def test_factor_reset_needs_password_and_factor_and_invalidates_grants(self):
         codes, device = self.enroll()

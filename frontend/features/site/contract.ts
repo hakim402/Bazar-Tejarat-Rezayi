@@ -1,6 +1,7 @@
 import { isLocale, type Locale } from "../../lib/i18n/locales.ts";
 import { messages } from "../../lib/i18n/messages.ts";
 import { destinationAllowed, pageKeys } from "../pages/registry.ts";
+import { marketplacePages } from "../../lib/routes/marketplace-routes.ts";
 import type { components } from "../../lib/api/schema.d";
 export type Site = components["schemas"]["PublicSite"];
 export type Media = components["schemas"]["Media"];
@@ -301,11 +302,12 @@ export function parseSite(
 			fallback: card.fallback === true,
 		});
 	}
-	for (const value of Array.isArray(data.seo) ? data.seo.slice(0, 12) : []) {
+	const seoPages = [...pageKeys, ...marketplacePages];
+	for (const value of Array.isArray(data.seo) ? data.seo.slice(0, 16) : []) {
 		const row = record(value);
-		if (pageKeys.includes(row.page as (typeof pageKeys)[number]))
+		if (seoPages.includes(row.page as (typeof seoPages)[number]))
 			result.seo.push({
-				page: row.page as (typeof pageKeys)[number],
+				page: row.page as Site["seo"][number]["page"],
 				title: text(row.title, 300),
 				description: text(row.description),
 				image: media(row.image),

@@ -5,6 +5,8 @@ import base64
 import json
 import os
 import secrets
+import subprocess
+import sys
 import threading
 from unittest.mock import patch
 import urllib.request
@@ -23,7 +25,9 @@ class QuietHandler(WSGIRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--development", action="store_true")
-    development = parser.parse_args().development
+    parser.add_argument("--mfa", choices=["true", "false"], default="true")
+    args = parser.parse_args()
+    development = args.development
     os.environ.update(
         DJANGO_SETTINGS_MODULE="config.settings.production", DJANGO_DEBUG="false",
         DJANGO_SECRET_KEY=secrets.token_urlsafe(64),
@@ -32,7 +36,7 @@ def main():
         DJANGO_ALLOWED_HOSTS="api.bazartejaratrezayi.com",
         DJANGO_CORS_ALLOWED_ORIGINS="https://bazartejaratrezayi.com",
         DJANGO_CSRF_TRUSTED_ORIGINS="https://bazartejaratrezayi.com",
-        FRONTEND_ORIGIN="https://bazartejaratrezayi.com", OWNER_MFA_REQUIRED="true",
+        FRONTEND_ORIGIN="https://bazartejaratrezayi.com", OWNER_MFA_REQUIRED=args.mfa,
         CELERY_BROKER_URL="redis://127.0.0.1:1/0", CELERY_RESULT_BACKEND="redis://127.0.0.1:1/0",
         GOOGLE_OAUTH_ENABLED="false", GOOGLE_CLIENT_ID="", GOOGLE_CLIENT_SECRET="", GOOGLE_REDIRECT_URI="",
         ACCOUNT_EMAIL_TRANSPORT="smtp", EMAIL_HOST="smtp.example.test", EMAIL_HOST_USER="sender@example.test",
@@ -41,6 +45,35 @@ def main():
         CATALOGUE_TRANSLATION_ENABLED="false", CATALOGUE_S3_BUCKET="", GROQ_API_KEY="",
         GROQ_DAILY_CALL_LIMIT="0", GROQ_DAILY_CHARACTER_LIMIT="0", DJANGO_SECURE_HSTS_SECONDS="0",
     )
+    # Each child initializes the actual production module with generated configuration.
+    # Invalid/default cases must pass through the startup validator, not override_settings.
+    if not development:
+        probe = """
+import sys
+from unittest.mock import patch
+import environ
+import config.environment
+from django.core.exceptions import ImproperlyConfigured
+try:
+    with patch.object(config.environment, 'load_environment', return_value=environ.Env()):
+        from config.settings import production as settings
+except ImproperlyConfigured:
+    raise SystemExit(42)
+assert settings.PRODUCTION and not settings.DEBUG
+assert settings.SESSION_COOKIE_SECURE and settings.CSRF_COOKIE_SECURE
+assert settings.SECURE_SSL_REDIRECT
+assert settings.OWNER_MFA_REQUIRED == (sys.argv[1] == 'true')
+"""
+        for value, expected in ((None, 'true'), ('true', 'true'), ('false', 'false'),
+                                ('', None), ('tru', None), ('0', None), ('disabled', None)):
+            child_env = dict(os.environ)
+            if value is None:
+                child_env.pop('OWNER_MFA_REQUIRED', None)
+            else:
+                child_env['OWNER_MFA_REQUIRED'] = value
+            result = subprocess.run([sys.executable, '-c', probe, expected or 'invalid'],
+                                    env=child_env, capture_output=True, timeout=20)
+            assert result.returncode == (0 if expected else 42), 'Production startup policy regression'
     if development:
         os.environ.update(
             DJANGO_SETTINGS_MODULE="config.settings.development", DJANGO_DEBUG="true",
@@ -62,6 +95,9 @@ def main():
     if not development:
         assert not settings.DEBUG and settings.SETTINGS_MODULE == "config.settings.production"
         assert settings.SESSION_COOKIE_SECURE and settings.CSRF_COOKIE_SECURE and settings.SECURE_SSL_REDIRECT
+    assert settings.OWNER_MFA_REQUIRED == (args.mfa == "true")
+    from apps.accounts.services import admin_mfa_required
+    assert admin_mfa_required() == (args.mfa == "true")
     findings = run_checks(include_deployment_checks=not development)
     errors = [f for f in findings if f.level >= 40]
     assert not errors, [f.id for f in errors]

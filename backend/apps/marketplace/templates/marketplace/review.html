@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+{% if not independent_decision %}<p role="status" class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-ink">You can inspect this record. An independent reviewer must decide your own or historically linked store submission.</p>{% endif %}
+<div class="ra:grid ra:gap-6 ra:min-w-0 ra:wrap-anywhere">
+  <section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
+    <h2 class="ra:text-lg ra:font-bold">Exact submitted revision {{ revision.number }}</h2>
+    <p class="ra:mt-2">State: {{ revision.state }} · Business review revision: {{ revision.business_case.revision }} · Store version: {{ revision.store.version }}</p>
+    <p class="ra:mt-2">Assigned reviewer: {{ revision.assigned_to|default:"Unassigned" }}</p>
+    <p class="ra:mt-2">Current approved optional revision: {{ revision.store.published.number|default:"None" }}. <a class="ra:text-action" href="{{ public_store_url }}" target="_blank" rel="noopener">Compare the current public store</a>. Pending or rejected changes do not replace it.</p>
+    <p class="ra:mt-2 ra:text-sm ra:text-muted">Review public descriptions, broad city/country and image content for private contacts, precise addresses and unsupported promises. This review does not change business verification or product approval.</p>
+    {% if can_read %}
+      <p class="ra:mt-4">Country: {{ public_body.country|default:"Not provided" }} · City: {{ public_body.city|default:"Not provided" }}</p>
+      {% for locale, edition in editions %}<article class="ra:mt-4 ra:rounded-lg ra:border ra:border-line ra:p-4">
+        <h3 class="ra:font-bold">{{ locale }}</h3><p class="ra:mt-2 ra:whitespace-pre-wrap" lang="{{ locale }}" dir="{% if locale == 'en' %}ltr{% else %}rtl{% endif %}">{{ edition.description }}</p>
+        <p class="ra:mt-2">Logo alt: <bdi lang="{{ locale }}">{{ edition.logo_alt }}</bdi> · Banner alt: <bdi lang="{{ locale }}">{{ edition.banner_alt }}</bdi></p>
+      </article>{% endfor %}
+      {% for image in media %}<a class="ra:mt-4 ra:inline-block ra:text-action" href="{{ image.url }}"><img class="ra:max-h-60 ra:max-w-full ra:rounded-lg" src="{{ image.url }}" alt="Submitted store media {{ image.name }}">Inspect private {{ image.name|lower }} image</a>{% endfor %}
+    {% else %}<p class="ra:mt-4">Submission content requires assigned read permission. Queue and assignment access do not reveal private draft content.</p>{% endif %}
+  </section>
+  {% if can_act %}<section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="ra:mt-4 ra:min-h-11 ra:rounded-lg ra:bg-action ra:px-5 ra:font-bold ra:text-on-action" type="submit">Apply guarded action</button></form></section>{% else %}<p>This revision has no actions for your current role and state.</p>{% endif %}
+  <a class="ra:text-action" href="{{ request.path }}">Reload saved revision (discard unsaved form entries)</a>
+</div>
+{% endblock %}

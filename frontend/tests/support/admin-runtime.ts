@@ -89,13 +89,7 @@ export async function adminAppearance(
 ) {
 	await page.setViewportSize({ width, height: 1000 });
 	await page.reload();
-	const toggle = page.getByRole("button", {
-		name: "Toggle navigation",
-		exact: true,
-	});
-	if (width < 1280 && (await toggle.getAttribute("aria-expanded")) !== "true")
-		await toggle.click();
-	await page.locator('[aria-controls="owner-user-menu"]').click();
+	await openAdminAccountMenu(page);
 	await page
 		.getByRole("button", {
 			name: theme === "dark" ? "Dark" : "Light",

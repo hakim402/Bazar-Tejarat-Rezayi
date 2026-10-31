@@ -13,6 +13,12 @@ class InventoryAuditAdmin(ModelAdmin):
     list_per_page = 30
     actions = None
 
+    def get_readonly_fields(self, request, obj=None):
+        return self.readonly_fields or [field.name for field in self.model._meta.fields]
+
+    def get_fieldsets(self, request, obj=None):
+        return [(None, {'fields': self.get_readonly_fields(request, obj), 'description': 'Authoritative stock inspection. Balances and retained ledger records change only through existing trusted inventory services and compensating operations; no generic edit/delete or invented reserve/recovery actions.'})]
+
     def has_add_permission(self, request):
         return False
 
@@ -113,6 +119,12 @@ class ShortageAdmin(InventoryAuditAdmin):
         return content
 
 
-for model in (Position, Batch, Bucket, Operation, Movement, Allocation, AllocationLine, Recovery):
-    owner_site.register(model, InventoryAuditAdmin)
+owner_site.register(Position, InventoryAuditAdmin, list_display=['variant', 'tracking', 'expiry_required', 'threshold', 'version'], list_filter=['tracking', 'expiry_required'], search_fields=['variant__sku'])
+owner_site.register(Batch, InventoryAuditAdmin, list_display=['code', 'position', 'expires_on', 'created_at'], search_fields=['code', 'position__variant__sku'])
+owner_site.register(Bucket, InventoryAuditAdmin, list_display=['position', 'batch', 'physical', 'held'], search_fields=['position__variant__sku'])
+owner_site.register(Operation, InventoryAuditAdmin, list_display=['seller', 'action', 'reference', 'created_at'], list_filter=['action'], search_fields=['seller__display_name', 'reference'])
+owner_site.register(Movement, InventoryAuditAdmin, list_display=['operation', 'bucket', 'physical_delta', 'held_delta', 'created_at'])
+owner_site.register(Allocation, InventoryAuditAdmin, list_display=['operation', 'state'], list_filter=['state'])
+owner_site.register(AllocationLine, InventoryAuditAdmin, list_display=['allocation', 'bucket', 'quantity'])
+owner_site.register(Recovery, InventoryAuditAdmin, list_display=['shortage', 'operation'])
 owner_site.register(Shortage, ShortageAdmin)

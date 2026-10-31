@@ -58,7 +58,7 @@ class SiteWorkspaceTests(TestCase):
         response = self.client.get('/admin/site-setting/hero/')
         self.assertEqual(list(response.context['form'].fields['hero_mode'].choices), [('image_carousel', 'Image Carousel'), ('video_carousel', 'Video Carousel')])
         from apps.accounts.admin_navigation import navigation
-        self.assertEqual(str(navigation(response.wsgi_request)[-1]['title']), 'Site Setting')
+        self.assertEqual(str(navigation(response.wsgi_request)[-1]['title']), 'Site Settings')
 
     def test_settings_drafts_are_private_on_every_section_and_publish(self):
         for section in SECTIONS:
