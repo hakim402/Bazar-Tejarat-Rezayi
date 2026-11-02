@@ -1,4 +1,5 @@
 """Forward upgrade of the Phase 03 schema with synthetic credentials and permissions preserved."""
+from unittest import skipUnless
 
 from django.contrib.auth.hashers import make_password
 from django.db import connection
@@ -8,6 +9,7 @@ from django.test import TransactionTestCase
 from config.testing import assert_owned_database
 
 
+@skipUnless(connection.vendor == "postgresql", "Source predecessor history; target replay/import checked separately")
 class OrganizationMigrationTests(TransactionTestCase):
     def test_phase03_upgrade_preserves_identity_credentials_contexts_and_permission_links(self):
         assert_owned_database(connection)

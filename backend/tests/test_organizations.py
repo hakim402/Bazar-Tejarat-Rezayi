@@ -1,4 +1,5 @@
 """Phase 04 API and business invariants, using owned disposable PostgreSQL only."""
+import smtplib
 from tests.test_identity import native_auth
 
 import io
@@ -29,7 +30,7 @@ from apps.organizations.models import Membership, BUNDLES
 from apps.organizations.profiles import create_profile, current_case, effective_entitlement, update_profile
 from apps.organizations.teams import accept_invitation, change_member, invite, invitation_action
 from apps.organizations.transfers import request_transfer, transfer_action
-from apps.organizations.mail import dispatch_invitation, invitation_message
+from apps.organizations.mail import dispatch_invitation, invitation_message, sweep_invitations
 from apps.verification.models import Evidence, ReviewCase
 from apps.verification.services import application_action, upload_evidence, review_action
 from tests.test_identity import PASSWORD, signin
@@ -453,6 +454,7 @@ class OrganizationTests(TransactionTestCase):
     def invite_token(self, email="new-member@example.test"):
         with self.captureOnCommitCallbacks(execute=True):
             item = invite(self.actor, self.profile.pk, {"email": email, "bundles": ["catalogue"], "locale": "en"})
+        sweep_invitations()
         token = re.search(r"#token=([A-Za-z0-9_-]+)", mail.outbox[-1].body)[1]
         return item, token
 
@@ -498,6 +500,7 @@ class OrganizationTests(TransactionTestCase):
         new_account = identity("new-member")
         with self.captureOnCommitCallbacks(execute=True):
             invitation_action(self.actor, self.profile.pk, item.pk, "resend", item.version)
+        sweep_invitations()
         new = re.search(r"#token=([A-Za-z0-9_-]+)", mail.outbox[-1].body)[1]
         with self.assertRaises(APIException):
             accept_invitation(ServiceActor(new_account), token)
@@ -524,11 +527,12 @@ class OrganizationTests(TransactionTestCase):
             )
 
     def test_invitation_mail_failure_retry_and_localized_branding(self):
-        with patch("django.core.mail.message.EmailMultiAlternatives.send", side_effect=OSError("PRIVATE CREDENTIAL")):
+        with patch("django.core.mail.message.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"PRIVATE CREDENTIAL")):
             with self.captureOnCommitCallbacks(execute=True):
                 item = invite(
                     self.actor, self.profile.pk, {"email": "new@example.test", "bundles": [], "locale": "fa-AF"}
                 )
+            sweep_invitations()
         delivery = item.deliveries.first()
         self.assertEqual(delivery.status, "delivery_failed")
         self.assertTrue(delivery.encrypted_payload)
@@ -951,7 +955,8 @@ class OrganizationTests(TransactionTestCase):
         self.assertEqual(case.status, "submitted")
         self.assertEqual(client.get(path).status_code, 200)
         conflicted = self.owner_client(self.account)
-        self.assertEqual(conflicted.get(path).status_code, 403)
+        self.assertEqual(conflicted.get(path).status_code, 200)
+        self.assertContains(conflicted.get(path), "An independent reviewer")
         self.assertEqual(self.request(path, values, client=conflicted, format="multipart").status_code, 403)
 
     @override_settings(OWNER_MFA_REQUIRED=False)
@@ -1082,7 +1087,10 @@ class OrganizationTests(TransactionTestCase):
             self.assertTrue(owner.active)
             self.populate()
             evidence = current_case(self.profile).evidence.first()
-            self.assertEqual(client.get(f"/admin/verification/evidence/{evidence.pk}/download/").status_code, 403)
+            download = client.get(f"/admin/verification/evidence/{evidence.pk}/download/")
+            self.assertEqual(download.status_code, 200)
+            download.close()
+            self.assertTrue(AuditEvent.objects.filter(actor=self.account.user, action='verification_evidence_downloaded', resource_id=evidence.pk).exists())
 
 
 class OrganizationConcurrencyTests(TransactionTestCase):

@@ -209,6 +209,7 @@ class NativeProcessCleanupTests(SimpleTestCase):
                 raise TestFailure("Intentional verification failure.")
 
             with patch("scripts.run_tests.ROOT", root), patch("scripts.run_tests.FRONTEND", root), \
+                    patch("scripts.run_tests.BACKEND", root), \
                     patch.object(run, "source_manifest", return_value={}), \
                     patch.object(run, "prepare"), patch.object(run, "backend_checks", side_effect=corrupt_and_fail), \
                     self.assertRaises(TestFailure):

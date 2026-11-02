@@ -12,13 +12,12 @@ from .validation import text, fail
 
 
 def enqueue(job_id):
-    from .tasks import generate_translation
-
+    from apps.runtime.jobs import enqueue as durable_enqueue
+    from django.db import DatabaseError
     try:
-        generate_translation.apply_async(args=[str(job_id)], retry=False)
-    except Exception:
-        # Durable queued row is recovered by periodic dispatcher. Never expose broker details.
-        pass
+        durable_enqueue("translation", str(job_id))
+    except DatabaseError:
+        pass  # TranslationJob remains durable for periodic recovery.
 
 
 def target_locales():

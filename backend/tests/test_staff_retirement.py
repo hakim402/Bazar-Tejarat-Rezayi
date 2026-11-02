@@ -81,15 +81,18 @@ class StaffRetirementTests(TransactionTestCase):
                     self.assertIn("no-store", response["Cache-Control"])
 
     def test_old_pending_api_mfa_cannot_finish_through_native_admin(self):
-        from apps.accounts.services import begin_signin
+        import time
+        from apps.accounts.services import begin_signin, AuthFailure, credential_state
 
         staff, _, _ = role_user("old-pending", "verification", ["decide_review"])
         client = APIClient(enforce_csrf_checks=True)
         request = client.get("/api/v1/auth/csrf/").wsgi_request
-        begin_signin(request, staff.email, PASSWORD, "staff")
-        # Deliberately retain an old API pending context with no native entry binding.
+        with self.assertRaises(AuthFailure):
+            begin_signin(request, staff.email, PASSWORD, "staff")
+        self.assertNotIn('pending_mfa', request.session)
+        # A retained pre-transition pending context is denied too.
         session = client.session
-        session["pending_mfa"] = request.session["pending_mfa"]
+        session["pending_mfa"] = {'identity': str(staff.pk), 'context': 'staff', 'state': credential_state(staff), 'at': time.time()}
         session.save()
         response = native_auth(client, "enroll")
         self.assertTrue(response.context["error"])

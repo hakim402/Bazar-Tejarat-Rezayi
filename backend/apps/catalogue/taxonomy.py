@@ -1,4 +1,5 @@
-from django.db import transaction, connection
+from apps.runtime.locks import lock as durable_lock
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from . import access
 from .models import Category, SaleUnit
@@ -8,8 +9,7 @@ from apps.organizations.access import assert_version
 
 def lock_taxonomy():
     # Also serializes the empty-table/new-identity case, where row locks cannot help.
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [720062106])
+    durable_lock(720062106)
 
 
 @transaction.atomic

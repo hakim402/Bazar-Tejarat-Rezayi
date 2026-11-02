@@ -45,6 +45,10 @@ class Product(models.Model):
 
     class Meta:
         permissions = [(x, x.replace("_", " ")) for x in PERMISSIONS]
+        indexes = [
+            models.Index(fields=["-created_at", "id"], name="catalogue_public_newest"),
+            models.Index(fields=["seller", "-created_at", "id"], name="catalogue_store_newest"),
+        ]
         constraints = [
             models.CheckConstraint(condition=Q(currency__in=["AFN", "USD"]), name="catalogue_currency"),
             models.CheckConstraint(condition=Q(pricing_mode__in=["fixed", "negotiable"]), name="catalogue_mode"),

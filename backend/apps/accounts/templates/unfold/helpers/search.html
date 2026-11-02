@@ -1,0 +1,9 @@
+{% load i18n %}
+{% if sidebar_show_search %}
+<div class="ra:mx-3 ra:mb-3">
+<button type="button" id="owner-command-toggle" x-data="{restoreSearchFocus: false}" x-init="$watch('openCommandResults', value => { if (!value &amp;&amp; restoreSearchFocus) { restoreSearchFocus = false; setTimeout(() => { if (!openCommandResults &amp;&amp; $el.isConnected) $el.focus() }, 50) } })" x-on:click="restoreSearchFocus = true; $dispatch('opencommand')" aria-haspopup="dialog" class="ra:flex ra:min-h-11 ra:w-full ra:items-center ra:gap-2 ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:px-3 ra:text-start ra:text-sm ra:text-muted ra:hover:border-action">
+<span data-admin-icon aria-hidden="true" class="material-symbols-outlined ra:text-lg">manage_search</span>
+<span class="ra:min-w-0 ra:flex-1 ra:truncate">{% translate 'Search apps and models...' %}</span>
+</button>
+</div>
+{% endif %}

@@ -1,9 +1,10 @@
+import { loadRenderedImages } from "./support/rendered-images";
 import { inventoryCopy } from "../lib/i18n/inventory";
 import { choosePreference } from "./support/site-preferences";
 import { writeFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { locales } from "../lib/i18n/locales";
-import { authScreens } from "../lib/i18n/auth-screens";
+import { authScreens, screenTitle } from "../lib/i18n/auth-screens";
 import { fixturePassword } from "./support/identity-runtime";
 import { messages } from "../lib/i18n/messages";
 import { storefrontCopy } from "../features/storefront/copy";
@@ -33,15 +34,7 @@ async function reflow(page: Page) {
 	expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(
 		overflow.width,
 	);
-	await expect
-		.poll(() =>
-			page.evaluate(() =>
-				[...document.images]
-					.filter((img) => img.getBoundingClientRect().width > 0)
-					.every((i) => i.complete && i.naturalWidth > 0),
-			),
-		)
-		.toBe(true);
+	await loadRenderedImages(page);
 }
 for (const locale of locales)
 	for (const width of [360, 1440])
@@ -74,9 +67,16 @@ for (const locale of locales)
 				});
 			}
 			for (const screen of authScreens) {
-				await page.goto(`/${locale}/auth/${screen}`);
-				await expect(page.getByRole("dialog").locator("h1")).toHaveCount(1);
-				await reflow(page);
+				await test.step(`legacy modal entry ${screen}`, async () => {
+					await page.goto(`/${locale}/auth/${screen}`);
+					const dialog = page.getByRole("dialog");
+					await expect(dialog).toBeVisible({ timeout: 15000 });
+					await expect(dialog.locator("h1")).toHaveCount(1);
+					await expect(dialog.locator("h1")).toHaveText(
+						screenTitle(locale, screen),
+					);
+					await reflow(page);
+				});
 			}
 			await page.goto(
 				`/${locale}/auth/${width === 360 ? "buyer-sign-in" : "seller-registration"}`,
@@ -88,7 +88,7 @@ for (const locale of locales)
 				fullPage: true,
 			});
 		});
-test("demo category search, footer destinations and compact preferences support keyboard", async ({
+test("live category search, footer destinations and compact preferences support keyboard", async ({
 	page,
 }) => {
 	await page.setViewportSize({ width: 360, height: 900 });
@@ -102,19 +102,15 @@ test("demo category search, footer destinations and compact preferences support 
 	).toBeVisible();
 	await search.press("Escape");
 	await expect(search).toHaveValue("");
-	await search.fill("Dried");
+	await search.fill("Food");
 	await page
 		.getByRole("link", {
-			name: storefrontCopy.en.categoryNames["dried-fruit"],
+			name: "Food",
 			exact: true,
 		})
 		.last()
 		.click();
-	await expect(page.getByRole("dialog")).toBeVisible();
-	await page
-		.getByRole("dialog")
-		.getByRole("button", { name: storefrontCopy.en.close, exact: true })
-		.click();
+	await expect(page).toHaveURL("/en/categories/food");
 	await page
 		.locator("footer")
 		.getByRole("link", { name: "Help centre", exact: true })
@@ -148,9 +144,11 @@ for (const width of [390, 1440])
 			page = await context.newPage();
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/fa-AF/catalogue-preview/${product.id}`);
-		const gallery = page.getByRole("region", {
-				name: interfaceCopy["fa-AF"].gallery,
-			}),
+		await expect(page).toHaveURL(`/fa-AF/products/${product.id}`);
+		const gallery = page
+				.getByTestId("product-detail")
+				.locator("section")
+				.first(),
 			thumbnails = gallery.getByRole("button");
 		await expect(thumbnails).toHaveCount(2);
 		await thumbnails.nth(1).focus();

@@ -2,6 +2,9 @@
 """One-command disposable backend/frontend verification; no private configuration reads."""
 
 import argparse
+from contextlib import contextmanager
+import fcntl
+import stat
 import base64
 import hashlib
 import json
@@ -33,6 +36,25 @@ class TestFailure(Exception):
     pass
 
 
+@contextmanager
+def verification_lock(backend_only):
+    directory = BACKEND / "data"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    if directory.is_symlink() or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o022:
+        raise TestFailure("Verification lock directory is not privately controlled.")
+    descriptor = os.open(directory / ".verification.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        info = os.fstat(descriptor)
+        if info.st_uid != os.getuid() or not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+            raise TestFailure("Verification lock file is unsafe.")
+        # Backend scopes own separate infrastructure; frontend builds temporarily
+        # update shared Next typing files and require exclusive source access.
+        fcntl.flock(descriptor, fcntl.LOCK_SH if backend_only else fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
 def available_port():
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
@@ -46,6 +68,7 @@ class TestRun:
         self.browser_spec = [browser_spec] if isinstance(browser_spec, str) else browser_spec
         self.phase = phase
         self.backend_only = backend_only
+        self.frontend_only = False
         self.labels = labels
         self.warnings = []
         self.api_port, self.frontend_port = available_port(), available_port()
@@ -55,16 +78,15 @@ class TestRun:
         self.generated = {
             "REZAYI_TEST_RUN_ID": self.identifier,
             "REZAYI_TEST_DB_PASSWORD": secrets.token_hex(32),
-            "REZAYI_TEST_REDIS_PASSWORD": secrets.token_hex(32),
             "REZAYI_TEST_SIGNING_KEY": secrets.token_urlsafe(64),
             "REZAYI_TEST_ENCRYPTION_KEY": base64.urlsafe_b64encode(secrets.token_bytes(32)).decode(),
             "REZAYI_TEST_API_PORT": str(self.api_port),
             "REZAYI_TEST_FRONTEND_PORT": str(self.frontend_port),
         }
         self.env = {**os.environ, **self.generated}
-        if phase in {"phase-06-catalogue", "phase-07-inventory"}:
+        if phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
-        self.evidence = ROOT / ("doc/progress/staff-admin-transition/evidence/runs" if work_package == "staff-admin-transition" else "doc/progress/frontend-consolidation/evidence/runs" if work_package == "frontend-consolidation" else "doc/progress/phase-07-inventory/evidence/runs" if phase == "phase-07-inventory" else "doc/progress/native-python-migration/evidence/runs") / self.identifier
+        self.evidence = ROOT / ("doc/progress/cpanel-only-preparation/evidence/runs" if work_package == "cpanel-only-preparation" else "doc/progress/phase-11-negotiation/evidence/runs" if phase == "phase-11-negotiation" else "doc/progress/phase-10-commerce/evidence/runs" if phase in {"phase-10-commerce", "phase-11-negotiation"} else "doc/progress/phase-09-messaging/evidence/runs" if phase == "phase-09-messaging" else "doc/progress/admin-superuser-and-phase08-fixes/evidence/runs" if work_package == "admin-superuser-and-phase08-fixes" else "doc/progress/phase-08-marketplace/evidence/runs" if phase in {"phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"} else ("doc/progress/staff-admin-transition/evidence/runs" if work_package == "staff-admin-transition" else "doc/progress/frontend-consolidation/evidence/runs" if work_package == "frontend-consolidation" else "doc/progress/phase-07-inventory/evidence/runs" if phase == "phase-07-inventory" else "doc/progress/native-python-migration/evidence/runs")) / self.identifier
         self.evidence.mkdir(parents=True)
         self.frontend = None
         self.dist_owned = False
@@ -85,7 +107,6 @@ class TestRun:
             REZAYI_TEST_ROOT=str(self.runtime), REZAYI_TEST_PYTHON=str(PYTHON),
             REZAYI_TEST_FRONTEND_ORIGIN=f"http://127.0.0.1:{self.frontend_port}",
             REZAYI_TEST_DATABASE_URL=f"postgresql://test_{self.identifier}:{self.generated['REZAYI_TEST_DB_PASSWORD']}@127.0.0.1:{self.postgres_port}/test_rezayi_{self.identifier}",
-            REZAYI_TEST_BROKER_URL=f"redis://:{self.generated['REZAYI_TEST_REDIS_PASSWORD']}@127.0.0.1:{self.redis_port}/0",
             DJANGO_SECRET_KEY=self.generated["REZAYI_TEST_SIGNING_KEY"],
             MFA_ENCRYPTION_KEY=self.generated["REZAYI_TEST_ENCRYPTION_KEY"],
             GUNICORN_BIND=f"127.0.0.1:{self.api_port}", PYTHONDONTWRITEBYTECODE="1",
@@ -100,6 +121,8 @@ class TestRun:
                        r'\1[temporary CSRF redacted]', value)
         value = re.sub(r'(<code\b[^>]*>)(?:[A-Z2-7]{32,}|[0-9a-f]{16})(</code>)',
                        r'\1[temporary MFA material redacted]\2', value)
+        value = re.sub(r'(?im)((?:set-cookie|cookie|x-csrftoken)\s*:\s*)[^\n]+',
+                       r'\1[temporary credential redacted]', value)
         return value
 
     def command(self, args, name, *, cwd=BACKEND, data=None, env=None, check=True):
@@ -182,45 +205,58 @@ class TestRun:
                 cursor.execute(sql.SQL("ALTER ROLE {} SET rezayi.test_run_id = {}").format(
                     role, sql.Literal(self.identifier)))
                 cursor.execute(sql.SQL("CREATE DATABASE {} OWNER {}").format(sql.Identifier(self.marker["database"]), role))
-        self.redis = self.start(["redis-server", "-"], "redis-server", data=(
-            f"bind 127.0.0.1\nport {self.redis_port}\nsave \"\"\nappendonly no\n"
-            f"dir {self.runtime}\nrequirepass {self.generated['REZAYI_TEST_REDIS_PASSWORD']}\n"))
-        import redis
-        broker = redis.Redis.from_url(self.env["REZAYI_TEST_BROKER_URL"])
-        deadline = time.monotonic() + 10
-        while True:
-            try:
-                broker.ping()
-                if (broker.info("server")["process_id"] != self.redis.pid
-                    or Path(broker.config_get("dir")["dir"]).resolve() != self.runtime):
-                    raise TestFailure("Redis process/directory ownership mismatch.")
-                broker.set("rezayi:test-run-id", self.identifier)
-                break
-            except redis.ConnectionError:
-                if self.redis.poll() is not None or time.monotonic() > deadline:
-                    raise TestFailure("Run-owned Redis did not start.") from None
-                time.sleep(0.1)
         (self.evidence / "infrastructure.json").write_text(json.dumps(self.marker, indent=2) + "\n")
 
     def backend_checks(self):
         self.python("-m", "ruff", "check", "--no-cache", ".", name="backend-lint")
-        self.python("manage.py", "test", *self.labels, "--settings=config.settings.test", "--noinput", name="backend-tests")
+        if getattr(self, "cgi_only", False):
+            self.python("manage.py", "migrate", "--noinput", name="cgi-fresh-schema")
+            self.env["BROWSER_TEST_RUNTIME"] = "true"
+            self.python("manage.py", "seed_identity_examples", "--stdin", name="cgi-owned-identities", data=json.dumps({"password": self.password}))
+            self.python("-m", "scripts.check_worker", name="cgi-required-scheduler")
+            try:
+                from scripts.check_cgi_gateway import check
+            except ModuleNotFoundError:
+                from check_cgi_gateway import check
+            check(self)
+            return
+        if getattr(self, "transfer_only", False):
+            try:
+                from scripts.check_cross_engine_transfer import check
+            except ModuleNotFoundError:
+                from check_cross_engine_transfer import check
+            check(self)
+            return
+        if not self.frontend_only:
+            self.python("manage.py", "test", *self.labels, "--settings=config.settings.test", "--noinput", name="backend-tests")
+        else:
+            print("Explicit frontend-only scope: backend test suite not rerun; schema/migrations/native checks remain required.", flush=True)
         self.python("manage.py", "check", name="backend-check")
         self.python("manage.py", "makemigrations", "--check", "--dry-run", name="migration-consistency")
         self.python("-m", "pip", "check", name="backend-dependencies")
         self.python("-m", "scripts.check_schema", name="schema-consistency")
+        if self.phase == "phase-11-negotiation" and self.env.get("REZAYI_TEST_DATABASE_ENGINE") != "mariadb":
+            self.python("-m", "scripts.check_negotiation_upgrade", name="populated-phase10-upgrade")
         # Replay all migrations on the separately owned browser database even in backend-only mode.
         self.python("manage.py", "migrate", "--noinput", name="fresh-migration-replay")
         self.python("-c", "import django;django.setup();from django.apps import apps;from django.db import connection;from apps.site.models import SiteSettings;assert not apps.is_installed('apps.content');assert not any(t.startswith('content_') for t in connection.introspection.table_names());assert SiteSettings.objects.get(pk=1).default_locale == 'fa-AF';print('Fresh active graph has site defaults and no legacy CMS tables.')", name="site-fresh-graph")
         self.command(["node", "backend/scripts/build_admin_styles.mjs", "--check"], "admin-styles", cwd=ROOT)
         self.python("manage.py", "collectstatic", "--noinput", name="static-collection")
+        if getattr(self, "cross_engine", False):
+            try:
+                from scripts.check_cross_engine_transfer import check
+            except ModuleNotFoundError:
+                from check_cross_engine_transfer import check
+            check(self)
         self.env["BROWSER_TEST_RUNTIME"] = "true"
-        self.worker = self.start([str(PYTHON), "-m", "celery", "-A", "config", "worker", "--pool=solo",
-                                  "--concurrency=1", "--loglevel=WARNING"], "native-worker")
-        self.python("-m", "scripts.check_worker", name="native-worker-execution")
-        self.python("-m", "scripts.check_native_runtime", name="native-scheduler-and-redis")
+        if self.env.get("REZAYI_TEST_DATABASE_ENGINE") == "mariadb":
+            self.python("-m", "scripts.check_mariadb_runtime_role", name="native-dml-role-integrity")
+        self.python("-m", "scripts.check_worker", name="durable-worker-execution")
+        self.python("-m", "scripts.check_native_runtime", name="durable-scheduler-and-claims")
+        self.worker = self.start([str(PYTHON), "-m", "scripts.test_cron"], "disposable-cron-clock")
         self.python("-m", "scripts.check_native_deployment", "--development", name="native-development-wsgi")
         self.python("-m", "scripts.check_native_deployment", name="synthetic-production-wsgi")
+        self.python("-m", "scripts.check_native_deployment", "--mfa", "false", name="synthetic-production-password-only-wsgi")
         self.env["BROWSER_TEST_RUNTIME"] = "false"
 
     def start_web(self):
@@ -238,10 +274,13 @@ class TestRun:
                 "PLAYWRIGHT_EVIDENCE_DIR": str(self.evidence / "screenshots"),
                 "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
                 "PLAYWRIGHT_BROWSER_CHANNEL": "chromium", "IDENTITY_BROWSER_TESTS": "1",
-                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-06-catalogue", "phase-07-inventory"} else "0",
+                "ORGANIZATIONS_BROWSER_TESTS": "1" if self.phase in {"phase-04-organizations", "phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"} else "0",
                 "SITE_BROWSER_TESTS": "1", "ADMIN_DASHBOARD_BROWSER_TESTS": "1",
-                "CATALOGUE_BROWSER_TESTS": "1" if self.phase in {"phase-06-catalogue", "phase-07-inventory"} else "0",
-                "INVENTORY_BROWSER_TESTS": "1" if self.phase == "phase-07-inventory" else "0",
+                "CATALOGUE_BROWSER_TESTS": "1" if self.phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"} else "0",
+                "COMMERCE_BROWSER_TESTS": "1" if self.phase in {"phase-10-commerce", "phase-11-negotiation"} else "0",
+                "MESSAGING_BROWSER_TESTS": "1" if self.phase in {"phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"} else "0",
+                "MARKETPLACE_BROWSER_TESTS": "1" if self.phase in {"phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"} else "0",
+                "INVENTORY_BROWSER_TESTS": "1" if self.phase in {"phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"} else "0",
                 "REZAYI_TEST_PROJECT": self.project, "REZAYI_TEST_FIXTURE_PASSWORD": self.password}
 
     @staticmethod
@@ -264,8 +303,18 @@ class TestRun:
         (FRONTEND / self.dist).mkdir()
         self.dist_owned = True
         self.env["BROWSER_TEST_RUNTIME"] = "true"
+        # Fixtures commit several synthetic workflows. A clock must not deliver
+        # their temporary intermediate unread episodes during construction.
+        self.stop_process(self.worker)
         self.python("-m", "scripts.prepare_browser_tests", name="browser-fixtures",
                     data=json.dumps({"password": self.password, "phase": self.phase}))
+        if self.phase in {"phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
+            self.python("-m", "scripts.check_messaging_worker", name="native-communication-dispatch")
+        self.worker = self.start([str(PYTHON), "-m", "scripts.test_cron"], "browser-cron-clock")
+        if self.phase in {"phase-10-commerce", "phase-11-negotiation"}:
+            self.python("-m", "scripts.check_commerce_documents", "--output", str(self.evidence / "invoices"), name="commerce-documents")
+        if self.phase == "phase-11-negotiation":
+            self.python("-m", "scripts.check_negotiation_documents", "--output", str(self.evidence / "negotiation-documents"), name="negotiation-documents")
         self.start_web()
         env = self.browser_environment()
         previews = self.evidence / "email-previews"
@@ -307,10 +356,10 @@ class TestRun:
         self.processes.append(self.frontend)
         self.wait_ready(env["PLAYWRIGHT_BASE_URL"] + "/en/auth/buyer-sign-in", self.frontend)
         self.command(["npx", "playwright", "test", *(["tests/" + spec for spec in self.browser_spec] if self.browser_spec else []), "--output", str(self.evidence / "browser-results"),
-                      ("--global-timeout=1800000" if self.phase == "phase-07-inventory" else "--global-timeout=1200000")], "browser-tests", cwd=FRONTEND, env=env)
-        if self.phase in {"phase-06-catalogue", "phase-07-inventory"}:
-            self.python("-c", "import django;django.setup();import json;from config.celery import app;from apps.catalogue.models import TranslationJob;registered=app.control.inspect(timeout=5).registered() or {};expected={'catalogue.generate_translation','catalogue.dispatch_translations'};assert any(expected.issubset(set(tasks)) for tasks in registered.values());print(json.dumps({'registered':sorted(expected),'completed_jobs':TranslationJob.objects.filter(status='completed').count()}))", name="catalogue-worker-result")
-        if self.phase in {"phase-06-catalogue", "phase-07-inventory"}:
+                      ("--global-timeout=5400000" if self.phase in {"phase-10-commerce", "phase-11-negotiation"} else "--global-timeout=2700000" if self.phase == "phase-09-messaging" else "--global-timeout=1800000" if self.phase in {"phase-07-inventory", "phase-08-marketplace"} else "--global-timeout=1200000")], "browser-tests", cwd=FRONTEND, env=env)
+        if self.phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
+            self.python("-c", "import django;django.setup();import json;from apps.runtime.models import Job;from apps.catalogue.models import TranslationJob;assert Job.objects.filter(kind='translation_sweep').exists();print(json.dumps({'dispatcher':'database','completed_jobs':TranslationJob.objects.filter(status='completed').count()}))", name="catalogue-worker-result")
+        if self.phase in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
             self.start_web()
             self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/")
@@ -422,6 +471,10 @@ class TestRun:
                 for name in sorted(paths)}
 
     def execute(self):
+        with verification_lock(self.backend_only):
+            return self.execute_locked()
+
+    def execute_locked(self):
         private = {folder: hashlib.sha256((ROOT / folder / ".env").read_bytes()).hexdigest()
                    for folder in ("backend", "frontend") if (ROOT / folder / ".env").exists()}
         self.tsconfig = (FRONTEND / "tsconfig.json").read_text() if not self.backend_only else None
@@ -457,28 +510,57 @@ class TestRun:
                 raise
             finally:
                 (self.evidence / "result.json").write_text(json.dumps({"run_id": self.identifier, "status": status,
-                    "warnings": getattr(self, "warnings", []), "backend_only": self.backend_only, "phase": self.phase, "browser_spec": self.browser_spec, "evidence": str(self.evidence.relative_to(ROOT))}, indent=2) + "\n")
+                    "warnings": getattr(self, "warnings", []), "backend_only": self.backend_only, "transfer_only": getattr(self, "transfer_only", False), "cgi_only": getattr(self, "cgi_only", False), "frontend_only": getattr(self, "frontend_only", False), "phase": self.phase, "browser_spec": self.browser_spec, "evidence": str(self.evidence.relative_to(ROOT))}, indent=2) + "\n")
 
 
 def main():
-    if Path(sys.executable).absolute() != PYTHON.absolute():
+    if Path(sys.executable).absolute() != PYTHON.absolute() or not __package__:
         if not PYTHON.exists():
             raise SystemExit("Install native dependencies into backend/.venv; see doc/hosting/Native_Python_cPanel_Deployment.md.")
-        os.execv(str(PYTHON), [str(PYTHON), __file__, *sys.argv[1:]])
+        os.chdir(BACKEND)
+        os.execv(str(PYTHON), [str(PYTHON), "-m", "scripts.run_tests", *sys.argv[1:]])
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-06-catalogue", "phase-07-inventory"], default="phase-03-identity")
-    parser.add_argument("--browser-spec", action="append", choices=["staff-admin-transition.browser.ts", "google-email.browser.ts", "frontend-consolidation.browser.ts", "inventory.browser.ts", "seller-dashboard.browser.ts", "site.browser.ts", "admin-dashboard.browser.ts", "approved-design.browser.ts", "catalogue-review.browser.ts", "catalogue.browser.ts", "identity.browser.ts", "organizations.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; repeat to select multiple specs; default runs every browser spec")
-    parser.add_argument("--work-package", choices=["frontend-consolidation", "staff-admin-transition"], help="Scoped evidence location; does not change fixture or permission policy")
+    parser.add_argument("--cgi-only", action="store_true", help="Owned native Apache/TLS/CGI integration scope; no production configuration reads")
+    parser.add_argument("--transfer-only", action="store_true", help="Only the owned populated transfer/restore scope; does not claim backend/browser coverage")
+    parser.add_argument("--cross-engine", action="store_true", help="Owned populated PostgreSQL source transfer and MariaDB backup/restore proof")
+    parser.add_argument("--database", choices=["postgresql", "mariadb"], default="postgresql")
+    parser.add_argument("--phase", choices=["phase-03-identity", "phase-04-organizations", "phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"], default="phase-03-identity")
+    parser.add_argument("--browser-spec", action="append", choices=["negotiations.browser.ts", "commerce-corrections.browser.ts", "commerce.browser.ts", "site-workspace.browser.ts", "messaging.browser.ts", "admin-superuser.browser.ts", "marketplace.browser.ts", "store-settings.browser.ts", "staff-admin-transition.browser.ts", "google-email.browser.ts", "frontend-consolidation.browser.ts", "inventory.browser.ts", "seller-dashboard.browser.ts", "site.browser.ts", "admin-dashboard.browser.ts", "approved-design.browser.ts", "catalogue-review.browser.ts", "catalogue.browser.ts", "identity.browser.ts", "organizations.browser.ts", "foundation.browser.ts", "active-api.browser.ts"], help="Optional focused browser workflow check; repeat to select multiple specs; default runs every browser spec")
+    parser.add_argument("--work-package", choices=["frontend-consolidation", "staff-admin-transition", "admin-superuser-and-phase08-fixes", "cpanel-only-preparation"], help="Scoped evidence location; does not change fixture or permission policy")
     parser.add_argument("--backend-only", action="store_true")
+    parser.add_argument("--frontend-only", action="store_true", help="Explicit client/browser correction scope; retains schema, migration, dependency and native checks but does not rerun backend tests")
     parser.add_argument("--test-label", action="append", default=[])
     parser.add_argument("--cleanup-probe", choices=["failure", "interrupt"], help="Provision then fail/interrupt to verify teardown")
     args = parser.parse_args()
+    if args.frontend_only and args.backend_only:
+        parser.error("--frontend-only and --backend-only are mutually exclusive")
     if args.test_label and not args.backend_only:
         parser.error("--test-label requires --backend-only")
-    for executable in ("initdb", "postgres", "redis-server", *(() if args.backend_only else ("node", "npm", "npx", "ffmpeg", "ffprobe"))):
+    if args.cgi_only:
+        if args.database != "mariadb":
+            parser.error("--cgi-only requires the native MariaDB target")
+        args.backend_only = True
+    if args.transfer_only:
+        args.cross_engine = True
+        args.backend_only = True
+    for executable in (*(("initdb", "postgres") if args.database == "postgresql" or args.cross_engine else ()), *(() if args.backend_only else ("node", "npm", "npx", "ffmpeg", "ffprobe"))):
         if not shutil.which(executable):
             parser.error(f"Required local executable is unavailable: {executable}")
-    run = TestRun(args.backend_only, args.test_label, args.phase, args.browser_spec, args.work_package)
+    run_class = TestRun
+    if args.database == "mariadb":
+        try:
+            from scripts.mariadb_testing import MariaDBInfrastructure
+        except ModuleNotFoundError:
+            from mariadb_testing import MariaDBInfrastructure
+        class MariaDBRun(MariaDBInfrastructure, TestRun):
+            pass
+        run_class = MariaDBRun
+        args.work_package = args.work_package or "cpanel-only-preparation"
+    run = run_class(args.backend_only, args.test_label, args.phase, args.browser_spec, args.work_package)
+    run.cgi_only = args.cgi_only
+    run.transfer_only = args.transfer_only
+    run.cross_engine = args.cross_engine
+    run.frontend_only = args.frontend_only
     run.cleanup_probe = args.cleanup_probe
     def interrupted(signum, frame):
         raise KeyboardInterrupt

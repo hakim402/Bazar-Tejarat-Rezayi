@@ -31,7 +31,7 @@ class DatabaseConfigurationTests(SimpleTestCase):
         cases = [
             "",
             "sqlite:///database",
-            "mysql://u:p@host/db",
+            "mariadb://u:p@host/db?ssl_mode=DISABLED",
             "postgres://host/db",
             "postgres://u:secret@host:99999/db",
             "postgres://u:secret@host/db?options=unsafe",
@@ -145,19 +145,19 @@ class ApiTests(TestCase):
         self.assertEqual(response.json(), {"status": "alive"})
         self.assertEqual(response["Cache-Control"], "no-store")
 
-    @patch("apps.foundation.views.redis.Redis.from_url")
+    @patch("apps.runtime.jobs.scheduler_ready")
     @patch("apps.foundation.views.connections")
-    def test_readiness_success_and_both_dependency_failures(self, connections, redis):
+    def test_readiness_success_and_both_dependency_failures(self, connections, scheduler):
         cursor = connections["default"].cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (1,)
-        redis.return_value.ping.return_value = True
+        scheduler.return_value = True
         self.assertEqual(self.client.get("/api/v1/health/ready/").status_code, 200)
         connections["default"].cursor.side_effect = RuntimeError("database-private-value")
         response = self.client.get("/api/v1/health/ready/")
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json(), {"status": "not_ready"})
         connections["default"].cursor.side_effect = None
-        redis.return_value.ping.side_effect = RuntimeError("redis-private-value")
+        scheduler.side_effect = RuntimeError("scheduler-private-value")
         response = self.client.get("/api/v1/health/ready/")
         self.assertEqual(response.status_code, 503)
         self.assertNotIn("private", response.content.decode())

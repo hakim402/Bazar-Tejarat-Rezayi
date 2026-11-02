@@ -1,16 +1,19 @@
-import os
-from uuid import uuid4
+"""Exercise the actual bounded command on owned synthetic resources."""
+import django
+from django.core.management import call_command
+from django.db import connection
+from config.testing import assert_owned_database
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
-from config.celery import app
 
-nonce = str(uuid4())
-try:
-    task = app.send_task("foundation.diagnostic", args=[nonce], argsrepr="(<diagnostic nonce>,)", expires=60)
-    result = task.get(timeout=20)
-    assert result == {"ok": True, "nonce": nonce}
-    task.forget()
-    print("Worker executed diagnostic task and returned its correlated result; result removed.")
-except Exception as exc:
-    print("Worker diagnostic failed:", type(exc).__name__, "(details withheld)")
-    raise SystemExit(1) from None
+def main():
+    django.setup()
+    assert_owned_database(connection)
+    from apps.runtime.jobs import seed_sweeps, scheduler_ready
+    seed_sweeps()
+    call_command("run_due_jobs", seconds=10, limit=10)
+    assert scheduler_ready()
+    print("Bounded database worker and required scheduler heartbeat passed; no real provider call.")
+
+
+if __name__ == "__main__":
+    main()

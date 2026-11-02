@@ -1,3 +1,4 @@
+import { loadRenderedImages } from "./support/rendered-images";
 import { choosePreference } from "./support/site-preferences";
 import { test, expect, type Page } from "@playwright/test";
 import { randomBytes } from "node:crypto";
@@ -11,7 +12,6 @@ import { pageCopy } from "../features/pages/copy";
 import { messages } from "../lib/i18n/messages";
 import { heroUI } from "../features/site/ui";
 import { storefrontCopy } from "../features/storefront/copy";
-import { categories, demoProducts } from "../features/storefront/data";
 const evidence = process.env.PLAYWRIGHT_EVIDENCE_DIR;
 test.skip(
 	process.env.SITE_BROWSER_TESTS !== "1",
@@ -113,11 +113,10 @@ for (const locale of ["fa-AF", "en", "ps", "ar"] as const)
 			}
 		}
 	});
-test("real 404 retirement boundaries, empty commerce, guide-only search and robots", async ({
+test("real 404 retirement boundaries, public browsing, guide-only search and robots", async ({
 	page,
 }) => {
 	for (const path of [
-		"/en/products",
 		"/en/future.svg",
 		"/en/help/future.topic",
 		"/en/auth/unknown",
@@ -133,9 +132,8 @@ test("real 404 retirement boundaries, empty commerce, guide-only search and robo
 		(await page.request.get(`${api}/api/v1/content/public/en/home/`)).status(),
 	).toBe(404);
 	await page.goto("/en");
-	await expect(page.locator("main")).toContainText(
-		"Public shopping is not available yet",
-	);
+	expect((await page.goto("/en/products"))?.status()).toBe(200);
+	await expect(page.locator("#main h1")).toHaveCount(1);
 	await page.goto("/en/help");
 	const search = page.locator("main input[type=search]");
 	await search.fill("verification");
@@ -145,9 +143,9 @@ test("real 404 retirement boundaries, empty commerce, guide-only search and robo
 	expect(await (await page.request.get("/robots.txt")).text()).toContain(
 		"Disallow: /",
 	);
-	expect(await (await page.request.get("/sitemap.xml")).text()).not.toContain(
-		"/en/products",
-	);
+	const sitemap = await (await page.request.get("/sitemap.xml")).text();
+	expect(sitemap).not.toContain("/account/");
+	expect(sitemap).not.toContain("/api/");
 });
 test("private account, authentication, invitation and preview stay noindex in every locale", async ({
 	request,
@@ -185,7 +183,7 @@ test("default locale/theme, visitor precedence, explicit URLs and fallback", asy
 	await expect(page).toHaveURL("/ar");
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 	await page.goto("/en");
-	await expect(page.locator("main")).toContainText("Dari fallback");
+	await expect(page.locator("#main")).toContainText("Dari fallback");
 	await choosePreference(page, messages.en.theme, "light");
 	await page.emulateMedia({ colorScheme: "dark" });
 	expect(
@@ -406,7 +404,7 @@ test("owner full-width Settings sections preserve scope, conflicts, uploads and 
 	await expect(editor().getByRole("navigation")).toHaveCount(0);
 	const sidebar = page.locator("#nav-sidebar-apps");
 	await expect(sidebar.getByRole("heading").last()).toHaveAccessibleName(
-		"Site Setting",
+		"Site Settings",
 	);
 	await expect(
 		sidebar.getByRole("link").filter({ hasText: "All settings" }),
@@ -426,7 +424,7 @@ test("owner full-width Settings sections preserve scope, conflicts, uploads and 
 	).toBeLessThan(2);
 	const settingsToggle = page
 		.locator("#nav-sidebar-apps")
-		.getByRole("button", { name: "Site Setting", exact: true });
+		.getByRole("button", { name: "Site Settings", exact: true });
 	await expect(settingsToggle).toHaveAttribute("aria-expanded", "true");
 	await settingsToggle.focus();
 	await page.keyboard.press("Enter");
@@ -632,12 +630,12 @@ test("owner full-width Settings sections preserve scope, conflicts, uploads and 
 		});
 	}
 	await page
-		.getByRole("button", { name: "DEMO Site Owner Super admin / Owner" })
+		.getByRole("button", { name: "DEMO Site Owner Super admin" })
 		.click();
 	await page.getByRole("button", { name: "Dark", exact: true }).click();
 	await expect(page.locator("html")).toHaveClass(/dark/);
 	await page
-		.getByRole("button", { name: "DEMO Site Owner Super admin / Owner" })
+		.getByRole("button", { name: "DEMO Site Owner Super admin" })
 		.click();
 	for (const [section, width] of [
 		["branding", 390],
@@ -677,7 +675,7 @@ test("owner full-width Settings sections preserve scope, conflicts, uploads and 
 });
 
 for (const locale of ["fa-AF", "en", "ps", "ar"] as const)
-	test(`${locale}: reference homepage, independent promotional cards and demo previews`, async ({
+	test(`${locale}: reference homepage, independent promotional cards and live destinations`, async ({
 		page,
 	}) => {
 		test.setTimeout(180000);
@@ -700,19 +698,29 @@ for position,name in enumerate(['dried-fruit','clothing','beauty']):
  slide.enabled=True;slide.kind='image';slide.position=position;slide.bundled_image=False;slide.save()
  for code,copy in values.items():
   body=copy['products'][name]
-  HeroLocale.objects.update_or_create(slide=slide,locale=code,defaults=dict(title=body['title'],description=body['description'],alt=body['alt'],cta_label=copy['preview'],cta_url='/#demo-product-'+name))
+  HeroLocale.objects.update_or_create(slide=slide,locale=code,defaults=dict(title=body['title'],description=body['description'],alt=body['alt'],cta_label=copy['preview'],cta_url='/categories/'+{'dried-fruit':'food','clothing':'clothing','beauty':'cosmetics'}[name]))
  if position in [1,2]:
   card,_=HeroSlide.objects.get_or_create(settings=site,placement='promotion',label='DEMO independent card '+name,defaults=dict(enabled=True))
   card.image=slide.image;card.image_url='';card.bundled_image=False;card.enabled=True;card.kind='image';card.save()
   setattr(site,'promotion_one' if position==1 else 'promotion_two',card);site.save(update_fields=['promotion_one' if position==1 else 'promotion_two'])
   for code,copy in values.items():
    body=copy['products'][name]
-   HeroLocale.objects.update_or_create(slide=card,locale=code,defaults=dict(title=body['title'],alt=body['alt'],cta_label=copy['preview'],cta_url='/#demo-product-'+name))
+   HeroLocale.objects.update_or_create(slide=card,locale=code,defaults=dict(title=body['title'],alt=body['alt'],cta_label=copy['preview'],cta_url='/categories/'+{'dried-fruit':'food','clothing':'clothing','beauty':'cosmetics'}[name]))
 `,
 			JSON.stringify(storefrontCopy),
 		);
 		const errors: string[] = [];
 		page.on("pageerror", (error) => errors.push(error.message));
+		const taxonomyResponse = await page.request.get(
+			`${api}/api/v1/marketplace/public/${locale}/categories/`,
+		);
+		expect(taxonomyResponse.status()).toBe(200);
+		const taxonomy = (await taxonomyResponse.json()).results as {
+			code: string;
+			name: string;
+		}[];
+		const foodName = taxonomy.find((row) => row.code === "food")?.name;
+		if (!foodName) throw new Error("Owned taxonomy has no food category");
 		for (const width of [320, 390, 1440]) {
 			await page.setViewportSize({ width, height: 960 });
 			await page.goto(`/${locale}`);
@@ -753,7 +761,7 @@ for position,name in enumerate(['dried-fruit','clothing','beauty']):
 					name: t.categories,
 					exact: true,
 				});
-				await expect(category.getByRole("link")).toHaveCount(categories.length);
+				await expect(category.getByRole("link")).toHaveCount(taxonomy.length);
 				const categoryBox = await category.boundingBox(),
 					heroBox = await hero.boundingBox(),
 					featuredBox = await featured.boundingBox();
@@ -768,15 +776,7 @@ for position,name in enumerate(['dried-fruit','clothing','beauty']):
 			for (const theme of ["light", "dark"]) {
 				await choosePreference(page, messages[locale].theme, theme);
 				await containment(page);
-				await expect
-					.poll(() =>
-						page.evaluate(() =>
-							[...document.images]
-								.filter((img) => img.getBoundingClientRect().width > 0)
-								.every((img) => img.complete && img.naturalWidth > 0),
-						),
-					)
-					.toBe(true);
+				await loadRenderedImages(page);
 				if (width !== 320)
 					await page.screenshot({
 						path: `${evidence}/reference-home-${locale}-${width}-${theme}.png`,
@@ -787,65 +787,40 @@ for position,name in enumerate(['dried-fruit','clothing','beauty']):
 				["dried-fruit", "clothing", "beauty"] as const
 			).entries()) {
 				await expect(hero.locator("h1")).toHaveText(t.products[id].title);
-				await hero.getByRole("link", { name: t.preview, exact: true }).click();
-				const dialog = page.getByRole("dialog");
-				await expect(dialog).toBeVisible();
-				await expect(
-					dialog.getByRole("heading", {
-						name: t.products[id].title,
-						exact: true,
-					}),
-				).toBeVisible();
-				await expect(dialog).toContainText(t.demoNotice);
-				await dialog
-					.getByRole("button", { name: t.close, exact: true })
-					.focus();
-				await page.keyboard.press("Shift+Tab");
-				expect(
-					await dialog.evaluate((element) =>
-						element.contains(document.activeElement),
-					),
-				).toBe(true);
-				await page.keyboard.press("Escape");
-				await expect(dialog).not.toBeVisible();
+				const categoryCode = {
+					"dried-fruit": "food",
+					clothing: "clothing",
+					beauty: "cosmetics",
+				}[id];
 				await expect(
 					hero.getByRole("link", { name: t.preview, exact: true }),
-				).toBeFocused();
+				).toHaveAttribute("href", `/${locale}/categories/${categoryCode}`);
 				await hero
 					.getByRole("button", { name: heroUI[locale].next, exact: true })
-					.click();
+					.press("Enter");
 				if (index === 2)
 					await expect(hero.locator("h1")).toHaveText(
 						t.products["dried-fruit"].title,
 					);
 			}
+			await hero.getByRole("link", { name: t.preview, exact: true }).click();
+			await expect(page).toHaveURL(`/${locale}/categories/food`);
+			await page.goto(`/${locale}`);
 			await featured.getByRole("link").first().click();
-			await expect(
-				page.getByRole("dialog").getByRole("heading", {
-					name: t.products.clothing.title,
-					exact: true,
-				}),
-			).toBeVisible();
-			await page.keyboard.press("Escape");
+			await expect(page).toHaveURL(`/${locale}/categories/clothing`);
+			await page.goto(`/${locale}`);
 			const search = page.getByRole("searchbox", {
 				name: t.search,
 				exact: true,
 			});
-			await search.fill(t.categoryNames.furniture);
+			await search.fill(foodName);
 			await page
 				.locator("header")
-				.getByRole("link", { name: t.categoryNames.furniture, exact: true })
+				.getByRole("link", { name: foodName, exact: true })
 				.last()
 				.click();
-			await expect(page.getByRole("dialog")).toContainText(
-				t.products.furniture.title,
-			);
-			await page.keyboard.press("Escape");
-			await page.getByRole("link", { name: t.viewAll, exact: true }).click();
-			await expect(page.getByRole("dialog").getByRole("link")).toHaveCount(
-				categories.length,
-			);
-			await page.keyboard.press("Escape");
+			await expect(page).toHaveURL(`/${locale}/categories/food`);
+			await page.goto(`/${locale}`);
 			await expect(page.locator('footer input[type="email"]')).toBeDisabled();
 			await expect(
 				page
@@ -857,9 +832,11 @@ for position,name in enumerate(['dried-fruit','clothing','beauty']):
 					await expect(
 						page.locator(`footer a[href="/${locale}${pages[key].path}"]`),
 					).toHaveCount(1);
-			for (const id of demoProducts)
+			for (const row of taxonomy)
 				await expect(
-					page.locator(`main a[href="/${locale}#category-${id}"]`).first(),
+					page
+						.locator(`main a[href="/${locale}/categories/${row.code}"]`)
+						.first(),
 				).toBeAttached();
 		}
 		expect(errors).toEqual([]);

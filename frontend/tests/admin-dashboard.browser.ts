@@ -88,10 +88,10 @@ test("Owner MFA dashboard data, navigation, theme and model lists", async ({ pag
   await page.getByText("View chart data", { exact: true }).click();
   await noOverflow(page);
   await page.screenshot({ path: `${evidence}/admin-dashboard-desktop-light.png`, fullPage: true });
-  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin / Owner" }).click();
+  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin" }).click();
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
-  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin / Owner" }).click();
+  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin" }).click();
   await page.screenshot({ path: `${evidence}/admin-dashboard-desktop-dark.png`, fullPage: true });
   for (const path of ["accounts/account", "catalogue/product", "verification/reviewcase", "organizations/businessprofile", "site/sitesettings", "accounts/auditevent"]) {
     const response = await page.goto(`${api}/admin/${path}/`);
@@ -115,8 +115,12 @@ test("Phone navigation, keyboard, dashboard and model containment", async ({ pag
   await toggle.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Close navigation" })).toBeFocused();
+  await page.locator('#nav-sidebar-apps').getByRole('button', { name: 'Catalogue', exact: true }).click();
   await expect(page.locator('#nav-sidebar-apps a[href="/admin/catalogue/product/"]')).toBeVisible();
-  await page.screenshot({ path: `${evidence}/admin-navigation-mobile.png`, fullPage: true });
+  await expect(page.locator('#nav-sidebar-inner')).toBeInViewport({ ratio: 0.5 });
+  // Full-page capture resizes the viewport and closes the responsive drawer.
+  await page.screenshot({ path: `${evidence}/admin-navigation-mobile.png`, fullPage: false });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await page.getByRole("button", { name: "Close navigation" }).click();
   await expect(toggle).toBeFocused();
   for (const path of ["accounts/account", "catalogue/product", "accounts/account/add"]) {
@@ -129,7 +133,7 @@ test("Phone navigation, keyboard, dashboard and model containment", async ({ pag
 test("Owner recovery code, logout and staff admin denial", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const { email, recovery } = await enrollOwner(page);
-  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin / Owner" }).click();
+  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin" }).click();
   await page.getByRole("button", { name: "Log out", exact: true }).click();
   await page.goto(`${api}/admin/`);
   await expect(page).toHaveURL(/\/admin\/login\//);
@@ -142,7 +146,7 @@ test("Owner recovery code, logout and staff admin denial", async ({ page }) => {
   await expect(page).toHaveURL(`${api}/admin/`);
   const staffEmail = `admin-denied-${randomBytes(6).toString("hex")}@example.test`;
   disposablePython("import sys,json\nfrom apps.accounts.models import User,Account\ndata=json.load(sys.stdin)\nu=User.objects.create_user(data['email'],data['password'],email_verified=True,display_name='DEMO Staff')\nAccount.objects.create(user=u,context='staff')", JSON.stringify({ email:staffEmail, password }));
-  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin / Owner" }).click();
+  await page.getByRole("button", { name: "DEMO Workspace Owner Super admin" }).click();
   await page.getByRole("button", { name: "Log out", exact: true }).click();
   await page.goto(`${api}/admin/login/`);
   await page.getByLabel("Email", { exact: true }).fill(staffEmail);
@@ -170,7 +174,7 @@ test("Owner reviews unassigned seller directly with documents and existing admin
   await expect(page.getByTestId("review-status")).toHaveText("submitted");
   await expect(page.getByRole("heading", { name: "Submitted applicant details" })).toBeVisible();
   await expect(page.getByText("DEMO legal name", { exact: true })).toBeVisible();
-  await expect(page.getByText("You have full owner review access.", { exact: false })).toBeVisible();
+  await expect(page.getByText("You have full super admin review access.", { exact: false })).toBeVisible();
   const file = page.getByRole("link", { name: /Download Identity evidence 1/ });
   const href = await file.getAttribute("href");
   expect(href).toBeTruthy();

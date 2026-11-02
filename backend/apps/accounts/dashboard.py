@@ -1,10 +1,9 @@
 """Read-only, owner-authorized operational summaries. No synthetic business metrics."""
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.conf import settings
 from django.db.models import Count, Q
-from django.db.models.functions import TruncDate
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -26,11 +25,12 @@ def activity_series():
     dates = [first + timedelta(days=offset) for offset in range(14)]
 
     def daily(model, field):
-        return dict(
-            model.objects.filter(**{field + "__date__gte": first, field + "__date__lt": last})
-            .annotate(day=TruncDate(field)).values("day").annotate(total=Count("pk"))
-            .values_list("day", "total")
-        )
+        zone = timezone.get_current_timezone()
+        bounds = [datetime.combine(day, time.min, tzinfo=zone) for day in [*dates, last]]
+        values = model.objects.filter(**{field + "__gte": bounds[0], field + "__lt": bounds[-1]}).aggregate(**{
+            f"day_{i}": Count("pk", filter=Q(**{field + "__gte": bounds[i], field + "__lt": bounds[i + 1]}))
+            for i in range(len(dates))})
+        return {day: values[f"day_{i}"] for i, day in enumerate(dates)}
 
     users, products = daily(User, "date_joined"), daily(Product, "created_at")
     maximum = max([1, *users.values(), *products.values()])

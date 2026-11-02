@@ -1,5 +1,6 @@
 """Company invitation adapter reusing encrypted account outbox/rendering infrastructure."""
 
+import smtplib
 from datetime import timedelta
 
 from django.conf import settings
@@ -71,28 +72,46 @@ def dispatch_invitation(pk):
         company_lock(preliminary.invitation.company_id)
         item = InvitationMail.objects.select_for_update().select_related("invitation").get(pk=pk)
         invite = item.invitation
-        if item.status not in {"queued", "delivery_failed"} or item.next_attempt_at > timezone.now():
+        now = timezone.now()
+        if item.status == "dispatching":
+            if item.next_attempt_at <= now:
+                item.status = "delivery_unknown"
+                item.save(update_fields=["status"])
             return item.status
-        if (
-            invite.status != "pending"
-            or invite.version != item.invitation_version
-            or invite.expires_at <= timezone.now()
-        ):
+        if item.status not in {"queued", "delivery_failed"} or item.next_attempt_at > now:
+            return item.status
+        if invite.status != "pending" or invite.version != item.invitation_version or invite.expires_at <= now:
             item.status, item.encrypted_payload = "expired", ""
-        elif item.attempts >= 3:
+            item.save()
+            return item.status
+        if item.attempts >= 3:
             item.status, item.encrypted_payload = "exhausted", ""
-        else:
-            item.attempts += 1
-            try:
-                if invitation_message(invite, reveal(item.encrypted_payload)["token"]).send() != 1:
-                    raise RuntimeError
-                item.status = "smtp_accepted" if settings.ACCOUNT_EMAIL_TRANSPORT == "smtp" else "captured"
-                item.encrypted_payload = ""
-            except Exception:
-                item.status = "delivery_failed"
-                item.next_attempt_at = timezone.now() + timedelta(seconds=60 * item.attempts)
+            item.save()
+            return item.status
+        message = invitation_message(invite, reveal(item.encrypted_payload)["token"])
+        item.attempts += 1
+        attempt = item.attempts
+        item.status, item.next_attempt_at = "dispatching", now + timedelta(seconds=90)
         item.save()
-        return item.status
+    try:
+        accepted = message.send() == 1
+        status = ("smtp_accepted" if settings.ACCOUNT_EMAIL_TRANSPORT == "smtp" else "captured") if accepted else "delivery_failed"
+    except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError):
+        status = "delivery_failed"
+    except Exception:
+        status = "delivery_unknown"
+    with transaction.atomic():
+        company_lock(invite.company_id)
+        item = InvitationMail.objects.select_for_update().get(pk=pk)
+        if item.status != "dispatching" or item.attempts != attempt:
+            return item.status
+        item.status = status
+        if status in {"smtp_accepted", "captured"}:
+            item.encrypted_payload = ""
+        elif status == "delivery_failed":
+            item.next_attempt_at = timezone.now() + timedelta(seconds=60 * attempt)
+        item.save()
+        return status
 
 
 def sweep_invitations():
@@ -100,6 +119,6 @@ def sweep_invitations():
         encrypted_payload="", status="expired"
     )
     for pk in InvitationMail.objects.filter(
-        status__in=["queued", "delivery_failed"], next_attempt_at__lte=timezone.now()
+        status__in=["queued", "delivery_failed", "dispatching"], next_attempt_at__lte=timezone.now()
     ).values_list("pk", flat=True)[:50]:
         dispatch_invitation(pk)

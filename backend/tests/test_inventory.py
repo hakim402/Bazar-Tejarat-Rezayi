@@ -1,4 +1,5 @@
 """Stock-domain proofs against disposable PostgreSQL, including real competing transactions."""
+from unittest import skipUnless
 
 import copy
 import json
@@ -305,9 +306,13 @@ class InventoryTests(StockFixture, TestCase):
         self.configure()
         self.receive()
         movement = Movement.objects.get()
+        identity = Movement._meta.pk.get_db_prep_value(movement.pk, connection)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM inventory_movement WHERE id=%s", [identity])
+            self.assertEqual(cursor.fetchone()[0], 1)
         with self.assertRaises(DatabaseError), transaction.atomic():
             with connection.cursor() as cursor:
-                cursor.execute("UPDATE inventory_movement SET physical_delta=99 WHERE id=%s", [movement.pk])
+                cursor.execute("UPDATE inventory_movement SET physical_delta=99 WHERE id=%s", [identity])
 
         with self.assertRaises(ModelError):
             movement.save()
@@ -418,6 +423,18 @@ class InventoryRaces(StockFixture, TransactionTestCase):
 
         with ThreadPoolExecutor(max_workers=len(functions)) as pool:
             return list(pool.map(run, functions))
+
+    def test_raw_competing_plain_bucket_inserts_have_one_winner(self):
+        Position.objects.create(variant=self.variant, tracking='plain')
+        def insert():
+            try:
+                with transaction.atomic():
+                    Bucket.objects.create(position_id=self.variant.pk, physical=0, held=0)
+                return 'inserted'
+            except DatabaseError:
+                return 'rejected'
+        self.assertEqual(sorted(self.race([insert, insert])), ['inserted', 'rejected'])
+        self.assertEqual(Bucket.objects.filter(position_id=self.variant.pk, batch=None).count(), 1)
 
     def test_competing_cod_and_same_token_never_oversell(self):
         self.configure()
@@ -549,6 +566,7 @@ class InventoryRaces(StockFixture, TransactionTestCase):
         self.assertEqual(list(Bucket.objects.values_list("physical", flat=True)), [Decimal(1), Decimal(1)])
 
 
+@skipUnless(connection.vendor == "postgresql", "Source predecessor history; target replay/import checked separately")
 class InventoryUpgrade(StockFixture, TransactionTestCase):
     def test_additive_upgrade_preserves_populated_predecessor_and_retained_legacy_table(self):
         from django.apps import apps

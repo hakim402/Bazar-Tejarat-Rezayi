@@ -1,3 +1,4 @@
+from apps.runtime.locks import lock as durable_lock
 import getpass
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -15,7 +16,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, **options):
-        if User.objects.filter(owner_authority=True).exists():
+        durable_lock(728102803)
+        if User.objects.filter(is_superuser=True).exists():
             raise CommandError("An owner already exists; this command never overwrites identities.")
         email = normalize_email(input("Owner email (local input only): "))
         try:

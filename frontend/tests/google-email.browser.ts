@@ -84,11 +84,11 @@ for (const locale of locales) {
 			`/${locale}/auth/google-result?google=onboarding&context=seller&attempt=00000000-0000-0000-0000-000000000001`,
 		);
 		await expect(
-			page.getByRole("heading", { name: googleCopy[locale].onboarding }),
+			modal.getByRole("heading", { name: googleCopy[locale].onboarding, exact: true }),
 		).toBeVisible();
-		await expect(page.getByRole("checkbox")).not.toBeChecked();
+		await expect(modal.locator('[name="consent"]')).not.toBeChecked();
 		await expect(
-			page.getByText(authCopy[locale].policy, { exact: true }),
+			modal.getByText(authCopy[locale].policy, { exact: true }),
 		).toBeVisible();
 		await page.route("**/api/v1/auth/google/availability/", (route) =>
 			route.fulfill({ json: { status: "google_unavailable" } }),
@@ -173,3 +173,58 @@ test("Owner auth stays English independently of marketplace locale", async ({
 		});
 	}
 });
+
+for (const locale of locales) {
+	for (const role of ["buyer", "seller"] as const) {
+		test(`registration closed gives a specific notice for email and Google ${locale} ${role}`, async ({
+			page,
+		}) => {
+			await page.route("**/api/v1/auth/google/availability/", (route) =>
+				route.fulfill({ json: { status: "google_available" } }),
+			);
+			await page.route(`**/api/v1/auth/${role}/register/`, (route) =>
+				route.fulfill({
+					status: 403,
+					json: { error: { code: "registration_closed" } },
+				}),
+			);
+			await page.route("**/api/v1/auth/google/start/", (route) =>
+				route.fulfill({
+					status: 403,
+					json: { error: { code: "registration_closed" } },
+				}),
+			);
+			await page.goto(`/${locale}/auth/${role}-registration`);
+			const modal = page.getByRole("dialog");
+			await modal
+				.locator('[name="display_name"]')
+				.fill("Synthetic registration");
+			await modal.locator('[name="email"]').fill("synthetic@example.test");
+			await modal
+				.locator('[name="password"]')
+				.fill("Synthetic-strong-pass-2048");
+			await modal.locator('[name="consent"]').check();
+			await modal
+				.getByRole("button", { name: authCopy[locale].register, exact: true })
+				.click();
+			await expect(modal.getByRole("alert")).toHaveText(
+				authCopy[locale].registrationClosed,
+			);
+			await expect(modal.locator('[name="email"]')).toHaveValue(
+				"synthetic@example.test",
+			);
+			await modal
+				.getByRole("button", { name: googleCopy[locale].button, exact: true })
+				.click();
+			await expect(modal.locator(".google-entry [role=alert]")).toHaveText(
+				authCopy[locale].registrationClosed,
+			);
+			await page.goto(
+				`/${locale}/auth/google-result?google=registration_closed&context=${role}`,
+			);
+			await expect(page.getByRole("dialog").getByRole("status")).toHaveText(
+				authCopy[locale].registrationClosed,
+			);
+		});
+	}
+}

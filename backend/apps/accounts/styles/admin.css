@@ -4,6 +4,7 @@
 @source "../templates";
 @source "../../site";
 @source "../../verification/templates";
+@source "../../marketplace/templates";
 @custom-variant dark (&:where(.dark, .dark *));
 @theme inline {
   --color-canvas: var(--admin-canvas);
@@ -43,7 +44,10 @@ html[lang^="en"] body {line-height:1.6}
 .admin-login button,.admin-login input {font-family:inherit}
 .admin-login button {cursor:pointer}
 .admin-login .private {overflow-wrap:anywhere;user-select:all}
-#nav-sidebar-inner {background:var(--admin-panel)}
+#nav-sidebar-inner {background:var(--admin-panel);display:flex;flex-direction:column;height:100dvh;max-height:100dvh;min-height:0;overflow:hidden}
+/* Keep only the navigation list scrollable; native search/account controls stay reachable. */
+#nav-sidebar-inner > :not(#nav-sidebar-apps) {flex-shrink:0}
+#nav-sidebar-apps {flex:1 1 0%;height:auto;min-height:0;overflow-y:auto;overscroll-behavior-y:contain}
 #nav-sidebar-apps a {min-height:44px;height:auto;padding-block:10px;font-size:14px;line-height:1.5}
 #nav-sidebar-apps a.active {background:var(--admin-tint);color:var(--admin-action)}
 #nav-sidebar-inner a img.h-8 {width:174px;height:auto;max-height:48px;object-fit:contain;margin-inline-end:0}
@@ -52,3 +56,6 @@ html[lang^="en"] body {line-height:1.6}
 
 /* Reserve ligature icon dimensions while the local font loads. */
 .material-symbols-outlined[data-admin-icon] {inline-size:1em;overflow:hidden;box-sizing:content-box;flex-shrink:0;vertical-align:middle}
+
+/* Native readonly identifiers must wrap inside narrow flex-based form rows. */
+#content .readonly {min-inline-size:0;max-inline-size:100%;overflow-wrap:anywhere}

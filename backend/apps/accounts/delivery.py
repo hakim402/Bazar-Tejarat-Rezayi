@@ -3,6 +3,7 @@
 import hashlib
 import json
 import secrets
+import smtplib
 from datetime import timedelta
 from email.mime.image import MIMEImage
 from pathlib import Path
@@ -66,11 +67,12 @@ def queue_account_mail(user, purpose, locale):
             credential_state=credential_state(user),
             expires_at=timezone.now() + timedelta(minutes=settings.ACCOUNT_MAIL_TTL_MINUTES[purpose]),
         )
-        item = AccountMail.objects.create(
+        AccountMail.objects.create(
             token=token, encrypted_payload=protect({"raw": raw, "locale": locale}), expires_at=token.expires_at
         )
         # Commit first; worker sweep recovers a crash or ambiguous send. Same token on every retry.
-        transaction.on_commit(lambda: dispatch_one(item.pk))
+        from apps.runtime.jobs import enqueue
+        enqueue("account_sweep")
     return "queued"
 
 
@@ -104,39 +106,57 @@ def dispatch_one(pk):
     from .services import audit, credential_state
 
     with transaction.atomic():
-        # Match issuance/reset lock order: identity first, then outbox/token.
         user_id = AccountMail.objects.values_list("token__user_id", flat=True).get(pk=pk)
         User.objects.select_for_update().get(pk=user_id)
         item = AccountMail.objects.select_for_update().select_related("token__user").get(pk=pk)
-        if item.status not in {"queued", "delivery_failed"} or item.next_attempt_at > timezone.now():
+        now = timezone.now()
+        if item.status == "dispatching":
+            if item.next_attempt_at <= now:
+                item.status = "delivery_unknown"
+                item.save(update_fields=["status", "updated_at"])
+            return item.status
+        if item.status not in {"queued", "delivery_failed"} or item.next_attempt_at > now:
             return item.status
         token = item.token
-        if (
-            item.expires_at <= timezone.now()
-            or token.used_at
-            or not token.user.is_active
-            or token.credential_state != credential_state(token.user)
-        ):
+        if (item.expires_at <= now or token.used_at or not token.user.is_active
+                or token.credential_state != credential_state(token.user)):
             item.status, item.encrypted_payload = "expired", ""
-        elif item.attempts >= 3:
+            item.save()
+            return item.status
+        if item.attempts >= 3:
             item.status, item.encrypted_payload = "exhausted", ""
-        else:
-            item.attempts += 1
-            try:
-                if message_for(token, reveal(item.encrypted_payload)).send() != 1:
-                    raise RuntimeError("adapter_rejected")
-                item.status = "smtp_accepted" if settings.ACCOUNT_EMAIL_TRANSPORT == "smtp" else "captured"
-                item.encrypted_payload = ""
-            except Exception:
-                # Provider exception text can contain credentials/recipients. Never persist or log it.
-                item.status = "delivery_failed"
-                item.next_attempt_at = timezone.now() + timedelta(seconds=60 * item.attempts)
-            MailAttempt.objects.create(
-                user=token.user, purpose=token.purpose, status="failed" if item.status == "delivery_failed" else "sent"
-            )
-            audit("mail_" + item.status, user=token.user)
+            item.save()
+            return item.status
+        # Persist the send boundary BEFORE contacting a provider. A lost worker
+        # cannot roll attempts back or silently resend an uncertain acceptance.
+        message = message_for(token, reveal(item.encrypted_payload))
+        item.attempts += 1
+        attempt = item.attempts
+        item.status = "dispatching"
+        item.next_attempt_at = now + timedelta(seconds=90)
         item.save()
-        return item.status
+    try:
+        accepted = message.send() == 1
+        status = ("smtp_accepted" if settings.ACCOUNT_EMAIL_TRANSPORT == "smtp" else "captured") if accepted else "delivery_failed"
+    except (smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused, smtplib.SMTPDataError):
+        status = "delivery_failed"
+    except Exception:
+        status = "delivery_unknown"
+    with transaction.atomic():
+        User.objects.select_for_update().get(pk=user_id)
+        item = AccountMail.objects.select_for_update().get(pk=pk)
+        if item.status != "dispatching" or item.attempts != attempt:
+            return item.status
+        item.status = status
+        if status in {"captured", "smtp_accepted"}:
+            item.encrypted_payload = ""
+        elif status == "delivery_failed":
+            item.next_attempt_at = timezone.now() + timedelta(seconds=60 * attempt)
+        item.save()
+        MailAttempt.objects.create(user_id=user_id, purpose=token.purpose,
+                                  status="sent" if status in {"captured", "smtp_accepted"} else "failed")
+        audit("mail_" + status, user=token.user)
+        return status
 
 
 def sweep_mail():
@@ -151,6 +171,6 @@ def sweep_mail():
         encrypted_payload="", status="expired"
     )
     for pk in AccountMail.objects.filter(
-        status__in=["queued", "delivery_failed"], next_attempt_at__lte=now, expires_at__gt=now
+        status__in=["queued", "delivery_failed", "dispatching"], next_attempt_at__lte=now, expires_at__gt=now
     ).values_list("pk", flat=True)[:50]:
         dispatch_one(pk)

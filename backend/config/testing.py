@@ -32,8 +32,10 @@ def ownership_manifest():
             or values["root"] != str(root.resolve())
             or values["database"] != "test_rezayi_" + run_id()
             or values["role"] != "test_" + run_id()
-            or not 1024 < int(values["postgres_port"]) < 65536
+            or (values.get("engine") != "mariadb" and not 1024 < int(values["postgres_port"]) < 65536)
         ):
+            raise ValueError
+        if values.get("auxiliary_databases", []) != (["test_rezayi_" + run_id() + suffix for suffix in ("_transfer", "_restore", "_legacy")] if values.get("engine") == "mariadb" and "auxiliary_databases" in values else []):
             raise ValueError
         return values
     except (KeyError, ValueError, OSError, TypeError):
@@ -54,18 +56,33 @@ def validate_target(database):
     identifier = run_id()
     marker = ownership_manifest()
     name = f"test_rezayi_{identifier}"
-    if (
-        database.get("HOST") != "127.0.0.1"
-        or str(database.get("PORT")) != str(marker["postgres_port"])
-        or database.get("USER") != f"test_{identifier}"
-        or database.get("NAME") not in {name, name + "_unit"}
-        or database.get("TEST", {}).get("NAME") != name + "_unit"
-    ):
+    if marker.get("engine") == "mariadb":
+        valid = (database.get("ENGINE") == "apps.runtime.backends.mysql"
+                 and database.get("HOST") == "localhost" and database.get("PORT") == ""
+                 and database.get("OPTIONS", {}).get("unix_socket") == str(Path(marker["root"]) / "db.sock"))
+    else:
+        valid = (database.get("HOST") == "127.0.0.1" and str(database.get("PORT")) == str(marker["postgres_port"]))
+    if (not valid or database.get("USER") != f"test_{identifier}"
+        or database.get("NAME") not in {name, name + "_unit", *marker.get("auxiliary_databases", [])}
+        or database.get("TEST", {}).get("NAME") != name + "_unit"):
         raise ImproperlyConfigured("Tests refuse a resolved target outside this native disposable run.")
 
 
 def assert_owned_database(connection):
     validate_target(connection.settings_dict)
+    if connection.vendor == "mysql":
+        marker = ownership_manifest()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT DATABASE(),CURRENT_USER(),@@datadir,@@socket")
+            name, role, datadir, socket_path = cursor.fetchone()
+            if (name != connection.settings_dict["NAME"] or role.split("@")[0] != marker["role"]
+                or Path(datadir).resolve() != Path(marker["root"]) / "mariadb"
+                or socket_path != marker["socket"]):
+                raise ImproperlyConfigured("Native MariaDB identity differs from this owned run.")
+            cursor.execute("SELECT run_id FROM bazar_owned_run")
+            if cursor.fetchone() != (run_id(),):
+                raise ImproperlyConfigured("MariaDB database ownership marker mismatch.")
+        return
     with connection.cursor() as cursor:
         cursor.execute(
             "SELECT current_database(), current_user, current_setting('rezayi.test_run_id', true), "

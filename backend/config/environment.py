@@ -14,7 +14,9 @@ def load_environment(base_dir):
 
 
 def database_config(url, *, production=False, conn_max_age=0):
-    message = "DATABASE_URL must be an explicit PostgreSQL URL with database and credentials."
+    if urlsplit(url).scheme in {"mysql", "mariadb"}:
+        return mariadb_config(url, production=production, conn_max_age=conn_max_age)
+    message = "DATABASE_URL must be an explicit supported database URL with database and credentials."
     try:
         parsed = urlsplit(url)
         if parsed.scheme not in {"postgres", "postgresql"}:
@@ -63,3 +65,43 @@ def isolated_database(url):
         raise ImproperlyConfigured("Tests require a dedicated phase-specific isolated database.")
     database["TEST"] = {"NAME": database["NAME"]}
     return database
+
+
+def mariadb_config(url, *, production=False, conn_max_age=0):
+    """An explicit local socket or a remotely verified certificate, never TLS prefer."""
+    try:
+        p = urlsplit(url)
+        query = parse_qs(p.query, strict_parsing=True)
+        if (p.scheme not in {"mysql", "mariadb"} or not p.hostname or not p.username or not p.password
+            or not p.path[1:] or "/" in p.path[1:] or p.fragment
+            or any(len(v) != 1 for v in query.values())
+            or set(query) - {"unix_socket", "ssl_ca", "connect_timeout"}
+            or not 0 <= int(conn_max_age) <= 600):
+            raise ValueError
+        opts = {k: v[0] for k, v in query.items()}
+        timeout = int(opts.get("connect_timeout", 3))
+        if not 1 <= timeout <= 10:
+            raise ValueError
+        socket = opts.get("unix_socket")
+        ca = opts.get("ssl_ca")
+        if socket and (p.hostname != "localhost" or not Path(socket).is_absolute() or ca or p.port):
+            raise ValueError
+        if ca and (not Path(ca).is_absolute() or socket):
+            raise ValueError
+        if production and not (socket or ca):
+            raise ValueError
+        port = p.port or 3306
+        if not 1 <= port <= 65535:
+            raise ValueError
+        options = {"charset": "utf8mb4", "connect_timeout": timeout, "isolation_level": "read committed",
+                   "init_command": "SET sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE,NO_ENGINE_SUBSTITUTION', time_zone='+00:00', group_concat_max_len=1048576"}
+        if socket:
+            options["unix_socket"] = socket
+        if ca:
+            options.update(ssl={"ca": ca}, ssl_mode="VERIFY_IDENTITY")
+        return {"ENGINE": "apps.runtime.backends.mysql", "NAME": unquote(p.path[1:]),
+                "USER": unquote(p.username), "PASSWORD": unquote(p.password),
+                "HOST": "localhost" if socket else p.hostname, "PORT": "" if socket else port,
+                "CONN_MAX_AGE": int(conn_max_age), "CONN_HEALTH_CHECKS": True, "OPTIONS": options}
+    except (ValueError, TypeError, AttributeError):
+        raise ImproperlyConfigured("MariaDB requires an explicit database/user/password and a protected local socket or verified remote TLS in production.") from None

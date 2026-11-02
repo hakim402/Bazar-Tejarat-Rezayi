@@ -1,3 +1,4 @@
+import smtplib
 import json
 import time
 from datetime import timedelta
@@ -86,6 +87,7 @@ class MailTests(TestCase):
                     ActionToken.objects.all().delete()
                     with self.captureOnCommitCallbacks(execute=True):
                         self.assertEqual(request_mail(self.user, purpose, locale), "queued")
+                    sweep_mail()
                     message = mail.outbox[-1]
                     self.assertEqual(message.to, [self.user.email])
                     self.assertIn("#token=", message.body)
@@ -113,11 +115,14 @@ class MailTests(TestCase):
         self.assertFalse(ActionToken.objects.exists())
         self.assertEqual(len(mail.outbox), 0)
 
-    @patch("apps.accounts.delivery.EmailMultiAlternatives.send", side_effect=TimeoutError("sensitive-provider-text"))
+    @patch("apps.accounts.delivery.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"sensitive-provider-text"))
     def test_bounded_retry_uses_same_protected_token_and_cleans_expiry(self, send):
         with self.captureOnCommitCallbacks(execute=True):
             queue_account_mail(self.user, "verify", "en")
         item = AccountMail.objects.get()
+        self.assertEqual(send.call_count, 0)
+        dispatch_one(item.pk)
+        item.refresh_from_db()
         token = item.token
         raw = reveal(item.encrypted_payload)["raw"]
         self.assertNotIn(raw, item.encrypted_payload)
@@ -135,6 +140,8 @@ class MailTests(TestCase):
     def test_smtp_acceptance_is_not_inbox_delivery(self):
         with self.captureOnCommitCallbacks(execute=True):
             queue_account_mail(self.user, "verify", "en")
+        self.assertEqual(AccountMail.objects.get().status, "queued")
+        sweep_mail()
         self.assertEqual(AccountMail.objects.get().status, "smtp_accepted")
 
     def test_expiry_scrubs_queued_payload(self):
@@ -246,7 +253,7 @@ class GoogleTests(TestCase):
         attempt = parse_qs(urlsplit(response["Location"]).query)["attempt"][0]
         data = {"attempt_id": attempt, "display_name": "Social", "intent": "individual", "consent": False}
         self.assertEqual(post(self.client, "google/complete/", data).status_code, 403)
-        with override_settings(DEVELOPMENT_SIGNUP_ENABLED=False):
+        with override_settings(DEVELOPMENT_SIGNUP_ENABLED=False, PUBLIC_SIGNUP_ENABLED=False):
             self.assertEqual(post(self.client, "google/complete/", {**data, "consent": True}).status_code, 403)
         self.assertEqual(self.onboard(response).status_code, 200)
         self.assertEqual(post(self.client, "google/complete/", {**data, "consent": True}).status_code, 403)
@@ -584,5 +591,7 @@ class MailCommitTests(TransactionTestCase):
             queue_account_mail(user, "verify", "fa-AF")
             self.assertEqual(len(mail.outbox), 0)
             self.assertEqual(AccountMail.objects.get().status, "queued")
+        self.assertEqual(len(mail.outbox), 0)
+        sweep_mail()
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(AccountMail.objects.get().status, "captured")

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { EmailPreference } from "../../features/notifications/components/email-preference";
 import type { Locale } from "../../lib/i18n/locales";
 import { accountSettingsCopy } from "../../lib/i18n/account-settings";
 import { organizationCopy, label } from "../../lib/i18n/organizations";
@@ -30,6 +31,11 @@ export function AccountSettings({
 	return (
 		<div className="space-y-6" data-testid="account-settings">
 			<h1 className="text-3xl font-bold">{t.title}</h1>
+			<EmailPreference
+				key={`${locale}:${context}`}
+				locale={locale}
+				context={context}
+			/>
 			<nav className="flex flex-wrap gap-4 text-sm font-semibold">
 				<Link
 					className="inline-flex min-h-11 items-center"

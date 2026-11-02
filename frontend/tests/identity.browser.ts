@@ -1,3 +1,4 @@
+import { loadRenderedImages } from "./support/rendered-images";
 import { messages } from "../lib/i18n/messages";
 import { choosePreference } from "./support/site-preferences";
 import { adminLogin, openAdminAccountMenu } from "./support/admin-runtime";
@@ -64,12 +65,30 @@ test.afterEach(async ({ page }, info) => {
 		);
 });
 
-function mailbox(email: string) {
-	const script =
-		"from django.conf import settings\nfrom pathlib import Path\nfrom email import policy\nfrom email.parser import BytesParser\nimport re,json\nitems=[]\nfor p in Path(settings.PRIVATE_MAIL_ROOT).glob('*.eml'):\n m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())\n if str(m['To'])==" +
-		JSON.stringify(email) +
-		":\n  body=m.get_body(preferencelist=('plain',)).get_content() if m.is_multipart() else m.get_content()\n  match=re.search(r'(http://[^\\s]+#token=[A-Za-z0-9_-]+)',body)\n  if match:items.append((p.stat().st_mtime,match[1]))\nprint(json.dumps(sorted(items)[-1][1]))";
-	return JSON.parse(disposablePython(script));
+async function mailbox(email: string, route: "verify-email" | "reset-password") {
+	// The durable outbox is asynchronous. Await the intended captured message;
+	// an older verification link must never stand in for a pending reset link.
+	const script = String.raw`from django.conf import settings
+from pathlib import Path
+from email import policy
+from email.parser import BytesParser
+import re,json,sys
+data=json.load(sys.stdin)
+items=[]
+for p in Path(settings.PRIVATE_MAIL_ROOT).glob('*.eml'):
+ m=BytesParser(policy=policy.default).parsebytes(p.read_bytes())
+ if str(m['To'])==data['email']:
+  body=m.get_body(preferencelist=('plain',)).get_content() if m.is_multipart() else m.get_content()
+  match=re.search(r'(http://[^\s]+#token=[A-Za-z0-9_-]+)',body)
+  if match and '/auth/'+data['route']+'#token=' in match[1]:items.append((p.stat().st_mtime,match[1]))
+print(json.dumps(sorted(items)[-1][1] if items else None))`;
+	let url = "";
+	await expect.poll(() => {
+		const value: unknown = JSON.parse(disposablePython(script, JSON.stringify({ email, route })));
+		url = typeof value === "string" ? value : "";
+		return Boolean(url);
+	}, { timeout: 90000, intervals: [200, 500, 1000], message: "Expected the intended private outbox capture" }).toBe(true);
+	return url;
 }
 function otp(secret: string) {
 	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -128,7 +147,7 @@ async function newBuyer(page: Page) {
 	await page.locator("[name=consent]").check();
 	await page.locator(".account-card > form button[type=submit]").click();
 	await expect(modal.getByRole("status")).toContainText("Request received");
-	const url = mailbox(email);
+	const url = await mailbox(email, "verify-email");
 	await page.goto(url);
 	await expect(page).not.toHaveURL(/#token=/);
 	await page.locator(".account-card > form button[type=submit]").click();
@@ -203,8 +222,8 @@ for (const locale of locales) {
 test("identity registration verification profile linking and recovery through private mail", async ({
 	page,
 }) => {
-	// This multi-operation real-mail/password journey measured 27.6 s even without the historical slow responses.
-	test.setTimeout(60000);
+	// Two real bounded outbox deliveries may each wait for the next required sweep.
+	test.setTimeout(240000);
 	const email = await newBuyer(page);
 	await login(page, "buyer", email);
 	await expect(page).toHaveURL(/\/en\/account\/buyer$/);
@@ -256,7 +275,7 @@ test("identity registration verification profile linking and recovery through pr
 	await expect(page.getByRole("dialog").getByRole("status")).toContainText(
 		"Request received",
 	);
-	await page.goto(mailbox(email));
+	await page.goto(await mailbox(email, "reset-password"));
 	await expect(page).not.toHaveURL(/#token=/);
 	const next = `${password}-changed`;
 	await page.locator("[name=password]").fill(next);
@@ -379,9 +398,14 @@ test("identity owner admin MFA and actual permitted styled administration", asyn
 		})
 		.click();
 	await expect(page).toHaveURL(`${api}/admin/`);
+	const accounts = page
+		.locator("#nav-sidebar-apps")
+		.getByRole("button", { name: "Accounts & Access", exact: true });
+	if ((await accounts.getAttribute("aria-expanded")) !== "true")
+		await accounts.click();
 	await expect(
-		page.locator('a[href="/admin/accounts/account/"]:visible').first(),
-	).toBeVisible();
+		page.getByRole("link", { name: "Staff accounts", exact: true }),
+	).toHaveAttribute("href", "/admin/accounts/account/?context__exact=staff");
 	await page.screenshot({
 		path: `${evidence}/owner-admin-permitted.png`,
 		fullPage: true,
@@ -455,21 +479,8 @@ test("identity public auth Dari desktop and mobile design inventory", async ({
 		for (const screen of screens) {
 			await page.goto(`/fa-AF/auth/${screen}`);
 			await choosePreference(page, messages["fa-AF"].theme, "light");
-			await page.evaluate(async () => {
-				await document.fonts.ready;
-				await Promise.all(
-					[...document.images]
-						.filter((img) => img.getBoundingClientRect().width > 0)
-						.map((img) =>
-							img.complete
-								? Promise.resolve()
-								: new Promise((resolve) => {
-										img.onload = resolve;
-										img.onerror = resolve;
-									}),
-						),
-				);
-			});
+			await page.evaluate(() => document.fonts.ready);
+			await loadRenderedImages(page);
 			expect(
 				await page.evaluate(
 					() => document.documentElement.scrollWidth <= innerWidth,

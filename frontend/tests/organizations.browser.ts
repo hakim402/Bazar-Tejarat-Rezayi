@@ -544,6 +544,8 @@ function alternativeFixture(name: string) {
 test("native assignment redirects contain no case payload; active read removal hides private fields", async ({
 	browser,
 }) => {
+	// Enrollment, two fixture setups and four real screenshots precede revocation.
+	test.setTimeout(90000);
 	const actor = await adminActor(browser, "verification", [
 		"view_queue",
 		"assign_review",

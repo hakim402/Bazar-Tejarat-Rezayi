@@ -1,4 +1,5 @@
 import os
+from hashlib import sha256
 import environ
 from apps.accounts.provider_settings import provider_settings
 from cryptography.fernet import Fernet
@@ -6,7 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from config.environment import database_config, load_environment
-from config.security import owner_mfa_setting
+from config.security import owner_mfa_setting, public_signup_setting
 from django.core.exceptions import ImproperlyConfigured
 from django.conf.locale import LANG_INFO
 
@@ -41,12 +42,18 @@ def origin_list(name, *, secure=False):
 
 INSTALLED_APPS = [
     "unfold",
+    "apps.runtime.apps.RuntimeConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.organizations.apps.OrganizationsConfig",
     "apps.verification.apps.VerificationConfig",
     "apps.site.apps.SiteConfig",
     "apps.catalogue.apps.CatalogueConfig",
     "apps.inventory.apps.InventoryConfig",
+    "apps.marketplace.apps.MarketplaceConfig",
+    "apps.messaging.apps.MessagingConfig",
+    "apps.notifications.apps.NotificationsConfig",
+    "apps.cart.apps.CartConfig",
+    "apps.orders.apps.OrdersConfig",
     "django_otp",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -65,10 +72,12 @@ MIDDLEWARE = [
     "apps.accounts.admin_locale.AdminEnglishMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "apps.runtime.middleware.TargetSchemaMiddleware",
     "apps.accounts.middleware.ReadSafeSessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "apps.verification.uploads.EvidenceRequestLimitMiddleware",
     "apps.catalogue.media.CatalogueRequestLimitMiddleware",
+    "apps.messaging.media.MessageRequestLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
@@ -101,6 +110,11 @@ DATABASES = {
         conn_max_age=env("DB_CONN_MAX_AGE", default="0"),
     )
 }
+
+if DATABASES["default"]["ENGINE"].endswith("mysql"):
+    MIGRATION_MODULES = {name: "apps." + name + ".migrations_mariadb" for name in (
+        "accounts", "organizations", "verification", "site", "catalogue", "inventory",
+        "marketplace", "messaging", "notifications", "cart", "orders", "runtime")}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -141,6 +155,7 @@ if (
 ):
     raise ImproperlyConfigured("FRONTEND_ORIGIN must be an explicit trusted origin without a path.")
 DEVELOPMENT_SIGNUP_ENABLED = not PRODUCTION and env.bool("DEVELOPMENT_SIGNUP_ENABLED", default=True)
+PUBLIC_SIGNUP_ENABLED = public_signup_setting(env)
 MFA_ENCRYPTION_KEY = env("MFA_ENCRYPTION_KEY", default="")
 if not MFA_ENCRYPTION_KEY:
     raise ImproperlyConfigured("A separate private MFA_ENCRYPTION_KEY is required.")
@@ -150,10 +165,12 @@ except (ValueError, TypeError):
     raise ImproperlyConfigured("MFA_ENCRYPTION_KEY must be a valid private Fernet key.") from None
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS[1]["OPTIONS"] = {"min_length": 12}
+ADMIN_CSS_VERSION = sha256((BASE_DIR / "apps/accounts/static/accounts/admin.css").read_bytes()).hexdigest()[:16]
+
 UNFOLD = {
     "SITE_TITLE": "Bazar Rezayi",
     "SITE_HEADER": "Bazar Rezayi",
-    "SITE_SUBHEADER": "Owner workspace",
+    "SITE_SUBHEADER": "Administration",
     "SHOW_LANGUAGES": False,
     "DASHBOARD_CALLBACK": "apps.accounts.dashboard.dashboard_context",
     "SIDEBAR": {
@@ -177,19 +194,14 @@ UNFOLD = {
         }
     },
     "SITE_URL": FRONTEND_ORIGIN,
-    "STYLES": [lambda request: "/static/accounts/admin.css"],
+    "STYLES": [lambda request: f"/static/accounts/admin.css?v={ADMIN_CSS_VERSION}"],
     "SITE_LOGO": {
         "light": lambda request: "/static/accounts/brand-en.svg",
         "dark": lambda request: "/static/accounts/brand-en-white.svg",
     },
 }
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL")
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-CELERY_TASK_SERIALIZER = "json"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_IGNORE_RESULT = True
-CELERY_BEAT_SCHEDULE = {}
+BACKGROUND_ENGINE = "database"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -204,6 +216,8 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "LocaleEnum": "apps.foundation.contracts.LOCALES",
         "CurrencyEnum": ["AFN", "USD"],
+        "GoodsPaymentMethodEnum": ["advance", "cod"],
+        "CartMutationActionEnum": ["set", "remove"],
         "CompanyBundleEnum": "apps.organizations.models.BUNDLES",
         "BusinessProfileKindEnum": ["individual", "company", "business"],
         "PublicAccountContextEnum": ["buyer", "seller"],
@@ -238,12 +252,6 @@ STORAGES = {
 }
 NEW_PUBLIC_STORAGE_ALIAS = "public_local"
 NEW_PRIVATE_STORAGE_ALIAS = "private_local"
-CELERY_IMPORTS = ("apps.foundation.tasks",)
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
-CELERY_RESULT_EXPIRES = 60
-CELERY_TASK_SEND_SENT_EVENT = False
-CELERY_WORKER_HIJACK_ROOT_LOGGER = False
-CELERY_WORKER_REDIRECT_STDOUTS = False
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -262,11 +270,6 @@ LOGGING = {
 
 globals().update(provider_settings(env, PRODUCTION))
 ACCOUNT_MAIL_TTL_MINUTES = {"verify": 1440, "reset": 30}
-CELERY_IMPORTS = (*CELERY_IMPORTS, "apps.accounts.tasks")
-CELERY_BEAT_SCHEDULE["account-mail-dispatch"] = {
-    "task": "accounts.dispatch_mail",
-    "schedule": 60.0,
-}
 # Provider libraries must never write request URLs, codes or token responses to application logs.
 for _logger in ("authlib", "requests", "urllib3", "pypdf", "PIL"):
     LOGGING["loggers"][_logger] = {"handlers": [], "level": "CRITICAL", "propagate": False}
@@ -280,6 +283,10 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 32  # Per-request guard retains one file outside 
 STORAGES["catalogue_local"] = {
     "BACKEND": "apps.foundation.storage.PrivateFileStorage",
     "OPTIONS": {"location": DATA_ROOT / "private-catalogue"},
+}
+STORAGES["marketplace_local"] = {
+    "BACKEND": "apps.foundation.storage.PrivateFileStorage",
+    "OPTIONS": {"location": DATA_ROOT / "private-stores"},
 }
 CATALOGUE_STORAGE_ALIAS = env("CATALOGUE_STORAGE_ALIAS", default="catalogue_local")
 if env("CATALOGUE_S3_BUCKET", default=""):
@@ -303,10 +310,6 @@ GROQ_DAILY_CALL_LIMIT = env.int("GROQ_DAILY_CALL_LIMIT", default=0)
 GROQ_DAILY_CHARACTER_LIMIT = env.int("GROQ_DAILY_CHARACTER_LIMIT", default=0)
 # Only explicitly evaluated languages may be sent. Persian must not silently stand for Dari.
 GROQ_TRANSLATION_LOCALES = tuple(env.list("GROQ_TRANSLATION_LOCALES", default=[]))
-CELERY_IMPORTS = (*CELERY_IMPORTS, "apps.catalogue.tasks")
-CELERY_BEAT_SCHEDULE["catalogue-translation-recovery"] = {
-    "task": "catalogue.dispatch_translations", "schedule": 30.0,
-}
 for _logger in ("botocore", "boto3", "s3transfer"):
     LOGGING["loggers"][_logger] = {"handlers": [], "level": "CRITICAL", "propagate": False}
 
@@ -318,3 +321,6 @@ for _host in SITE_MEDIA_HOSTS:
     if not __import__("re").fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}", _host) or "." not in _host or _host.endswith((".local", ".localhost", ".internal", ".test", ".invalid")) or _host.replace(".", "").isdigit():
         raise ImproperlyConfigured("SITE_MEDIA_HOSTS must contain explicit public lowercase DNS hostnames only.")
 STORAGES["site_local"] = {"BACKEND": "apps.foundation.storage.PrivateFileStorage", "OPTIONS": {"location": DATA_ROOT / "site-public"}}
+
+# Durable communication recovery; providers remain configured through the existing mail contract.
+

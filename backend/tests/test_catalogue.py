@@ -1,4 +1,6 @@
 """Catalogue outcomes in an owned PostgreSQL database, without live providers."""
+from unittest import skipUnless
+from django.db import DatabaseError as WakeFailure
 from tests.test_identity import native_auth
 
 import copy
@@ -531,7 +533,7 @@ class CatalogueTests(CatalogueFixture, TestCase):
         self.publish(source)
         with (
             self.captureOnCommitCallbacks(execute=True),
-            patch("apps.catalogue.tasks.generate_translation.apply_async", side_effect=OSError("broker-private")),
+            patch("apps.runtime.jobs.enqueue", side_effect=WakeFailure("broker-private")),
         ):
             self.translation(source, "generate")
         job = TranslationJob.objects.get(translation__revision=source, translation__locale="en")
@@ -690,13 +692,13 @@ class CatalogueTests(CatalogueFixture, TestCase):
         with (
             self.captureOnCommitCallbacks(execute=True),
             patch(
-                "apps.catalogue.tasks.generate_translation.apply_async", side_effect=OSError("synthetic broker failure")
+                "apps.runtime.jobs.enqueue", side_effect=WakeFailure("synthetic broker failure")
             ),
         ):
             self.publish(source)
         job = TranslationJob.objects.get(translation__revision=source, translation__locale="en")
         self.assertEqual(job.status, "queued")
-        with patch("apps.catalogue.tasks.generate_translation.apply_async") as enqueue:
+        with patch("apps.runtime.jobs.enqueue") as enqueue:
             translations.dispatch()
             self.assertEqual(enqueue.call_count, 3)
         translations.generate(job.pk)
@@ -927,6 +929,7 @@ class CatalogueConcurrencyTests(CatalogueFixture, TransactionTestCase):
         self.assertEqual(public(self.product.pk, "en")["variants"][0]["retail"], "77.25")
 
 
+@skipUnless(connection.vendor == "postgresql", "Source predecessor history; target replay/import checked separately")
 class CatalogueMigrationTests(TransactionTestCase):
     def test_phase05_upgrade_preserves_accounts_and_content(self):
         assert_owned_database(connection)
@@ -937,14 +940,17 @@ class CatalogueMigrationTests(TransactionTestCase):
             user = User.objects.create_user("catalogue-upgrade@example.test", PASSWORD, email_verified=True)
             from tests.legacy_content import predecessor, fingerprints
             predecessor(user)
-            # Inventory depends on catalogue, so this predecessor replay legitimately creates its new migration history.
-            preserved = fingerprints(("site", "catalogue", "inventory"))
+            # Only actually replayed migration timestamps may change. Preserve
+            # every surviving domain row/schema and all unrelated migration history.
+            replayed_apps = {app for app, _ in executor.loader.graph.backwards_plan(("catalogue", "0001_initial"))}
+            excluded_history = tuple(sorted({"site", *replayed_apps}))
+            preserved = fingerprints(excluded_history)
             password = user.password
             before = set(connection.introspection.table_names())
             MigrationExecutor(connection).migrate(latest)
             user.refresh_from_db()
             self.assertEqual(user.password, password)
-            after = fingerprints(("site", "catalogue", "inventory"))
+            after = fingerprints(excluded_history)
             self.assertEqual(preserved, {key: after[key] for key in preserved})
             self.assertTrue(before.issubset(set(connection.introspection.table_names())))
         finally:

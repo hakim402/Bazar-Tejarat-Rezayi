@@ -2,18 +2,23 @@
 
 import os
 from django.core.exceptions import ImproperlyConfigured
+from pathlib import Path
 from config.testing import owned_database, run_id
 
 _identifier = run_id()
 _test_database = owned_database(os.environ.get("REZAYI_TEST_DATABASE_URL", ""), _identifier)
 _browser = os.environ.get("BROWSER_TEST_RUNTIME") == "true"
-for _key in ("DJANGO_SECRET_KEY", "MFA_ENCRYPTION_KEY", "REZAYI_TEST_FRONTEND_ORIGIN", "REZAYI_TEST_BROKER_URL"):
+_private_root = Path(os.environ.get("REZAYI_TEST_STORAGE_ROOT", os.environ["REZAYI_TEST_ROOT"]))
+if not _private_root.resolve().is_relative_to(Path(os.environ["REZAYI_TEST_ROOT"]).resolve()):
+    raise ImproperlyConfigured("Test storage must remain in the owned run directory.")
+for _key in ("DJANGO_SECRET_KEY", "MFA_ENCRYPTION_KEY", "REZAYI_TEST_FRONTEND_ORIGIN"):
     if not os.environ.get(_key):
         raise ImproperlyConfigured("Disposable test tooling must supply all temporary settings.")
 os.environ.update(
     DJANGO_SETTINGS_MODULE="config.settings.test",
     DATABASE_URL=os.environ["REZAYI_TEST_DATABASE_URL"],
     GOOGLE_OAUTH_ENABLED="false",
+    PUBLIC_SIGNUP_ENABLED="false",
     ACCOUNT_EMAIL_TRANSPORT="capture",
     GOOGLE_CLIENT_ID="",
     GOOGLE_CLIENT_SECRET="",
@@ -24,10 +29,8 @@ os.environ.update(
     EMAIL_HOST_PASSWORD="",
     DEFAULT_FROM_EMAIL="",
     FRONTEND_ORIGIN=os.environ["REZAYI_TEST_FRONTEND_ORIGIN"],
-    CELERY_BROKER_URL=os.environ["REZAYI_TEST_BROKER_URL"] if _browser else "memory://",
-    CELERY_RESULT_BACKEND=os.environ["REZAYI_TEST_BROKER_URL"] if _browser else "cache+memory://",
-    DATA_ROOT=os.environ["REZAYI_TEST_ROOT"] + "/data",
-    PRIVATE_MAIL_ROOT=os.environ["REZAYI_TEST_ROOT"] + "/data/private-mail",
+    DATA_ROOT=str(_private_root / "data"),
+    PRIVATE_MAIL_ROOT=str(_private_root / "data/private-mail"),
     CATALOGUE_S3_BUCKET="",
     CATALOGUE_S3_ACCESS_KEY="",
     CATALOGUE_S3_SECRET_KEY="",
@@ -70,7 +73,7 @@ CATALOGUE_TEST_ADAPTER_ALLOWED = True
 if CATALOGUE_TRANSLATION_ADAPTER == "deterministic":
     CATALOGUE_TRANSLATION_ENABLED = True
 
-STORAGES["site_local"]["OPTIONS"]["location"] = os.environ["REZAYI_TEST_ROOT"] + "/site-public"  # noqa: F405
+STORAGES["site_local"]["OPTIONS"]["location"] = str(_private_root / "site-public")  # noqa: F405
 SITE_MEDIA_HOSTS = ()
 
 if _browser:

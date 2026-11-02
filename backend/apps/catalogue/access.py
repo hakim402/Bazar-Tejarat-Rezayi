@@ -6,7 +6,6 @@ from rest_framework.exceptions import PermissionDenied
 from apps.organizations.access import Actor, independent
 from apps.organizations.eligibility import require_seller_approval
 from apps.organizations.models import BusinessProfile
-from apps.organizations.profiles import effective_entitlement
 from .models import Product, PERMISSIONS, CatalogueEvent
 
 
@@ -63,7 +62,8 @@ def resource(actor, pk, lock=False, capability=None):
 
 
 def public_eligible(item):
-    return item.published_id is not None and effective_entitlement(item.seller, item.seller.account)
+    from apps.marketplace.access import eligible_profiles
+    return item.published_id is not None and eligible_profiles([item.seller_id]).exists()
 
 
 def audit(actor, item, action, revision=None, reason="", translation=None, version=None):

@@ -1,5 +1,3 @@
-import redis
-from django.conf import settings
 from django.db import connections
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
@@ -70,16 +68,14 @@ class ReadyView(PublicView):
                 cursor.execute("SELECT 1")
                 healthy = cursor.fetchone() == (1,)
         except Exception as exc:
-            log_failure(request, exc, operation="dependency_readiness", dependency="postgresql")
+            log_failure(request, exc, operation="dependency_readiness", dependency="database")
             healthy = False
-        broker = redis.Redis.from_url(settings.CELERY_BROKER_URL, socket_connect_timeout=2, socket_timeout=2)
         try:
-            healthy = bool(broker.ping()) and healthy
+            from apps.runtime.jobs import scheduler_ready
+            healthy = scheduler_ready() and healthy
         except Exception as exc:
-            log_failure(request, exc, operation="dependency_readiness", dependency="redis")
+            log_failure(request, exc, operation="dependency_readiness", dependency="scheduler")
             healthy = False
-        finally:
-            broker.close()
         response = Response({"status": "ready" if healthy else "not_ready"}, status=200 if healthy else 503)
         response["Cache-Control"] = "no-store"
         return response

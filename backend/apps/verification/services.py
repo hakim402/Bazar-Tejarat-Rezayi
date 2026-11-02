@@ -185,7 +185,9 @@ def review_action(actor, pk, data):
 
 
 def authorize_case(actor, case, *, evidence=False):
-    if actor.context in {"staff", "owner"}:
+    if actor.context == "owner":
+        actor.account
+    elif actor.context == "staff":
         reviewer(case, actor, "read_evidence")
     else:
         manage_profile(case.profile, actor)

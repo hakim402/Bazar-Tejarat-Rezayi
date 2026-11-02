@@ -42,11 +42,13 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 			err instanceof AccountError
 				? err.status === 429
 					? t.limited
-					: err.code === "csrf_failed"
-						? t.stale
-						: err.status === 403
-							? t.denied
-							: t.invalid
+					: err.code === "registration_closed"
+						? t.registrationClosed
+						: err.code === "csrf_failed"
+							? t.stale
+							: err.status === 403
+								? t.denied
+								: t.invalid
 				: t.unavailable,
 		);
 	}

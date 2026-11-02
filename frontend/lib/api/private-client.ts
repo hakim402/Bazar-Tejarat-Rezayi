@@ -20,17 +20,20 @@ export function safeValidationIssues(value: unknown): ValidationIssue[] {
 export class AccountError extends ApiError {
 	readonly fields: string[];
 	readonly code: string;
+	readonly resource?: string;
 	readonly violations: ValidationIssue[];
 	constructor(
 		status: number,
 		fields: string[] = [],
 		code = "request_failed",
 		violations: ValidationIssue[] = [],
+		resource?: string,
 	) {
 		super("invalid", status);
 		this.fields = fields;
 		this.code = code;
 		this.violations = violations;
+		this.resource = resource;
 	}
 }
 
@@ -40,20 +43,25 @@ export async function privateCall<T>(
 	data?: unknown,
 	csrf: string | null = null,
 	namespace = "auth/",
+	options: { signal?: AbortSignal; timeoutMs?: number | null } = {},
 ): Promise<T> {
 	const base = apiOrigin(process.env.NEXT_PUBLIC_API_URL);
 	let response: Response;
+	const timeout =
+		options.timeoutMs === null
+			? null
+			: AbortSignal.timeout(
+					options.timeoutMs ?? (data instanceof FormData ? 30000 : 10000),
+				);
 	try {
 		response = await fetch(`${base}/api/v1/${namespace}${path}`, {
 			method,
 			credentials: "include",
 			cache: "no-store",
-			signal: AbortSignal.timeout(
-
-					data instanceof FormData
-					? 30000
-					: 10000,
-			),
+			signal:
+				options.signal && timeout
+					? AbortSignal.any([options.signal, timeout])
+					: (options.signal ?? timeout ?? undefined),
 			headers: {
 				Accept: "application/json",
 				...(data !== undefined
@@ -70,6 +78,8 @@ export async function privateCall<T>(
 				: {}),
 		});
 	} catch {
+		if (options.signal?.aborted) throw new ApiError("cancelled");
+		if (timeout?.aborted) throw new ApiError("timeout");
 		throw new ApiError("unavailable");
 	}
 	if (!response.headers.get("content-type")?.includes("application/json"))
@@ -97,6 +107,18 @@ export async function privateCall<T>(
 			fields,
 			code,
 			safeValidationIssues(envelope?.error?.violations),
+			response.status === 409 &&
+				typeof body === "object" &&
+				body &&
+				"code" in body &&
+				body.code === "conversation_exists" &&
+				"conversation" in body &&
+				typeof body.conversation === "string" &&
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+					body.conversation,
+				)
+				? body.conversation
+				: undefined,
 		);
 	}
 	if (!body || typeof body !== "object") throw new ApiError("invalid");
@@ -107,6 +129,7 @@ export async function privateRequest<T>(
 	path: string,
 	data?: unknown,
 	method = "POST",
+	options: { signal?: AbortSignal; timeoutMs?: number | null } = {},
 ): Promise<T> {
 	let csrf: string | null = null;
 	if (data !== undefined) {
@@ -120,5 +143,6 @@ export async function privateRequest<T>(
 		data,
 		csrf,
 		"",
+		options,
 	);
 }

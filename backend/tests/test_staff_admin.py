@@ -14,6 +14,11 @@ from tests.test_identity import PASSWORD, code
 
 def admin_post(client, path, data):
     client.get("/admin/login/")
+    if path.startswith('/admin/accounts/user/') and path.endswith('/change/') and 'authority_version' not in data:
+        pk = path.split('/')[-3]
+        user = User.objects.filter(pk=pk).first()
+        if user:
+            data = {**data, 'authority_version': user.credential_epoch}
     return client.post(path, data, format="multipart", HTTP_X_CSRFTOKEN=client.cookies["csrftoken"].value)
 
 

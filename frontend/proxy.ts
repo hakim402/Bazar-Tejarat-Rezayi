@@ -1,11 +1,17 @@
 import { modalScreens } from "./lib/routes/auth-routes";
-import { sellerAccountRoute, uuidPattern } from "./lib/routes/account-routes";
+import {
+	sellerAccountRoute,
+	communicationRoute,
+	commerceRoute,
+	uuidPattern,
+} from "./lib/routes/account-routes";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiOrigin } from "./lib/api/client";
 import { defaultLocale, isLocale, type Locale } from "./lib/i18n/locales";
 import { pageAtPath } from "./features/pages/registry";
 import { authScreens, type AuthScreen } from "./lib/i18n/auth-screens";
 import { parseSite, type Site } from "./features/site/contract";
+import { marketplaceRoute } from "./lib/routes/marketplace-routes";
 async function settings(locale: Locale) {
 	try {
 		const response = await fetch(
@@ -70,13 +76,52 @@ export async function proxy(request: NextRequest) {
 		return statusResponse(request, locale, 404);
 	const path = `/${parts.slice(1).join("/")}`,
 		key = pageAtPath(path);
-	if (key) {
+	const marketplace = marketplaceRoute(path);
+	if (key || marketplace || path === "/cart") {
 		const site = await settings(locale);
 		if (!site || site.maintenance.enabled)
 			return statusResponse(request, locale, 503);
+		if (marketplace || key === "home") {
+			try {
+				const parameters = new URLSearchParams(request.nextUrl.searchParams);
+				for (const key of ["auth", "return", "context"]) parameters.delete(key);
+				if (parts[1] === "products" && parts.length === 3) {
+					for (const key of [
+						"variant",
+						"cart_attempt",
+						"cart_context",
+						"cart_scope",
+					])
+						parameters.delete(key);
+				}
+				const endpoint = key === "home" ? "home/" : marketplace;
+				const scoped =
+					parts[1] === "stores" && parts.length === 3 && parameters.size
+						? `stores/${parts[2]}/products/`
+						: endpoint;
+				const query =
+					key === "home" || parts.length === 4 ? "" : parameters.toString();
+				const upstream = await fetch(
+					`${apiOrigin(process.env.API_INTERNAL_URL)}/api/v1/marketplace/public/${locale}/${scoped}${query ? `?${query}` : ""}`,
+					{
+						cache: "no-store",
+						credentials: "omit",
+						signal: AbortSignal.timeout(10000),
+					},
+				);
+				if (upstream.status === 404)
+					return statusResponse(request, locale, 404);
+				if (!upstream.ok && upstream.status !== 400)
+					return statusResponse(request, locale, 503);
+			} catch {
+				return statusResponse(request, locale, 503);
+			}
+		}
 		const response = NextResponse.next({ request: { headers } });
 		response.headers.set("Cache-Control", "no-store");
 		applyMediaPolicy(response, site);
+		if (path === "/cart")
+			response.headers.set("X-Robots-Tag", "noindex, nofollow");
 		if (
 			modalScreens.includes(
 				request.nextUrl.searchParams.get("auth") as AuthScreen,
@@ -92,7 +137,7 @@ export async function proxy(request: NextRequest) {
 	) {
 		try {
 			const response = await fetch(
-				`${apiOrigin(process.env.API_INTERNAL_URL)}/api/v1/catalogue/published/${locale}/${encodeURIComponent(parts[2])}/`,
+				`${apiOrigin(process.env.API_INTERNAL_URL)}/api/v1/marketplace/public/${locale}/products/${encodeURIComponent(parts[2])}/`,
 				{
 					cache: "no-store",
 					credentials: "omit",
@@ -100,10 +145,14 @@ export async function proxy(request: NextRequest) {
 				},
 			);
 			if (response.status === 404) return statusResponse(request, locale, 404);
+			if (!response.ok) return statusResponse(request, locale, 503);
 		} catch {
-			/* Preview retains its distinct upstream-failure state. */
+			return statusResponse(request, locale, 503);
 		}
-		return NextResponse.next({ request: { headers } });
+		const url = request.nextUrl.clone();
+		url.pathname = `/${locale}/products/${parts[2]}`;
+		url.search = "";
+		return NextResponse.redirect(url, 308);
 	}
 	const account =
 		parts[1] === "account" && ["buyer", "seller"].includes(parts[2]);
@@ -116,7 +165,9 @@ export async function proxy(request: NextRequest) {
 		account &&
 		(context === "seller"
 			? sellerAccountRoute(parts.slice(3))
-			: (ordinary && parts.length <= 4) ||
+			: commerceRoute(parts.slice(3)) ||
+				communicationRoute(parts.slice(3)) ||
+				(ordinary && parts.length <= 4) ||
 				(business && parts.length <= 5 && (!id || uuidPattern.test(id))));
 
 	const privateRoute =
@@ -167,6 +218,6 @@ function applyMediaPolicy(response: NextResponse, site: Site) {
 }
 export const config = {
 	matcher: [
-		"/((?!api(?:/|$)|_next(?:/|$)|brand(?:/|$)|fonts(?:/|$)|images(?:/|$)|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)",
+		"/((?!api(?:/|$)|_next(?:/|$)|brand(?:/|$)|fonts(?:/|$)|images(?:/|$)|marketplace-sitemap(?:/|$)|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)",
 	],
 };

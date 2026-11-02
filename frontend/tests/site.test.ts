@@ -71,7 +71,7 @@ test("unsafe targets and media are never inherited into presentation", () => {
 	for (const href of [
 		"javascript:alert(1)",
 		"//evil.com",
-		"/products",
+		"/products/private",
 		"https://a:secret@media.example.com/a",
 		"https://127.0.0.1/a",
 		"https://foo.local/a",
@@ -115,7 +115,7 @@ test("exact media hosts, uploaded assets, dimensions and fixed SEO overrides", (
 		{
 			...data,
 			seo: [
-				{ page: "products", title: "Invalid", description: "", image: null },
+				{ page: "orders", title: "Invalid", description: "", image: null },
 				...data.seo,
 			],
 		},

@@ -63,6 +63,8 @@ def api_exception_handler(exc, context):
         415: "unsupported_media_type",
         429: "rate_limited",
     }.get(response.status_code, "request_failed")
+    if response.status_code == 403 and getattr(exc, "default_code", None) == "registration_closed":
+        code = "registration_closed"
     fields = response.data if response.status_code == 400 else None
     response.data = error_data(
         code, "The request could not be completed.", request_id, fields

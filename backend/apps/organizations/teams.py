@@ -21,7 +21,6 @@ def validate_bundles(values):
 
 def rotate_invitation(invitation):
     from apps.accounts.delivery import protect
-    from .mail import dispatch_invitation
 
     raw = secrets.token_urlsafe(32)
     invitation.digest = hashlib.sha256(raw.encode()).hexdigest()
@@ -30,13 +29,14 @@ def rotate_invitation(invitation):
     InvitationMail.objects.filter(invitation=invitation).exclude(status__in=["captured", "smtp_accepted"]).update(
         status="superseded", encrypted_payload=""
     )
-    item = InvitationMail.objects.create(
+    InvitationMail.objects.create(
         invitation=invitation,
         invitation_version=invitation.version,
         encrypted_payload=protect({"token": raw}),
         next_attempt_at=timezone.now(),
     )
-    transaction.on_commit(lambda: dispatch_invitation(item.pk))
+    from apps.runtime.jobs import enqueue
+    enqueue("account_sweep")
 
 
 @transaction.atomic

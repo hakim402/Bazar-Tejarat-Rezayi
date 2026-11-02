@@ -12,6 +12,12 @@ from .services import get_grant
 def is_owner(request):
     if not hasattr(request, "session"):
         return False
+    # This temporary result exists only inside get_app_list's synchronous
+    # metadata enumeration, never a data view/action or a reused request cache.
+    if hasattr(request, "_admin_directory_root"):
+        return request._admin_directory_root
+    if not request.session.get("grants", {}).get("owner"):
+        return False
     try:
         get_grant(request, 'owner')
         return True
@@ -52,6 +58,22 @@ def permits(request, app_label, *codes):
 
 class GuardedAdminMixin:
     """Fail closed for every registered model, including lookups and bulk POSTs."""
+    def save_model(self, request, obj, form, change):
+        get_grant(request, 'owner')
+        return super().save_model(request, obj, form, change)
+
+    def save_related(self, request, form, formsets, change):
+        get_grant(request, 'owner')
+        return super().save_related(request, form, formsets, change)
+
+    def delete_model(self, request, obj):
+        get_grant(request, 'owner')
+        return super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        get_grant(request, 'owner')
+        return super().delete_queryset(request, queryset)
+
     def has_module_permission(self, request):
         return self.has_view_permission(request)
 
@@ -65,7 +87,12 @@ class GuardedAdminMixin:
         return is_owner(request) and super().has_add_permission(request)
 
     def has_change_permission(self, request, obj=None):
-        return is_owner(request) and super().has_change_permission(request, obj)
+        if is_owner(request):
+            return super().has_change_permission(request, obj)
+        # Explicit guarded operational forms may opt in. Generic persistence
+        # callbacks remain root-only; the form must invoke its domain service.
+        check = getattr(self, "staff_change", None)
+        return bool(check and check(request, obj))
 
     def has_delete_permission(self, request, obj=None):
         return is_owner(request) and super().has_delete_permission(request, obj)

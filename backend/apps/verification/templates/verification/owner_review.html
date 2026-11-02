@@ -1,14 +1,15 @@
 {% extends "admin/base_site.html" %}{% load i18n %}
 {% block content %}
+{% if not independent_decision %}<p role="status" class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-ink">You can inspect this record. An independent reviewer must decide your own or historically linked business submission.</p>{% endif %}
 <section lang="en" dir="ltr" class="ra:mx-auto ra:max-w-[1440px] ra:space-y-6 ra:pb-10 ra:text-ink" data-testid="owner-verification-review">
   <header class="ra:flex ra:flex-wrap ra:items-start ra:justify-between ra:gap-4">
     <div class="ra:min-w-0"><a href="{% url 'admin:verification_reviewcase_changelist' %}" class="ra:inline-flex ra:min-h-11 ra:items-center ra:text-sm ra:font-semibold ra:text-action">{{ review_copy.review_back }}</a><h2 class="ra:break-words ra:text-2xl ra:font-bold">{{ resource.profile.display_name }}</h2><p class="ra:mt-2 ra:text-sm ra:text-muted">{{ resource.profile.get_kind_display }} · Revision {{ resource.revision }} · Version {{ resource.version }}</p></div>
     <span class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:px-4 ra:py-2 ra:text-sm ra:font-bold ra:text-action" data-testid="review-status">{{ resource.get_status_display }}</span>
   </header>
-  <p class="ra:rounded-xl ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-sm">{% if is_owner_admin or request.user.owner_authority and request.user.is_superuser %}{{ review_copy.review_access }}{% else %}{% translate "Your assigned role and current case assignment control decisions and private document access." %}{% endif %}</p>
+  <p class="ra:rounded-xl ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-sm">{% if is_owner_admin %}{{ review_copy.review_access }}{% else %}{% translate "Your assigned role and current case assignment control decisions and private document access." %}{% endif %}</p>
   {% if not current %}<div role="status" class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5"><p>{{ review_copy.review_previous }}</p>{% if latest_url %}<a class="ra:inline-flex ra:min-h-11 ra:items-center ra:font-semibold ra:text-action" href="{{ latest_url }}">{{ review_copy.review_latest }}</a>{% endif %}</div>
   {% elif resource.status == "draft" %}<p role="status" class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">{{ review_copy.review_draft }}</p>
-  {% elif not can_act and not request.user.owner_authority %}<p role="status" class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">{% translate "Your role permits inspection only. No decision action is assigned." %}</p>
+  {% elif not can_act and not is_owner_admin %}<p role="status" class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">{% translate "Your role permits inspection only. No decision action is assigned." %}</p>
   {% elif not editable %}<p role="status" class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">{{ review_copy.review_decided }}</p>{% endif %}
   <div class="ra:grid ra:items-start ra:gap-6 ra:xl:grid-cols-2">
     <div class="ra:min-w-0 ra:space-y-6">
@@ -20,7 +21,7 @@
       <p class="ra:mt-2 ra:text-sm ra:text-muted">{% if editable %}{{ review_copy.review_instruction }}{% else %}Status: {{ resource.get_status_display }}{% endif %}</p>
       {% if resource.submitted_at %}<p class="ra:mt-2 ra:text-sm ra:text-muted">Submitted: {{ resource.submitted_at|date:"M j, Y H:i" }} (Kabul)</p>{% endif %}
       {% if resource.decided_at %}<p class="ra:mt-2 ra:text-sm ra:text-muted">Decided: {{ resource.decided_at|date:"M j, Y H:i" }} (Kabul)</p>{% endif %}
-      {% if resource.reason and can_read or resource.reason and request.user.owner_authority and request.user.is_superuser %}<p class="ra:mt-4 ra:whitespace-pre-wrap ra:break-words ra:text-sm">{{ resource.reason }}</p>{% endif %}
+      {% if resource.reason and can_read or resource.reason and is_owner_admin %}<p class="ra:mt-4 ra:whitespace-pre-wrap ra:break-words ra:text-sm">{{ resource.reason }}</p>{% endif %}
       <h4 class="ra:mt-5 ra:font-semibold">{{ t.requested }}</h4><dl class="ra:mt-3 ra:space-y-3">{% for row in evidence_rows %}<div><dt class="ra:text-sm ra:font-semibold">{{ row.label }}</dt><dd class="ra:mt-1 ra:whitespace-pre-wrap ra:break-words ra:text-sm ra:text-muted">{{ row.requested|default:t.none }}</dd></div>{% endfor %}</dl>
       {% if form.errors %}<div role="alert" class="ra:mt-5 ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4"><p class="ra:font-semibold">{{ review_copy.review_error }}</p>{{ form.non_field_errors }}<a href="{% url 'admin:verification_reviewcase_workflow' resource.pk %}" class="ra:mt-3 ra:inline-flex ra:min-h-11 ra:items-center ra:font-semibold ra:text-action">{{ review_copy.review_reload }}</a><p class="ra:mt-1 ra:text-xs ra:text-muted">{{ review_copy.review_reload_help }}</p></div>{% endif %}
       {% if editable %}<form method="post" class="ra:mt-5 ra:space-y-5" novalidate>{% csrf_token %}

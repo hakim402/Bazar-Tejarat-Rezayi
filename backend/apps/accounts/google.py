@@ -17,7 +17,8 @@ from rest_framework.exceptions import ValidationError
 
 from .delivery import protect, reveal
 from .models import Account, GoogleAttempt, GoogleIdentity, User, normalize_email
-from .services import AuthFailure, audit, credential_state, establish, get_grant, rate_limit
+from .services import (AuthFailure, RegistrationClosed, audit, credential_state, establish, get_grant,
+                       rate_limit, require_registration_open)
 
 ISSUER = "https://accounts.google.com"
 AUTHORIZATION = ISSUER + "/o/oauth2/v2/auth"
@@ -75,8 +76,8 @@ def begin(request, data):
             raise AuthFailure()
         if action == "add-role" and not GoogleIdentity.objects.filter(user=user).exists():
             raise AuthFailure()
-    if action == "register" and not settings.DEVELOPMENT_SIGNUP_ENABLED:
-        raise AuthFailure()
+    if action == "register":
+        require_registration_open()
     state, nonce, verifier = (secrets.token_urlsafe(48) for _ in range(3))
     attempt = GoogleAttempt.objects.create(
         state_digest=digest(state),
@@ -204,9 +205,14 @@ def callback(request):
                     elif User.objects.filter(email=claims["email"]).exists():
                         result = "link_required"
                     else:
-                        payload = {"claims": claims, "source": payload.get("source"), "verified": True}
-                        attempt.encrypted_payload = protect(payload)
-                        result = "onboarding"
+                        try:
+                            require_registration_open()
+                        except RegistrationClosed:
+                            result = "registration_closed"
+                        else:
+                            payload = {"claims": claims, "source": payload.get("source"), "verified": True}
+                            attempt.encrypted_payload = protect(payload)
+                            result = "onboarding"
                 elif attempt.action == "link":
                     user = User.objects.select_for_update().get(pk=attempt.user_id)
                     if claims["email"] != user.email or social and social.user_id != user.pk:
@@ -240,8 +246,9 @@ def callback(request):
 
 
 def complete(request, data):
-    if not settings.GOOGLE_OAUTH_ENABLED or not settings.DEVELOPMENT_SIGNUP_ENABLED or not data["consent"]:
+    if not settings.GOOGLE_OAUTH_ENABLED or not data["consent"]:
         raise AuthFailure()
+    require_registration_open()
     rate_limit(request, "google_complete", limit=6)
     try:
         with transaction.atomic():

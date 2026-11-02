@@ -1,3 +1,4 @@
+import smtplib
 import base64
 import json
 import re
@@ -52,6 +53,8 @@ def code(device, offset=0):
 
 
 def token_from_mail():
+    from apps.accounts.delivery import sweep_mail
+    sweep_mail()
     return re.search(r"#token=([A-Za-z0-9_-]+)", mail.outbox[-1].body)[1]
 
 
@@ -149,9 +152,12 @@ class IdentityTests(TestCase):
         self.assertEqual(post(self.client, "verify/", {"token": raw}).status_code, 400)
         self.assertEqual(post(self.client, "verify/", {"token": new}).status_code, 200)
 
-    @patch("apps.accounts.delivery.EmailMultiAlternatives.send", side_effect=RuntimeError("private-provider-detail"))
+    @patch("apps.accounts.delivery.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"private-provider-detail"))
     def test_mail_failure_is_truthful_neutral_recorded_and_retryable(self, send):
         self.assertEqual(self.registration().status_code, 202)
+        from apps.accounts.delivery import sweep_mail
+        self.assertEqual(send.call_count, 0)
+        sweep_mail()
         self.assertEqual(MailAttempt.objects.get().status, "failed")
         self.assertIsNone(ActionToken.objects.get().used_at)
         self.assertEqual(AccountMail.objects.get().status, "delivery_failed")
@@ -433,7 +439,7 @@ class PrivilegedTests(TestCase):
         self.assertContains(response, "Bazar Rezayi")
         self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
 
-    def test_live_permission_group_revocation_and_no_superuser_business_bypass(self):
+    def test_superuser_native_entry_and_no_business_grant_bypass(self):
         self.user.is_superuser = True
         self.user.save()
         self.enroll()
@@ -442,7 +448,9 @@ class PrivilegedTests(TestCase):
         group = Group.objects.create(name="Rezayi: Support")
         group.permissions.add(Permission.objects.get(codename="handle_support"))
         self.account.permission_groups.add(group)
-        self.assertEqual(self.client.get("/admin/").status_code, 302)
+        # Canonical superuser admission no longer requires owner_authority.
+        # Legacy Account groups still do not provide public/business authority.
+        self.assertEqual(self.client.get("/admin/").status_code, 200)
 
     def test_factor_reset_needs_password_and_factor_and_invalidates_grants(self):
         codes, device = self.enroll()

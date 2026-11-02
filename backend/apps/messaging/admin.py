@@ -1,0 +1,163 @@
+"""Native metadata lists and one audited, related-case conversation workspace."""
+
+from django import forms
+from django.db import transaction
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.urls import path, reverse
+from django.utils.html import format_html
+from rest_framework.exceptions import APIException
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
+from apps.accounts.admin import owner_site
+from apps.accounts.admin_access import admin_actor, permits
+from apps.organizations.admin import ReadOnlyAdmin
+from . import cases, media
+from .models import Conversation, Message, Attachment, ReadState, Command, Report, CaseEvent, CaseAccess, PERMISSIONS
+
+
+class CaseForm(forms.Form):
+    version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    action = forms.ChoiceField(choices=[], widget=UnfoldAdminSelectWidget)
+    reason = forms.CharField(min_length=3, max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+    assigned_to = forms.ModelChoiceField(
+        queryset=cases.Account.objects.none(), required=False, widget=UnfoldAdminSelectWidget
+    )
+
+
+class ReportAdmin(ReadOnlyAdmin):
+    fields = ["id", "category", "status", "version", "created_at", "case_workspace"]
+    list_display = ["id", "category", "status", "version", "created_at", "case_workspace"]
+    list_filter = ["status", "category"]
+    search_fields = []
+    ordering = ["-created_at", "pk"]
+
+    def lookup_allowed(self, lookup, value, request=None):
+        return lookup in {"id", "id__exact", "status", "status__exact", "category", "category__exact"}
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+    def staff_view(self, request, obj=None):
+        if not permits(request, "messaging", *PERMISSIONS):
+            return False
+        return obj is None or cases.queryset(admin_actor(request)).filter(pk=obj.pk).exists()
+
+    def staff_queryset(self, request, qs):
+        return qs.filter(pk__in=cases.queryset(admin_actor(request)).values("pk"))
+
+    def case_workspace(self, obj):
+        return format_html('<a href="{}">Case workspace</a>', reverse("admin:messaging_report_case", args=[obj.pk]))
+
+    def get_urls(self):
+        return [
+            path("<uuid:pk>/case/", self.admin_site.admin_view(self.workflow), name="messaging_report_case"),
+            path(
+                "<uuid:pk>/images/<uuid:image>/download/",
+                self.admin_site.admin_view(self.download),
+                name="messaging_report_image",
+            ),
+            *super().get_urls(),
+        ]
+
+    def workflow(self, request, pk):
+        actor = admin_actor(request)
+        report = get_object_or_404(cases.queryset(actor).select_related("message__conversation"), pk=pk)
+        permissions = cases.rights(actor)
+        choices = [("", "Choose action")]
+        if "assign_message_case" in permissions and report.status == "open":
+            choices.append(("assign", "Assign independent reviewer"))
+        if "resolve_message_case" in permissions and report.status == "open":
+            choices.append(("resolve", "Resolve with reason"))
+        if "reopen_message_case" in permissions and report.status == "resolved":
+            choices.append(("reopen", "Reopen with reason"))
+        form = CaseForm(request.POST if request.method == "POST" else None, initial={"version": report.version})
+        form.fields["action"].choices = choices
+        form.fields["assigned_to"].queryset = cases.reviewers(report)
+        if "assign_message_case" not in permissions:
+            form.fields.pop("assigned_to")
+        status = 200
+        if request.method == "POST" and form.is_valid():
+            data = form.cleaned_data.copy()
+            if data.get("assigned_to"):
+                data["assigned_to"] = data["assigned_to"].pk
+            try:
+                cases.transition(actor, pk, **data)
+            except APIException as error:
+                form.add_error(None, "The case changed or access ended. Review the current state.")
+                status = error.status_code
+            else:
+                return HttpResponseRedirect(request.path)
+        content = None
+        # Unassigned/closed cases expose metadata and transition controls only.
+        try:
+            cases.require_read(actor, report)
+        except APIException:
+            pass
+        else:
+            before = request.GET.get("before")
+            if set(request.GET) - {"before"} or before is not None and (not before.isdigit() or int(before) < 1):
+                raise PermissionDenied
+            content = cases.inspect(actor, pk, before=int(before) if before else None)
+            for message in [content["reported_message"], *content["messages"]]:
+                for image in message["images"]:
+                    image["download"] = reverse("admin:messaging_report_image", args=[pk, image["id"]])
+        return render(
+            request,
+            "messaging/case.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Message report case",
+                "opts": Report._meta,
+                "report": report,
+                "form": form,
+                "content": content,
+            },
+            status=status,
+        )
+
+    @transaction.atomic
+    def download(self, request, pk, image):
+        if request.method not in {"GET", "HEAD"}:
+            raise PermissionDenied
+        try:
+            item = cases.attachment(admin_actor(request), pk, image)
+        except APIException as error:
+            if error.status_code == 404:
+                raise cases.NotFound() from None
+            raise PermissionDenied from None
+        try:
+            return media.response(item, head=request.method == "HEAD")
+        except APIException:
+            from apps.foundation.errors import error_data
+
+            result = JsonResponse(
+                error_data("storage_unavailable", "Image storage is temporarily unavailable.", request.request_id),
+                status=503,
+            )
+            result["Cache-Control"] = "private, no-store"
+            result["Referrer-Policy"] = "no-referrer"
+            result["X-Content-Type-Options"] = "nosniff"
+            return result
+
+
+class MetadataAdmin(ReadOnlyAdmin):
+    """Explicit root-only metadata; no body/file-key/outcome or relation browser."""
+
+    search_fields = []
+    list_display = ["identifier"]
+    fields = ["identifier"]
+
+    def identifier(self, obj):
+        return str(obj.pk)
+
+    def lookup_allowed(self, lookup, value, request=None):
+        return lookup in {self.model._meta.pk.name, self.model._meta.pk.name + "__exact"}
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+
+owner_site.register(Report, ReportAdmin)
+for model in (Conversation, Message, Attachment, ReadState, Command, CaseEvent, CaseAccess):
+    owner_site.register(model, MetadataAdmin)

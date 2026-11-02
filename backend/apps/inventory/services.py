@@ -1,5 +1,8 @@
 """Atomic stock operations. Trusted allocation callers remain Python-only, without HTTP shortcuts."""
 
+from apps.runtime.locks import lock as durable_lock
+from apps.runtime.locks import row_options
+
 import hashlib
 import json
 from datetime import datetime
@@ -54,7 +57,7 @@ def previous(actor, profile, action, data):
     token = v.identifier(data.get("token"), "token")
     digest = fingerprint(action, profile.pk, data)
     # Advisory token lock also serializes a globally reused token across different seller profiles.
-    transaction.get_connection().cursor().execute("SELECT pg_advisory_xact_lock(%s)", [int(token.hex[:15], 16)])
+    durable_lock(int(token.hex[:15], 16))
     old = Operation.objects.filter(pk=token).first()
     if old:
         if old.seller_id != profile.pk or old.action != action or old.fingerprint != digest:
@@ -101,7 +104,7 @@ def record(actor, profile, action, data, token, digest, result, changes=()):
 def locked_variant(profile, pk):
     item = get_object_or_404(Variant.objects.select_related("unit"), pk=pk, product__seller=profile)
     Product.objects.select_for_update().get(pk=item.product_id)
-    return Variant.objects.select_related("unit", "product__published").select_for_update(of=("self",)).get(pk=item.pk)
+    return Variant.objects.select_related("unit", "product__published").select_for_update(**row_options()).get(pk=item.pk)
 
 
 def version(position, submitted):
@@ -119,8 +122,7 @@ def bump(position):
 def configure(actor, profile_id, variant_id, data):
     # Token precedes business/position locks consistently, including cross-profile misuse.
     token_id = v.identifier(data.get("token"), "token")
-    with transaction.get_connection().cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [int(token_id.hex[:15], 16)])
+    durable_lock(int(token_id.hex[:15], 16))
     profile = access.lock_profile(actor, profile_id, True)
     data = {**data, "variant": str(variant_id)}
     token, digest, old = previous(actor, profile, "configure", data)
@@ -167,8 +169,7 @@ def configure(actor, profile_id, variant_id, data):
 @transaction.atomic
 def manual(actor, profile_id, variant_id, data, *, adjustment=False, now=None):
     token_id = v.identifier(data.get("token"), "token")
-    with transaction.get_connection().cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [int(token_id.hex[:15], 16)])
+    durable_lock(int(token_id.hex[:15], 16))
     profile = access.lock_profile(actor, profile_id, True)
     action = "adjust" if adjustment else "receive"
     # Include the variant in idempotency scope even when two variants share the same payload.
@@ -199,7 +200,7 @@ def manual(actor, profile_id, variant_id, data, *, adjustment=False, now=None):
             Bucket.objects.create(position=position, batch=batch)
     elif any(data.get(k) not in (None, "") for k in ("batch", "batch_code", "expires_on")):
         fail("batch", "tracking")
-    bucket = Bucket.objects.select_related("batch").select_for_update(of=("self",)).get(position=position, batch=batch)
+    bucket = Bucket.objects.select_related("batch").select_for_update(**row_options()).get(position=position, batch=batch)
     now = clock(now)
     if not adjustment and expired(bucket, now):
         fail("expires_on", "expired")
@@ -237,7 +238,7 @@ def selected(profile, lines, now=None):
     buckets = list(
         Bucket.objects.filter(position__in=positions)
         .select_related("batch")
-        .select_for_update(of=("self",))
+        .select_for_update(**row_options())
         .order_by("position_id", "pk")
     )
     now = clock(now)
@@ -273,8 +274,7 @@ def selected(profile, lines, now=None):
 def allocate(actor, profile_id, data, *, cod=False, now=None):
     """Trusted Python caller only. reference identifies a whole advance/COD stock event."""
     token_id = v.identifier(data.get("token"), "token")
-    with transaction.get_connection().cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [int(token_id.hex[:15], 16)])
+    durable_lock(int(token_id.hex[:15], 16))
     profile = access.lock_profile(actor, profile_id)
     action = "cod" if cod else "reserve"
     data = {**data, "reference": text(data.get("reference"), "reference", 120)}
@@ -345,8 +345,7 @@ def allocate(actor, profile_id, data, *, cod=False, now=None):
 @transaction.atomic
 def settle(actor, profile_id, allocation_id, data, *, release=False, now=None):
     token_id = v.identifier(data.get("token"), "token")
-    with transaction.get_connection().cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [int(token_id.hex[:15], 16)])
+    durable_lock(int(token_id.hex[:15], 16))
     profile = access.lock_profile(actor, profile_id)
     action = "release" if release else "consume"
     payload = {**data, "allocation": str(allocation_id)}
@@ -367,7 +366,7 @@ def settle(actor, profile_id, allocation_id, data, *, release=False, now=None):
     buckets = {
         b.pk: b
         for b in Bucket.objects.select_related("batch")
-        .select_for_update(of=("self",))
+        .select_for_update(**row_options())
         .filter(pk__in=[r.bucket_id for r in rows])
         .order_by("pk")
     }

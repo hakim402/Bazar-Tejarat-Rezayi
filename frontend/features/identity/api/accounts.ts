@@ -1,4 +1,5 @@
-import { sellerAccountRoute } from "../../../lib/routes/account-routes.ts";
+import { sellerAccountRoute, commerceRoute, communicationRoute } from "../../../lib/routes/account-routes.ts";
+import { marketplaceRoute } from "../../../lib/routes/marketplace-routes.ts";
 import type { components } from "../../../lib/api/schema.d";
 import { ApiError } from "../../../lib/api/client.ts";
 
@@ -53,6 +54,13 @@ export function safeReturn(
 		return fallback;
 	try {
 		const url = new URL(value, "https://return.example");
+		const publicPath = url.pathname.slice(locale.length + 1),
+			section = publicPath.split("/")[1];
+		if (
+			["categories", "products", "search", "stores"].includes(section) &&
+			!marketplaceRoute(publicPath)
+		)
+			return fallback;
 		if (
 			context === "seller" &&
 			url.pathname.startsWith(`/${locale}/account/`)
@@ -61,6 +69,7 @@ export function safeReturn(
 			if (parts[2] !== "seller" || !sellerAccountRoute(parts.slice(3)))
 				return fallback;
 		}
+		if(context === "buyer" && url.pathname.startsWith(`/${locale}/account/`)) { const parts=url.pathname.split("/").filter(Boolean); if(parts[2]!=="buyer" || (["messages","notifications"].includes(parts[3]) && !communicationRoute(parts.slice(3)) || ["checkout","checkouts","orders","invoices"].includes(parts[3]) && !commerceRoute(parts.slice(3)))) return fallback; }
 		return url.origin === "https://return.example" &&
 			url.pathname.startsWith(`/${locale}/`) &&
 			!url.pathname.startsWith(`/${locale}/auth/`) &&

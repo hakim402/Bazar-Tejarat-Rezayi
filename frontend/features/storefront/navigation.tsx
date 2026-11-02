@@ -1,19 +1,34 @@
 "use client";
 import Link from "next/link";
 import { accessCopy } from "../../lib/i18n/access";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../lib/i18n/locales";
 import { Icon, type IconName } from "../../components/ui/icon";
 import { Preferences } from "../../components/layout/preferences";
-import { categories, categoryHref } from "./data";
+import { publicRequest } from "../marketplace/api";
+import type { CategoryPage } from "../marketplace/types";
+import { marketplaceCopy } from "../marketplace/copy";
 import { storefrontCopy } from "./copy";
 export function StorefrontNavigation({ locale }: { locale: Locale }) {
 	const t = storefrontCopy[locale],
 		[query, setQuery] = useState("");
 	const [notice, setNotice] = useState("");
 	const preferences = useRef<HTMLDetailsElement>(null);
-	const matches = categories.filter(({ id }) =>
-		t.categoryNames[id]
+	const [taxonomy, setTaxonomy] = useState<CategoryPage | null>(null),
+		[taxonomyFailed, setTaxonomyFailed] = useState(false);
+	useEffect(() => {
+		const abort = new AbortController();
+		setTaxonomy(null);
+		setTaxonomyFailed(false);
+		publicRequest<CategoryPage>(locale, "categories/", abort.signal)
+			.then(setTaxonomy)
+			.catch(() => {
+				if (!abort.signal.aborted) setTaxonomyFailed(true);
+			});
+		return () => abort.abort();
+	}, [locale]);
+	const matches = (taxonomy?.results || []).filter(({ name }) =>
+		name
 			.toLocaleLowerCase(locale)
 			.includes(query.trim().toLocaleLowerCase(locale)),
 	);
@@ -25,12 +40,15 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 			<div className="relative order-last flex w-full min-w-0 items-center gap-2 desktop:order-none desktop:flex-1 desktop:gap-3">
 				<search aria-label={t.search} className="min-w-0 flex-1">
 					<form
-						onSubmit={(event) => event.preventDefault()}
+						action={`/${locale}/search`}
+						method="GET"
 						className="flex min-h-12 items-center gap-2 rounded-2xl bg-page px-3 ring-1 ring-inset ring-border/50 focus-within:ring-action"
 					>
 						<Icon name="search" className="size-5 text-muted" />
 						<input
 							type="search"
+							name="q"
+							maxLength={100}
 							aria-label={t.search}
 							placeholder={t.placeholder}
 							value={query}
@@ -51,22 +69,43 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 				</Link>
 				{query.trim() && (
 					<div className="absolute inset-x-0 top-full z-40 mt-3 max-h-80 overflow-y-auto rounded-2xl border border-border bg-surface p-3 shadow-card">
-						<p className="px-3 py-2 text-xs text-muted">{t.demo}</p>
+						<a
+							className="block min-h-11 px-3 py-2 text-sm"
+							href={`/${locale}/search?q=${encodeURIComponent(query.trim())}`}
+						>
+							{t.search}
+						</a>
 						{matches.length ? (
-							matches.map(({ id, icon }) => (
+							matches.map(({ code: id, name }) => (
 								<a
 									key={id}
-									href={categoryHref(locale, id)}
+									href={`/${locale}/categories/${id}`}
 									onClick={() => setQuery("")}
 									className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground no-underline hover:bg-info"
 								>
-									<Icon name={icon} className="size-4" />
-									{t.categoryNames[id]}
+									<Icon
+										name={
+											(
+												{
+													food: "leaf",
+													clothing: "dress",
+													cosmetics: "beauty",
+													electronics: "phone",
+												} as Record<string, IconName>
+											)[id] || "grid"
+										}
+										className="size-4"
+									/>
+									{name}
 								</a>
 							))
 						) : (
 							<p role="status" className="p-3 text-sm text-muted">
-								{t.noResults}
+								{taxonomyFailed
+									? marketplaceCopy[locale].unavailable
+									: !taxonomy
+										? marketplaceCopy[locale].loading
+										: t.noResults}
 							</p>
 						)}
 					</div>
@@ -79,19 +118,32 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 						["heart", t.wishlist],
 						["cart", t.cart],
 					] as [IconName, string][]
-				).map(([icon, label]) => (
-					<button
-						key={icon}
-						type="button"
-						aria-label={`${label} — ${t.soon}`}
-						aria-disabled="true"
-						title={`${label} — ${t.soon}`}
-						onClick={() => setNotice(`${label} — ${t.soon}`)}
-						className={`${icon === "bell" ? "hidden min-[420px]:flex" : "flex"} size-9 items-center justify-center rounded-full border-0 bg-transparent text-muted hover:bg-info hover:text-action desktop:size-11`}
-					>
-						<Icon name={icon} />
-					</button>
-				))}
+				).map(([icon, label]) =>
+					icon === "cart" ? (
+						<Link
+							key={icon}
+							prefetch={false}
+							href={`/${locale}/cart`}
+							aria-label={label}
+							title={label}
+							className="flex size-9 items-center justify-center rounded-full border-0 bg-transparent text-muted no-underline hover:bg-info hover:text-action desktop:size-11"
+						>
+							<Icon name={icon} />
+						</Link>
+					) : (
+						<button
+							key={icon}
+							type="button"
+							aria-label={`${label} — ${t.soon}`}
+							aria-disabled="true"
+							title={`${label} — ${t.soon}`}
+							onClick={() => setNotice(`${label} — ${t.soon}`)}
+							className={`${icon === "bell" ? "hidden min-[420px]:flex" : "flex"} size-9 items-center justify-center rounded-full border-0 bg-transparent text-muted hover:bg-info hover:text-action desktop:size-11`}
+						>
+							<Icon name={icon} />
+						</button>
+					),
+				)}
 				<details
 					ref={preferences}
 					className="group/preferences relative"

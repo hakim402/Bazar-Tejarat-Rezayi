@@ -90,8 +90,8 @@ class OwnerDashboardTests(TestCase):
     def test_navigation_and_every_registered_model_remain_reachable(self):
         self.authorize()
         response = self.client.get("/admin/")
-        self.assertContains(response, "Operations")
-        self.assertContains(response, "Administration")
+        self.assertContains(response, "Catalogue")
+        self.assertContains(response, "Accounts &amp; Access")
         self.assertEqual(response["Content-Language"], "en")
         for model in owner_site._registry:
             url = reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist")

@@ -1,4 +1,5 @@
-/** Only public destinations delivered through Phase 6. SEO overrides cannot add routes. */
+import { marketplaceRoute } from "../../lib/routes/marketplace-routes.ts";
+/** Explicit delivered public destinations. SEO overrides cannot add routes. */
 export const pages = {
 	home: { path: "", kind: "home" },
 	"how-it-works": { path: "/how-it-works", kind: "page" },
@@ -50,6 +51,7 @@ export function destinationAllowed(value: string): boolean {
 	if (value.startsWith("/"))
 		return (
 			!!pageAtPath(value) ||
+			!!marketplaceRoute(value) ||
 			/^\/catalogue-preview\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
 				value,
 			) ||
