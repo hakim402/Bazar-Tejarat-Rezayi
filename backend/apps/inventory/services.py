@@ -300,6 +300,15 @@ def allocate(actor, profile_id, data, *, cod=False, now=None):
             or recovery.operation.parameters.get("lines") != data.get("lines")
         ):
             raise Conflict("Recovery must retain the original selection and cannot repeat a completed recovery.")
+    return _apply_allocation(actor, profile, action, data, token, digest, recovery=recovery, now=now)
+
+
+def _apply_allocation(identity, profile, action, data, token, digest, *, recovery=None, now=None):
+    """Shared accounting only; manual or sealed payment intent authorizes its caller."""
+    cod = action == "cod"
+    recovery_root = recovery
+    while recovery_root and recovery_root.recovery_of_id:
+        recovery_root = recovery_root.recovery_of
     lines = normalize_lines(data.get("lines"))
     positions, changes, shortages = selected(profile, lines, now)
     result = {"operation": str(token), "status": "shortage" if shortages else "completed"}
@@ -319,7 +328,7 @@ def allocate(actor, profile_id, data, *, cod=False, now=None):
         allocation = uuid.uuid4()
         result["allocation"] = str(allocation)
     operation = record(
-        actor,
+        identity,
         profile,
         action,
         data,

@@ -6061,6 +6061,976 @@
                 }
             }
         },
+        "/api/v1/payments/{context}/evidence/{id}/": {
+            "get": {
+                "operationId": "payment_evidence_read",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/{context}/orders/": {
+            "get": {
+                "operationId": "payments_orders",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Page"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/{context}/orders/{id}/": {
+            "get": {
+                "operationId": "payments_detail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Detail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/{context}/orders/{id}/commands/{key}/": {
+            "get": {
+                "operationId": "payment_command_lookup",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentSettlement"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/{context}/orders/{id}/commands/{key}/reconcile/": {
+            "post": {
+                "operationId": "payment_command_settle",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentSettlement"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/{context}/orders/{id}/history/": {
+            "get": {
+                "operationId": "payments_history",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Detail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/{context}/orders/{id}/uploads/": {
+            "post": {
+                "operationId": "payment_evidence_stage",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PaymentUploadCommandRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PaymentUploadCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Image"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/buyer/claims/{id}/withdraw/": {
+            "post": {
+                "operationId": "payment_claim_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DecisionCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/buyer/orders/{id}/claims/": {
+            "post": {
+                "operationId": "payment_claim_submit",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClaimCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/claims/{id}/confirm/": {
+            "post": {
+                "operationId": "payment_claim_confirm",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfirmCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/claims/{id}/reject/": {
+            "post": {
+                "operationId": "payment_claim_reject",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DecisionCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/orders/{id}/extensions/": {
+            "post": {
+                "operationId": "payment_deadline_extension",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExtensionCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/orders/{id}/receipts/": {
+            "post": {
+                "operationId": "payment_receipt_record",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReceiptCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/orders/{id}/stock-plans/": {
+            "post": {
+                "operationId": "payment_stock_plan",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlanCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/orders/{id}/stock-selection/": {
+            "get": {
+                "operationId": "payment_stock_selection",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/profiles/": {
+            "get": {
+                "operationId": "payments_profiles",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/receipts/{id}/corrections/": {
+            "post": {
+                "operationId": "payment_receipt_correction",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CorrectionCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/site/public/{locale}/": {
             "get": {
                 "operationId": "site_settings",
@@ -7386,6 +8356,55 @@
                     "seller"
                 ]
             },
+            "ClaimCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "paid_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    },
+                    "previous": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "currency",
+                    "description",
+                    "paid_at",
+                    "version"
+                ]
+            },
             "CodeEnum": {
                 "enum": [
                     "conversation_exists"
@@ -7441,6 +8460,38 @@
                     "reason",
                     "token",
                     "tracking",
+                    "version"
+                ]
+            },
+            "ConfirmCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "claim_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "plan": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "claim_version",
+                    "command_id",
+                    "reason",
                     "version"
                 ]
             },
@@ -7570,6 +8621,62 @@
                     "snapshot",
                     "unread",
                     "updated_at"
+                ]
+            },
+            "CorrectionCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "paid_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    },
+                    "receipt_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "currency",
+                    "description",
+                    "paid_at",
+                    "reason",
+                    "receipt_version",
+                    "version"
                 ]
             },
             "CountryEnum": {
@@ -7850,6 +8957,34 @@
                 "type": "string",
                 "description": "* `AFN` - AFN\n* `USD` - USD"
             },
+            "DecisionCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "claim_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "claim_version",
+                    "command_id",
+                    "reason",
+                    "version"
+                ]
+            },
             "DefaultThemeEnum": {
                 "enum": [
                     "system",
@@ -7908,9 +9043,161 @@
                     "country"
                 ]
             },
+            "Detail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "buyer": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "payment_method": {
+                        "type": "string"
+                    },
+                    "seller_name": {
+                        "type": "string"
+                    },
+                    "buyer_name": {
+                        "type": "string"
+                    },
+                    "confirmed_total": {
+                        "type": "string"
+                    },
+                    "remaining": {
+                        "type": "string"
+                    },
+                    "overpayment": {
+                        "type": "string"
+                    },
+                    "financial": {
+                        "type": "string"
+                    },
+                    "allocation": {
+                        "type": "string"
+                    },
+                    "original_due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "effective_due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "deadline_generation": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "overdue": {
+                        "type": "boolean"
+                    },
+                    "capabilities": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    },
+                    "claims": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "receipts": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "corrections": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "cases": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "extensions": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "plans": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "history": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "history_count": {
+                        "type": "integer"
+                    },
+                    "history_page": {
+                        "type": "integer"
+                    },
+                    "selection": {
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "allocation",
+                    "buyer",
+                    "buyer_name",
+                    "capabilities",
+                    "cases",
+                    "claims",
+                    "confirmed_total",
+                    "corrections",
+                    "currency",
+                    "deadline_generation",
+                    "effective_due_at",
+                    "extensions",
+                    "financial",
+                    "goods_total",
+                    "history",
+                    "history_count",
+                    "history_page",
+                    "id",
+                    "invoice",
+                    "number",
+                    "original_due_at",
+                    "overdue",
+                    "overpayment",
+                    "payment_method",
+                    "plans",
+                    "receipts",
+                    "remaining",
+                    "selection",
+                    "seller",
+                    "seller_name",
+                    "version"
+                ]
+            },
             "EmailPreference": {
                 "type": "object",
                 "properties": {
+                    "payment_email": {
+                        "type": "boolean"
+                    },
                     "message_email": {
                         "type": "boolean"
                     },
@@ -7924,6 +9211,7 @@
                 "required": [
                     "locale",
                     "message_email",
+                    "payment_email",
                     "version"
                 ]
             },
@@ -8084,6 +9372,39 @@
                 ],
                 "type": "string",
                 "description": "* `seller-finalizes-v1` - seller-finalizes-v1"
+            },
+            "ExtensionCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "deadline_generation": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "due_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "deadline_generation",
+                    "due_at",
+                    "reason",
+                    "version"
+                ]
             },
             "FinalLineRequest": {
                 "type": "object",
@@ -8376,6 +9697,30 @@
                     "email",
                     "email_verified",
                     "id"
+                ]
+            },
+            "Image": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "width": {
+                        "type": "integer"
+                    },
+                    "height": {
+                        "type": "integer"
+                    },
+                    "size": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "height",
+                    "id",
+                    "size",
+                    "width"
                 ]
             },
             "ImageResult": {
@@ -9483,6 +10828,11 @@
                     "kind": {
                         "$ref": "#/components/schemas/NoticeRowKindEnum"
                     },
+                    "payment": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
                     "negotiation": {
                         "type": "string",
                         "format": "uuid",
@@ -9527,6 +10877,7 @@
                     "kind",
                     "negotiation",
                     "order",
+                    "payment",
                     "read",
                     "seller"
                 ]
@@ -9536,10 +10887,11 @@
                     "message",
                     "report_status",
                     "order_accepted",
-                    "negotiation"
+                    "negotiation",
+                    "payment"
                 ],
                 "type": "string",
-                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation"
+                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment"
             },
             "Operation": {
                 "type": "object",
@@ -9677,6 +11029,7 @@
                         "type": "string"
                     },
                     "snapshot": {},
+                    "payment": {},
                     "dimensions": {
                         "type": "object",
                         "additionalProperties": {
@@ -9706,6 +11059,7 @@
                     "issued_at",
                     "lines",
                     "number",
+                    "payment",
                     "payment_method",
                     "seller",
                     "snapshot"
@@ -9811,6 +11165,28 @@
                     "results"
                 ]
             },
+            "Page": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Summary"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
             "PageEnum": {
                 "enum": [
                     "home",
@@ -9891,6 +11267,9 @@
             "PatchedPreferenceCommandRequest": {
                 "type": "object",
                 "properties": {
+                    "payment_email": {
+                        "type": "boolean"
+                    },
                     "message_email": {
                         "type": "boolean"
                     },
@@ -9912,6 +11291,115 @@
                         "maxLength": 150
                     }
                 }
+            },
+            "PaymentOutcome": {
+                "type": "object",
+                "properties": {
+                    "outcome": {},
+                    "current": {
+                        "$ref": "#/components/schemas/Detail"
+                    }
+                },
+                "required": [
+                    "current",
+                    "outcome"
+                ]
+            },
+            "PaymentSettlement": {
+                "type": "object",
+                "properties": {
+                    "outcome": {},
+                    "current": {
+                        "$ref": "#/components/schemas/Detail"
+                    },
+                    "state": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "current",
+                    "outcome",
+                    "state"
+                ]
+            },
+            "PaymentUploadCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "file"
+                ]
+            },
+            "PlanCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "intent_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "replaces": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PlanLineRequest"
+                        }
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "intent_version",
+                    "lines",
+                    "reason",
+                    "version"
+                ]
+            },
+            "PlanLineRequest": {
+                "type": "object",
+                "properties": {
+                    "variant": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "batch": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "quantity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                    }
+                },
+                "required": [
+                    "quantity",
+                    "variant"
+                ]
             },
             "Position": {
                 "type": "object",
@@ -10447,6 +11935,55 @@
                 },
                 "required": [
                     "last_read"
+                ]
+            },
+            "ReceiptCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "paid_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    },
+                    "plan": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "currency",
+                    "description",
+                    "paid_at",
+                    "version"
                 ]
             },
             "ReceiptRequest": {
@@ -11456,6 +12993,108 @@
                     "id",
                     "outcomes",
                     "pending"
+                ]
+            },
+            "Summary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "buyer": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "payment_method": {
+                        "type": "string"
+                    },
+                    "seller_name": {
+                        "type": "string"
+                    },
+                    "buyer_name": {
+                        "type": "string"
+                    },
+                    "confirmed_total": {
+                        "type": "string"
+                    },
+                    "remaining": {
+                        "type": "string"
+                    },
+                    "overpayment": {
+                        "type": "string"
+                    },
+                    "financial": {
+                        "type": "string"
+                    },
+                    "allocation": {
+                        "type": "string"
+                    },
+                    "original_due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "effective_due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "deadline_generation": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "overdue": {
+                        "type": "boolean"
+                    },
+                    "capabilities": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "required": [
+                    "allocation",
+                    "buyer",
+                    "buyer_name",
+                    "capabilities",
+                    "confirmed_total",
+                    "currency",
+                    "deadline_generation",
+                    "effective_due_at",
+                    "financial",
+                    "goods_total",
+                    "id",
+                    "invoice",
+                    "number",
+                    "original_due_at",
+                    "overdue",
+                    "overpayment",
+                    "payment_method",
+                    "remaining",
+                    "seller",
+                    "seller_name",
+                    "version"
                 ]
             },
             "TeamData": {

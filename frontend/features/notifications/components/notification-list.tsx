@@ -1,4 +1,6 @@
 "use client";
+import { paymentHref } from "../../payments/api";
+import { paymentCopy } from "../../payments/copy";
 import { requestHref } from "../../negotiations/api";
 import { negotiationCopy } from "../../negotiations/copy";
 import { useEffect, useRef, useState } from "react";
@@ -112,43 +114,52 @@ export function NoticeList({
 								prefetch={false}
 								className="inline-flex min-h-11 items-center gap-3 font-bold"
 								href={
-									row.negotiation
-										? requestHref(
+									row.payment
+										? paymentHref(
 												locale,
 												context,
-												row.negotiation,
+												row.payment,
 												context === "seller" ? row.seller : undefined,
 											)
-										: row.invoice
-											? invoiceHref(
+										: row.negotiation
+											? requestHref(
 													locale,
 													context,
-													row.invoice,
+													row.negotiation,
 													context === "seller" ? row.seller : undefined,
 												)
-											: threadHref(
-													locale,
-													context,
-													row.conversation ?? "",
-													row.seller,
-												)
+											: row.invoice
+												? invoiceHref(
+														locale,
+														context,
+														row.invoice,
+														context === "seller" ? row.seller : undefined,
+													)
+												: threadHref(
+														locale,
+														context,
+														row.conversation ?? "",
+														row.seller,
+													)
 								}
 							>
-								{row.kind === "negotiation"
-									? negotiationCopy[locale].title +
-										" · " +
-										(row.action && row.action in negotiationCopy[locale]
-											? negotiationCopy[locale][
-													row.action as keyof typeof negotiationCopy.en
-												]
-											: negotiationCopy[locale].request)
-									: row.kind === "order_accepted"
-										? commerceCopy[locale].accepted +
+								{row.kind === "payment"
+									? paymentCopy[locale].title
+									: row.kind === "negotiation"
+										? negotiationCopy[locale].title +
 											" · " +
-											commerceCopy[locale].invoices
-										: row.kind === "message"
-											? t.newMessage
-											: t.reportStatus}
+											(row.action && row.action in negotiationCopy[locale]
+												? negotiationCopy[locale][
+														row.action as keyof typeof negotiationCopy.en
+													]
+												: negotiationCopy[locale].request)
+										: row.kind === "order_accepted"
+											? commerceCopy[locale].accepted +
+												" · " +
+												commerceCopy[locale].invoices
+											: row.kind === "message"
+												? t.newMessage
+												: t.reportStatus}
 								{!row.read && (
 									<span className="rounded-control bg-info px-2 py-1 text-sm text-action">
 										{t.unread}

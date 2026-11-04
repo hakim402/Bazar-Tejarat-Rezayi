@@ -97,6 +97,7 @@ class OrderRow(s.Serializer):
     invoice = s.UUIDField()
     number = s.CharField()
     snapshot = s.JSONField()
+    payment = s.JSONField()
     dimensions = s.DictField(child=s.CharField())
     capabilities = s.DictField(child=s.BooleanField())
     lines = s.ListField(child=s.JSONField())

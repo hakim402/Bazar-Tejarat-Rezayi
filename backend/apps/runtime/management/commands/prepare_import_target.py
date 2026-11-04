@@ -5,8 +5,20 @@ from apps.runtime.transfer import prepare_target, TransferError
 class Command(BaseCommand):
     help = "Initialize only a fresh MariaDB staging schema; no accounts, providers or web activation."
 
+    def add_arguments(self, parser):
+        parser.add_argument("--schema-version", type=int, choices=[1, 2], default=1)
+
     def handle(self, *args, **options):
         try:
-            self.stdout.write(prepare_target())
+            if options["schema_version"] == 2:
+                from django.db import connection
+                from apps.runtime.transfer import target_only
+
+                target_only()
+                if set(connection.introspection.table_names()) - {"bazar_owned_run"}:
+                    raise TransferError("Native v2 restore requires an empty private target.")
+                self.stdout.write("Empty native v2 restore target verified; no schema or serving state published.")
+            else:
+                self.stdout.write(prepare_target())
         except TransferError as error:
             raise CommandError(str(error)) from None

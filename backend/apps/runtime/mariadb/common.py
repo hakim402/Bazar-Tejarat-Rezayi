@@ -35,7 +35,7 @@ def store_statements():
     return result + [trigger("marketplace_store", event, guard) for event in ("INSERT", "UPDATE")]
 
 
-def uuid_statements():
+def uuid_statements(version=1):
     """Fixed hex storage retains native validation and cross-engine ordering."""
     import hashlib
     from django.apps import apps
@@ -50,4 +50,10 @@ def uuid_statements():
             table, column = model._meta.db_table, original.column
             name = "uuid_" + hashlib.sha256((table + ":" + column).encode()).hexdigest()[:24]
             result.append(f"ALTER TABLE `{table}` ADD CONSTRAINT `{name}` CHECK (`{column}` IS NULL OR (CHAR_LENGTH(`{column}`)=32 AND `{column}` REGEXP BINARY '^[0-9a-f]{{32}}$'))")
+    if version==1:
+        from .schema import reference
+        approved=set(reference(1)["ddl"])
+        result=[statement for statement in result if statement in approved]
+    elif version!=2:
+        raise RuntimeError("Unsupported UUID contract version.")
     return result

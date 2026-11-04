@@ -85,6 +85,8 @@ def notice_scope(actor, seller=None):
     orders = order_scope(actor, invoices=True)
     from apps.orders.negotiations import scope as request_scope
     requests = request_scope(actor)
+    from apps.payments.access import scope as payment_scope
+    payments = payment_scope(actor)
     if seller is not None:
         if actor.context != "seller":
             from rest_framework.exceptions import PermissionDenied
@@ -100,14 +102,15 @@ def notice_scope(actor, seller=None):
         messages = messages.filter(seller_id=seller)
         orders = orders.filter(seller_id=seller)
         requests = requests.filter(seller_id=seller)
-    return Notice.objects.filter(account=account).filter(Q(conversation__in=messages) | Q(order__in=orders) | Q(negotiation__in=requests)), messages
+        payments = payments.filter(seller_id=seller)
+    return Notice.objects.filter(account=account).filter(Q(conversation__in=messages) | Q(order__in=orders) | Q(negotiation__in=requests) | Q(payment_order__in=payments)), messages
 
 
 def notices(actor, *, seller=None, page=1, unread=False):
     qs, _ = notice_scope(actor, seller)
     if unread:
         qs = qs.filter(read_at__isnull=True)
-    rows = qs.select_related("event", "conversation", "order__invoice", "negotiation", "event__negotiation_event").order_by("-created_at", "pk")[
+    rows = qs.select_related("event", "conversation", "order__invoice", "negotiation", "event__negotiation_event", "payment_order", "event__payment_event").order_by("-created_at", "pk")[
         (page - 1) * 20 : page * 20
     ]
     return {
@@ -117,12 +120,13 @@ def notices(actor, *, seller=None, page=1, unread=False):
             {
                 "id": str(x.pk),
                 "kind": x.event.kind,
+                "payment": str(x.payment_order_id) if x.payment_order_id else None,
                 "negotiation": str(x.negotiation_id) if x.negotiation_id else None,
-                "action": x.event.negotiation_event.action if x.event.negotiation_event_id else "",
+                "action": x.event.payment_event.action if x.event.payment_event_id else x.event.negotiation_event.action if x.event.negotiation_event_id else "",
                 "conversation": str(x.conversation_id) if x.conversation_id else None,
                 "order": str(x.order_id) if x.order_id else None,
                 "invoice": str(x.order.invoice.pk) if x.order_id else None,
-                "seller": str(x.negotiation.seller_id if x.negotiation_id else x.order.seller_id if x.order_id else x.conversation.seller_id),
+                "seller": str(x.payment_order.seller_id if x.payment_order_id else x.negotiation.seller_id if x.negotiation_id else x.order.seller_id if x.order_id else x.conversation.seller_id),
                 "read": x.read_at is not None,
                 "created_at": x.created_at,
             }
@@ -144,9 +148,9 @@ def counts(actor, seller=None):
 @transaction.atomic
 def read_notice(actor, pk):
     qs, _ = notice_scope(actor)
-    preliminary = get_object_or_404(qs.select_related("conversation", "order", "negotiation"), pk=pk)
+    preliminary = get_object_or_404(qs.select_related("conversation", "order", "negotiation", "payment_order"), pk=pk)
     access.lock_actor(
-        actor, preliminary.negotiation.seller_id if preliminary.negotiation_id else preliminary.order.seller_id if preliminary.order_id else preliminary.conversation.seller_id
+        actor, preliminary.payment_order.seller_id if preliminary.payment_order_id else preliminary.negotiation.seller_id if preliminary.negotiation_id else preliminary.order.seller_id if preliminary.order_id else preliminary.conversation.seller_id
     )
     qs, _ = notice_scope(actor)
     row = get_object_or_404(qs.select_for_update(), pk=pk)
@@ -161,6 +165,7 @@ def preference(actor):
     row = Preference.objects.filter(account=account).first()
     return {
         "message_email": row.message_email if row else True,
+        "payment_email": row.payment_email if row else True,
         "locale": row.locale if row else "fa-AF",
         "version": row.version if row else 0,
     }
@@ -175,6 +180,7 @@ def set_preference(actor, data):
     if data["version"] != (0 if created else row.version):
         raise CommandConflict()
     row.message_email = data["message_email"]
+    row.payment_email = data.get("payment_email",row.payment_email)
     row.locale = data["locale"]
     row.version = 1 if created else row.version + 1
     row.save()

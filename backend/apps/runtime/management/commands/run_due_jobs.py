@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 if row is None:
                     break
                 child = subprocess.Popen([sys.executable, "manage.py", "run_claimed_job", row.key, str(row.lease)],
-                    cwd=settings.BASE_DIR, env=os.environ.copy(), start_new_session=True,
+                    cwd=settings.BASE_DIR, env={**os.environ, "REZAYI_JOB_SECONDS": str(min(25, max(1, deadline-time.monotonic()-2)))}, start_new_session=True,
                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 try:
                     child.wait(timeout=min(30, max(1, deadline - time.monotonic() - 1)))

@@ -1,4 +1,5 @@
 "use client";
+import { paymentCopy } from "../../../../../../features/payments/copy";
 import { negotiationCopy } from "../../../../../../features/negotiations/copy";
 import Link from "next/link";
 import { commerce, type Profile } from "../../../../../../features/orders/api";
@@ -82,6 +83,7 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 		["negotiations", negotiationCopy[locale].title, "file"],
 		["orders", commerceCopy[locale].orders, "file"],
 		["invoices", commerceCopy[locale].invoices, "file"],
+		["payments", paymentCopy[locale].title, "file"],
 		["profile", t.profile, "user"],
 		["settings", accountSettingsCopy[locale].title, "user"],
 		["password", t.password, "lock"],
@@ -91,9 +93,9 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 		<nav aria-label={t.menu} className="space-y-1">
 			{links
 				.filter(([route]) =>
-					["orders","negotiations"].includes(route)
+					["orders", "negotiations"].includes(route)
 						? orderCaps?.orders
-						: route === "invoices"
+						: ["invoices", "payments"].includes(route)
 							? orderCaps?.invoices
 							: route === "catalogue"
 								? caps?.write
@@ -110,7 +112,13 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 						href={sellerHref(locale, route, seller)}
 						aria-current={
 							path === sellerHref(locale, route) ||
-							(["negotiations", "orders", "invoices", "settings"].includes(route) &&
+							([
+								"negotiations",
+								"orders",
+								"invoices",
+								"payments",
+								"settings",
+							].includes(route) &&
 								path.startsWith(sellerHref(locale, route) + "/")) ||
 							(route === "inventory" &&
 								path.includes("/inventory/") &&

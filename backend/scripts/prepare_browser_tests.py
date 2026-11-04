@@ -19,26 +19,51 @@ for command in ("seed_identity_examples", "seed_organization_examples"):
     sys.stdin = io.StringIO(json.dumps(values))
     call_command(command, stdin=True, verbosity=0)
 
-if values.get("phase") in {"phase-06-catalogue", "phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
+if values.get("phase") in {
+    "phase-06-catalogue",
+    "phase-07-inventory",
+    "phase-08-marketplace",
+    "phase-09-messaging",
+    "phase-10-commerce",
+    "phase-11-negotiation",
+    "phase-12-payments",
+}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_catalogue_examples", stdin=True, verbosity=0)
 
-if values.get("phase") in {"phase-07-inventory", "phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
+if values.get("phase") in {
+    "phase-07-inventory",
+    "phase-08-marketplace",
+    "phase-09-messaging",
+    "phase-10-commerce",
+    "phase-11-negotiation",
+    "phase-12-payments",
+}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_inventory_examples", stdin=True, verbosity=0)
 
-if values.get("phase") in {"phase-08-marketplace", "phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
+if values.get("phase") in {
+    "phase-08-marketplace",
+    "phase-09-messaging",
+    "phase-10-commerce",
+    "phase-11-negotiation",
+    "phase-12-payments",
+}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_marketplace_examples", stdin=True, verbosity=0)
 
-if values.get("phase") in {"phase-09-messaging", "phase-10-commerce", "phase-11-negotiation"}:
+if values.get("phase") in {"phase-09-messaging", "phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_messaging_examples", stdin=True, verbosity=0)
 
-if values.get("phase") in {"phase-10-commerce", "phase-11-negotiation"}:
+if values.get("phase") in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_commerce_examples", stdin=True, verbosity=0)
 
-if values.get("phase") == "phase-11-negotiation":
+if values.get("phase") in {"phase-11-negotiation", "phase-12-payments"}:
     sys.stdin = io.StringIO(json.dumps(values))
     call_command("seed_negotiation_examples", stdin=True, verbosity=0)
+
+if values.get("phase") == "phase-12-payments":
+    sys.stdin = io.StringIO(json.dumps(values))
+    call_command("seed_payment_examples", stdin=True, verbosity=0)

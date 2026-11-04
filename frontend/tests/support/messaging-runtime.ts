@@ -35,10 +35,12 @@ export async function messageLogin(
 	context: "buyer" | "seller",
 	role = context === "buyer" ? "buyer" : "member",
 ) {
-	// Explicit emulation isolates local-only checks from host network changes.
+	// Transition emulation explicitly before opening pages; default online mode
+	// alone can inherit host connectivity. Keep real offline journeys below.
 	// Individual offline journeys still toggle this context through Playwright.
-	const session = await browser.newContext({ offline: false }),
-		page = await session.newPage();
+	const session = await browser.newContext({ offline: true });
+	await session.setOffline(false);
+	const page = await session.newPage();
 	await page.goto(`/en/auth/${context}-sign-in`);
 	await page.locator("[name=email]").fill(`phase09-${role}@example.test`);
 	await page.locator("[name=password]").fill(fixturePassword);

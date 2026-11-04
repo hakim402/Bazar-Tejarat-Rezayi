@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
+import { paymentCopy } from "../../payments/copy";
 import { notification, type Preference } from "../api";
 import type { Context } from "../../messaging/api";
 import { communicationCopy } from "../../messaging/copy";
@@ -16,6 +17,7 @@ function PreferenceEditor({
 	const t = communicationCopy[locale],
 		[pref, setPref] = useState<Preference | null>(null),
 		[enabled, setEnabled] = useState(true),
+		[paymentEnabled, setPaymentEnabled] = useState(true),
 		[error, setError] = useState<unknown>(null),
 		[notice, setNotice] = useState(""),
 		[busy, setBusy] = useState(false),
@@ -33,6 +35,7 @@ function PreferenceEditor({
 				if (mine && live.current === mine) {
 					setPref(value);
 					setEnabled(value.message_email);
+					setPaymentEnabled(value.payment_email);
 				}
 			})
 			.catch((error) => {
@@ -75,7 +78,12 @@ function PreferenceEditor({
 							void notification<Preference>(
 								context,
 								"preferences/",
-								{ message_email: enabled, locale, version: pref.version },
+								{
+									message_email: enabled,
+									payment_email: paymentEnabled,
+									locale,
+									version: pref.version,
+								},
 								"PATCH",
 							)
 								.then((value) => {
@@ -122,6 +130,18 @@ function PreferenceEditor({
 							/>
 							{t.emailEnabled}
 						</label>
+						<label className="flex min-h-11 items-center gap-3">
+							<input
+								type="checkbox"
+								checked={paymentEnabled}
+								disabled={busy}
+								onChange={(e) => setPaymentEnabled(e.target.checked)}
+							/>
+							{paymentCopy[locale].email}
+						</label>
+						<p className="text-sm text-muted">
+							{paymentCopy[locale].emailNote}
+						</p>
 						<button type="submit" className={action} disabled={busy}>
 							{busy ? t.sending : t.savePreference}
 						</button>

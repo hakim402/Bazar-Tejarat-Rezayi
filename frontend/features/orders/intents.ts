@@ -1,3 +1,4 @@
+import { clearPaymentIntents } from "../payments/api.ts";
 import { clearNegotiationIntents } from "../negotiations/api.ts";
 import { clearCartIntents } from "../cart/recovery.ts";
 import type { Packet } from "./api.ts";
@@ -15,7 +16,8 @@ export function settleIntent(scope: string) {
 	intents.delete(scope);
 }
 export function clearCommerceIntents() {
- clearNegotiationIntents();
+	clearPaymentIntents();
+	clearNegotiationIntents();
 	clearCartIntents();
 	intents.clear();
 }

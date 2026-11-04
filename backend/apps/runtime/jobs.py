@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from .models import Job, Scheduler
 
-SWEEPS = {"account_sweep": 60, "notice_sweep": 60, "translation_sweep": 60, "guest_sweep": 3600}
+SWEEPS = {"account_sweep": 60, "notice_sweep": 60, "translation_sweep": 60, "guest_sweep": 3600, "payment_sweep": 60}
 KINDS = {*SWEEPS, "translation"}
 
 
@@ -82,6 +82,9 @@ def execute(row):
     elif row.kind == "translation":
         from apps.catalogue.translations import generate
         generate(row.resource)
+    elif row.kind == "payment_sweep":
+        from apps.payments.jobs import sweep
+        sweep()
     elif row.kind == "guest_sweep":
         from apps.cart.services import expire_guests
         expire_guests()

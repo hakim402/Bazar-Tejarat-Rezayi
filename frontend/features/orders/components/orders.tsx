@@ -1,6 +1,8 @@
 "use client";
 import { SessionEntry } from "./session-entry";
 import Link from "next/link";
+import { paymentHref } from "../../payments/api";
+import { paymentCopy, paymentState } from "../../payments/copy";
 import { negotiationCopy } from "../../negotiations/copy";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -250,7 +252,8 @@ function Reader({
 											<bdi>
 												{row.goods_total} {row.currency}
 											</bdi>{" "}
-											· {t.unpaid} · {t.notDispatched}
+											· {paymentState(locale, row.dimensions.financial)} ·{" "}
+											{t.notDispatched}
 										</p>
 										<p>
 											<bdi>{localTimestamp(row.accepted_at, locale)}</bdi>
@@ -447,6 +450,12 @@ function OrderDocument({
 			<h2 className="text-2xl font-bold">
 				<bdi>{order.number}</bdi>
 			</h2>
+			<Link
+				className={action}
+				href={paymentHref(locale, context, order.id, seller)}
+			>
+				{paymentCopy[locale].title}
+			</Link>
 			<p dir="auto">
 				{order.snapshot.buyer} · {order.snapshot.seller}
 			</p>
@@ -556,7 +565,7 @@ function OrderDocument({
 			</p>
 			<Disclosure locale={locale} accepted />
 			<p>
-				{t.unpaid} · {t.notDispatched}
+				{paymentState(locale,order.dimensions.financial)} · {t.notDispatched}
 			</p>
 			<p>
 				{t.method}: {t[order.payment_method]}

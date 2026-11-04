@@ -43,6 +43,8 @@ def submission_row(row):
 
 
 def order_data(row):
+    from apps.payments.queries import projection
+    financial = projection(row)
     return {
         "id": str(row.pk),
         "seller": str(row.seller_id),
@@ -57,14 +59,15 @@ def order_data(row):
         "snapshot": {k: row.snapshot[k] for k in ["seller", "buyer", "terms", "advance_hours", "origin", "finalizer", "proposal"] if k in row.snapshot},
         "dimensions": {
             "agreement": "accepted",
-            "financial": "unpaid",
-            "allocation": "unreserved",
+            "financial": financial["financial"],
+            "allocation": financial["allocation"],
             "fulfilment": "not_dispatched",
             "delivery_charge": "pending_separate",
             "cancellation": "none",
             "dispute": "none",
             "completion": "disabled",
         },
+        "payment": financial,
         "capabilities": {x: False for x in ["pay", "dispatch", "cancel", "refund", "amend", "complete"]},
         "lines": [
             {
@@ -82,8 +85,9 @@ def order_data(row):
 
 
 def order_queryset(actor, *, seller=None, invoices=False):
+    from apps.payments.queries import annotate
     return (
-        access.scope(actor, invoices=invoices, seller=seller)
+        annotate(access.scope(actor, invoices=invoices, seller=seller))
         .select_related("invoice")
         .prefetch_related("lines")
         .order_by("-accepted_at", "pk")

@@ -135,7 +135,7 @@ export const commerceCopy: Record<
 		delivery:
 			"Delivery amount pending; arranged and paid separately. Excluded from goods total.",
 		unreserved:
-			"Accepted goods remain unreserved. Payment and dispatch are unavailable.",
+			"Stock remains unreserved on acceptance alone. Record manual goods payments in Payments. Dispatch remains unavailable.",
 		submit: "Submit fixed-price orders",
 		advance: "Advance",
 		cod: "Cash on delivery",
@@ -243,7 +243,8 @@ export const commerceCopy: Record<
 			"خرید با قیمت فعلی سرور انجام می‌شود؛ برآورد نمایش‌یافته ممکن است تغییر کند.",
 		delivery:
 			"هزینهٔ تحویل هنوز تعیین نشده؛ جداگانه تنظیم و پرداخت می‌شود و شامل مجموع کالا نیست.",
-		unreserved: "کالا هنوز ذخیره نشده است. پرداخت و ارسال فعلاً فعال نیست.",
+		unreserved:
+			"پذیرش به‌تنهایی موجودی را رزرو نمی‌کند. پرداخت دستی کالا را در پرداخت‌ها ثبت کنید. ارسال هنوز فعال نیست.",
 		submit: "ثبت سفارش‌های قیمت ثابت",
 		advance: "پیش‌پرداخت",
 		cod: "پرداخت هنگام تحویل",
@@ -348,7 +349,8 @@ export const commerceCopy: Record<
 		currentPrice: "پېر د سرور په اوسنۍ بیه کېږي؛ ښودل شوی اټکل بدلېدای شي.",
 		delivery:
 			"د لېږد مبلغ لا نه دی ټاکل شوی؛ جلا تنظیم او ورکول کېږي او په ټول مبلغ کې نشته.",
-		unreserved: "توکي لا نه دي خوندي شوي. تادیه او لېږد اوس فعال نه دي.",
+		unreserved:
+			"یوازې منل زېرمه نه ساتي. د توکو لاسي تادیې په تادیاتو کې ثبت کړئ. لېږل لا فعال نه دي.",
 		submit: "د ثابتې بیې سپارښتنې ثبتول",
 		advance: "مخکې تادیه",
 		cod: "د سپارلو پر مهال تادیه",
@@ -453,7 +455,8 @@ export const commerceCopy: Record<
 			"يستخدم الشراء أسعار الخادم الحالية؛ قد يتغير التقدير المعروض.",
 		delivery:
 			"مبلغ التوصيل قيد التحديد ويُرتب ويُدفع منفصلاً؛ غير مشمول بإجمالي البضائع.",
-		unreserved: "البضائع غير محجوزة. الدفع والإرسال غير متاحين حالياً.",
+		unreserved:
+			"القبول وحده لا يحجز المخزون. سجّل دفعات البضائع اليدوية في المدفوعات. الإرسال غير متاح بعد.",
 		submit: "تسجيل طلبات السعر الثابت",
 		advance: "دفع مقدم",
 		cod: "الدفع عند الاستلام",

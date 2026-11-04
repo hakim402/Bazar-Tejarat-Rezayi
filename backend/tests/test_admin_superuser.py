@@ -27,7 +27,7 @@ class SuperAdminTests(TransactionTestCase):
     def test_root_without_owner_flag_groups_or_account_all_active_models(self):
         self.assertFalse(self.root.owner_authority or self.root.groups.exists() or self.root.accounts.exists())
         self.assertEqual(self.client.get('/admin/').status_code, 200)
-        labels = ['accounts', 'organizations', 'verification', 'catalogue', 'inventory', 'marketplace', 'site', 'messaging', 'notifications', 'cart', 'orders']
+        labels = ['accounts', 'organizations', 'verification', 'catalogue', 'inventory', 'marketplace', 'site', 'messaging', 'notifications', 'cart', 'orders', 'payments']
         covered = []
         for label in labels:
             for model in apps.get_app_config(label).get_models():
@@ -208,8 +208,9 @@ class SuperAdminTests(TransactionTestCase):
         }
         negotiation = {"orders."+name for name in ["negotiation", "negotiationrevision", "negotiationevent", "negotiationcommand", "negotiationsubmission", "negotiationoutcome", "negotiationsubmissionfence"]}
         runtime = {m._meta.label_lower for m in apps.get_app_config("runtime").get_models()}
-        self.assertEqual(legacy | communication | commerce | negotiation | runtime, {model._meta.label_lower for model in owner_site._registry})
-        for label in legacy | communication | commerce | negotiation | runtime:
+        payments={"payments."+name for name in ["finance","event","command","claim","claimdecision","receipt","receiptseal","correction","extension","stockplan","stockplanline","stockplanseal","allocationintent","allocationattempt","reviewcase","caseevent","evidence","evidencebinding","noticecursor","email","emailattempt","sweepcursor","reminder"]}
+        self.assertEqual(legacy | communication | commerce | negotiation | runtime | payments, {model._meta.label_lower for model in owner_site._registry})
+        for label in legacy | communication | commerce | negotiation | runtime | payments:
             app, model = label.split('.')
             self.assertTrue(resolve(reverse(f'admin:{app}_{model}_changelist')))
         self.assertFalse(any(model._meta.label_lower == 'sessions.session' for model in owner_site._registry))

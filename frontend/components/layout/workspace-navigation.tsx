@@ -1,4 +1,5 @@
 "use client";
+import { paymentCopy } from "../../features/payments/copy";
 import { negotiationCopy } from "../../features/negotiations/copy";
 import Link from "next/link";
 import { commerceCopy } from "../../features/orders/copy";
@@ -33,9 +34,36 @@ export function WorkspaceNavigation({
 			label: catalogueCopy[locale].title,
 			icon: "box",
 		});
-	links.push({href:`${base}/negotiations`,label:negotiationCopy[locale].title,icon:"file" as const});
- links.push(...(["orders", "invoices"] as const).map(route=>({href:`${base}/${route}`,label:commerceCopy[locale][route],icon:"file" as const})));
- if(context==="buyer")links.push({href:`/${locale}/cart`,label:commerceCopy[locale].cart,icon:"box"},{href:`${base}/checkouts`,label:commerceCopy[locale].history,icon:"file"});
+	links.push({
+		href: `${base}/payments`,
+		label: paymentCopy[locale].title,
+		icon: "file" as const,
+	});
+	links.push({
+		href: `${base}/negotiations`,
+		label: negotiationCopy[locale].title,
+		icon: "file" as const,
+	});
+	links.push(
+		...(["orders", "invoices"] as const).map((route) => ({
+			href: `${base}/${route}`,
+			label: commerceCopy[locale][route],
+			icon: "file" as const,
+		})),
+	);
+	if (context === "buyer")
+		links.push(
+			{
+				href: `/${locale}/cart`,
+				label: commerceCopy[locale].cart,
+				icon: "box",
+			},
+			{
+				href: `${base}/checkouts`,
+				label: commerceCopy[locale].history,
+				icon: "file",
+			},
+		);
 	links.push(
 		{
 			href: `${base}/messages`,

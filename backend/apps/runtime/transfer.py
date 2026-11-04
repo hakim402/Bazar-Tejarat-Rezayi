@@ -3,6 +3,7 @@
 Only a fresh, unservable target or this exact transfer's journal can be loaded.
 Existing initialized targets are refused. No guard is dropped or disabled.
 """
+
 import base64
 from datetime import date, datetime, time, timezone as utc_timezone
 from decimal import Decimal, ROUND_HALF_UP
@@ -20,9 +21,20 @@ from django.db import connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
 
-EXCLUDED = {"django_migrations", "runtime_schema", "runtime_transfer", "runtime_scheduler", "bazar_owned_run", "runtime_guardprobe", "orders_invoice_number"}
-DEFERRED = {"catalogue_product": {"published_id"}, "marketplace_store": {"published_id"},
-            "site_sitesettings": {"promotion_one_id", "promotion_two_id"}}
+EXCLUDED = {
+    "django_migrations",
+    "runtime_schema",
+    "runtime_transfer",
+    "runtime_scheduler",
+    "bazar_owned_run",
+    "runtime_guardprobe",
+    "orders_invoice_number",
+}
+DEFERRED = {
+    "catalogue_product": {"published_id"},
+    "marketplace_store": {"published_id"},
+    "site_sitesettings": {"promotion_one_id", "promotion_two_id"},
+}
 ADDED = {("messaging_message", "published"): True}
 NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
@@ -54,7 +66,12 @@ def private_directory(path, *, create=False):
 
 def private_file(path):
     info = path.stat()
-    if path.is_symlink() or not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+    if (
+        path.is_symlink()
+        or not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.getuid()
+        or stat.S_IMODE(info.st_mode) & 0o077
+    ):
         raise TransferError("Transfer files must be owned privately with mode0600.")
     return path
 
@@ -74,6 +91,12 @@ def field_kinds():
                 field = field.target_field
             fields[original.column] = field.get_internal_type()
         result[model._meta.db_table] = fields
+    result["django_migrations"] = {
+        "id": "AutoField",
+        "app": "CharField",
+        "name": "CharField",
+        "applied": "DateTimeField",
+    }
     return result
 
 
@@ -83,8 +106,14 @@ def encode(value, kind, vendor):
     if kind == "JSONField":
         # Preserve raw JSON text, including scalar strings/JSON null and exact
         # numeric lexemes. SQL NULL remains the separate outer None value.
-        raw = value.decode("utf-8") if isinstance(value, bytes) else value if isinstance(value, str) else canonical(value)
-        json.loads(raw, parse_float=Decimal, parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Invalid JSON number")))
+        raw = (
+            value.decode("utf-8") if isinstance(value, bytes) else value if isinstance(value, str) else canonical(value)
+        )
+        json.loads(
+            raw,
+            parse_float=Decimal,
+            parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Invalid JSON number")),
+        )
         return {"json_text": raw}
     if kind == "UUIDField":
         return str(UUID(str(value)))
@@ -115,7 +144,11 @@ def decode(value, kind):
     if kind == "JSONField":
         if not isinstance(value, dict) or set(value) != {"json_text"} or not isinstance(value["json_text"], str):
             raise TransferError("JSON requires the explicit v2 text envelope.")
-        json.loads(value["json_text"], parse_float=Decimal, parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Invalid JSON number")))
+        json.loads(
+            value["json_text"],
+            parse_float=Decimal,
+            parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Invalid JSON number")),
+        )
         return value["json_text"]
     if kind == "UUIDField":
         return UUID(value).hex
@@ -141,21 +174,41 @@ def export_columns(table, names, kinds, *, vendor, generated=()):
 
 
 def export_source(output, *, source_revision):
-    if connection.vendor not in {"postgresql", "mysql"} or not re.fullmatch(r"(?:[0-9a-f]{40}|manifest:[0-9a-f]{64})", source_revision):
+    if connection.vendor not in {"postgresql", "mysql"} or not re.fullmatch(
+        r"(?:[0-9a-f]{40}|manifest:[0-9a-f]{64})", source_revision
+    ):
         raise TransferError("Export requires the intended supported source and an explicit complete source identifier.")
     output = private_directory(output, create=True)
     kinds = field_kinds()
-    result = {"format": 2, "source_vendor": "mariadb" if connection.vendor == "mysql" else "postgresql", "source_revision": source_revision,
-              "source_migrations": [], "tables": {}}
+    result = {
+        "format": 2,
+        "source_vendor": "mariadb" if connection.vendor == "mysql" else "postgresql",
+        "source_revision": source_revision,
+        "source_migrations": [],
+        "tables": {},
+    }
     original_autocommit = connection.get_autocommit()
     if not original_autocommit:
         raise TransferError("Export requires its own read-only snapshot transaction.")
     generated = []
     if connection.vendor == "mysql":
         from .mariadb.schema import verify, reference
+
         # The guard probe rolls back. Backup must not update even control rows.
-        verify(record=False)
-        generated = reference()["structure"]["generated"]
+        from .models import Schema
+
+        native_version = (
+            2
+            if Schema.objects.get(pk=1).contract
+            == __import__("apps.runtime.mariadb.schema", fromlist=["contract"]).contract(2)
+            else 1
+        )
+        verify(record=False, version=native_version)
+        generated = reference(native_version)["structure"]["generated"]
+        if native_version == 2:
+            from .native_restore import descriptor
+
+            result.update(format=3, native_schema_version=2, restore_ddl_sha256=descriptor()["sha256"])
         result["generated_columns"] = generated
     connection.set_autocommit(False)
     try:
@@ -176,20 +229,66 @@ def export_source(output, *, source_revision):
                 cursor.execute("SELECT next_not_cached_value FROM orders_invoice_number")
                 result["invoice_next"] = int(cursor.fetchone()[0])
                 result["control_archive"] = {}
-                for owner in ("runtime_schema", "runtime_transfer", "runtime_scheduler"):
+                for owner in ("runtime_schema", "runtime_transfer", "runtime_scheduler", "django_migrations"):
                     cursor.execute("SELECT * FROM " + connection.ops.quote_name(owner))
                     names = [value[0] for value in cursor.description]
-                    result["control_archive"][owner] = {"columns": names, "rows": [
-                        [encode(value,kinds[owner][name],"mysql") for name,value in zip(names,row,strict=True)] for row in cursor.fetchall()]}
+                    result["control_archive"][owner] = {
+                        "columns": names,
+                        "rows": [
+                            [encode(value, kinds[owner][name], "mysql") for name, value in zip(names, row, strict=True)]
+                            for row in cursor.fetchall()
+                        ],
+                    }
 
+            # The retained PostgreSQL transfer remains the v1 baseline path.
+            # A source with financial facts or changed Phase12 policy must use
+            # the supported native target; never silently downcast those facts.
+            legacy_extras = {
+                "orders_orderpolicy": {"reminder_hours": 24},
+                "notifications_event": {"payment_event_id": None},
+                "notifications_notice": {"payment_order_id": None},
+                "notifications_preference": {"payment_email": True},
+            }
+            if connection.vendor == "postgresql":
+                for table in tables:
+                    if table.startswith("payments_"):
+                        cursor.execute("SELECT COUNT(*) FROM " + connection.ops.quote_name(table))
+                        if cursor.fetchone()[0]:
+                            raise TransferError(
+                                "PostgreSQL payment data cannot be downcast to the retained v1 transfer contract."
+                            )
+                for table, fields in legacy_extras.items():
+                    if table not in tables:
+                        continue
+                    available = {field.name for field in connection.introspection.get_table_description(cursor, table)}
+                    for name, default in fields.items():
+                        if name not in available:
+                            continue
+                        cursor.execute(
+                            "SELECT COUNT(*) FROM "
+                            + connection.ops.quote_name(table)
+                            + " WHERE "
+                            + connection.ops.quote_name(name)
+                            + " IS DISTINCT FROM %s",
+                            [default],
+                        )
+                        if cursor.fetchone()[0]:
+                            raise TransferError(
+                                "Changed Phase12 facts/policy cannot be omitted from a legacy source transfer."
+                            )
             for table in tables:
+                if connection.vendor == "postgresql" and table.startswith("payments_"):
+                    continue
                 if table in EXCLUDED:
                     continue
                 if not NAME.fullmatch(table) or table not in kinds:
                     raise TransferError("An unmapped source table must be reviewed before export.")
                 description = connection.introspection.get_table_description(cursor, table)
-                columns = export_columns(table, [field.name for field in description], kinds,
-                                         vendor=connection.vendor, generated=generated)
+                columns = export_columns(
+                    table, [field.name for field in description], kinds, vendor=connection.vendor, generated=generated
+                )
+                if connection.vendor == "postgresql":
+                    columns = [name for name in columns if name not in legacy_extras.get(table, {})]
                 primary = connection.introspection.get_primary_key_column(cursor, table)
                 if not primary or primary not in columns:
                     raise TransferError("A source table lacks a supported single primary key.")
@@ -197,26 +296,62 @@ def export_source(output, *, source_revision):
                 path = output / (table + ".jsonl")
                 checksum, count = hashlib.sha256(), 0
                 quoted = ",".join(
-                    "CAST(" + connection.ops.quote_name(field["name"]) + (" AS TEXT)" if connection.vendor == "postgresql" else " AS CHAR CHARACTER SET utf8mb4)")
-                    if field["kind"] == "JSONField" else connection.ops.quote_name(field["name"]) for field in fields)
-                query = "SELECT " + quoted + " FROM " + connection.ops.quote_name(table) + " ORDER BY " + connection.ops.quote_name(primary)
+                    "CAST("
+                    + connection.ops.quote_name(field["name"])
+                    + (" AS TEXT)" if connection.vendor == "postgresql" else " AS CHAR CHARACTER SET utf8mb4)")
+                    if field["kind"] == "JSONField"
+                    else connection.ops.quote_name(field["name"])
+                    for field in fields
+                )
+                query = (
+                    "SELECT "
+                    + quoted
+                    + " FROM "
+                    + connection.ops.quote_name(table)
+                    + " ORDER BY "
+                    + connection.ops.quote_name(primary)
+                )
                 with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as stream:
                     with connection.chunked_cursor() as rows:
                         rows.execute(query)
                         while batch := rows.fetchmany(500):
                             for row in batch:
-                                data = [encode(value, field["kind"], connection.vendor) for value, field in zip(row, fields, strict=True)]
+                                data = [
+                                    encode(value, field["kind"], connection.vendor)
+                                    for value, field in zip(row, fields, strict=True)
+                                ]
                                 line = (canonical(data) + "\n").encode()
                                 stream.write(line)
                                 checksum.update(line)
                                 count += 1
-                result["tables"][table] = {"columns": fields, "primary": primary, "count": count, "sha256": checksum.hexdigest()}
+                result["tables"][table] = {
+                    "columns": fields,
+                    "primary": primary,
+                    "count": count,
+                    "sha256": checksum.hexdigest(),
+                }
+        if result["format"] == 3:
+            from apps.payments.models import Evidence
+
+            result["payment_evidence_files"] = [
+                {
+                    "id": str(row.pk),
+                    "storage_alias": row.storage_alias,
+                    "key": row.key,
+                    "sha256": row.sha256,
+                    "size": row.size,
+                }
+                for row in Evidence.objects.order_by("pk")
+            ]
         write_json(output / "manifest.json", result)
     finally:
         connection.rollback()
         connection.set_autocommit(original_autocommit)
-    return {"tables": len(result["tables"]), "rows": sum(t["count"] for t in result["tables"].values()),
-            "manifest_sha256": digest((output / "manifest.json").read_bytes())}
+    return {
+        "tables": len(result["tables"]),
+        "rows": sum(t["count"] for t in result["tables"].values()),
+        "manifest_sha256": digest((output / "manifest.json").read_bytes()),
+    }
 
 
 def target_only():
@@ -234,6 +369,14 @@ def prepare_target():
 
 
 class Importer:
+    def __new__(cls, directory, *, expected_digest):
+        manifest = json.loads(private_file(private_directory(directory) / "manifest.json").read_text())
+        if cls is Importer and manifest.get("format") == 3:
+            from .native_restore import NativeImporter
+
+            return object.__new__(NativeImporter)
+        return super().__new__(cls)
+
     def __init__(self, directory, *, expected_digest):
         target_only()
         self.directory = private_directory(directory)
@@ -243,6 +386,7 @@ class Importer:
             raise TransferError("Unsupported transfer manifest.")
         if self.manifest["source_vendor"] == "mariadb":
             from .mariadb.schema import reference
+
             if self.manifest.get("generated_columns") != reference()["structure"]["generated"]:
                 raise TransferError("Native derived columns differ from the reviewed recovery contract.")
         self.identifier = digest(manifest_path.read_bytes())
@@ -250,8 +394,11 @@ class Importer:
             raise TransferError("The manifest differs from the separately verified source receipt.")
         self.tables = self.manifest["tables"]
         from .models import Schema, Transfer
+
         existing = Transfer.objects.first()
-        if Schema.objects.exists() and (existing is None or existing.pk != self.identifier or existing.state != "validated"):
+        if Schema.objects.exists() and (
+            existing is None or existing.pk != self.identifier or existing.state != "validated"
+        ):
             raise TransferError("An initialized target is never re-imported. Use the reviewed recovery path.")
         if existing and existing.pk != self.identifier:
             raise TransferError("This target belongs to a different transfer.")
@@ -298,8 +445,14 @@ class Importer:
             deferred = DEFERRED.get(table, set()) & set(names)
             if any(not target[name].null_ok for name in deferred):
                 raise TransferError("A deferred relationship is no longer nullable.")
-            self.structure[table] = {"names": names, "fields": fields, "primary": record["primary"],
-                "added": added, "foreign": foreign, "deferred": deferred}
+            self.structure[table] = {
+                "names": names,
+                "fields": fields,
+                "primary": record["primary"],
+                "added": added,
+                "foreign": foreign,
+                "deferred": deferred,
+            }
             checksum, count = hashlib.sha256(), 0
             with private_file(self.directory / (table + ".jsonl")).open("rb") as stream:
                 for line in stream:
@@ -319,10 +472,16 @@ class Importer:
     def order(self):
         remaining, done, result = set(self.tables), set(), []
         while remaining:
-            ready = sorted(table for table in remaining if not {
-                owner for column, (owner, remote) in self.structure[table]["foreign"].items()
-                if column not in self.structure[table]["deferred"] and owner != table and owner in self.tables
-            } - done)
+            ready = sorted(
+                table
+                for table in remaining
+                if not {
+                    owner
+                    for column, (owner, remote) in self.structure[table]["foreign"].items()
+                    if column not in self.structure[table]["deferred"] and owner != table and owner in self.tables
+                }
+                - done
+            )
             if not ready:
                 raise TransferError("A required relationship cycle needs an explicit migration design.")
             result.extend(ready)
@@ -334,10 +493,22 @@ class Importer:
         spec = self.structure[table]
         quoted = ",".join(connection.ops.quote_name(name) for name in spec["names"])
         with connection.cursor() as cursor:
-            cursor.execute("SELECT " + quoted + " FROM " + connection.ops.quote_name(table) + " WHERE "
-                + connection.ops.quote_name(spec["primary"]) + "=%s", [decode(pk, next(f["kind"] for f in spec["fields"] if f["name"] == spec["primary"]))])
+            cursor.execute(
+                "SELECT "
+                + quoted
+                + " FROM "
+                + connection.ops.quote_name(table)
+                + " WHERE "
+                + connection.ops.quote_name(spec["primary"])
+                + "=%s",
+                [decode(pk, next(f["kind"] for f in spec["fields"] if f["name"] == spec["primary"]))],
+            )
             row = cursor.fetchone()
-        return None if row is None else [encode(value, field["kind"], "mysql") for value, field in zip(row, spec["fields"], strict=True)]
+        return (
+            None
+            if row is None
+            else [encode(value, field["kind"], "mysql") for value, field in zip(row, spec["fields"], strict=True)]
+        )
 
     def reject(self, table, key, code):
         path = self.directory / "rejected-rows.jsonl"
@@ -357,18 +528,29 @@ class Importer:
                 key = row[primary_index]
                 existing = self.fetch(table, key)
                 if existing is not None:
-                    if any(actual != expected and not (name in spec["deferred"] and actual is None)
-                           for name, actual, expected in zip(spec["names"], existing, row, strict=True)):
+                    if any(
+                        actual != expected and not (name in spec["deferred"] and actual is None)
+                        for name, actual, expected in zip(spec["names"], existing, row, strict=True)
+                    ):
                         self.reject(table, key, "different_existing_row")
                     continue
-                values = {field["name"]: decode(value, field["kind"]) for value, field in zip(row, spec["fields"], strict=True)}
+                values = {
+                    field["name"]: decode(value, field["kind"])
+                    for value, field in zip(row, spec["fields"], strict=True)
+                }
                 missing = False
                 with connection.cursor() as cursor:
                     for column, (owner, remote) in spec["foreign"].items():
                         if owner != table or column in spec["deferred"] or values.get(column) is None:
                             continue
-                        cursor.execute("SELECT 1 FROM " + connection.ops.quote_name(owner) + " WHERE "
-                                       + connection.ops.quote_name(remote) + "=%s", [values[column]])
+                        cursor.execute(
+                            "SELECT 1 FROM "
+                            + connection.ops.quote_name(owner)
+                            + " WHERE "
+                            + connection.ops.quote_name(remote)
+                            + "=%s",
+                            [values[column]],
+                        )
                         if cursor.fetchone() is None:
                             missing = True
                             break
@@ -379,7 +561,15 @@ class Importer:
                     values[column] = None
                 values.update(spec["added"])
                 names = list(values)
-                sql = "INSERT INTO " + connection.ops.quote_name(table) + " (" + ",".join(connection.ops.quote_name(name) for name in names) + ") VALUES (" + ",".join(["%s"] * len(names)) + ")"
+                sql = (
+                    "INSERT INTO "
+                    + connection.ops.quote_name(table)
+                    + " ("
+                    + ",".join(connection.ops.quote_name(name) for name in names)
+                    + ") VALUES ("
+                    + ",".join(["%s"] * len(names))
+                    + ")"
+                )
                 try:
                     with transaction.atomic(), connection.cursor() as cursor:
                         cursor.execute(sql, [values[name] for name in names])
@@ -406,9 +596,19 @@ class Importer:
                         continue
                     field = spec["fields"][index]
                     with transaction.atomic(), connection.cursor() as cursor:
-                        cursor.execute("UPDATE " + connection.ops.quote_name(table) + " SET " + connection.ops.quote_name(column)
-                                       + "=%s WHERE " + connection.ops.quote_name(spec["primary"]) + "=%s",
-                                       [decode(row[index], field["kind"]), decode(row[primary_index], spec["fields"][primary_index]["kind"])])
+                        cursor.execute(
+                            "UPDATE "
+                            + connection.ops.quote_name(table)
+                            + " SET "
+                            + connection.ops.quote_name(column)
+                            + "=%s WHERE "
+                            + connection.ops.quote_name(spec["primary"])
+                            + "=%s",
+                            [
+                                decode(row[index], field["kind"]),
+                                decode(row[primary_index], spec["fields"][primary_index]["kind"]),
+                            ],
+                        )
 
     def verify_rows(self):
         report = {}
@@ -431,6 +631,7 @@ class Importer:
 
     def run(self, *, stop_after=None):
         from .models import Schema
+
         finalized = Schema.objects.exists()
         for index, table in enumerate(self.order() if not finalized else [], 1):
             self.load_table(table)
@@ -444,11 +645,15 @@ class Importer:
         self.journal.save(update_fields=["state"])
         MigrationExecutor(connection).migrate([("runtime", "0003_mariadb_guards")])
         from .mariadb.schema import verify
+
+        verify(version=1)
+        MigrationExecutor(connection).migrate([("runtime", "0005_payments_v2")])
         verify()
         # New definitions are additive metadata; no group/account assignment is
         # created. Keep this transaction atomic with final transfer publication.
         from django.contrib.contenttypes.management import create_contenttypes
         from django.contrib.auth.management import create_permissions
+
         with transaction.atomic():
             for app in apps.get_app_configs():
                 create_contenttypes(app, verbosity=0, interactive=False, using=connection.alias)
@@ -462,13 +667,18 @@ class Importer:
 def validate_history():
     """Historical invariants use retained snapshots, not today's revoked grants."""
     from apps.orders.models import SellerOrder, Negotiation
+
     for order in SellerOrder.construction.select_related("outcome", "negotiation").iterator(chunk_size=100):
         lines = list(order.lines.model.construction.filter(order_id=order.pk))
         if not lines or sum((line.goods_amount for line in lines), Decimal(0)) != order.goods_total:
             raise TransferError("Historical agreement total/line set is incomplete.")
-        if any((line.quantity * line.unit_price).quantize(Decimal(".01"), rounding=ROUND_HALF_UP) != line.goods_amount for line in lines):
+        if any(
+            (line.quantity * line.unit_price).quantize(Decimal(".01"), rounding=ROUND_HALF_UP) != line.goods_amount
+            for line in lines
+        ):
             raise TransferError("Historical line arithmetic differs.")
         from apps.orders.models import Invoice, OrderEvent, NegotiationRevision
+
         if Invoice.construction.filter(order_id=order.pk).count() != 1:
             raise TransferError("Historical agreement lacks its unique invoice.")
         action = "negotiated_order_accepted" if order.negotiation_id else "fixed_order_accepted"
@@ -476,30 +686,49 @@ def validate_history():
             raise TransferError("Historical acceptance event missing.")
         if order.negotiation_id:
             request = order.negotiation
-            if (request.buyer_id, request.seller_id, request.currency) != (order.buyer_id, order.seller_id, order.currency):
+            if (request.buyer_id, request.seller_id, request.currency) != (
+                order.buyer_id,
+                order.seller_id,
+                order.currency,
+            ):
                 raise TransferError("Historical negotiated party/currency binding differs.")
             proposal = NegotiationRevision.construction.get(request=request, number=request.revision).body
             caps = {(row["variant"], row["tier"]): row for row in proposal["lines"]}
-            if (request.state != "accepted" or order.snapshot.get("proposal") != proposal
-                    or set(caps) != {(str(line.variant_id), line.tier) for line in lines}):
+            if (
+                request.state != "accepted"
+                or order.snapshot.get("proposal") != proposal
+                or set(caps) != {(str(line.variant_id), line.tier) for line in lines}
+            ):
                 raise TransferError("Historical negotiated agreement/line set differs.")
             for line in lines:
                 cap = caps[(str(line.variant_id), line.tier)]
-                if (line.quantity > Decimal(cap["max_quantity"]) or line.unit_price > Decimal(cap["max_unit_price"])
-                        or line.snapshot.get("max_quantity") != cap["max_quantity"]
-                        or line.snapshot.get("max_unit_price") != cap["max_unit_price"]):
+                if (
+                    line.quantity > Decimal(cap["max_quantity"])
+                    or line.unit_price > Decimal(cap["max_unit_price"])
+                    or line.snapshot.get("max_quantity") != cap["max_quantity"]
+                    or line.snapshot.get("max_unit_price") != cap["max_unit_price"]
+                ):
                     raise TransferError("Historical buyer caps differ.")
         else:
             origin = order.outcome
-            if (origin.state != "accepted" or origin.seller_id != order.seller_id
-                    or origin.submission.buyer_id != order.buyer_id or origin.submission.payload["currency"] != order.currency):
+            if (
+                origin.state != "accepted"
+                or origin.seller_id != order.seller_id
+                or origin.submission.buyer_id != order.buyer_id
+                or origin.submission.payload["currency"] != order.currency
+            ):
                 raise TransferError("Historical fixed order party/currency/outcome differs.")
     from apps.orders.models import NegotiationRevision, NegotiationEvent
+
     for request in Negotiation.construction.iterator(chunk_size=100):
         events = list(NegotiationEvent.construction.filter(request=request).order_by("version"))
         expected_action = "resubmitted" if request.state == "submitted" and request.version > 1 else request.state
-        if ([event.version for event in events] != list(range(1, request.version + 1))
-                or not events or events[-1].revision != request.revision or events[-1].action != expected_action):
+        if (
+            [event.version for event in events] != list(range(1, request.version + 1))
+            or not events
+            or events[-1].revision != request.revision
+            or events[-1].action != expected_action
+        ):
             raise TransferError("Historical request event/head differs.")
         selected = None
         revisions = list(NegotiationRevision.construction.filter(request=request).order_by("number"))
@@ -512,21 +741,35 @@ def validate_history():
                 raise TransferError("Historical proposal line set differs.")
             selected = keys
             for row in rows:
-                if not (0 < Decimal(row["quantity"]) <= Decimal(row["max_quantity"])
-                        and 0 < Decimal(row["unit_price"]) <= Decimal(row["max_unit_price"])):
+                if not (
+                    0 < Decimal(row["quantity"]) <= Decimal(row["max_quantity"])
+                    and 0 < Decimal(row["unit_price"]) <= Decimal(row["max_unit_price"])
+                ):
                     raise TransferError("Historical buyer proposal caps differ.")
     from apps.messaging.models import Message
+
     for message in Message.construction.iterator(chunk_size=100):
         images = list(message.attachments.all())
-        if not message.body.strip() and not images or len(images) > 3 or any(image.creator_id != message.author_id or image.conversation_id != message.conversation_id for image in images):
+        if (
+            not message.body.strip()
+            and not images
+            or len(images) > 3
+            or any(
+                image.creator_id != message.author_id or image.conversation_id != message.conversation_id
+                for image in images
+            )
+        ):
             raise TransferError("Historical message content/binding is incomplete.")
 
     # Decrypt privately only to prove continuity. Never persist or print plaintext.
     from cryptography.fernet import Fernet, InvalidToken
     from apps.accounts.models import Authenticator
+
     cipher = Fernet(settings.MFA_ENCRYPTION_KEY.encode())
     for factor in Authenticator.objects.iterator(chunk_size=100):
         try:
             cipher.decrypt(factor.encrypted_secret.encode())
         except (InvalidToken, AttributeError, ValueError):
-            raise TransferError("Authenticator encryption continuity failed; preserve and review the source key.") from None
+            raise TransferError(
+                "Authenticator encryption continuity failed; preserve and review the source key."
+            ) from None

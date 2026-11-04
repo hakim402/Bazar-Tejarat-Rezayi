@@ -206,18 +206,23 @@ class PolicyForm(forms.ModelForm):
 
     class Meta:
         model = OrderPolicy
-        fields = ["advance_hours"]
+        fields = ["advance_hours", "reminder_hours"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["expected_version"].initial = self.instance.version
+        self.fields["reminder_hours"].required = False
+
+    def clean_reminder_hours(self):
+        value=self.cleaned_data.get("reminder_hours")
+        return self.instance.reminder_hours if value is None else value
 
 
 class PolicyAdmin(ReadOnlyAdmin):
     form = PolicyForm
-    fields = ["advance_hours", "version", "expected_version", "reason"]
+    fields = ["advance_hours", "reminder_hours", "version", "expected_version", "reason"]
     readonly_fields = ["version"]
-    list_display = ["advance_hours", "version"]
+    list_display = ["advance_hours", "reminder_hours", "version"]
 
     def get_readonly_fields(self, request, obj=None):
         return self.readonly_fields
@@ -242,11 +247,12 @@ class PolicyAdmin(ReadOnlyAdmin):
                 form.cleaned_data["expected_version"],
                 form.cleaned_data["advance_hours"],
                 form.cleaned_data["reason"],
+                reminder_hours=form.cleaned_data["reminder_hours"],
             )
         except APIException:
             messages.error(request, "Policy changed or access ended. Review the current version.")
         else:
-            messages.success(request, "Advance due window updated. Accepted agreements retain their original deadline.")
+            messages.success(request, "Payment policy updated. Accepted original deadlines remain unchanged; zero reminder hours disables repeats.")
         return HttpResponseRedirect(request.path)
 
     def save_model(self, *args, **kwargs):

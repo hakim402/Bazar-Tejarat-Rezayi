@@ -3,12 +3,14 @@ from apps.messaging.contracts import Strict
 
 
 class PreferenceCommand(Strict):
+    payment_email = s.BooleanField(required=False)
     message_email = s.BooleanField()
     locale = s.ChoiceField(choices=["fa-AF", "ps", "ar", "en"])
     version = s.IntegerField(min_value=0)
 
 
 class EmailPreference(s.Serializer):
+    payment_email = s.BooleanField()
     message_email = s.BooleanField()
     locale = s.CharField()
     version = s.IntegerField()
@@ -16,7 +18,8 @@ class EmailPreference(s.Serializer):
 
 class NoticeRow(s.Serializer):
     id = s.UUIDField()
-    kind = s.ChoiceField(choices=["message", "report_status", "order_accepted", "negotiation"])
+    kind = s.ChoiceField(choices=["message", "report_status", "order_accepted", "negotiation", "payment"])
+    payment = s.UUIDField(allow_null=True)
     negotiation = s.UUIDField(allow_null=True)
     action = s.CharField(allow_blank=True)
     conversation = s.UUIDField(allow_null=True)

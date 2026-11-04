@@ -33,13 +33,14 @@ export function useCommunicationSession(context: AccountContext) {
 				})
 				.catch((error) => {
 					if (alive && generation === mine) {
+						if (accessLost(error)) clearCommerceIntents();
 						clearDrafts();
 						setState({ session: null, loading: false, error });
 					}
 				});
 		};
 		const changed = () => {
-            clearCommerceIntents();
+			clearCommerceIntents();
 			clearDrafts();
 			refresh();
 		};

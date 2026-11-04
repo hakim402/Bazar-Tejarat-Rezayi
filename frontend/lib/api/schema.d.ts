@@ -1732,6 +1732,278 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/{context}/evidence/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payment_evidence_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{context}/orders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payments_orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{context}/orders/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payments_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{context}/orders/{id}/commands/{key}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payment_command_lookup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{context}/orders/{id}/commands/{key}/reconcile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_command_settle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{context}/orders/{id}/history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payments_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{context}/orders/{id}/uploads/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_evidence_stage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/buyer/claims/{id}/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_claim_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/buyer/orders/{id}/claims/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_claim_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/claims/{id}/confirm/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_claim_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/claims/{id}/reject/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_claim_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/orders/{id}/extensions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_deadline_extension"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/orders/{id}/receipts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_receipt_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/orders/{id}/stock-plans/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_stock_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/orders/{id}/stock-selection/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payment_stock_selection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payments_profiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/receipts/{id}/corrections/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_receipt_correction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site/public/{locale}/": {
         parameters: {
             query?: never;
@@ -2116,6 +2388,19 @@ export interface components {
             city: string;
             method: components["schemas"]["GoodsPaymentMethodEnum"];
         };
+        ClaimCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            /** Format: date-time */
+            paid_at: string;
+            description: string;
+            evidence?: string[];
+            /** Format: uuid */
+            previous?: string;
+        };
         /**
          * @description * `conversation_exists` - conversation_exists
          * @enum {string}
@@ -2139,6 +2424,15 @@ export interface components {
             tracking: components["schemas"]["TrackingEnum"];
             expiry_required: boolean;
             threshold?: string | null;
+        };
+        ConfirmCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            claim_version: number;
+            reason: string;
+            /** Format: uuid */
+            plan?: string;
         };
         Contacts: {
             email: string;
@@ -2175,6 +2469,19 @@ export interface components {
             sequence: number;
             /** Format: uuid */
             seller: string;
+        };
+        CorrectionCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            /** Format: date-time */
+            paid_at: string;
+            description: string;
+            evidence?: string[];
+            receipt_version: number;
+            reason: string;
         };
         /**
          * @description * `AD` - AD
@@ -2439,6 +2746,13 @@ export interface components {
          * @enum {string}
          */
         CurrencyEnum: "AFN" | "USD";
+        DecisionCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            claim_version: number;
+            reason: string;
+        };
         /**
          * @description * `system` - system
          *     * `light` - light
@@ -2456,7 +2770,49 @@ export interface components {
             all_cities: boolean;
             cities: string[];
         };
+        Detail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            /** Format: uuid */
+            buyer: string;
+            /** Format: uuid */
+            invoice: string;
+            number: string;
+            currency: string;
+            goods_total: string;
+            payment_method: string;
+            seller_name: string;
+            buyer_name: string;
+            confirmed_total: string;
+            remaining: string;
+            overpayment: string;
+            financial: string;
+            allocation: string;
+            /** Format: date-time */
+            original_due_at: string | null;
+            /** Format: date-time */
+            effective_due_at: string | null;
+            deadline_generation: number;
+            version: number;
+            overdue: boolean;
+            capabilities: {
+                [key: string]: boolean;
+            };
+            claims: unknown[];
+            receipts: unknown[];
+            corrections: unknown[];
+            cases: unknown[];
+            extensions: unknown[];
+            plans: unknown[];
+            history: unknown[];
+            history_count: number;
+            history_page: number;
+            selection: unknown;
+        };
         EmailPreference: {
+            payment_email: boolean;
             message_email: boolean;
             locale: string;
             version: number;
@@ -2516,6 +2872,15 @@ export interface components {
          * @enum {string}
          */
         ExplanationEnum: "seller-finalizes-v1";
+        ExtensionCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            deadline_generation: number;
+            /** Format: date-time */
+            due_at: string;
+            reason: string;
+        };
         FinalLineRequest: {
             /** Format: uuid */
             variant: string;
@@ -2595,6 +2960,13 @@ export interface components {
             email: string;
             display_name: string;
             email_verified: boolean;
+        };
+        Image: {
+            /** Format: uuid */
+            id: string;
+            width: number;
+            height: number;
+            size: number;
         };
         ImageResult: {
             /** Format: uuid */
@@ -2909,6 +3281,8 @@ export interface components {
             id: string;
             kind: components["schemas"]["NoticeRowKindEnum"];
             /** Format: uuid */
+            payment: string | null;
+            /** Format: uuid */
             negotiation: string | null;
             action: string;
             /** Format: uuid */
@@ -2928,9 +3302,10 @@ export interface components {
          *     * `report_status` - report_status
          *     * `order_accepted` - order_accepted
          *     * `negotiation` - negotiation
+         *     * `payment` - payment
          * @enum {string}
          */
-        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation";
+        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment";
         Operation: {
             /** Format: uuid */
             operation: string;
@@ -2974,6 +3349,7 @@ export interface components {
             invoice: string;
             number: string;
             snapshot: unknown;
+            payment: unknown;
             dimensions: {
                 [key: string]: string;
             };
@@ -3009,6 +3385,11 @@ export interface components {
             capabilities: components["schemas"]["Capabilities"];
             recent: components["schemas"]["Movement"][];
         };
+        Page: {
+            count: number;
+            page: number;
+            results: components["schemas"]["Summary"][];
+        };
         /**
          * @description * `home` - home
          *     * `how-it-works` - how-it-works
@@ -3043,12 +3424,45 @@ export interface components {
             version?: number;
         };
         PatchedPreferenceCommandRequest: {
+            payment_email?: boolean;
             message_email?: boolean;
             locale?: components["schemas"]["LocaleEnum"];
             version?: number;
         };
         PatchedProfileUpdateRequest: {
             display_name?: string;
+        };
+        PaymentOutcome: {
+            outcome: unknown;
+            current: components["schemas"]["Detail"];
+        };
+        PaymentSettlement: {
+            outcome: unknown;
+            current: components["schemas"]["Detail"];
+            state: string;
+        };
+        PaymentUploadCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            /** Format: binary */
+            file: string;
+        };
+        PlanCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            intent_version: number;
+            /** Format: uuid */
+            replaces?: string;
+            reason: string;
+            lines: components["schemas"]["PlanLineRequest"][];
+        };
+        PlanLineRequest: {
+            /** Format: uuid */
+            variant: string;
+            /** Format: uuid */
+            batch?: string | null;
+            quantity: string;
         };
         Position: {
             /** Format: uuid */
@@ -3185,6 +3599,19 @@ export interface components {
         };
         ReadResult: {
             last_read: number;
+        };
+        ReceiptCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            /** Format: date-time */
+            paid_at: string;
+            description: string;
+            evidence?: string[];
+            /** Format: uuid */
+            plan?: string;
         };
         ReceiptRequest: {
             /** Format: uuid */
@@ -3478,6 +3905,37 @@ export interface components {
             currency: string;
             pending: boolean;
             outcomes: unknown[];
+        };
+        Summary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            /** Format: uuid */
+            buyer: string;
+            /** Format: uuid */
+            invoice: string;
+            number: string;
+            currency: string;
+            goods_total: string;
+            payment_method: string;
+            seller_name: string;
+            buyer_name: string;
+            confirmed_total: string;
+            remaining: string;
+            overpayment: string;
+            financial: string;
+            allocation: string;
+            /** Format: date-time */
+            original_due_at: string | null;
+            /** Format: date-time */
+            effective_due_at: string | null;
+            deadline_generation: number;
+            version: number;
+            overdue: boolean;
+            capabilities: {
+                [key: string]: boolean;
+            };
         };
         TeamData: {
             members: components["schemas"]["MemberData"][];
@@ -6635,6 +7093,470 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+        };
+    };
+    payment_evidence_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    payments_orders: {
+        parameters: {
+            query?: {
+                page?: number;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
+            };
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page"];
+                };
+            };
+        };
+    };
+    payments_detail: {
+        parameters: {
+            query?: {
+                page?: number;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Detail"];
+                };
+            };
+        };
+    };
+    payment_command_lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSettlement"];
+                };
+            };
+        };
+    };
+    payment_command_settle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSettlement"];
+                };
+            };
+        };
+    };
+    payments_history: {
+        parameters: {
+            query?: {
+                page?: number;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Detail"];
+                };
+            };
+        };
+    };
+    payment_evidence_stage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["PaymentUploadCommandRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PaymentUploadCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Image"];
+                };
+            };
+        };
+    };
+    payment_claim_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_claim_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_claim_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_claim_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_deadline_extension: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtensionCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_receipt_record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiptCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_stock_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_stock_selection: {
+        parameters: {
+            query?: {
+                page?: number;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    payments_profiles: {
+        parameters: {
+            query?: {
+                page?: number;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    payment_receipt_correction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
                 };
             };
         };

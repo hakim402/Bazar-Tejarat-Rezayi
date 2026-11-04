@@ -16,12 +16,13 @@ class SellerCheckoutTerms(models.Model):
 class OrderPolicy(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     advance_hours = models.PositiveSmallIntegerField(default=72)
+    reminder_hours = models.PositiveSmallIntegerField(default=24)
     version = models.PositiveBigIntegerField(default=1)
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(id=1, advance_hours__gte=1, advance_hours__lte=720), name="orders_policy_bounds"
+                condition=Q(id=1, advance_hours__gte=1, advance_hours__lte=720, reminder_hours__lte=720), name="orders_policy_bounds"
             )
         ]
 
@@ -84,6 +85,7 @@ class SellerOrder(models.Model):
         ]
         indexes = [
             models.Index(fields=["buyer", "-accepted_at", "id"], name="orders_buyer_history"),
+            models.Index(fields=["due_at", "id"], name="payments_order_due"),
             models.Index(fields=["seller", "-accepted_at", "id"], name="orders_seller_history"),
         ]
         constraints = [

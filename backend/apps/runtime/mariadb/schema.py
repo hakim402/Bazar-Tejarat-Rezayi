@@ -1,4 +1,5 @@
 """An explicit target contract; never masquerades as applied PostgreSQL history."""
+
 import hashlib
 import json
 from django.db import connection, transaction, DatabaseError
@@ -9,9 +10,11 @@ from functools import lru_cache
 from pathlib import Path
 
 
-@lru_cache(maxsize=1)
-def reference():
-    return json.loads(Path(__file__).with_name("contract_v1.json").read_text())
+@lru_cache(maxsize=2)
+def reference(version=1):
+    if version not in {1, 2}:
+        raise RuntimeError("Unsupported native contract version.")
+    return json.loads(Path(__file__).with_name(f"contract_v{version}.json").read_text())
 
 
 def statements():
@@ -26,17 +29,26 @@ def resumable_statement(statement):
     for operation in ("CREATE TRIGGER", "CREATE TABLE", "CREATE SEQUENCE"):
         if statement.startswith(operation):
             return statement.replace(operation, operation + " IF NOT EXISTS", 1)
-    return (statement.replace("ADD COLUMN `", "ADD COLUMN IF NOT EXISTS `")
-            .replace("ADD UNIQUE KEY `", "ADD UNIQUE KEY IF NOT EXISTS `")
-            .replace("ADD CONSTRAINT `", "ADD CONSTRAINT IF NOT EXISTS `"))
+    return (
+        statement.replace("ADD COLUMN `", "ADD COLUMN IF NOT EXISTS `")
+        .replace("ADD UNIQUE KEY `", "ADD UNIQUE KEY IF NOT EXISTS `")
+        .replace("ADD CONSTRAINT `", "ADD CONSTRAINT IF NOT EXISTS `")
+    )
 
 
-def contract():
-    return hashlib.sha256(json.dumps({"probe_version": 1, "ddl": statements()}, ensure_ascii=False).encode()).hexdigest()
+def contract(version=1):
+    ddl = statements() if version == 1 else reference(version)["ddl"]
+    return hashlib.sha256(json.dumps({"probe_version": version, "ddl": ddl}, ensure_ascii=False).encode()).hexdigest()
+
+
+def active_reference():
+    return reference(2)
 
 
 def guard_inventory(cursor):
-    cursor.execute("SELECT TRIGGER_NAME,ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() ORDER BY TRIGGER_NAME")
+    cursor.execute(
+        "SELECT TRIGGER_NAME,ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() ORDER BY TRIGGER_NAME"
+    )
     return {name: hashlib.sha256(body.encode()).hexdigest() for name, body in cursor.fetchall()}
 
 
@@ -48,12 +60,18 @@ def install(apps, schema_editor):
     installed = Schema.objects.using(db.alias).first()
     if installed:
         with db.cursor() as cursor:
-            if (installed.contract != contract() or installed.guards != {"triggers": reference()["triggers"], "structure": reference()["structure"]}
-                    or guard_inventory(cursor) != reference()["triggers"] or structural_inventory(cursor) != reference()["structure"]):
+            if (
+                installed.contract != contract()
+                or installed.guards != {"triggers": reference()["triggers"], "structure": reference()["structure"]}
+                or guard_inventory(cursor) != reference()["triggers"]
+                or structural_inventory(cursor) != reference()["structure"]
+            ):
                 raise RuntimeError("An existing native contract differs; no object was replaced.")
         return
     with db.cursor() as cursor:
-        cursor.execute("SELECT TABLE_NAME,ENGINE,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'")
+        cursor.execute(
+            "SELECT TABLE_NAME,ENGINE,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE'"
+        )
         if any(engine != "InnoDB" or collation != "utf8mb4_nopad_bin" for _, engine, collation in cursor.fetchall()):
             raise RuntimeError("Target tables must use InnoDB and utf8mb4_nopad_bin.")
         for statement in statements():
@@ -72,8 +90,11 @@ def install(apps, schema_editor):
             raise RuntimeError("Native guard inventory mismatch.")
         # Runtime gets DML only. A migration-owned trigger reads its own native
         # metadata with definer rights, without granting TRIGGER/DDL to the app.
-        signature = hashlib.sha256("|".join(f"{name}:{value}" for name, value in sorted(guards.items())).encode()).hexdigest()
+        signature = hashlib.sha256(
+            "|".join(f"{name}:{value}" for name, value in sorted(guards.items())).encode()
+        ).hexdigest()
         from .ddl import trigger
+
         probe = f"""DECLARE actual_signature CHAR(64);
             SELECT SHA2(GROUP_CONCAT(CONCAT(TRIGGER_NAME,':',SHA2(ACTION_STATEMENT,256)) ORDER BY BINARY TRIGGER_NAME SEPARATOR '|'),256)
             INTO actual_signature FROM information_schema.TRIGGERS
@@ -94,32 +115,54 @@ def install(apps, schema_editor):
 
 def ready():
     from apps.runtime.models import Schema, Transfer
+
     if connection.vendor != "mysql":
         return True
     from django.db.migrations.recorder import MigrationRecorder
-    return (MigrationRecorder(connection).migration_qs.filter(app="runtime", name="0003_mariadb_guards").exists()
-            and Schema.objects.filter(pk=1, contract=contract()).exists()
-            and not Transfer.objects.exclude(state="complete").exists())
+
+    try:
+        if not (
+            MigrationRecorder(connection).migration_qs.filter(app="runtime", name="0005_payments_v2").exists()
+            and Schema.objects.filter(pk=1, contract=contract(2)).exists()
+            and not Transfer.objects.exclude(state="complete").exists()
+        ):
+            return False
+        # The marker alone cannot bless a partial DDL upgrade or missing guard.
+        verify(record=False)
+        return True
+    except (DatabaseError, RuntimeError, OSError, ValueError):
+        return False
 
 
-def verify(*, record=True):
+def verify(*, record=True, version=2):
     from apps.runtime.models import Schema
+
     if connection.vendor != "mysql":
         return
     row = Schema.objects.get(pk=1)
-    if row.contract != contract() or row.guards != {"triggers": reference()["triggers"], "structure": reference()["structure"]}:
+    expected = reference(version)
+    if row.contract != contract(version) or row.guards != {
+        "triggers": expected["triggers"],
+        "structure": expected["structure"],
+    }:
         raise RuntimeError("Native target contract differs from reviewed source.")
     with connection.cursor() as cursor:
-        if reference()["structure"] != structural_inventory(cursor):
+        if expected["structure"] != structural_inventory(cursor):
             raise RuntimeError("Native target constraints or storage differ from the installed contract.")
-        cursor.execute("SELECT @@session.check_constraint_checks,@@session.foreign_key_checks,@@session.transaction_isolation,@@session.unique_checks,@@session.sql_mode")
+        cursor.execute(
+            "SELECT @@session.check_constraint_checks,@@session.foreign_key_checks,@@session.transaction_isolation,@@session.unique_checks,@@session.sql_mode"
+        )
         checks, fks, isolation, unique, modes = cursor.fetchone()
-        if (checks != 1 or fks != 1 or unique != 1 or isolation != "READ-COMMITTED"
-                or not {"STRICT_TRANS_TABLES", "NO_ENGINE_SUBSTITUTION"}.issubset(set(modes.split(",")))):
+        if (
+            checks != 1
+            or fks != 1
+            or unique != 1
+            or isolation != "READ-COMMITTED"
+            or not {"STRICT_TRANS_TABLES", "NO_ENGINE_SUBSTITUTION"}.issubset(set(modes.split(",")))
+        ):
             raise RuntimeError("Required native integrity/isolation settings are not active.")
-    # The expected healthy signal rolls the insert/savepoint back. No row is
-    # committed; missing or altered probe guards can never report success.
     import uuid
+
     try:
         with transaction.atomic():
             with connection.cursor() as cursor:

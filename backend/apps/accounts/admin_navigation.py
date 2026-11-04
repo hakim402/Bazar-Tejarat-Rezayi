@@ -50,6 +50,7 @@ def navigation(request):
             entry('Shortages', 'warning', 'inventory.shortage'),
             entry('Recovery records', 'restore', 'inventory.recovery')]),
         ('commerce', 'Orders & Invoices', [entry('Formal requests', 'request_quote', 'orders.negotiation'), entry('Accepted orders', 'receipt_long', 'orders.sellerorder'), entry('Goods invoices', 'description', 'orders.invoice'), entry('Advance due policy', 'schedule', 'orders.orderpolicy')]),
+        ('payments', 'Payments & Review', [entry('Goods payment review', 'fact_check', 'payments.reviewcase'), entry('Confirmed receipts', 'payments', 'payments.receipt'), entry('Payment claims', 'receipt', 'payments.claim'), entry('Receipt corrections', 'edit_document', 'payments.correction'), entry('Reservation plans', 'inventory', 'payments.stockplan'), entry('Allocation attempts', 'history', 'payments.allocationattempt')]),
         ('communication', 'Communication', [
             entry('Message reports', 'forum', 'messaging.report'),
             entry('Communication delivery', 'mail', 'notifications.outbox')]),

@@ -5,6 +5,7 @@
 @source "../../site";
 @source "../../verification/templates";
 @source "../../marketplace/templates";
+@source "../../payments/templates";
 @custom-variant dark (&:where(.dark, .dark *));
 @theme inline {
   --color-canvas: var(--admin-canvas);

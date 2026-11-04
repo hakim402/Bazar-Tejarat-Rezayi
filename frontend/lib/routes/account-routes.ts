@@ -70,14 +70,37 @@ export function communicationRoute(parts: string[] = []): boolean {
 	);
 }
 export function commerceRoute(parts: string[] = []): boolean {
- if(parts[0]==="negotiations")return parts.length===1 || (parts.length===2 && (parts[1]==="new" || uuidPattern.test(parts[1])));
- return (parts.length===1 && ["orders","invoices","checkouts","checkout"].includes(parts[0])) || (parts.length===2 && ["orders","invoices","checkouts"].includes(parts[0]) && uuidPattern.test(parts[1])) || (parts.length===3 && parts[0]==="invoices" && uuidPattern.test(parts[1]) && parts[2]==="print");
+	if (parts[0] === "payments")
+		return (
+			parts.length === 1 || (parts.length === 2 && uuidPattern.test(parts[1]))
+		);
+	if (parts[0] === "negotiations")
+		return (
+			parts.length === 1 ||
+			(parts.length === 2 && (parts[1] === "new" || uuidPattern.test(parts[1])))
+		);
+	return (
+		(parts.length === 1 &&
+			["orders", "invoices", "checkouts", "checkout"].includes(parts[0])) ||
+		(parts.length === 2 &&
+			["orders", "invoices", "checkouts"].includes(parts[0]) &&
+			uuidPattern.test(parts[1])) ||
+		(parts.length === 3 &&
+			parts[0] === "invoices" &&
+			uuidPattern.test(parts[1]) &&
+			parts[2] === "print")
+	);
 }
 export function sellerAccountRoute(parts: string[] = []): boolean {
- if(parts[0]==="negotiations" && parts[1]==="new")return false;
- if(commerceRoute(parts) && !["checkouts","checkout"].includes(parts[0]))return true;
+	if (parts[0] === "negotiations" && parts[1] === "new") return false;
+	if (commerceRoute(parts) && !["checkouts", "checkout"].includes(parts[0]))
+		return true;
 	if (communicationRoute(parts)) return true;
-	if (parts.length === 2 && parts[0] === "settings" && ["store","checkout"].includes(parts[1]))
+	if (
+		parts.length === 2 &&
+		parts[0] === "settings" &&
+		["store", "checkout"].includes(parts[1])
+	)
 		return true;
 	if (sellerRoute(parts)) return true;
 	if (["catalogue", "organizations"].includes(parts[0]))

@@ -20,6 +20,7 @@ STATUSES = (
 class Preference(models.Model):
     account = models.OneToOneField("accounts.Account", primary_key=True, on_delete=models.PROTECT)
     message_email = models.BooleanField(default=True)
+    payment_email = models.BooleanField(default=True)
     locale = models.CharField(max_length=5, default="fa-AF")
     version = models.PositiveIntegerField(default=1)
 
@@ -35,9 +36,11 @@ class Event(models.Model):
             ("report_status", "Report status"),
             ("order_accepted", "Order and invoice available"),
             ("negotiation", "Formal request activity"),
+            ("payment", "Goods payment activity"),
         ],
     )
     order = models.OneToOneField("orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="notice_event")
+    payment_event = models.OneToOneField("payments.Event", null=True, on_delete=models.PROTECT)
     negotiation_event = models.OneToOneField("orders.NegotiationEvent", null=True, on_delete=models.PROTECT)
     message = models.OneToOneField("messaging.Message", null=True, on_delete=models.PROTECT)
     report = models.ForeignKey("messaging.Report", null=True, on_delete=models.PROTECT)
@@ -49,6 +52,7 @@ class Event(models.Model):
             models.UniqueConstraint(fields=["report", "report_version"], name="notifications_report_version"),
             models.CheckConstraint(
                 condition=(
+                    models.Q(kind="payment", payment_event__isnull=False, negotiation_event__isnull=True, order__isnull=True, message__isnull=True, report__isnull=True, report_version__isnull=True) | models.Q(payment_event__isnull=True) & (
                     models.Q(kind="negotiation", negotiation_event__isnull=False, order__isnull=True, message__isnull=True, report__isnull=True, report_version__isnull=True) |
                     models.Q(
                         negotiation_event__isnull=True, kind="order_accepted",
@@ -71,7 +75,7 @@ class Event(models.Model):
                         report__isnull=False,
                         report_version__isnull=False,
                     )
-                ),
+                )),
                 name="notifications_typed_event",
             ),
         ]
@@ -85,6 +89,7 @@ class Notice(models.Model):
     account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
     conversation = models.ForeignKey("messaging.Conversation", null=True, on_delete=models.PROTECT)
     order = models.ForeignKey("orders.SellerOrder", null=True, on_delete=models.PROTECT)
+    payment_order = models.ForeignKey("orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="payment_notices")
     negotiation = models.ForeignKey("orders.Negotiation", null=True, on_delete=models.PROTECT)
     read_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -94,9 +99,10 @@ class Notice(models.Model):
             models.UniqueConstraint(fields=["event", "account"], name="notifications_unique_recipient"),
             models.CheckConstraint(
                 condition=(
+                    models.Q(payment_order__isnull=False,negotiation__isnull=True,order__isnull=True,conversation__isnull=True) | models.Q(payment_order__isnull=True) & (
                     models.Q(negotiation__isnull=True, order__isnull=True, conversation__isnull=False)
                     | models.Q(negotiation__isnull=True, order__isnull=False, conversation__isnull=True) | models.Q(negotiation__isnull=False, order__isnull=True, conversation__isnull=True)
-                ),
+                )),
                 name="notifications_typed_resource",
             ),
         ]

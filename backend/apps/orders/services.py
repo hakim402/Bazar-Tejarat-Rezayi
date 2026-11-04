@@ -100,7 +100,7 @@ def set_terms(actor, pk, data):
 
 
 @transaction.atomic
-def set_policy(actor, version, hours, reason):
+def set_policy(actor, version, hours, reason, *, reminder_hours=None):
     lock_actor(actor)
     if actor.context != "owner" or not 1 <= hours <= 720 or len(reason.strip()) < 3:
         raise PermissionDenied()
@@ -108,9 +108,13 @@ def set_policy(actor, version, hours, reason):
     if policy.version != version:
         raise CommandConflict()
     policy.advance_hours = hours
+    if reminder_hours is not None:
+        if type(reminder_hours) is not int or not 0 <= reminder_hours <= 720:
+            raise PermissionDenied()
+        policy.reminder_hours = reminder_hours
     policy.version += 1
     policy.save()
-    event(actor, "order_policy_updated", reason=reason, state={"version": policy.version, "advance_hours": hours})
+    event(actor, "order_policy_updated", reason=reason, state={"version": policy.version, "advance_hours": hours, "reminder_hours": policy.reminder_hours})
     return policy
 
 

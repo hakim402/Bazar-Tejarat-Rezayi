@@ -1,3 +1,4 @@
+import { paymentCopy } from "../features/payments/copy";
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { communicationCopy } from "../features/messaging/copy";
 import { messages } from "../lib/i18n/messages";
@@ -129,7 +130,7 @@ for (const locale of locales)
 						await expect(
 							page
 								.getByTestId("message-email-preference")
-								.locator("input[type=checkbox]"),
+								.getByRole("checkbox", { name: t.emailEnabled, exact: true }),
 						).toBeVisible();
 					else
 						await expect(
@@ -522,17 +523,27 @@ test("earlier history paging, escaped voluntary contacts, strict routes and pers
 	expect(html.headers()["cache-control"]).toContain("no-store");
 	await page.goto("/en/account/buyer/settings");
 	const pref = page.getByTestId("message-email-preference");
-	await expect(pref.locator("input[type=checkbox]")).toBeVisible();
-	await pref.locator("input[type=checkbox]").uncheck();
+	const messageEmail = pref.getByRole("checkbox", {
+		name: communicationCopy.en.emailEnabled,
+		exact: true,
+	});
+	const paymentEmail = pref.getByRole("checkbox", {
+		name: paymentCopy.en.email,
+		exact: true,
+	});
+	await expect(messageEmail).toBeVisible();
+	await expect(paymentEmail).toBeChecked();
+	await messageEmail.uncheck();
 	await pref
 		.getByRole("button", { name: communicationCopy.en.savePreference })
 		.click();
 	await expect(pref).toContainText(communicationCopy.en.preferenceSaved);
+	await expect(paymentEmail).toBeChecked();
 	expect(
 		disposablePython(
-			"from apps.notifications.models import Preference\nprint(Preference.objects.get(account__user__email='phase09-buyer@example.test').message_email)",
+			"from apps.notifications.models import Preference\np=Preference.objects.get(account__user__email='phase09-buyer@example.test');print((p.message_email,p.payment_email))",
 		).trim(),
-	).toBe("False");
+	).toBe("(False, True)");
 	await page.goto("/en/account/buyer/notifications");
 	await expect(page.getByTestId("communication-workspace")).not.toContainText(
 		communicationCopy.en.loading,

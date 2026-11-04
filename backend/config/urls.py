@@ -11,6 +11,7 @@ register_converter(SellerContext, "seller")
 
 urlpatterns = [
     path("api/v1/cart/", include("apps.cart.urls")),
+    path("api/v1/payments/", include("apps.payments.urls")),
     path("api/v1/orders/", include("apps.orders.urls")),
     path("api/v1/messaging/", include("apps.messaging.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
