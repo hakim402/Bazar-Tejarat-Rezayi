@@ -71,8 +71,22 @@ class OrderAdmin(ReadOnlyAdmin):
     def seller_display(self, obj):
         return obj.snapshot["seller"]
 
+    def get_fields(self, request, obj=None):
+        fields = list(self.fields)
+        if obj is not None and self.model is SellerOrder:
+            from apps.fulfilment.access import scope
+
+            if scope(admin_actor(request), assignment=True).filter(pk=obj.pk).exists():
+                fields.append("delivery_workflow")
+        return fields
+
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.get_fields(request, obj)
+
+    def delivery_workflow(self, obj):
+        return format_html(
+            '<a href="{}">Delivery / fulfilment workflow</a>', reverse("admin:fulfilment_state_workflow", args=[obj.pk])
+        )
 
     list_display = ["id", "seller_display", "currency", "goods_total", "payment_method", "accepted_at"]
     list_filter = [("seller", RelatedOnlyFieldListFilter), "currency", "payment_method", "accepted_at"]

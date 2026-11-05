@@ -484,6 +484,374 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fulfilment/{context}/evidence/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_evidence_bytes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/arrangement/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_arrange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/charges/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_charge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/claims/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_claim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/claims/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/commands/{key}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_command_lookup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/commands/{key}/reconcile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_command_reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/corrections/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_correction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/deliver/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_deliver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/dispatch/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Dispatch the incoming request to the appropriate handler method.
+         *
+         *     This method implements the core request/response lifecycle for
+         *     Django REST Framework views:
+         *
+         *     1. Wraps the incoming Django HttpRequest in a REST framework Request.
+         *     2. Performs content negotiation, authentication, permission, and
+         *         throttling checks.
+         *     3. Resolves and calls the appropriate HTTP method handler
+         *         (e.g. get(), post(), put()).
+         *     4. Handles any exceptions raised during processing and converts
+         *         them into appropriate Response objects.
+         *     5. Finalizes and returns the response with proper rendering
+         *         and headers applied.
+         */
+        post: operations["fulfilment_dispatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/dispatch/review/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_dispatch_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/handover/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_handover"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/partial-authorization/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_partial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/prepare/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_prepare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/recipient/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_recipient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/stock-options/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_stock_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/tracking/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_tracking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/{context}/orders/{id}/uploads/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_evidence_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfilment/seller/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_profiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live/": {
         parameters: {
             query?: never;
@@ -2105,6 +2473,24 @@ export interface components {
             current: components["schemas"]["CaseData"];
             revisions: components["schemas"]["CaseData"][];
         };
+        ArrangementCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            arranger: components["schemas"]["ArrangerEnum"];
+            provider: string;
+            /** @default false */
+            self_delivery: boolean;
+            /** @default  */
+            instructions: string;
+        };
+        /**
+         * @description * `seller` - seller
+         *     * `rezayi` - rezayi
+         * @enum {string}
+         */
+        ArrangerEnum: "seller" | "rezayi";
         AuthResult: {
             status: string;
             csrf_token?: string;
@@ -2369,6 +2755,17 @@ export interface components {
             active: boolean;
             retail?: string | null;
             wholesale?: string | null;
+        };
+        ChargeCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            provider: string;
+            amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
         };
         CheckoutCommandRequest: {
             /** Format: uuid */
@@ -2760,6 +3157,15 @@ export interface components {
          * @enum {string}
          */
         DefaultThemeEnum: "system" | "light" | "dark";
+        DeliveryCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: date-time */
+            occurred_at: string;
+        };
         Destination: {
             country: components["schemas"]["CountryEnum"];
             all_cities: boolean;
@@ -2810,6 +3216,109 @@ export interface components {
             history_count: number;
             history_page: number;
             selection: unknown;
+        };
+        DispatchCommand: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            preparation: string;
+            /** Format: uuid */
+            recipient: string;
+            recipient_revision: number;
+            /** Format: uuid */
+            arrangement: string;
+            arranger: components["schemas"]["ArrangerEnum"];
+            /** Format: uuid */
+            provider: string;
+            provider_name: string;
+            /** Format: uuid */
+            charge: string;
+            charge_amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            goods_confirmed: string;
+            goods_total: string;
+            /** Format: uuid */
+            partial_permission: string | null;
+            lines: components["schemas"]["DisplayLine"][];
+            stock_effect: components["schemas"]["StockEffectEnum"];
+            review: string;
+        };
+        DispatchCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            preparation: string;
+            /** Format: uuid */
+            recipient: string;
+            recipient_revision: number;
+            /** Format: uuid */
+            arrangement: string;
+            arranger: components["schemas"]["ArrangerEnum"];
+            /** Format: uuid */
+            provider: string;
+            provider_name: string;
+            /** Format: uuid */
+            charge: string;
+            charge_amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            goods_confirmed: string;
+            goods_total: string;
+            /** Format: uuid */
+            partial_permission: string | null;
+            lines: components["schemas"]["DisplayLineRequest"][];
+            stock_effect: components["schemas"]["StockEffectEnum"];
+            review: string;
+        };
+        DispatchPreview: {
+            packet: components["schemas"]["DispatchCommand"];
+            recipient: unknown;
+        };
+        DispatchReviewCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            preparation: string;
+        };
+        DisplayLine: {
+            /** Format: uuid */
+            variant: string;
+            bucket: string;
+            /** Format: uuid */
+            batch: string | null;
+            batch_code: string;
+            /** Format: date */
+            expires_on: string | null;
+            quantity: string;
+            sku: string;
+            unit: string;
+            unit_labels: {
+                [key: string]: string;
+            };
+        };
+        DisplayLineRequest: {
+            /** Format: uuid */
+            variant: string;
+            bucket: string;
+            /** Format: uuid */
+            batch: string | null;
+            batch_code: string;
+            /** Format: date */
+            expires_on: string | null;
+            quantity: string;
+            sku: string;
+            unit: string;
+            unit_labels: {
+                [key: string]: string;
+            };
         };
         EmailPreference: {
             payment_email: boolean;
@@ -2895,6 +3404,158 @@ export interface components {
             reason: string;
             lines: components["schemas"]["FinalLineRequest"][];
             choice: components["schemas"]["ChoiceRequest"];
+        };
+        FulfilmentClaimCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            /** Format: uuid */
+            charge: string;
+            amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            /** Format: date-time */
+            paid_at: string;
+            description: string;
+            evidence?: string[];
+        };
+        FulfilmentCorrectionCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            receipt: string;
+            receipt_version: number;
+            amount: string;
+            /** Format: date-time */
+            paid_at: string;
+            description: string;
+            evidence?: string[];
+        };
+        FulfilmentCorrectionRow: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            receipt: string;
+            amount: string;
+            target_version: number;
+            /** Format: date-time */
+            paid_at: string;
+            description: string;
+            reason: string;
+            state: string;
+            evidence: string[];
+        };
+        FulfilmentDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            number: string;
+            /** Format: uuid */
+            invoice: string | null;
+            currency: string;
+            goods_total: string;
+            payment_method: string;
+            destination: {
+                [key: string]: string;
+            };
+            version: number;
+            goods_version: number;
+            goods_confirmed: string;
+            goods_remaining: string;
+            stage: string;
+            allocation: string;
+            overdue: boolean;
+            dispatch_problem: string | null;
+            charge: string | null;
+            /** Format: uuid */
+            charge_id: string | null;
+            charge_provider: string;
+            delivery_confirmed: string;
+            delivery_remaining: string | null;
+            delivery_excess: string | null;
+            delivery_settled: boolean;
+            cancellation_hold: boolean;
+            dispute_open: boolean;
+            completion: string;
+            /** Format: date-time */
+            completed_at: string | null;
+            eligible: boolean;
+            provider: string;
+            capabilities: {
+                [key: string]: boolean;
+            };
+            held_lines: components["schemas"]["DisplayLine"][];
+            recipient: unknown;
+            recipient_revision: number;
+            arrangement: unknown;
+            preparation: unknown;
+            partial_permission: unknown;
+            goods: unknown[];
+            claims: unknown[];
+            receipts: unknown[];
+            corrections: components["schemas"]["FulfilmentCorrectionRow"][];
+            proposals: unknown[];
+            tracking: unknown[];
+            delivery: unknown;
+            cases: unknown[];
+            blockers: unknown[];
+            history: unknown[];
+            history_page: number;
+            history_count: number;
+        };
+        FulfilmentOutcome: {
+            result: unknown;
+            current: components["schemas"]["FulfilmentDetail"];
+        };
+        FulfilmentPage: {
+            count: number;
+            page: number;
+            results: components["schemas"]["FulfilmentSummary"][];
+        };
+        FulfilmentSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            number: string;
+            /** Format: uuid */
+            invoice: string | null;
+            currency: string;
+            goods_total: string;
+            payment_method: string;
+            destination: {
+                [key: string]: string;
+            };
+            version: number;
+            goods_version: number;
+            goods_confirmed: string;
+            goods_remaining: string;
+            stage: string;
+            allocation: string;
+            overdue: boolean;
+            dispatch_problem: string | null;
+            charge: string | null;
+            /** Format: uuid */
+            charge_id: string | null;
+            charge_provider: string;
+            delivery_confirmed: string;
+            delivery_remaining: string | null;
+            delivery_excess: string | null;
+            delivery_settled: boolean;
+            cancellation_hold: boolean;
+            dispute_open: boolean;
+            completion: string;
+            /** Format: date-time */
+            completed_at: string | null;
+            eligible: boolean;
+            provider: string;
+            capabilities: {
+                [key: string]: boolean;
+            };
         };
         /**
          * @description * `advance` - advance
@@ -3283,6 +3944,8 @@ export interface components {
             /** Format: uuid */
             payment: string | null;
             /** Format: uuid */
+            fulfilment: string | null;
+            /** Format: uuid */
             negotiation: string | null;
             action: string;
             /** Format: uuid */
@@ -3303,9 +3966,10 @@ export interface components {
          *     * `order_accepted` - order_accepted
          *     * `negotiation` - negotiation
          *     * `payment` - payment
+         *     * `fulfilment` - fulfilment
          * @enum {string}
          */
-        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment";
+        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment" | "fulfilment";
         Operation: {
             /** Format: uuid */
             operation: string;
@@ -3491,6 +4155,18 @@ export interface components {
             batches?: components["schemas"]["Batch"][];
             movements?: components["schemas"]["Movement"][];
         };
+        PrepareCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            arrangement: string;
+            /** Format: uuid */
+            recipient: string;
+            lines?: components["schemas"]["SelectionRequest"][];
+        };
         /**
          * @description * `fixed` - fixed
          *     * `negotiable` - negotiable
@@ -3600,6 +4276,13 @@ export interface components {
         ReadResult: {
             last_read: number;
         };
+        ReasonRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+        };
         ReceiptCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -3626,6 +4309,19 @@ export interface components {
             /** Format: date */
             expires_on?: string | null;
         };
+        RecipientCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            recipient_revision: number;
+            name: string;
+            phone: string;
+            address: string;
+            /** @default  */
+            instructions: string;
+        };
         ReconcileCommandRequest: {
             guest_scope?: string;
             /** Format: uuid */
@@ -3640,9 +4336,26 @@ export interface components {
             line?: string;
         };
         Reconciliation: {
-            state: components["schemas"]["StateEnum"];
+            state: components["schemas"]["ReconciliationStateEnum"];
             version: number;
         };
+        /**
+         * @description * `applied` - applied
+         *     * `rejected` - rejected
+         * @enum {string}
+         */
+        ReconciliationStateEnum: "applied" | "rejected";
+        Recovery: {
+            state: components["schemas"]["RecoveryStateEnum"];
+            result: unknown;
+        };
+        /**
+         * @description * `unknown` - unknown
+         *     * `applied` - applied
+         *     * `rejected` - rejected
+         * @enum {string}
+         */
+        RecoveryStateEnum: "unknown" | "applied" | "rejected";
         RegistrationRequest: {
             /** Format: email */
             email: string;
@@ -3737,6 +4450,13 @@ export interface components {
             description: string;
             image: components["schemas"]["Media"] | null;
         };
+        SelectionRequest: {
+            /** Format: uuid */
+            variant: string;
+            /** Format: uuid */
+            batch?: string | null;
+            quantity: string;
+        };
         Sent: {
             /** Format: uuid */
             conversation: string;
@@ -3796,12 +4516,6 @@ export interface components {
             currency: string;
             seller: string;
         };
-        /**
-         * @description * `applied` - applied
-         *     * `rejected` - rejected
-         * @enum {string}
-         */
-        StateEnum: "applied" | "rejected";
         Status: {
             status: components["schemas"]["StatusEnum"];
         };
@@ -3812,6 +4526,12 @@ export interface components {
          * @enum {string}
          */
         StatusEnum: "alive" | "ready" | "not_ready";
+        /**
+         * @description * `consume_hold` - consume_hold
+         *     * `deduct_cod` - deduct_cod
+         * @enum {string}
+         */
+        StockEffectEnum: "consume_hold" | "deduct_cod";
         /**
          * @description * `submit` - submit
          *     * `withdraw` - withdraw
@@ -3969,6 +4689,16 @@ export interface components {
         TokenRequestRequest: {
             token: string;
         };
+        TrackingCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            reference: string;
+            /** Format: date-time */
+            occurred_at: string;
+        };
         /**
          * @description * `plain` - plain
          *     * `batch` - batch
@@ -4037,6 +4767,15 @@ export interface components {
         Violation: {
             path: string;
             code: string;
+        };
+        WithdrawCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            reason: string;
+            /** Format: uuid */
+            claim: string;
         };
     };
     responses: never;
@@ -4884,6 +5623,626 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CataloguePublic"];
+                };
+            };
+        };
+    };
+    fulfilment_evidence_bytes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    fulfilment_orders: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `not_dispatched` - not_dispatched
+                 *     * `dispatched` - dispatched
+                 *     * `delivered` - delivered
+                 *     * `blocked` - blocked
+                 */
+                state?: "" | "not_dispatched" | "dispatched" | "delivered" | "blocked";
+            };
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentPage"];
+                };
+            };
+        };
+    };
+    fulfilment_detail: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `not_dispatched` - not_dispatched
+                 *     * `dispatched` - dispatched
+                 *     * `delivered` - delivered
+                 *     * `blocked` - blocked
+                 */
+                state?: "" | "not_dispatched" | "dispatched" | "delivered" | "blocked";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentDetail"];
+                };
+            };
+        };
+    };
+    fulfilment_arrange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArrangementCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_charge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargeCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_claim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FulfilmentClaimCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_command_lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recovery"];
+                };
+            };
+        };
+    };
+    fulfilment_command_reconcile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recovery"];
+                };
+            };
+        };
+    };
+    fulfilment_correction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FulfilmentCorrectionCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_deliver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_dispatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DispatchCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_dispatch_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DispatchReviewCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispatchPreview"];
+                };
+            };
+        };
+    };
+    fulfilment_handover: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `html` - html
+                 *     * `pdf` - pdf
+                 */
+                format?: "html" | "pdf";
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    fulfilment_history: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `not_dispatched` - not_dispatched
+                 *     * `dispatched` - dispatched
+                 *     * `delivered` - delivered
+                 *     * `blocked` - blocked
+                 */
+                state?: "" | "not_dispatched" | "dispatched" | "delivered" | "blocked";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentDetail"];
+                };
+            };
+        };
+    };
+    fulfilment_partial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_prepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_recipient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipientCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_stock_options: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `not_dispatched` - not_dispatched
+                 *     * `dispatched` - dispatched
+                 *     * `delivered` - delivered
+                 *     * `blocked` - blocked
+                 */
+                state?: "" | "not_dispatched" | "dispatched" | "delivered" | "blocked";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    fulfilment_tracking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackingCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_evidence_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": string;
+                "application/x-www-form-urlencoded": string;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    fulfilment_profiles: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `not_dispatched` - not_dispatched
+                 *     * `dispatched` - dispatched
+                 *     * `delivered` - delivered
+                 *     * `blocked` - blocked
+                 */
+                state?: "" | "not_dispatched" | "dispatched" | "delivered" | "blocked";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

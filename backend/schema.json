@@ -1568,6 +1568,1411 @@
                 }
             }
         },
+        "/api/v1/fulfilment/{context}/evidence/{id}/": {
+            "get": {
+                "operationId": "fulfilment_evidence_bytes",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/": {
+            "get": {
+                "operationId": "fulfilment_orders",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "not_dispatched",
+                                "dispatched",
+                                "delivered",
+                                "blocked"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `not_dispatched` - not_dispatched\n* `dispatched` - dispatched\n* `delivered` - delivered\n* `blocked` - blocked"
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentPage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/": {
+            "get": {
+                "operationId": "fulfilment_detail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "not_dispatched",
+                                "dispatched",
+                                "delivered",
+                                "blocked"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `not_dispatched` - not_dispatched\n* `dispatched` - dispatched\n* `delivered` - delivered\n* `blocked` - blocked"
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/arrangement/": {
+            "post": {
+                "operationId": "fulfilment_arrange",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArrangementCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/charges/": {
+            "post": {
+                "operationId": "fulfilment_charge",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChargeCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/claims/": {
+            "post": {
+                "operationId": "fulfilment_claim",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FulfilmentClaimCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/claims/withdraw/": {
+            "post": {
+                "operationId": "fulfilment_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WithdrawCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/commands/{key}/": {
+            "get": {
+                "operationId": "fulfilment_command_lookup",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Recovery"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/commands/{key}/reconcile/": {
+            "post": {
+                "operationId": "fulfilment_command_reconcile",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Recovery"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/corrections/": {
+            "post": {
+                "operationId": "fulfilment_correction",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FulfilmentCorrectionCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/deliver/": {
+            "post": {
+                "operationId": "fulfilment_deliver",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeliveryCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/dispatch/": {
+            "post": {
+                "operationId": "fulfilment_dispatch",
+                "description": "Dispatch the incoming request to the appropriate handler method.\n\nThis method implements the core request/response lifecycle for\nDjango REST Framework views:\n\n1. Wraps the incoming Django HttpRequest in a REST framework Request.\n2. Performs content negotiation, authentication, permission, and\n    throttling checks.\n3. Resolves and calls the appropriate HTTP method handler\n    (e.g. get(), post(), put()).\n4. Handles any exceptions raised during processing and converts\n    them into appropriate Response objects.\n5. Finalizes and returns the response with proper rendering\n    and headers applied.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DispatchCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/dispatch/review/": {
+            "post": {
+                "operationId": "fulfilment_dispatch_preview",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DispatchReviewCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DispatchPreview"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/handover/": {
+            "get": {
+                "operationId": "fulfilment_handover",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "format",
+                        "schema": {
+                            "enum": [
+                                "html",
+                                "pdf"
+                            ],
+                            "type": "string",
+                            "default": "html",
+                            "minLength": 1
+                        },
+                        "description": "* `html` - html\n* `pdf` - pdf"
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/history/": {
+            "get": {
+                "operationId": "fulfilment_history",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "not_dispatched",
+                                "dispatched",
+                                "delivered",
+                                "blocked"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `not_dispatched` - not_dispatched\n* `dispatched` - dispatched\n* `delivered` - delivered\n* `blocked` - blocked"
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/partial-authorization/": {
+            "post": {
+                "operationId": "fulfilment_partial",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReasonRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/prepare/": {
+            "post": {
+                "operationId": "fulfilment_prepare",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PrepareCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/recipient/": {
+            "post": {
+                "operationId": "fulfilment_recipient",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecipientCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/stock-options/": {
+            "get": {
+                "operationId": "fulfilment_stock_options",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "not_dispatched",
+                                "dispatched",
+                                "delivered",
+                                "blocked"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `not_dispatched` - not_dispatched\n* `dispatched` - dispatched\n* `delivered` - delivered\n* `blocked` - blocked"
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/tracking/": {
+            "post": {
+                "operationId": "fulfilment_tracking",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TrackingCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/uploads/": {
+            "post": {
+                "operationId": "fulfilment_evidence_upload",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "string",
+                                "format": "binary"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "type": "string",
+                                "format": "binary"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/seller/profiles/": {
+            "get": {
+                "operationId": "fulfilment_profiles",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "not_dispatched",
+                                "dispatched",
+                                "delivered",
+                                "blocked"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `not_dispatched` - not_dispatched\n* `dispatched` - dispatched\n* `delivered` - delivered\n* `blocked` - blocked"
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/health/live/": {
             "get": {
                 "operationId": "liveness",
@@ -7394,6 +8799,55 @@
                     "revisions"
                 ]
             },
+            "ArrangementCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "arranger": {
+                        "$ref": "#/components/schemas/ArrangerEnum"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                    },
+                    "self_delivery": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "instructions": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "arranger",
+                    "command_id",
+                    "goods_version",
+                    "provider",
+                    "version"
+                ]
+            },
+            "ArrangerEnum": {
+                "enum": [
+                    "seller",
+                    "rezayi"
+                ],
+                "type": "string",
+                "description": "* `seller` - seller\n* `rezayi` - rezayi"
+            },
             "AuthResult": {
                 "type": "object",
                 "properties": {
@@ -8278,6 +9732,48 @@
                     "unit"
                 ]
             },
+            "ChargeCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "provider": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "currency",
+                    "goods_version",
+                    "provider",
+                    "reason",
+                    "version"
+                ]
+            },
             "CheckoutCommandRequest": {
                 "type": "object",
                 "properties": {
@@ -8994,6 +10490,39 @@
                 "type": "string",
                 "description": "* `system` - system\n* `light` - light\n* `dark` - dark"
             },
+            "DeliveryCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "occurred_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "goods_version",
+                    "occurred_at",
+                    "reason",
+                    "version"
+                ]
+            },
             "Destination": {
                 "type": "object",
                 "properties": {
@@ -9190,6 +10719,390 @@
                     "seller",
                     "seller_name",
                     "version"
+                ]
+            },
+            "DispatchCommand": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "maxLength": 1000,
+                        "minLength": 3
+                    },
+                    "preparation": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient_revision": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "arrangement": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "arranger": {
+                        "$ref": "#/components/schemas/ArrangerEnum"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "provider_name": {
+                        "type": "string",
+                        "maxLength": 160
+                    },
+                    "charge": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "charge_amount": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "goods_confirmed": {
+                        "type": "string"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "partial_permission": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DisplayLine"
+                        },
+                        "maxItems": 100,
+                        "minItems": 1
+                    },
+                    "stock_effect": {
+                        "$ref": "#/components/schemas/StockEffectEnum"
+                    },
+                    "review": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    }
+                },
+                "required": [
+                    "arrangement",
+                    "arranger",
+                    "charge",
+                    "charge_amount",
+                    "command_id",
+                    "currency",
+                    "goods_confirmed",
+                    "goods_total",
+                    "goods_version",
+                    "lines",
+                    "partial_permission",
+                    "preparation",
+                    "provider",
+                    "provider_name",
+                    "reason",
+                    "recipient",
+                    "recipient_revision",
+                    "review",
+                    "stock_effect",
+                    "version"
+                ]
+            },
+            "DispatchCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "preparation": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient_revision": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "arrangement": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "arranger": {
+                        "$ref": "#/components/schemas/ArrangerEnum"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "provider_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                    },
+                    "charge": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "charge_amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "goods_confirmed": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "goods_total": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "partial_permission": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DisplayLineRequest"
+                        },
+                        "maxItems": 100,
+                        "minItems": 1
+                    },
+                    "stock_effect": {
+                        "$ref": "#/components/schemas/StockEffectEnum"
+                    },
+                    "review": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^[0-9a-f]{64}$"
+                    }
+                },
+                "required": [
+                    "arrangement",
+                    "arranger",
+                    "charge",
+                    "charge_amount",
+                    "command_id",
+                    "currency",
+                    "goods_confirmed",
+                    "goods_total",
+                    "goods_version",
+                    "lines",
+                    "partial_permission",
+                    "preparation",
+                    "provider",
+                    "provider_name",
+                    "reason",
+                    "recipient",
+                    "recipient_revision",
+                    "review",
+                    "stock_effect",
+                    "version"
+                ]
+            },
+            "DispatchPreview": {
+                "type": "object",
+                "properties": {
+                    "packet": {
+                        "$ref": "#/components/schemas/DispatchCommand"
+                    },
+                    "recipient": {
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "packet",
+                    "recipient"
+                ]
+            },
+            "DispatchReviewCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "preparation": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "goods_version",
+                    "preparation",
+                    "reason",
+                    "version"
+                ]
+            },
+            "DisplayLine": {
+                "type": "object",
+                "properties": {
+                    "variant": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "bucket": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "batch": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "batch_code": {
+                        "type": "string",
+                        "maxLength": 80
+                    },
+                    "expires_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "quantity": {
+                        "type": "string",
+                        "maxLength": 13
+                    },
+                    "sku": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "unit": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "unit_labels": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                        }
+                    }
+                },
+                "required": [
+                    "batch",
+                    "batch_code",
+                    "bucket",
+                    "expires_on",
+                    "quantity",
+                    "sku",
+                    "unit",
+                    "unit_labels",
+                    "variant"
+                ]
+            },
+            "DisplayLineRequest": {
+                "type": "object",
+                "properties": {
+                    "variant": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "bucket": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                    },
+                    "batch": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "batch_code": {
+                        "type": "string",
+                        "maxLength": 80
+                    },
+                    "expires_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "quantity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 13
+                    },
+                    "sku": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "unit": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "unit_labels": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                        }
+                    }
+                },
+                "required": [
+                    "batch",
+                    "batch_code",
+                    "bucket",
+                    "expires_on",
+                    "quantity",
+                    "sku",
+                    "unit",
+                    "unit_labels",
+                    "variant"
                 ]
             },
             "EmailPreference": {
@@ -9465,6 +11378,584 @@
                     "command_id",
                     "lines",
                     "reason",
+                    "version"
+                ]
+            },
+            "FulfilmentClaimCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "charge": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "paid_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "amount",
+                    "charge",
+                    "command_id",
+                    "currency",
+                    "description",
+                    "goods_version",
+                    "paid_at",
+                    "version"
+                ]
+            },
+            "FulfilmentCorrectionCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "receipt": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "receipt_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "paid_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "description",
+                    "goods_version",
+                    "paid_at",
+                    "reason",
+                    "receipt",
+                    "receipt_version",
+                    "version"
+                ]
+            },
+            "FulfilmentCorrectionRow": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "receipt": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "amount": {
+                        "type": "string"
+                    },
+                    "target_version": {
+                        "type": "integer"
+                    },
+                    "paid_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                },
+                "required": [
+                    "amount",
+                    "description",
+                    "evidence",
+                    "id",
+                    "paid_at",
+                    "reason",
+                    "receipt",
+                    "state",
+                    "target_version"
+                ]
+            },
+            "FulfilmentDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "payment_method": {
+                        "type": "string"
+                    },
+                    "destination": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "goods_version": {
+                        "type": "integer"
+                    },
+                    "goods_confirmed": {
+                        "type": "string"
+                    },
+                    "goods_remaining": {
+                        "type": "string"
+                    },
+                    "stage": {
+                        "type": "string"
+                    },
+                    "allocation": {
+                        "type": "string"
+                    },
+                    "overdue": {
+                        "type": "boolean"
+                    },
+                    "dispatch_problem": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "charge": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "charge_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "charge_provider": {
+                        "type": "string"
+                    },
+                    "delivery_confirmed": {
+                        "type": "string"
+                    },
+                    "delivery_remaining": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "delivery_excess": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "delivery_settled": {
+                        "type": "boolean"
+                    },
+                    "cancellation_hold": {
+                        "type": "boolean"
+                    },
+                    "dispute_open": {
+                        "type": "boolean"
+                    },
+                    "completion": {
+                        "type": "string"
+                    },
+                    "completed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "eligible": {
+                        "type": "boolean"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "capabilities": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    },
+                    "held_lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DisplayLine"
+                        }
+                    },
+                    "recipient": {
+                        "nullable": true
+                    },
+                    "recipient_revision": {
+                        "type": "integer"
+                    },
+                    "arrangement": {
+                        "nullable": true
+                    },
+                    "preparation": {
+                        "nullable": true
+                    },
+                    "partial_permission": {
+                        "nullable": true
+                    },
+                    "goods": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "claims": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "receipts": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "corrections": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FulfilmentCorrectionRow"
+                        }
+                    },
+                    "proposals": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "tracking": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "delivery": {
+                        "nullable": true
+                    },
+                    "cases": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "blockers": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "history": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "history_page": {
+                        "type": "integer"
+                    },
+                    "history_count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "allocation",
+                    "arrangement",
+                    "blockers",
+                    "cancellation_hold",
+                    "capabilities",
+                    "cases",
+                    "charge",
+                    "charge_id",
+                    "charge_provider",
+                    "claims",
+                    "completed_at",
+                    "completion",
+                    "corrections",
+                    "currency",
+                    "delivery",
+                    "delivery_confirmed",
+                    "delivery_excess",
+                    "delivery_remaining",
+                    "delivery_settled",
+                    "destination",
+                    "dispatch_problem",
+                    "dispute_open",
+                    "eligible",
+                    "goods",
+                    "goods_confirmed",
+                    "goods_remaining",
+                    "goods_total",
+                    "goods_version",
+                    "held_lines",
+                    "history",
+                    "history_count",
+                    "history_page",
+                    "id",
+                    "invoice",
+                    "number",
+                    "overdue",
+                    "partial_permission",
+                    "payment_method",
+                    "preparation",
+                    "proposals",
+                    "provider",
+                    "receipts",
+                    "recipient",
+                    "recipient_revision",
+                    "seller",
+                    "stage",
+                    "tracking",
+                    "version"
+                ]
+            },
+            "FulfilmentOutcome": {
+                "type": "object",
+                "properties": {
+                    "result": {},
+                    "current": {
+                        "$ref": "#/components/schemas/FulfilmentDetail"
+                    }
+                },
+                "required": [
+                    "current",
+                    "result"
+                ]
+            },
+            "FulfilmentPage": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FulfilmentSummary"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "FulfilmentSummary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "payment_method": {
+                        "type": "string"
+                    },
+                    "destination": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "goods_version": {
+                        "type": "integer"
+                    },
+                    "goods_confirmed": {
+                        "type": "string"
+                    },
+                    "goods_remaining": {
+                        "type": "string"
+                    },
+                    "stage": {
+                        "type": "string"
+                    },
+                    "allocation": {
+                        "type": "string"
+                    },
+                    "overdue": {
+                        "type": "boolean"
+                    },
+                    "dispatch_problem": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "charge": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "charge_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "charge_provider": {
+                        "type": "string"
+                    },
+                    "delivery_confirmed": {
+                        "type": "string"
+                    },
+                    "delivery_remaining": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "delivery_excess": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "delivery_settled": {
+                        "type": "boolean"
+                    },
+                    "cancellation_hold": {
+                        "type": "boolean"
+                    },
+                    "dispute_open": {
+                        "type": "boolean"
+                    },
+                    "completion": {
+                        "type": "string"
+                    },
+                    "completed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "eligible": {
+                        "type": "boolean"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "capabilities": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "required": [
+                    "allocation",
+                    "cancellation_hold",
+                    "capabilities",
+                    "charge",
+                    "charge_id",
+                    "charge_provider",
+                    "completed_at",
+                    "completion",
+                    "currency",
+                    "delivery_confirmed",
+                    "delivery_excess",
+                    "delivery_remaining",
+                    "delivery_settled",
+                    "destination",
+                    "dispatch_problem",
+                    "dispute_open",
+                    "eligible",
+                    "goods_confirmed",
+                    "goods_remaining",
+                    "goods_total",
+                    "goods_version",
+                    "id",
+                    "invoice",
+                    "number",
+                    "overdue",
+                    "payment_method",
+                    "provider",
+                    "seller",
+                    "stage",
                     "version"
                 ]
             },
@@ -10833,6 +13324,11 @@
                         "format": "uuid",
                         "nullable": true
                     },
+                    "fulfilment": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
                     "negotiation": {
                         "type": "string",
                         "format": "uuid",
@@ -10872,6 +13368,7 @@
                     "action",
                     "conversation",
                     "created_at",
+                    "fulfilment",
                     "id",
                     "invoice",
                     "kind",
@@ -10888,10 +13385,11 @@
                     "report_status",
                     "order_accepted",
                     "negotiation",
-                    "payment"
+                    "payment",
+                    "fulfilment"
                 ],
                 "type": "string",
-                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment"
+                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment\n* `fulfilment` - fulfilment"
             },
             "Operation": {
                 "type": "object",
@@ -11504,6 +14002,52 @@
                     "version"
                 ]
             },
+            "PrepareCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "arrangement": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "recipient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SelectionRequest"
+                        },
+                        "maxItems": 100,
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "arrangement",
+                    "command_id",
+                    "goods_version",
+                    "reason",
+                    "recipient",
+                    "version"
+                ]
+            },
             "PricingModeEnum": {
                 "enum": [
                     "fixed",
@@ -11937,6 +14481,34 @@
                     "last_read"
                 ]
             },
+            "ReasonRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "goods_version",
+                    "reason",
+                    "version"
+                ]
+            },
             "ReceiptCommandRequest": {
                 "type": "object",
                 "properties": {
@@ -12033,6 +14605,62 @@
                     "version"
                 ]
             },
+            "RecipientCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "recipient_revision": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "phone": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                    },
+                    "address": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1500
+                    },
+                    "instructions": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "address",
+                    "command_id",
+                    "goods_version",
+                    "name",
+                    "phone",
+                    "reason",
+                    "recipient_revision",
+                    "version"
+                ]
+            },
             "ReconcileCommandRequest": {
                 "type": "object",
                 "properties": {
@@ -12077,7 +14705,7 @@
                 "type": "object",
                 "properties": {
                     "state": {
-                        "$ref": "#/components/schemas/StateEnum"
+                        "$ref": "#/components/schemas/ReconciliationStateEnum"
                     },
                     "version": {
                         "type": "integer"
@@ -12087,6 +14715,38 @@
                     "state",
                     "version"
                 ]
+            },
+            "ReconciliationStateEnum": {
+                "enum": [
+                    "applied",
+                    "rejected"
+                ],
+                "type": "string",
+                "description": "* `applied` - applied\n* `rejected` - rejected"
+            },
+            "Recovery": {
+                "type": "object",
+                "properties": {
+                    "state": {
+                        "$ref": "#/components/schemas/RecoveryStateEnum"
+                    },
+                    "result": {
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "result",
+                    "state"
+                ]
+            },
+            "RecoveryStateEnum": {
+                "enum": [
+                    "unknown",
+                    "applied",
+                    "rejected"
+                ],
+                "type": "string",
+                "description": "* `unknown` - unknown\n* `applied` - applied\n* `rejected` - rejected"
             },
             "RegistrationRequest": {
                 "type": "object",
@@ -12428,6 +15088,30 @@
                     "title"
                 ]
             },
+            "SelectionRequest": {
+                "type": "object",
+                "properties": {
+                    "variant": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "batch": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "quantity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 13,
+                        "pattern": "^[0-9]{1,9}\\.[0-9]{3}$"
+                    }
+                },
+                "required": [
+                    "quantity",
+                    "variant"
+                ]
+            },
             "Sent": {
                 "type": "object",
                 "properties": {
@@ -12630,14 +15314,6 @@
                     "title"
                 ]
             },
-            "StateEnum": {
-                "enum": [
-                    "applied",
-                    "rejected"
-                ],
-                "type": "string",
-                "description": "* `applied` - applied\n* `rejected` - rejected"
-            },
             "Status": {
                 "type": "object",
                 "properties": {
@@ -12657,6 +15333,14 @@
                 ],
                 "type": "string",
                 "description": "* `alive` - alive\n* `ready` - ready\n* `not_ready` - not_ready"
+            },
+            "StockEffectEnum": {
+                "enum": [
+                    "consume_hold",
+                    "deduct_cod"
+                ],
+                "type": "string",
+                "description": "* `consume_hold` - consume_hold\n* `deduct_cod` - deduct_cod"
             },
             "StoreActionActionEnum": {
                 "enum": [
@@ -13232,6 +15916,45 @@
                     "token"
                 ]
             },
+            "TrackingCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "reference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                    },
+                    "occurred_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "goods_version",
+                    "occurred_at",
+                    "reason",
+                    "reference",
+                    "version"
+                ]
+            },
             "TrackingEnum": {
                 "enum": [
                     "plain",
@@ -13421,6 +16144,39 @@
                 "required": [
                     "code",
                     "path"
+                ]
+            },
+            "WithdrawCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "claim": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "claim",
+                    "command_id",
+                    "goods_version",
+                    "reason",
+                    "version"
                 ]
             }
         },

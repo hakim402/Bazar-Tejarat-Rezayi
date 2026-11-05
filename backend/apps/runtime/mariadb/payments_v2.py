@@ -110,7 +110,7 @@ def publish(apps, schema_editor):
     row = Schema.objects.using(db.alias).get(pk=1)
     expected = schema.reference(2)
     if row.contract == schema.contract(2):
-        schema.verify(record=False)
+        schema.verify(record=False, version=2)
         return
     if row.contract != UPGRADING:
         raise RuntimeError("Explicit v1-to-v2 upgrade marker required.")
@@ -128,4 +128,4 @@ def publish(apps, schema_editor):
     Schema.objects.using(db.alias).filter(pk=1).update(
         contract=schema.contract(2), guards=observed, verified_at=timezone.now()
     )
-    schema.verify(record=False)
+    schema.verify(record=False, version=2)

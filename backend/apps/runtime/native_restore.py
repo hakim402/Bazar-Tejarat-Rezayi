@@ -17,8 +17,10 @@ from . import transfer as t
 from .mariadb import schema
 
 
-def descriptor():
-    path = Path(__file__).with_name("mariadb") / "restore_v2.json"
+def descriptor(version=3):
+    if version not in {2, 3}:
+        raise t.TransferError("Unsupported native recovery version.")
+    path = Path(__file__).with_name("mariadb") / f"restore_v{version}.json"
     data = path.read_bytes()
     return {**json.loads(data), "sha256": hashlib.sha256(data).hexdigest()}
 
@@ -44,10 +46,11 @@ def split_foreign(ddl):
 
 
 def initialize(identifier, manifest):
-    expected = descriptor()
+    version = manifest.get("native_schema_version")
+    expected = descriptor(version)
     tables = expected["tables"]
     if (
-        manifest.get("native_schema_version") != 2
+        version not in {2, 3}
         or manifest.get("restore_ddl_sha256") != expected["sha256"]
         or manifest.get("source_vendor") != "mariadb"
     ):
@@ -68,7 +71,7 @@ def initialize(identifier, manifest):
     with connection.cursor() as cursor:
         current = schema.guard_inventory(cursor)
         if current and current != {
-            name: value for name, value in schema.reference(2)["triggers"].items() if name in current
+            name: value for name, value in schema.reference(version)["triggers"].items() if name in current
         }:
             raise t.TransferError("Unexpected native guards found; no object replaced.")
         for name, ddl in tables.items():
@@ -93,20 +96,18 @@ def initialize(identifier, manifest):
 def publish(manifest, journal):
     from .models import Schema
 
-    expected = schema.reference(2)
+    version = manifest["native_schema_version"]
+    expected = schema.reference(version)
     with connection.cursor() as cursor:
-        # These are the same reviewed original native DDL statements, omitting
-        # only superseded trigger definitions; all table constraints exist.
-        from .mariadb.payments_v2 import REPLACED
-
+        # Select the final reviewed definition for every guard. The DDL history
+        # retains older definitions verbatim; restoration never installs an old
+        # superseded probe/guard over the selected version's final definition.
+        final = {}
         for statement in expected["ddl"]:
             match = re.match(r"CREATE TRIGGER `([^`]+)`", statement)
-            if not match:
-                continue
-            name = match[1]
-            # v2's DDL history contains both old and reviewed replacements.
-            if name in REPLACED and statement in schema.reference(1)["ddl"]:
-                continue
+            if match:
+                final[match[1]] = statement
+        for name, statement in final.items():
             actual = schema.guard_inventory(cursor)
             if name in actual:
                 if actual[name] != expected["triggers"].get(name):
@@ -142,7 +143,7 @@ def publish(manifest, journal):
                 + ")",
                 list(values.values()),
             )
-    schema.verify(record=False)
+    schema.verify(record=False, version=version)
 
 
 class NativeImporter(t.Importer):
@@ -154,13 +155,16 @@ class NativeImporter(t.Importer):
         self.manifest = json.loads(path.read_text())
         if not re.fullmatch(r"[0-9a-f]{64}", expected_digest) or self.identifier != expected_digest:
             raise t.TransferError("Native snapshot differs from its separately retained source digest.")
-        if self.manifest.get("generated_columns") != schema.reference(2)["structure"]["generated"]:
+        self.version = self.manifest.get("native_schema_version")
+        if self.version not in {2, 3}:
+            raise t.TransferError("Unsupported native snapshot version.")
+        if self.manifest.get("generated_columns") != schema.reference(self.version)["structure"]["generated"]:
             raise t.TransferError("Native snapshot derived columns differ.")
         self.tables = self.manifest["tables"]
         self.structure = {}
         # Authenticate every file before constructing any target table.
         for name, record in self.tables.items():
-            if name not in descriptor()["tables"] or name in t.EXCLUDED:
+            if name not in descriptor(self.version)["tables"] or name in t.EXCLUDED:
                 raise t.TransferError("Unsupported native snapshot table.")
             path = t.private_file(self.directory / (name + ".jsonl"))
             check = hashlib.sha256()
@@ -171,7 +175,7 @@ class NativeImporter(t.Importer):
                     count += 1
             if count != record["count"] or check.hexdigest() != record["sha256"]:
                 raise t.TransferError("Native snapshot file checksum differs.")
-        if set(self.tables) != (set(descriptor()["tables"]) - t.EXCLUDED):
+        if set(self.tables) != (set(descriptor(self.version)["tables"]) - t.EXCLUDED):
             raise t.TransferError("Native snapshot omits authoritative tables.")
         self.journal = initialize(self.identifier, self.manifest)
         self.validate_files()
@@ -190,6 +194,11 @@ class NativeImporter(t.Importer):
         t.validate_history()
         validate_payments()
         validate_evidence(self.manifest)
+        if self.version == 3:
+            from apps.fulfilment.recovery import validate_history, validate_evidence as validate_delivery_evidence
+
+            validate_history()
+            validate_delivery_evidence(self.manifest)
         self.journal.state = "validated"
         self.journal.save(update_fields=["state"])
         # Restore recorded native migrations, never forge PostgreSQL/native IDs.
@@ -197,9 +206,10 @@ class NativeImporter(t.Importer):
         from django.db.migrations.loader import MigrationLoader
 
         graph = MigrationLoader(connection, ignore_no_migrations=True).graph
-        required = {node for node in graph.nodes if node[0] in {"runtime", "payments", "notifications", "orders"}}
+        publication = "0007_fulfilment_v3" if self.version == 3 else "0005_payments_v2"
+        required = set(graph.forwards_plan(("runtime", publication)))
         if not required.issubset(recorded) or not recorded.issubset(set(graph.nodes)):
-            raise t.TransferError("Snapshot migration graph is incomplete or older than the reviewed native v2 graph.")
+            raise t.TransferError("Snapshot migration graph is incomplete or older than its reviewed native graph.")
         archived = self.manifest["control_archive"]["django_migrations"]
         names = archived["columns"]
         kinds = t.field_kinds()["django_migrations"]
@@ -228,9 +238,16 @@ class NativeImporter(t.Importer):
         self.journal.state = "complete"
         self.journal.completed_at = timezone.now()
         self.journal.save(update_fields=["state", "completed_at"])
-        if not schema.ready():
-            raise t.TransferError("Restored schema did not pass native readiness.")
-        return {"state": "complete", "native_schema_version": 2, "manifest_sha256": self.identifier, "tables": report}
+        schema.verify(record=False, version=self.version)
+        if self.version == 3 and not schema.ready():
+            raise t.TransferError("Restored current schema did not pass native readiness.")
+        return {
+            "state": "complete",
+            "native_schema_version": self.version,
+            "requires_upgrade": self.version != 3,
+            "manifest_sha256": self.identifier,
+            "tables": report,
+        }
 
 
 def validate_payments():

@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { fulfilmentHref } from "../../fulfilment/api";
+import { fulfilmentCopy } from "../../fulfilment/copy";
 import {
 	useCallback,
 	useEffect,
@@ -671,6 +673,16 @@ function Workspace({
 			{row && (
 				<>
 					<Summary locale={locale} row={row} />
+					<Link
+						className={action}
+						href={fulfilmentHref(locale, context, row.id, seller)}
+					>
+						{
+							fulfilmentCopy[locale][
+								context === "buyer" ? "buyerTitle" : "sellerTitle"
+							]
+						}
+					</Link>
 					<Link
 						className={action}
 						href={invoiceHref(locale, context, row.invoice, seller)}

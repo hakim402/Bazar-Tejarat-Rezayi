@@ -209,8 +209,9 @@ class SuperAdminTests(TransactionTestCase):
         negotiation = {"orders."+name for name in ["negotiation", "negotiationrevision", "negotiationevent", "negotiationcommand", "negotiationsubmission", "negotiationoutcome", "negotiationsubmissionfence"]}
         runtime = {m._meta.label_lower for m in apps.get_app_config("runtime").get_models()}
         payments={"payments."+name for name in ["finance","event","command","claim","claimdecision","receipt","receiptseal","correction","extension","stockplan","stockplanline","stockplanseal","allocationintent","allocationattempt","reviewcase","caseevent","evidence","evidencebinding","noticecursor","email","emailattempt","sweepcursor","reminder"]}
-        self.assertEqual(legacy | communication | commerce | negotiation | runtime | payments, {model._meta.label_lower for model in owner_site._registry})
-        for label in legacy | communication | commerce | negotiation | runtime | payments:
+        fulfilment = {model._meta.label_lower for model in apps.get_app_config("fulfilment").get_models()} | {"inventory.stocktransition"}
+        self.assertEqual(legacy | communication | commerce | negotiation | runtime | payments | fulfilment, {model._meta.label_lower for model in owner_site._registry})
+        for label in legacy | communication | commerce | negotiation | runtime | payments | fulfilment:
             app, model = label.split('.')
             self.assertTrue(resolve(reverse(f'admin:{app}_{model}_changelist')))
         self.assertFalse(any(model._meta.label_lower == 'sessions.session' for model in owner_site._registry))

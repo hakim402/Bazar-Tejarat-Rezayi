@@ -58,7 +58,12 @@ export function Confirmation({
 				}
 			}}
 			aria-label={label}
-			onClose={() => onClose.current()}
+			onClose={(event) => {
+				// Effect replay can close and reopen the same native dialog
+				// before its queued close event arrives. Keep that stale event
+				// from cancelling the currently open, exact reviewed packet.
+				if (!event.currentTarget.open) onClose.current();
+			}}
 			onCancel={(e) => {
 				e.preventDefault();
 				onClose.current();

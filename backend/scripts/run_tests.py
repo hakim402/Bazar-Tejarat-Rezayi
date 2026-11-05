@@ -93,19 +93,22 @@ class TestRun:
             "phase-10-commerce",
             "phase-11-negotiation",
             "phase-12-payments",
+            "phase-13-fulfilment",
         }:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
         self.evidence = (
             ROOT
             / (
-                "doc/progress/phase-12-payments/evidence/runs"
+                "doc/progress/phase-13-fulfilment/evidence/runs"
+                if work_package == "phase-13-fulfilment" or phase == "phase-13-fulfilment"
+                else "doc/progress/phase-12-payments/evidence/runs"
                 if work_package == "phase-12-payments" or phase == "phase-12-payments"
                 else "doc/progress/cpanel-only-preparation/evidence/runs"
                 if work_package == "cpanel-only-preparation"
                 else "doc/progress/phase-11-negotiation/evidence/runs"
                 if phase == "phase-11-negotiation"
                 else "doc/progress/phase-10-commerce/evidence/runs"
-                if phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}
+                if phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}
                 else "doc/progress/phase-09-messaging/evidence/runs"
                 if phase == "phase-09-messaging"
                 else "doc/progress/admin-superuser-and-phase08-fixes/evidence/runs"
@@ -118,6 +121,7 @@ class TestRun:
                     "phase-10-commerce",
                     "phase-11-negotiation",
                     "phase-12-payments",
+                    "phase-13-fulfilment",
                 }
                 else (
                     "doc/progress/staff-admin-transition/evidence/runs"
@@ -321,14 +325,18 @@ class TestRun:
                 name="cgi-owned-identities",
                 data=json.dumps({"password": self.password}),
             )
-            if self.phase == "phase-12-payments":
+            if self.phase in {"phase-12-payments", "phase-13-fulfilment"}:
                 self.python(
                     "-m",
                     "scripts.prepare_browser_tests",
                     name="cgi-owned-payment-fixtures",
                     data=json.dumps({"password": self.password, "phase": self.phase}),
                 )
-            self.python("-m", "scripts.check_worker", name="cgi-required-scheduler")
+            self.python(
+                "-m",
+                "scripts.check_fulfilment_worker" if self.phase == "phase-13-fulfilment" else "scripts.check_worker",
+                name="cgi-required-scheduler",
+            )
             try:
                 from scripts.check_cgi_gateway import check
             except ModuleNotFoundError:
@@ -340,10 +348,15 @@ class TestRun:
                 from scripts.check_cross_engine_transfer import check
             except ModuleNotFoundError:
                 from check_cross_engine_transfer import check
-            if self.phase == "phase-12-payments":
-                from scripts.check_payment_upgrade import owned_check as payment_check
+            if self.phase in {"phase-12-payments", "phase-13-fulfilment"}:
+                if self.phase == "phase-13-fulfilment":
+                    from scripts.check_fulfilment_upgrade import owned_check
 
-                payment_check(self)
+                    owned_check(self)
+                else:
+                    from scripts.check_payment_upgrade import owned_check
+
+                    owned_check(self)
             check(self)
             return
         if not self.frontend_only:
@@ -379,7 +392,13 @@ class TestRun:
         self.env["BROWSER_TEST_RUNTIME"] = "true"
         if self.env.get("REZAYI_TEST_DATABASE_ENGINE") == "mariadb":
             self.python("-m", "scripts.check_mariadb_runtime_role", name="native-dml-role-integrity")
-        self.python("-m", "scripts.check_worker", name="durable-worker-execution")
+        self.python(
+            "-m",
+            "scripts.check_fulfilment_worker" if self.phase == "phase-13-fulfilment" else "scripts.check_worker",
+            name="production-budget-worker-execution"
+            if self.phase == "phase-13-fulfilment"
+            else "durable-worker-execution",
+        )
         self.python("-m", "scripts.check_native_runtime", name="durable-scheduler-and-claims")
         self.worker = self.start([str(PYTHON), "-m", "scripts.test_cron"], "disposable-cron-clock")
         self.python("-m", "scripts.check_native_deployment", "--development", name="native-development-wsgi")
@@ -416,6 +435,7 @@ class TestRun:
             "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
             "PLAYWRIGHT_BROWSER_CHANNEL": "chromium",
             "IDENTITY_BROWSER_TESTS": "1",
+            "FULFILMENT_BROWSER_TESTS": "1" if self.phase == "phase-13-fulfilment" else "0",
             "ORGANIZATIONS_BROWSER_TESTS": "1"
             if self.phase
             in {
@@ -427,6 +447,7 @@ class TestRun:
                 "phase-10-commerce",
                 "phase-11-negotiation",
                 "phase-12-payments",
+                "phase-13-fulfilment",
             }
             else "0",
             "SITE_BROWSER_TESTS": "1",
@@ -441,13 +462,21 @@ class TestRun:
                 "phase-10-commerce",
                 "phase-11-negotiation",
                 "phase-12-payments",
+                "phase-13-fulfilment",
             }
             else "0",
             "COMMERCE_BROWSER_TESTS": "1"
-            if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}
+            if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}
             else "0",
             "MESSAGING_BROWSER_TESTS": "1"
-            if self.phase in {"phase-09-messaging", "phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}
+            if self.phase
+            in {
+                "phase-09-messaging",
+                "phase-10-commerce",
+                "phase-11-negotiation",
+                "phase-12-payments",
+                "phase-13-fulfilment",
+            }
             else "0",
             "MARKETPLACE_BROWSER_TESTS": "1"
             if self.phase
@@ -457,6 +486,7 @@ class TestRun:
                 "phase-10-commerce",
                 "phase-11-negotiation",
                 "phase-12-payments",
+                "phase-13-fulfilment",
             }
             else "0",
             "INVENTORY_BROWSER_TESTS": "1"
@@ -468,6 +498,7 @@ class TestRun:
                 "phase-10-commerce",
                 "phase-11-negotiation",
                 "phase-12-payments",
+                "phase-13-fulfilment",
             }
             else "0",
             "REZAYI_TEST_PROJECT": self.project,
@@ -503,10 +534,16 @@ class TestRun:
             name="browser-fixtures",
             data=json.dumps({"password": self.password, "phase": self.phase}),
         )
-        if self.phase in {"phase-09-messaging", "phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}:
+        if self.phase in {
+            "phase-09-messaging",
+            "phase-10-commerce",
+            "phase-11-negotiation",
+            "phase-12-payments",
+            "phase-13-fulfilment",
+        }:
             self.python("-m", "scripts.check_messaging_worker", name="native-communication-dispatch")
         self.worker = self.start([str(PYTHON), "-m", "scripts.test_cron"], "browser-cron-clock")
-        if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}:
+        if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}:
             self.python(
                 "-m",
                 "scripts.check_commerce_documents",
@@ -514,13 +551,21 @@ class TestRun:
                 str(self.evidence / "invoices"),
                 name="commerce-documents",
             )
-        if self.phase in {"phase-11-negotiation", "phase-12-payments"}:
+        if self.phase in {"phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}:
             self.python(
                 "-m",
                 "scripts.check_negotiation_documents",
                 "--output",
                 str(self.evidence / "negotiation-documents"),
                 name="negotiation-documents",
+            )
+        if self.phase == "phase-13-fulfilment":
+            self.python(
+                "-m",
+                "scripts.check_fulfilment_documents",
+                "--output",
+                str(self.runtime / "handover-inspection"),
+                name="fulfilment-documents",
             )
         self.start_web()
         env = self.browser_environment()
@@ -600,7 +645,8 @@ class TestRun:
                 str(self.evidence / "browser-results"),
                 (
                     "--global-timeout=5400000"
-                    if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments"}
+                    if self.phase
+                    in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}
                     else "--global-timeout=2700000"
                     if self.phase == "phase-09-messaging"
                     else "--global-timeout=1800000"
@@ -620,6 +666,7 @@ class TestRun:
             "phase-10-commerce",
             "phase-11-negotiation",
             "phase-12-payments",
+            "phase-13-fulfilment",
         }:
             self.python(
                 "-c",
@@ -634,6 +681,7 @@ class TestRun:
             "phase-10-commerce",
             "phase-11-negotiation",
             "phase-12-payments",
+            "phase-13-fulfilment",
         }:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
             self.start_web()
@@ -908,6 +956,7 @@ def main():
             "phase-10-commerce",
             "phase-11-negotiation",
             "phase-12-payments",
+            "phase-13-fulfilment",
         ],
         default="phase-03-identity",
     )
@@ -915,6 +964,7 @@ def main():
         "--browser-spec",
         action="append",
         choices=[
+            "fulfilment.browser.ts",
             "payments.browser.ts",
             "negotiations.browser.ts",
             "commerce-corrections.browser.ts",
@@ -949,6 +999,7 @@ def main():
             "admin-superuser-and-phase08-fixes",
             "cpanel-only-preparation",
             "phase-12-payments",
+            "phase-13-fulfilment",
         ],
         help="Scoped evidence location; does not change fixture or permission policy",
     )
@@ -992,7 +1043,11 @@ def main():
 
         run_class = MariaDBRun
         args.work_package = args.work_package or (
-            "phase-12-payments" if args.phase == "phase-12-payments" else "cpanel-only-preparation"
+            "phase-13-fulfilment"
+            if args.phase == "phase-13-fulfilment"
+            else "phase-12-payments"
+            if args.phase == "phase-12-payments"
+            else "cpanel-only-preparation"
         )
     run = run_class(args.backend_only, args.test_label, args.phase, args.browser_spec, args.work_package)
     run.cgi_only = args.cgi_only

@@ -57,6 +57,7 @@ def annotate(qs):
             Subquery(extension.values("generation")[:1]), Value(1), output_field=IntegerField()
         ),
         payment_allocation_state=Subquery(allocation.values("state")[:1]),
+        payment_actual_allocation=Subquery(allocation.values("allocation__state")[:1]),
     )
 
 
@@ -71,7 +72,9 @@ def projection(order):
         "remaining": format(remaining, ".2f"),
         "overpayment": format(excess, ".2f"),
         "financial": "unpaid" if paid == 0 else "overpaid" if excess else "partial" if remaining else "paid",
-        "allocation": order.payment_allocation_state or "unreserved",
+        "allocation": order.payment_actual_allocation
+        if order.payment_actual_allocation in {"consumed", "released"}
+        else order.payment_allocation_state or "unreserved",
         "original_due_at": order.due_at,
         "effective_due_at": order.payment_due,
         "deadline_generation": order.payment_generation,

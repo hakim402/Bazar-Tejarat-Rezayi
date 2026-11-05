@@ -1,4 +1,5 @@
 """Database-backed work ownership. Domain outboxes remain the effect authority."""
+
 import uuid
 from datetime import timedelta
 from django.db import transaction
@@ -6,7 +7,14 @@ from django.db.models import Q
 from django.utils import timezone
 from .models import Job, Scheduler
 
-SWEEPS = {"account_sweep": 60, "notice_sweep": 60, "translation_sweep": 60, "guest_sweep": 3600, "payment_sweep": 60}
+SWEEPS = {
+    "account_sweep": 60,
+    "notice_sweep": 60,
+    "translation_sweep": 60,
+    "guest_sweep": 3600,
+    "payment_sweep": 60,
+    "fulfilment_sweep": 60,
+}
 KINDS = {*SWEEPS, "translation"}
 
 
@@ -40,11 +48,20 @@ def seed_sweeps():
 
 
 @transaction.atomic
-def claim():
+def claim(*, excluded_sweeps=()):
     now = timezone.now()
-    row = (Job.objects.select_for_update(skip_locked=True)
-           .filter(Q(state="queued", available_at__lte=now) | Q(state="running", lease_until__lte=now))
-           .order_by("available_at", "key").first())
+    due = Job.objects.select_for_update(skip_locked=True).filter(
+        Q(state="queued", available_at__lte=now) | Q(state="running", lease_until__lte=now)
+    )
+    # Six canonical primary-key lookups stay bounded even with a large ordinary
+    # backlog. The dispatcher excludes sweeps already served in this invocation,
+    # leaving at least four of its ten slots for normal work. Noncanonical jobs
+    # retain FIFO order and are never silently omitted.
+    canonical = {kind + ":" for kind in SWEEPS}
+    eligible = canonical - set(excluded_sweeps)
+    row = due.filter(pk__in=eligible).order_by("available_at", "key").first() if eligible else None
+    if row is None:
+        row = due.exclude(pk__in=canonical).order_by("available_at", "key").first()
     if row is None:
         return None
     row.state, row.lease, row.lease_until = "running", uuid.uuid4(), now + timedelta(seconds=90)
@@ -72,21 +89,31 @@ def finish(key, lease, *, failed=False):
 def execute(row):
     if row.kind == "account_sweep":
         from apps.accounts.delivery import sweep_mail
+
         sweep_mail()
     elif row.kind == "notice_sweep":
         from apps.notifications.tasks import sweep_notifications
+
         sweep_notifications()
     elif row.kind == "translation_sweep":
         from apps.catalogue.translations import dispatch
+
         dispatch()
     elif row.kind == "translation":
         from apps.catalogue.translations import generate
+
         generate(row.resource)
     elif row.kind == "payment_sweep":
         from apps.payments.jobs import sweep
+
+        sweep()
+    elif row.kind == "fulfilment_sweep":
+        from apps.fulfilment.jobs import sweep
+
         sweep()
     elif row.kind == "guest_sweep":
         from apps.cart.services import expire_guests
+
         expire_guests()
     else:
         raise ValueError("Unknown durable job kind.")

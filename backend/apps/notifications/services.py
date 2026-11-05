@@ -84,9 +84,14 @@ def notice_scope(actor, seller=None):
     messages = access.scope(actor)
     orders = order_scope(actor, invoices=True)
     from apps.orders.negotiations import scope as request_scope
+
     requests = request_scope(actor)
     from apps.payments.access import scope as payment_scope
+
     payments = payment_scope(actor)
+    from apps.fulfilment.access import scope as fulfilment_scope
+
+    fulfilments = fulfilment_scope(actor)
     if seller is not None:
         if actor.context != "seller":
             from rest_framework.exceptions import PermissionDenied
@@ -96,6 +101,7 @@ def notice_scope(actor, seller=None):
             BusinessProfile.objects.filter(
                 Q(pk__in=access.seller_profiles_for(account).values("pk"))
                 | Q(pk__in=profiles(account, invoices=True).values("pk"))
+                | Q(pk__in=fulfilment_scope(actor).values("seller_id"))
             ),
             pk=seller,
         )
@@ -103,16 +109,31 @@ def notice_scope(actor, seller=None):
         orders = orders.filter(seller_id=seller)
         requests = requests.filter(seller_id=seller)
         payments = payments.filter(seller_id=seller)
-    return Notice.objects.filter(account=account).filter(Q(conversation__in=messages) | Q(order__in=orders) | Q(negotiation__in=requests) | Q(payment_order__in=payments)), messages
+        fulfilments = fulfilments.filter(seller_id=seller)
+    return Notice.objects.filter(account=account).filter(
+        Q(conversation__in=messages)
+        | Q(order__in=orders)
+        | Q(negotiation__in=requests)
+        | Q(payment_order__in=payments)
+        | Q(fulfilment_order__in=fulfilments)
+    ), messages
 
 
 def notices(actor, *, seller=None, page=1, unread=False):
     qs, _ = notice_scope(actor, seller)
     if unread:
         qs = qs.filter(read_at__isnull=True)
-    rows = qs.select_related("event", "conversation", "order__invoice", "negotiation", "event__negotiation_event", "payment_order", "event__payment_event").order_by("-created_at", "pk")[
-        (page - 1) * 20 : page * 20
-    ]
+    rows = qs.select_related(
+        "fulfilment_order",
+        "event__fulfilment_event",
+        "event",
+        "conversation",
+        "order__invoice",
+        "negotiation",
+        "event__negotiation_event",
+        "payment_order",
+        "event__payment_event",
+    ).order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
     return {
         "count": qs.count(),
         "page": page,
@@ -120,13 +141,30 @@ def notices(actor, *, seller=None, page=1, unread=False):
             {
                 "id": str(x.pk),
                 "kind": x.event.kind,
+                "fulfilment": str(x.fulfilment_order_id) if x.fulfilment_order_id else None,
                 "payment": str(x.payment_order_id) if x.payment_order_id else None,
                 "negotiation": str(x.negotiation_id) if x.negotiation_id else None,
-                "action": x.event.payment_event.action if x.event.payment_event_id else x.event.negotiation_event.action if x.event.negotiation_event_id else "",
+                "action": x.event.fulfilment_event.action
+                if x.event.fulfilment_event_id
+                else x.event.payment_event.action
+                if x.event.payment_event_id
+                else x.event.negotiation_event.action
+                if x.event.negotiation_event_id
+                else "",
                 "conversation": str(x.conversation_id) if x.conversation_id else None,
                 "order": str(x.order_id) if x.order_id else None,
                 "invoice": str(x.order.invoice.pk) if x.order_id else None,
-                "seller": str(x.payment_order.seller_id if x.payment_order_id else x.negotiation.seller_id if x.negotiation_id else x.order.seller_id if x.order_id else x.conversation.seller_id),
+                "seller": str(
+                    x.fulfilment_order.seller_id
+                    if x.fulfilment_order_id
+                    else x.payment_order.seller_id
+                    if x.payment_order_id
+                    else x.negotiation.seller_id
+                    if x.negotiation_id
+                    else x.order.seller_id
+                    if x.order_id
+                    else x.conversation.seller_id
+                ),
                 "read": x.read_at is not None,
                 "created_at": x.created_at,
             }
@@ -148,9 +186,20 @@ def counts(actor, seller=None):
 @transaction.atomic
 def read_notice(actor, pk):
     qs, _ = notice_scope(actor)
-    preliminary = get_object_or_404(qs.select_related("conversation", "order", "negotiation", "payment_order"), pk=pk)
+    preliminary = get_object_or_404(
+        qs.select_related("conversation", "order", "negotiation", "payment_order", "fulfilment_order"), pk=pk
+    )
     access.lock_actor(
-        actor, preliminary.payment_order.seller_id if preliminary.payment_order_id else preliminary.negotiation.seller_id if preliminary.negotiation_id else preliminary.order.seller_id if preliminary.order_id else preliminary.conversation.seller_id
+        actor,
+        preliminary.fulfilment_order.seller_id
+        if preliminary.fulfilment_order_id
+        else preliminary.payment_order.seller_id
+        if preliminary.payment_order_id
+        else preliminary.negotiation.seller_id
+        if preliminary.negotiation_id
+        else preliminary.order.seller_id
+        if preliminary.order_id
+        else preliminary.conversation.seller_id,
     )
     qs, _ = notice_scope(actor)
     row = get_object_or_404(qs.select_for_update(), pk=pk)

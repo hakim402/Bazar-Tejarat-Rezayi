@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "apps.cart.apps.CartConfig",
     "apps.orders.apps.OrdersConfig",
     "apps.payments.apps.PaymentsConfig",
+    "apps.fulfilment.apps.FulfilmentConfig",
     "django_otp",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -113,9 +114,25 @@ DATABASES = {
 }
 
 if DATABASES["default"]["ENGINE"].endswith("mysql"):
-    MIGRATION_MODULES = {name: "apps." + name + ".migrations_mariadb" for name in (
-        "accounts", "organizations", "verification", "site", "catalogue", "inventory",
-        "marketplace", "messaging", "notifications", "cart", "orders", "payments", "runtime")}
+    MIGRATION_MODULES = {
+        name: "apps." + name + ".migrations_mariadb"
+        for name in (
+            "accounts",
+            "organizations",
+            "verification",
+            "site",
+            "catalogue",
+            "inventory",
+            "marketplace",
+            "messaging",
+            "notifications",
+            "cart",
+            "orders",
+            "payments",
+            "fulfilment",
+            "runtime",
+        )
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -324,4 +341,3 @@ for _host in SITE_MEDIA_HOSTS:
 STORAGES["site_local"] = {"BACKEND": "apps.foundation.storage.PrivateFileStorage", "OPTIONS": {"location": DATA_ROOT / "site-public"}}
 
 # Durable communication recovery; providers remain configured through the existing mail contract.
-

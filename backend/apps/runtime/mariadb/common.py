@@ -54,6 +54,10 @@ def uuid_statements(version=1):
         from .schema import reference
         approved=set(reference(1)["ddl"])
         result=[statement for statement in result if statement in approved]
-    elif version!=2:
+    elif version==2:
+        from .schema import reference
+        approved=set(reference(2)["ddl"])
+        result=[statement for statement in result if statement in approved]
+    elif version!=3:
         raise RuntimeError("Unsupported UUID contract version.")
     return result

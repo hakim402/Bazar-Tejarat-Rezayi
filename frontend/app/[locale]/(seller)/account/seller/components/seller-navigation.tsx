@@ -1,4 +1,6 @@
 "use client";
+import { fulfilment } from "../../../../../../features/fulfilment/api";
+import { fulfilmentCopy } from "../../../../../../features/fulfilment/copy";
 import { paymentCopy } from "../../../../../../features/payments/copy";
 import { negotiationCopy } from "../../../../../../features/negotiations/copy";
 import Link from "next/link";
@@ -25,6 +27,7 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 	const [caps, setCaps] = useState<{ read: boolean; write: boolean } | null>(
 		null,
 	);
+	const [delivery, setDelivery] = useState<boolean | null>(null);
 	const [orderCaps, setOrderCaps] = useState<{
 		orders: boolean;
 		invoices: boolean;
@@ -37,6 +40,17 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 			const mine = ++generation;
 			setCaps(null);
 			setOrderCaps(null);
+			setDelivery(null);
+			void fulfilment<{ count: number }>(
+				"seller",
+				`profiles/${seller ? `?seller=${seller}` : ""}`,
+			)
+				.then((value) => {
+					if (current && mine === generation) setDelivery(value.count > 0);
+				})
+				.catch(() => {
+					if (current && mine === generation) setDelivery(null);
+				});
 			void commerce<{ results: Profile[] }>("orders/seller/profiles/")
 				.then((value) => {
 					if (!current || mine !== generation) return;
@@ -82,6 +96,7 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 		["notifications", communicationCopy[locale].notifications, "bell"],
 		["negotiations", negotiationCopy[locale].title, "file"],
 		["orders", commerceCopy[locale].orders, "file"],
+		["fulfilment", fulfilmentCopy[locale].sellerTitle, "box"],
 		["invoices", commerceCopy[locale].invoices, "file"],
 		["payments", paymentCopy[locale].title, "file"],
 		["profile", t.profile, "user"],
@@ -93,15 +108,17 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 		<nav aria-label={t.menu} className="space-y-1">
 			{links
 				.filter(([route]) =>
-					["orders", "negotiations"].includes(route)
-						? orderCaps?.orders
-						: ["invoices", "payments"].includes(route)
-							? orderCaps?.invoices
-							: route === "catalogue"
-								? caps?.write
-								: ["inventory", "inventory/movements"].includes(route)
-									? caps?.read
-									: true,
+					route === "fulfilment"
+						? delivery === true
+						: ["orders", "negotiations"].includes(route)
+							? orderCaps?.orders
+							: ["invoices", "payments"].includes(route)
+								? orderCaps?.invoices
+								: route === "catalogue"
+									? caps?.write
+									: ["inventory", "inventory/movements"].includes(route)
+										? caps?.read
+										: true,
 				)
 				.map(([route, label, icon]) => (
 					<Link
@@ -117,6 +134,7 @@ export function SellerNavigation({ locale }: { locale: Locale }) {
 								"orders",
 								"invoices",
 								"payments",
+								"fulfilment",
 								"settings",
 							].includes(route) &&
 								path.startsWith(sellerHref(locale, route) + "/")) ||

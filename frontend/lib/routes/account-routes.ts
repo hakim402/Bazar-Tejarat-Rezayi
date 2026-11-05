@@ -70,7 +70,7 @@ export function communicationRoute(parts: string[] = []): boolean {
 	);
 }
 export function commerceRoute(parts: string[] = []): boolean {
-	if (parts[0] === "payments")
+	if (["payments", "fulfilment", "deliveries"].includes(parts[0]))
 		return (
 			parts.length === 1 || (parts.length === 2 && uuidPattern.test(parts[1]))
 		);
@@ -92,6 +92,7 @@ export function commerceRoute(parts: string[] = []): boolean {
 	);
 }
 export function sellerAccountRoute(parts: string[] = []): boolean {
+	if (parts[0] === "deliveries") return false;
 	if (parts[0] === "negotiations" && parts[1] === "new") return false;
 	if (commerceRoute(parts) && !["checkouts", "checkout"].includes(parts[0]))
 		return true;

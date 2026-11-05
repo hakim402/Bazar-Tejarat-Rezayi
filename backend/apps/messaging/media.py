@@ -31,7 +31,7 @@ class MessageRequestLimitMiddleware:
 
     def __call__(self, request):
         if request.method in {"POST", "PATCH"} and request.path.startswith(
-            ("/api/v1/messaging/", "/api/v1/notifications/", "/api/v1/payments/")
+            ("/api/v1/messaging/", "/api/v1/notifications/", "/api/v1/payments/", "/api/v1/fulfilment/")
         ):
             limit = REQUEST_LIMIT if request.path.endswith("/uploads/") else 64 * 1024
             try:

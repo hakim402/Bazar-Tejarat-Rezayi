@@ -197,18 +197,20 @@ def export_source(output, *, source_revision):
         # The guard probe rolls back. Backup must not update even control rows.
         from .models import Schema
 
-        native_version = (
-            2
-            if Schema.objects.get(pk=1).contract
-            == __import__("apps.runtime.mariadb.schema", fromlist=["contract"]).contract(2)
-            else 1
-        )
+        from .mariadb.schema import contract
+
+        installed = Schema.objects.get(pk=1).contract
+        native_version = next((version for version in (3, 2, 1) if installed == contract(version)), None)
+        if native_version is None:
+            raise TransferError("An unready or unknown native schema cannot be exported as a release snapshot.")
         verify(record=False, version=native_version)
         generated = reference(native_version)["structure"]["generated"]
-        if native_version == 2:
+        if native_version in {2, 3}:
             from .native_restore import descriptor
 
-            result.update(format=3, native_schema_version=2, restore_ddl_sha256=descriptor()["sha256"])
+            result.update(
+                format=3, native_schema_version=native_version, restore_ddl_sha256=descriptor(native_version)["sha256"]
+            )
         result["generated_columns"] = generated
     connection.set_autocommit(False)
     try:
@@ -245,18 +247,22 @@ def export_source(output, *, source_revision):
             # the supported native target; never silently downcast those facts.
             legacy_extras = {
                 "orders_orderpolicy": {"reminder_hours": 24},
-                "notifications_event": {"payment_event_id": None},
-                "notifications_notice": {"payment_order_id": None},
+                "notifications_event": {"payment_event_id": None, "fulfilment_event_id": None},
+                "notifications_notice": {"payment_order_id": None, "fulfilment_order_id": None},
                 "notifications_preference": {"payment_email": True},
             }
             if connection.vendor == "postgresql":
                 for table in tables:
-                    if table.startswith("payments_"):
+                    if table.startswith(("payments_", "fulfilment_")) or table == "inventory_stocktransition":
                         cursor.execute("SELECT COUNT(*) FROM " + connection.ops.quote_name(table))
                         if cursor.fetchone()[0]:
                             raise TransferError(
-                                "PostgreSQL payment data cannot be downcast to the retained v1 transfer contract."
+                                "PostgreSQL payment/fulfilment data cannot be downcast to the retained v1 transfer contract."
                             )
+                if "inventory_operation" in tables:
+                    cursor.execute("SELECT COUNT(*) FROM inventory_operation WHERE account_id IS NULL")
+                    if cursor.fetchone()[0]:
+                        raise TransferError("Root stock provenance cannot be downcast to a required legacy Account.")
                 for table, fields in legacy_extras.items():
                     if table not in tables:
                         continue
@@ -274,10 +280,12 @@ def export_source(output, *, source_revision):
                         )
                         if cursor.fetchone()[0]:
                             raise TransferError(
-                                "Changed Phase12 facts/policy cannot be omitted from a legacy source transfer."
+                                "Changed payment/fulfilment facts or policy cannot be omitted from a legacy source transfer."
                             )
             for table in tables:
-                if connection.vendor == "postgresql" and table.startswith("payments_"):
+                if connection.vendor == "postgresql" and (
+                    table.startswith(("payments_", "fulfilment_")) or table == "inventory_stocktransition"
+                ):
                     continue
                 if table in EXCLUDED:
                     continue
@@ -342,6 +350,19 @@ def export_source(output, *, source_revision):
                     "size": row.size,
                 }
                 for row in Evidence.objects.order_by("pk")
+            ]
+        if result.get("native_schema_version") == 3:
+            from apps.fulfilment.models import Evidence as DeliveryEvidence
+
+            result["delivery_evidence_files"] = [
+                {
+                    "id": str(row.pk),
+                    "storage_alias": row.storage_alias,
+                    "key": row.key,
+                    "sha256": row.sha256,
+                    "size": row.size,
+                }
+                for row in DeliveryEvidence.objects.order_by("pk")
             ]
         write_json(output / "manifest.json", result)
     finally:
@@ -648,7 +669,9 @@ class Importer:
 
         verify(version=1)
         MigrationExecutor(connection).migrate([("runtime", "0005_payments_v2")])
-        verify()
+        verify(version=2)
+        MigrationExecutor(connection).migrate([("runtime", "0007_fulfilment_v3")])
+        verify(version=3)
         # New definitions are additive metadata; no group/account assignment is
         # created. Keep this transaction atomic with final transfer publication.
         from django.contrib.contenttypes.management import create_contenttypes

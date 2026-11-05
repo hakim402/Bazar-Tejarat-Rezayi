@@ -37,9 +37,11 @@ class Event(models.Model):
             ("order_accepted", "Order and invoice available"),
             ("negotiation", "Formal request activity"),
             ("payment", "Goods payment activity"),
+            ("fulfilment", "Delivery and fulfilment activity"),
         ],
     )
     order = models.OneToOneField("orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="notice_event")
+    fulfilment_event = models.OneToOneField("fulfilment.Event", null=True, on_delete=models.PROTECT)
     payment_event = models.OneToOneField("payments.Event", null=True, on_delete=models.PROTECT)
     negotiation_event = models.OneToOneField("orders.NegotiationEvent", null=True, on_delete=models.PROTECT)
     message = models.OneToOneField("messaging.Message", null=True, on_delete=models.PROTECT)
@@ -52,30 +54,64 @@ class Event(models.Model):
             models.UniqueConstraint(fields=["report", "report_version"], name="notifications_report_version"),
             models.CheckConstraint(
                 condition=(
-                    models.Q(kind="payment", payment_event__isnull=False, negotiation_event__isnull=True, order__isnull=True, message__isnull=True, report__isnull=True, report_version__isnull=True) | models.Q(payment_event__isnull=True) & (
-                    models.Q(kind="negotiation", negotiation_event__isnull=False, order__isnull=True, message__isnull=True, report__isnull=True, report_version__isnull=True) |
                     models.Q(
-                        negotiation_event__isnull=True, kind="order_accepted",
-                        order__isnull=False,
+                        kind="fulfilment",
+                        fulfilment_event__isnull=False,
+                        payment_event__isnull=True,
+                        negotiation_event__isnull=True,
+                        order__isnull=True,
                         message__isnull=True,
                         report__isnull=True,
                         report_version__isnull=True,
                     )
-                    | models.Q(
-                        negotiation_event__isnull=True, kind="message",
-                        order__isnull=True,
-                        message__isnull=False,
-                        report__isnull=True,
-                        report_version__isnull=True,
+                    | models.Q(fulfilment_event__isnull=True)
+                    & (
+                        models.Q(
+                            kind="payment",
+                            payment_event__isnull=False,
+                            negotiation_event__isnull=True,
+                            order__isnull=True,
+                            message__isnull=True,
+                            report__isnull=True,
+                            report_version__isnull=True,
+                        )
+                        | models.Q(payment_event__isnull=True)
+                        & (
+                            models.Q(
+                                kind="negotiation",
+                                negotiation_event__isnull=False,
+                                order__isnull=True,
+                                message__isnull=True,
+                                report__isnull=True,
+                                report_version__isnull=True,
+                            )
+                            | models.Q(
+                                negotiation_event__isnull=True,
+                                kind="order_accepted",
+                                order__isnull=False,
+                                message__isnull=True,
+                                report__isnull=True,
+                                report_version__isnull=True,
+                            )
+                            | models.Q(
+                                negotiation_event__isnull=True,
+                                kind="message",
+                                order__isnull=True,
+                                message__isnull=False,
+                                report__isnull=True,
+                                report_version__isnull=True,
+                            )
+                            | models.Q(
+                                negotiation_event__isnull=True,
+                                kind="report_status",
+                                order__isnull=True,
+                                message__isnull=True,
+                                report__isnull=False,
+                                report_version__isnull=False,
+                            )
+                        )
                     )
-                    | models.Q(
-                        negotiation_event__isnull=True, kind="report_status",
-                        order__isnull=True,
-                        message__isnull=True,
-                        report__isnull=False,
-                        report_version__isnull=False,
-                    )
-                )),
+                ),
                 name="notifications_typed_event",
             ),
         ]
@@ -89,7 +125,12 @@ class Notice(models.Model):
     account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
     conversation = models.ForeignKey("messaging.Conversation", null=True, on_delete=models.PROTECT)
     order = models.ForeignKey("orders.SellerOrder", null=True, on_delete=models.PROTECT)
-    payment_order = models.ForeignKey("orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="payment_notices")
+    fulfilment_order = models.ForeignKey(
+        "orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="fulfilment_notices"
+    )
+    payment_order = models.ForeignKey(
+        "orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="payment_notices"
+    )
     negotiation = models.ForeignKey("orders.Negotiation", null=True, on_delete=models.PROTECT)
     read_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -99,10 +140,29 @@ class Notice(models.Model):
             models.UniqueConstraint(fields=["event", "account"], name="notifications_unique_recipient"),
             models.CheckConstraint(
                 condition=(
-                    models.Q(payment_order__isnull=False,negotiation__isnull=True,order__isnull=True,conversation__isnull=True) | models.Q(payment_order__isnull=True) & (
-                    models.Q(negotiation__isnull=True, order__isnull=True, conversation__isnull=False)
-                    | models.Q(negotiation__isnull=True, order__isnull=False, conversation__isnull=True) | models.Q(negotiation__isnull=False, order__isnull=True, conversation__isnull=True)
-                )),
+                    models.Q(
+                        fulfilment_order__isnull=False,
+                        payment_order__isnull=True,
+                        negotiation__isnull=True,
+                        order__isnull=True,
+                        conversation__isnull=True,
+                    )
+                    | models.Q(fulfilment_order__isnull=True)
+                    & (
+                        models.Q(
+                            payment_order__isnull=False,
+                            negotiation__isnull=True,
+                            order__isnull=True,
+                            conversation__isnull=True,
+                        )
+                        | models.Q(payment_order__isnull=True)
+                        & (
+                            models.Q(negotiation__isnull=True, order__isnull=True, conversation__isnull=False)
+                            | models.Q(negotiation__isnull=True, order__isnull=False, conversation__isnull=True)
+                            | models.Q(negotiation__isnull=False, order__isnull=True, conversation__isnull=True)
+                        )
+                    )
+                ),
                 name="notifications_typed_resource",
             ),
         ]

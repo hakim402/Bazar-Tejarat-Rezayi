@@ -21,8 +21,16 @@ class IdentityTestRunner(DiscoverRunner):
                 if (name != marker["database"] + "_unit" or role.split("@")[0] != marker["role"]
                     or Path(datadir).resolve() != Path(marker["root"]) / "mariadb"):
                     raise RuntimeError("Refuse a unit database outside the owned cluster.")
-                cursor.execute("CREATE TABLE bazar_owned_run (run_id CHAR(16) PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_nopad_bin")
-                cursor.execute("INSERT INTO bazar_owned_run VALUES (%s)", [run_id()])
+                if "bazar_owned_run" in connection.introspection.table_names(cursor):
+                    if not self.keepdb:
+                        raise RuntimeError("An unexpected retained unit marker cannot be replaced.")
+                    cursor.execute("SELECT run_id FROM bazar_owned_run")
+                    if cursor.fetchall() != ((run_id(),),):
+                        raise RuntimeError("A retained unit database belongs to another run.")
+                else:
+                    cursor.execute("CREATE TABLE bazar_owned_run (run_id CHAR(16) PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_nopad_bin")
+                    cursor.execute("INSERT INTO bazar_owned_run VALUES (%s)", [run_id()])
+            assert_owned_database(connection)
         return result
 
     def teardown_databases(self, old_config, **kwargs):

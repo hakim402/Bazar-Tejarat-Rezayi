@@ -18,8 +18,9 @@ class EmailPreference(s.Serializer):
 
 class NoticeRow(s.Serializer):
     id = s.UUIDField()
-    kind = s.ChoiceField(choices=["message", "report_status", "order_accepted", "negotiation", "payment"])
+    kind = s.ChoiceField(choices=["message", "report_status", "order_accepted", "negotiation", "payment", "fulfilment"])
     payment = s.UUIDField(allow_null=True)
+    fulfilment = s.UUIDField(allow_null=True)
     negotiation = s.UUIDField(allow_null=True)
     action = s.CharField(allow_blank=True)
     conversation = s.UUIDField(allow_null=True)

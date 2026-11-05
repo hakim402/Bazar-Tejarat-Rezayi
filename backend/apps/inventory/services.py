@@ -361,6 +361,12 @@ def settle(actor, profile_id, allocation_id, data, *, release=False, now=None):
     token, digest, old = previous(actor, profile, action, payload)
     if old is not None:
         return old
+    return _apply_settlement(actor, profile, allocation_id, payload, token, digest, release=release, now=now)
+
+
+def _apply_settlement(actor, profile, allocation_id, payload, token, digest, *, release=False, now=None):
+    """Accounting only; manual or sealed fulfilment caller owns transition authority."""
+    action = "release" if release else "consume"
     group = get_object_or_404(Allocation.objects.select_for_update(), pk=allocation_id, operation__seller=profile)
     if group.state != "held":
         raise Conflict("This allocation is no longer held.")

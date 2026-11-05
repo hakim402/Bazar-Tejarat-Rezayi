@@ -54,13 +54,13 @@ def target_env(run, suffix, private_root):
     }
 
 
-def load(run, directory, env, tag, *, partial=False):
+def load(run, directory, env, tag, *, partial=False, before_resume=None):
     digest = file_hash(directory / "manifest.json")
     manifest = json.loads((directory / "manifest.json").read_text())
     run.python(
         "manage.py",
         "prepare_import_target",
-        *(["--schema-version", "2"] if manifest.get("format") == 3 else []),
+        *(["--schema-version", str(manifest["native_schema_version"])] if manifest.get("format") == 3 else []),
         name=tag + "-prepare",
         env=env,
     )
@@ -77,6 +77,8 @@ assert value['state']=='loading' and not ready()
 print('Committed partial transfer retained; HTTP/jobs remain unavailable.')
 """
         run.python("-c", code, str(directory), digest, name=tag + "-interrupted-load", env=env)
+    if before_resume is not None:
+        before_resume()
     run.python(
         "manage.py",
         "import_transfer",

@@ -67,6 +67,9 @@ def notify(event, *, generation=None, slot=None):
     from apps.runtime.jobs import enqueue
 
     enqueue("payment_sweep")
+    from apps.fulfilment.completion import reconcile_locked
+
+    reconcile_locked(event.order)
 
 
 def new_case(order, kind, resource, **fields):

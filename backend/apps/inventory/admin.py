@@ -1,4 +1,5 @@
 """Permission-scoped stock inspection; all writes remain trusted service operations."""
+
 from django.urls import reverse
 from django.core.exceptions import SuspiciousOperation
 from django.contrib.admin import SimpleListFilter
@@ -6,7 +7,18 @@ from django.utils.html import format_html, format_html_join
 from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import permits
-from .models import Position, Batch, Bucket, Operation, Movement, Allocation, AllocationLine, Shortage, Recovery
+from .models import (
+    Position,
+    Batch,
+    Bucket,
+    Operation,
+    Movement,
+    Allocation,
+    AllocationLine,
+    Shortage,
+    Recovery,
+    StockTransition,
+)
 
 
 class InventoryAuditAdmin(ModelAdmin):
@@ -128,3 +140,16 @@ owner_site.register(Allocation, InventoryAuditAdmin, list_display=['operation', 
 owner_site.register(AllocationLine, InventoryAuditAdmin, list_display=['allocation', 'bucket', 'quantity'])
 owner_site.register(Recovery, InventoryAuditAdmin, list_display=['shortage', 'operation'])
 owner_site.register(Shortage, ShortageAdmin)
+
+
+class StockTransitionAdmin(InventoryAuditAdmin):
+    def has_view_permission(self, request, obj=None):
+        from apps.accounts.admin_access import is_owner
+
+        return is_owner(request)
+
+    def has_module_permission(self, request):
+        return self.has_view_permission(request)
+
+
+owner_site.register(StockTransition, StockTransitionAdmin)

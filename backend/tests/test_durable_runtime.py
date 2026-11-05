@@ -1,4 +1,5 @@
 """Actual native connection races, fencing and uncertain-provider recovery."""
+
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from threading import Barrier
@@ -253,3 +254,30 @@ class TypedTransferTests(SimpleTestCase):
         expected=[*common.uuid_statements(),*common.statements(),*common.store_statements(),*cart(),*messaging(),*notices(),*orders(),
             "CREATE TABLE runtime_guardprobe (nonce CHAR(32) PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_nopad_bin"]
         self.assertEqual(statements(),expected)
+
+
+class BoundedSweepFairnessTests(TestCase):
+    def test_due_periodic_sweeps_precede_older_backlog_once_then_ordinary_work_continues(self):
+        from datetime import timedelta
+        from unittest.mock import patch
+        from django.utils import timezone
+        from apps.runtime import jobs
+
+        earlier = timezone.now() - timedelta(minutes=5)
+        with patch("apps.runtime.jobs.timezone.now", return_value=earlier):
+            for number in range(12):
+                jobs.enqueue("translation", "owned-backlog-" + str(number))
+        jobs.seed_sweeps()
+        served = set()
+        kinds = []
+        for _ in jobs.SWEEPS:
+            row = jobs.claim(excluded_sweeps=served)
+            self.assertIsNotNone(row)
+            served.add(row.key)
+            kinds.append(row.kind)
+            self.assertTrue(jobs.finish(row.key, row.lease))
+            jobs.enqueue(row.kind)
+        self.assertEqual(set(kinds), set(jobs.SWEEPS))
+        next_job = jobs.claim(excluded_sweeps=served)
+        self.assertEqual(next_job.kind, "translation")
+        self.assertTrue(next_job.resource.startswith("owned-backlog-"))

@@ -91,7 +91,7 @@ class Operation(ImmutableRecord):
     reference = models.CharField(max_length=120, blank=True)
     fingerprint = models.CharField(max_length=64)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
     context = models.CharField(max_length=8)
     reason = models.CharField(max_length=1000)
     result = models.JSONField()
@@ -154,3 +154,42 @@ class Shortage(ImmutableRecord):
 class Recovery(ImmutableRecord):
     shortage = models.OneToOneField(Shortage, primary_key=True, on_delete=models.PROTECT)
     operation = models.OneToOneField(Operation, on_delete=models.PROTECT)
+
+
+class StockTransition(models.Model):
+    """Native bucket-update witness; migration-owned triggers create/consume it.
+
+    Existing history is not backfilled. The pending slot prevents forged witnesses
+    from being combined with a real update or reused for a second movement.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    bucket = models.ForeignKey(Bucket, on_delete=models.PROTECT, related_name="stock_transitions")
+    movement = models.OneToOneField(Movement, null=True, on_delete=models.PROTECT, related_name="stock_transition")
+    pending = models.BooleanField(default=True)
+    before_physical = models.DecimalField(max_digits=12, decimal_places=3)
+    before_held = models.DecimalField(max_digits=12, decimal_places=3)
+    after_physical = models.DecimalField(max_digits=12, decimal_places=3)
+    after_held = models.DecimalField(max_digits=12, decimal_places=3)
+    connection_id = models.PositiveBigIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["bucket"], condition=Q(pending=True), name="inventory_pending_transition"),
+            models.CheckConstraint(
+                condition=Q(
+                    before_physical__gte=0,
+                    before_held__gte=0,
+                    before_held__lte=F("before_physical"),
+                    after_physical__gte=0,
+                    after_held__gte=0,
+                    after_held__lte=F("after_physical"),
+                ),
+                name="inventory_transition_balances",
+            ),
+            models.CheckConstraint(
+                condition=Q(pending=True, movement__isnull=True) | Q(pending=False, movement__isnull=False),
+                name="inventory_transition_publication",
+            ),
+        ]

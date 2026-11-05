@@ -135,7 +135,7 @@ export const commerceCopy: Record<
 		delivery:
 			"Delivery amount pending; arranged and paid separately. Excluded from goods total.",
 		unreserved:
-			"Stock remains unreserved on acceptance alone. Record manual goods payments in Payments. Dispatch remains unavailable.",
+			"Stock remains unreserved on acceptance alone. Manage goods receipts in Payments and physical delivery in Deliveries / Fulfilment.",
 		submit: "Submit fixed-price orders",
 		advance: "Advance",
 		cod: "Cash on delivery",
@@ -244,7 +244,7 @@ export const commerceCopy: Record<
 		delivery:
 			"هزینهٔ تحویل هنوز تعیین نشده؛ جداگانه تنظیم و پرداخت می‌شود و شامل مجموع کالا نیست.",
 		unreserved:
-			"پذیرش به‌تنهایی موجودی را رزرو نمی‌کند. پرداخت دستی کالا را در پرداخت‌ها ثبت کنید. ارسال هنوز فعال نیست.",
+			"پذیرش سفارش به‌تنهایی موجودی را ذخیره نمی‌کند. دریافت پول کالا در پرداخت‌ها و تحویل واقعی در بخش تحویل و ارسال مدیریت می‌شود.",
 		submit: "ثبت سفارش‌های قیمت ثابت",
 		advance: "پیش‌پرداخت",
 		cod: "پرداخت هنگام تحویل",
@@ -350,7 +350,7 @@ export const commerceCopy: Record<
 		delivery:
 			"د لېږد مبلغ لا نه دی ټاکل شوی؛ جلا تنظیم او ورکول کېږي او په ټول مبلغ کې نشته.",
 		unreserved:
-			"یوازې منل زېرمه نه ساتي. د توکو لاسي تادیې په تادیاتو کې ثبت کړئ. لېږل لا فعال نه دي.",
+			"یوازې د فرمایش منل موجودي نه زېرمه کوي. د توکو رسیدونه په تادیاتو او واقعي لېږد په سپارنو کې اداره کړئ.",
 		submit: "د ثابتې بیې سپارښتنې ثبتول",
 		advance: "مخکې تادیه",
 		cod: "د سپارلو پر مهال تادیه",
@@ -456,7 +456,7 @@ export const commerceCopy: Record<
 		delivery:
 			"مبلغ التوصيل قيد التحديد ويُرتب ويُدفع منفصلاً؛ غير مشمول بإجمالي البضائع.",
 		unreserved:
-			"القبول وحده لا يحجز المخزون. سجّل دفعات البضائع اليدوية في المدفوعات. الإرسال غير متاح بعد.",
+			"قبول الطلب وحده لا يحجز المخزون. تدار إيصالات البضائع في المدفوعات والتسليم الفعلي في قسم التسليم والشحن.",
 		submit: "تسجيل طلبات السعر الثابت",
 		advance: "دفع مقدم",
 		cod: "الدفع عند الاستلام",

@@ -1,4 +1,5 @@
 """One bounded cron invocation. Subprocesses are children, never detached services."""
+
 import os
 import signal
 import subprocess
@@ -22,6 +23,7 @@ class Command(BaseCommand):
         if not 5 <= options["seconds"] <= 40 or not 1 <= options["limit"] <= 50:
             raise CommandError("Use a 5..40 second budget and a 1..50 job limit.")
         from apps.runtime.mariadb.schema import ready
+
         if not ready():
             raise CommandError("Target schema or transfer is not complete; no work started.")
         lease = jobs.acquire_scheduler()
@@ -30,18 +32,28 @@ class Command(BaseCommand):
             return
         failed = False
         count = 0
+        served_sweeps = set()
         deadline = time.monotonic() + options["seconds"]
         try:
             from apps.runtime.mariadb.schema import verify
+
             verify()
             jobs.seed_sweeps()
             while count < options["limit"] and deadline - time.monotonic() >= 3:
-                row = jobs.claim()
+                row = jobs.claim(excluded_sweeps=served_sweeps)
                 if row is None:
                     break
-                child = subprocess.Popen([sys.executable, "manage.py", "run_claimed_job", row.key, str(row.lease)],
-                    cwd=settings.BASE_DIR, env={**os.environ, "REZAYI_JOB_SECONDS": str(min(25, max(1, deadline-time.monotonic()-2)))}, start_new_session=True,
-                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if row.key in {kind + ":" for kind in jobs.SWEEPS}:
+                    served_sweeps.add(row.key)
+                child = subprocess.Popen(
+                    [sys.executable, "manage.py", "run_claimed_job", row.key, str(row.lease)],
+                    cwd=settings.BASE_DIR,
+                    env={**os.environ, "REZAYI_JOB_SECONDS": str(min(25, max(1, deadline - time.monotonic() - 2)))},
+                    start_new_session=True,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
                 try:
                     child.wait(timeout=min(30, max(1, deadline - time.monotonic() - 1)))
                     ok = child.returncode == 0

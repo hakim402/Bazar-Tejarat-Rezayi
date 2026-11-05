@@ -44,7 +44,11 @@ def submission_row(row):
 
 def order_data(row):
     from apps.payments.queries import projection
+
     financial = projection(row)
+    from apps.fulfilment.queries import dimensions
+
+    delivery = dimensions(row)
     return {
         "id": str(row.pk),
         "seller": str(row.seller_id),
@@ -56,16 +60,24 @@ def order_data(row):
         "due_at": row.due_at,
         "invoice": str(row.invoice.pk),
         "number": row.invoice.number,
-        "snapshot": {k: row.snapshot[k] for k in ["seller", "buyer", "terms", "advance_hours", "origin", "finalizer", "proposal"] if k in row.snapshot},
+        "snapshot": {
+            k: row.snapshot[k]
+            for k in ["seller", "buyer", "terms", "advance_hours", "origin", "finalizer", "proposal"]
+            if k in row.snapshot
+        },
         "dimensions": {
             "agreement": "accepted",
             "financial": financial["financial"],
             "allocation": financial["allocation"],
-            "fulfilment": "not_dispatched",
-            "delivery_charge": "pending_separate",
-            "cancellation": "none",
-            "dispute": "none",
-            "completion": "disabled",
+            "fulfilment": delivery["stage"],
+            "delivery_charge": "pending_separate"
+            if delivery["charge"] is None
+            else "settled"
+            if delivery["delivery_settled"]
+            else "unsettled",
+            "cancellation": "pending" if delivery["cancellation_hold"] else "none",
+            "dispute": "unresolved" if delivery["dispute_open"] else "none",
+            "completion": delivery["completion"],
         },
         "payment": financial,
         "capabilities": {x: False for x in ["pay", "dispatch", "cancel", "refund", "amend", "complete"]},
@@ -85,7 +97,8 @@ def order_data(row):
 
 
 def order_queryset(actor, *, seller=None, invoices=False):
-    from apps.payments.queries import annotate
+    from apps.fulfilment.queries import annotate
+
     return (
         annotate(access.scope(actor, invoices=invoices, seller=seller))
         .select_related("invoice")

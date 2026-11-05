@@ -59,14 +59,15 @@ export function useCommunicationSession(context: AccountContext) {
 export function useVisiblePoll(
 	load: (signal: AbortSignal) => Promise<void>,
 	dependencies: unknown[],
+	enabled = true,
 ) {
-	const key = JSON.stringify(dependencies);
+	const key = JSON.stringify([dependencies, enabled]);
 	const loader = useRef(load);
 	useEffect(() => {
 		loader.current = load;
 	});
 	useEffect(() => {
-		if (!key) return;
+		if (!key || !enabled) return;
 		let active = true,
 			timer: ReturnType<typeof setTimeout> | undefined,
 			controller: AbortController | null = null,
@@ -105,7 +106,7 @@ export function useVisiblePoll(
 			document.removeEventListener("visibilitychange", visible);
 			window.removeEventListener("online", visible);
 		};
-	}, [key]);
+	}, [key, enabled]);
 }
 
 export function useOnlineState() {

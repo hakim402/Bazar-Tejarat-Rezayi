@@ -1,6 +1,8 @@
 "use client";
 import { SessionEntry } from "./session-entry";
 import Link from "next/link";
+import { fulfilmentHref } from "../../fulfilment/api";
+import { fulfilmentCopy, fulfilmentState } from "../../fulfilment/copy";
 import { paymentHref } from "../../payments/api";
 import { paymentCopy, paymentState } from "../../payments/copy";
 import { negotiationCopy } from "../../negotiations/copy";
@@ -253,7 +255,7 @@ function Reader({
 												{row.goods_total} {row.currency}
 											</bdi>{" "}
 											· {paymentState(locale, row.dimensions.financial)} ·{" "}
-											{t.notDispatched}
+											{fulfilmentState(locale, row.dimensions.fulfilment)}
 										</p>
 										<p>
 											<bdi>{localTimestamp(row.accepted_at, locale)}</bdi>
@@ -456,6 +458,16 @@ function OrderDocument({
 			>
 				{paymentCopy[locale].title}
 			</Link>
+			<Link
+				className={action}
+				href={fulfilmentHref(locale, context, order.id, seller)}
+			>
+				{
+					fulfilmentCopy[locale][
+						context === "buyer" ? "buyerTitle" : "sellerTitle"
+					]
+				}
+			</Link>
 			<p dir="auto">
 				{order.snapshot.buyer} · {order.snapshot.seller}
 			</p>
@@ -565,7 +577,9 @@ function OrderDocument({
 			</p>
 			<Disclosure locale={locale} accepted />
 			<p>
-				{paymentState(locale,order.dimensions.financial)} · {t.notDispatched}
+				{paymentState(locale, order.dimensions.financial)} ·{" "}
+				{fulfilmentState(locale, order.dimensions.fulfilment)} ·{" "}
+				{fulfilmentState(locale, order.dimensions.completion)}
 			</p>
 			<p>
 				{t.method}: {t[order.payment_method]}

@@ -281,7 +281,8 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
         assert request("/api/v1/auth/buyer/session/")[0] == 200
         assert request("/api/v1/auth/seller/session/")[0] == 403
         payment_checked = False
-        if run.phase == "phase-12-payments":
+        delivery_case = None
+        if run.phase in {"phase-12-payments", "phase-13-fulfilment"}:
             import uuid
             import io
             from PIL import Image
@@ -394,6 +395,10 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
             csrf = signin_payment("buyer", "phase03-buyer@example.test")
             assert request(path)[0] == 404
             payment_checked = True
+        if run.phase == "phase-13-fulfilment":
+            from scripts.cgi_fulfilment import participants
+
+            delivery_case = participants(run, request, signin_payment)
         status, _, html = request("/admin/login/")
         token = re.search(rb'name="csrfmiddlewaretoken" value="([A-Za-z0-9]+)"', html)[1].decode()
         form = urllib.parse.urlencode(
@@ -411,6 +416,10 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
         )
         assert status in (302, 303)
         assert request("/admin/")[0] == 200
+        if delivery_case is not None:
+            from scripts.cgi_fulfilment import native_review
+
+            native_review(run, request, delivery_case)
         assert request("/__gateway__/stream/")[2] == "Synthetic private streaming bytes — دری".encode()
         status, _, body = request("/__gateway__/fail/")
         assert status == 500 and b"SYNTHETIC_NEVER_PUBLIC" not in body and b"Traceback" not in body
@@ -425,6 +434,8 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
                     "password_only_native_admin": True,
                     "multipart_and_authorization": True,
                     "payment_multipart_csrf_private_bytes_exact_confirmation": payment_checked,
+                    "fulfilment_dispatch_private_files_independent_native_receipt_completion": delivery_case
+                    is not None,
                     "multiple_cookie_headers": True,
                     "streaming_and_private_path_denial": True,
                     "parent_frontend_isolation": True,
