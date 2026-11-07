@@ -31,6 +31,19 @@ const paths = {
 	check: "m5 12 4 4L19 6",
 	team: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M18 8a3 3 0 0 1 0 6 M22 21v-2a4 4 0 0 0-3-4",
 	lock: "M5 10h14v11H5z M8 10V6a4 4 0 0 1 8 0v4 M12 14v3",
+	"chevron-down": "m5 9 7 7 7-7",
+	star: "m12 2 3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7Z",
+	inbox: "M4 6h16l-2 12H6Z M4 6V4h16v2 M9 12h6",
+	copy: "M9 9h11v11H9Z M5 15V4h11",
+	clock: "M12 6v6l4 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
+	filter: "M4 5h16 M7 12h10 M10 19h4",
+	"trending-up": "m4 18 6-6 4 4 6-8 M14 8h6v6",
+	"trending-down": "m4 6 6 6 4-4 6 8 M14 16h6v-6",
+	"arrow-up": "M12 19V5 M5 12l7-7 7 7",
+	"arrow-down": "M12 5v14 M5 12l7 7 7-7",
+	"more-horizontal": "M5 12h.01 M12 12h.01 M19 12h.01",
+	eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+	sliders: "M4 6h16 M4 12h10 M4 18h6 M18 4v4 M10 10v4 M6 16v4",
 } as const;
 export type IconName = keyof typeof paths;
 export function Icon({

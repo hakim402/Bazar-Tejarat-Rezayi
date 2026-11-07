@@ -40,6 +40,33 @@
 	--color-campaign-end: var(--campaign-end);
 	--color-campaign-lilac: var(--campaign-lilac);
 	--color-campaign-warm: var(--campaign-warm);
+	/* Chip colors — named by meaning, WCAG AA in light and dark. */
+	--color-chip-info: #005bab;
+	--color-chip-info-fg: #ffffff;
+	--color-chip-info-bg: #eaf4ff;
+	--color-chip-success: #176b49;
+	--color-chip-success-fg: #ffffff;
+	--color-chip-success-bg: #e8f5ee;
+	--color-chip-warning: #855600;
+	--color-chip-warning-fg: #ffffff;
+	--color-chip-warning-bg: #fff4d6;
+	--color-chip-danger: #b42335;
+	--color-chip-danger-fg: #ffffff;
+	--color-chip-danger-bg: #fdedef;
+	--color-chip-neutral: #526575;
+	--color-chip-neutral-fg: #ffffff;
+	--color-chip-neutral-bg: #e8edf2;
+	/* Typography scale. */
+	--text-page-title: 1.5rem;
+	--text-section-title: 1.125rem;
+	--text-kpi: 1.75rem;
+	--text-body: 0.9375rem;
+	--text-caption: 0.8125rem;
+	/* Radius. */
+	--radius-sm: 0.5rem;
+	/* Shadows. */
+	--shadow-sm: 0 1px 3px rgb(24 43 58 / 0.06);
+	--shadow-lifted: 0 4px 16px rgb(24 43 58 / 0.10);
 	/* Provider-owned identity; these colours do not follow the app theme. */
 	--color-provider-surface: #ffffff;
 	--color-provider-foreground: #1f1f1f;
@@ -104,6 +131,22 @@
 		--success-bg: #193d34;
 		--warning: #ffd88a;
 		--warning-bg: #493b20;
+		/* Chip colors — dark mode, WCAG AA. */
+		--color-chip-info: #84c4ff;
+		--color-chip-info-fg: #101c28;
+		--color-chip-info-bg: #203c54;
+		--color-chip-success: #91dcb9;
+		--color-chip-success-fg: #101c28;
+		--color-chip-success-bg: #193d34;
+		--color-chip-warning: #ffd88a;
+		--color-chip-warning-fg: #101c28;
+		--color-chip-warning-bg: #493b20;
+		--color-chip-danger: #ffb4bd;
+		--color-chip-danger-fg: #101c28;
+		--color-chip-danger-bg: #492b35;
+		--color-chip-neutral: #b9c9d8;
+		--color-chip-neutral-fg: #101c28;
+		--color-chip-neutral-bg: #2a3d4e;
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-theme="light"]) {
@@ -128,6 +171,22 @@
 			--success-bg: #193d34;
 			--warning: #ffd88a;
 			--warning-bg: #493b20;
+			/* Chip colors — dark mode, WCAG AA. */
+			--color-chip-info: #84c4ff;
+			--color-chip-info-fg: #101c28;
+			--color-chip-info-bg: #203c54;
+			--color-chip-success: #91dcb9;
+			--color-chip-success-fg: #101c28;
+			--color-chip-success-bg: #193d34;
+			--color-chip-warning: #ffd88a;
+			--color-chip-warning-fg: #101c28;
+			--color-chip-warning-bg: #493b20;
+			--color-chip-danger: #ffb4bd;
+			--color-chip-danger-fg: #101c28;
+			--color-chip-danger-bg: #492b35;
+			--color-chip-neutral: #b9c9d8;
+			--color-chip-neutral-fg: #101c28;
+			--color-chip-neutral-bg: #2a3d4e;
 		}
 	}
 	* {
