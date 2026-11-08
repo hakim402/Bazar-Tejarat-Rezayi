@@ -1,0 +1,146 @@
+export type Context = "buyer" | "seller";
+export type Domain = "orders" | "payments" | "fulfilment";
+export type Mode = "cancel" | "cancel_withdraw" | "amend" | "amend_withdraw" | "excess" | "report" | "refund_withdraw" | "delivery_refund";
+export type Line = {
+	line: string;
+	variant: string;
+	tier: string;
+	quantity: string;
+	unit_price: string;
+	goods_amount: string;
+	sku?: string;
+	titles?: Record<string, string>;
+	unit?: string;
+	unit_labels?: Record<string, string>;
+	increment?: string;
+	minimum_wholesale?: string;
+};
+export type Money = {
+	accepted_total: string;
+	received: string;
+	refunded: string;
+	refund_due: string;
+	remaining: string;
+	overpayment: string;
+	version: number;
+	original_due_at: string | null;
+	effective_due_at: string | null;
+};
+export type RequestRow = {
+	id: string;
+	order: string;
+	number: string;
+	currency: string;
+	state: string;
+	version: number;
+	reason: string;
+	created_at: string;
+	decision: string | null;
+	decision_reason: string;
+	decided_at: string | null;
+	can_withdraw: boolean;
+};
+export type Amendment = RequestRow & { after_total: string; lines: Line[] };
+export type Adjustment = {
+	id: string;
+	invoice: string;
+	cause: string;
+	cancellation: string | null;
+	amendment: string | null;
+	before_lines: Line[];
+	after_lines: Line[];
+	before_total: string;
+	after_total: string;
+	reason: string;
+	created_at: string;
+};
+export type Detail = {
+	id: string;
+	number: string;
+	invoice: string;
+	currency: string;
+	seller: string;
+	goods_total: string;
+	accepted_total: string;
+	version: number;
+	capabilities: string[];
+	effective_lines: Line[];
+	payment: Money;
+	aftercare: Record<string, boolean>;
+	cancellations: RequestRow[];
+	amendments: Amendment[];
+	adjustments: Adjustment[];
+};
+export type RefundDue = {
+	id: string;
+	cause: string;
+	amount: string;
+	currency: string;
+	state: string;
+	version: number;
+	created_at: string;
+	can_report: boolean;
+	previous: string | null;
+};
+export type RefundReport = {
+	id: string;
+	due: string;
+	previous: string | null;
+	amount: string;
+	sent_at: string;
+	reference: string;
+	description: string;
+	state: string;
+	reason: string;
+	evidence: string[];
+	can_withdraw: boolean;
+};
+export type RefundDetail = Money & {
+	id: string;
+	currency: string;
+	capabilities: Record<string, boolean>;
+	refundable_excess: string;
+	refund_dues: RefundDue[];
+	refund_reports: RefundReport[];
+};
+export type DeliveryRefund = Omit<RefundReport, "due" | "previous" | "can_withdraw" | "reason"> & {
+	provider: string;
+	provider_name: string;
+	currency: string;
+};
+export type DeliveryDetail = {
+	id: string;
+	version: number;
+	goods_version: number;
+	capabilities: Record<string, boolean>;
+	provider: string;
+	charge_provider: string;
+	delivery_confirmed: string;
+	delivery_refunded: string;
+	delivery_remaining: string | null;
+	refund_providers: { id: string; name: string; refundable: string }[];
+	delivery_refunds: DeliveryRefund[];
+};
+export type Workspace = { order: Detail; payment: RefundDetail | null; delivery: DeliveryDetail | null };
+export type Intent = {
+	key: string;
+	domain: Domain;
+	path: string;
+	body: Record<string, unknown> | FormData;
+	upload: boolean;
+};
+export type Reviewed = {
+	mode: Mode;
+	intent: Intent;
+	number: string;
+	currency: string;
+	fields: Record<string, string>;
+	lines: { before: Line; after: Line }[];
+	images: string[];
+};
+export type Recovery = {
+	state: "applied" | "committed" | "rejected" | "absent_fenced" | "unknown";
+	result?: Record<string, unknown> | null;
+	outcome?: Record<string, unknown>;
+};
+export type Page<T> = { results: T[]; count: number; page: number };

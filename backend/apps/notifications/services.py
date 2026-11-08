@@ -116,6 +116,7 @@ def notice_scope(actor, seller=None):
         | Q(negotiation__in=requests)
         | Q(payment_order__in=payments)
         | Q(fulfilment_order__in=fulfilments)
+        | Q(aftercare_order__in=orders)
     ), messages
 
 
@@ -133,6 +134,8 @@ def notices(actor, *, seller=None, page=1, unread=False):
         "event__negotiation_event",
         "payment_order",
         "event__payment_event",
+        "aftercare_order",
+        "event__aftercare_event",
     ).order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
     return {
         "count": qs.count(),
@@ -143,11 +146,14 @@ def notices(actor, *, seller=None, page=1, unread=False):
                 "kind": x.event.kind,
                 "fulfilment": str(x.fulfilment_order_id) if x.fulfilment_order_id else None,
                 "payment": str(x.payment_order_id) if x.payment_order_id else None,
+                "aftercare": str(x.aftercare_order_id) if x.aftercare_order_id else None,
                 "negotiation": str(x.negotiation_id) if x.negotiation_id else None,
                 "action": x.event.fulfilment_event.action
                 if x.event.fulfilment_event_id
                 else x.event.payment_event.action
                 if x.event.payment_event_id
+                else x.event.aftercare_event.action
+                if x.event.aftercare_event_id
                 else x.event.negotiation_event.action
                 if x.event.negotiation_event_id
                 else "",
@@ -159,6 +165,8 @@ def notices(actor, *, seller=None, page=1, unread=False):
                     if x.fulfilment_order_id
                     else x.payment_order.seller_id
                     if x.payment_order_id
+                    else x.aftercare_order.seller_id
+                    if x.aftercare_order_id
                     else x.negotiation.seller_id
                     if x.negotiation_id
                     else x.order.seller_id
@@ -187,7 +195,8 @@ def counts(actor, seller=None):
 def read_notice(actor, pk):
     qs, _ = notice_scope(actor)
     preliminary = get_object_or_404(
-        qs.select_related("conversation", "order", "negotiation", "payment_order", "fulfilment_order"), pk=pk
+        qs.select_related("conversation", "order", "negotiation", "payment_order", "fulfilment_order", "aftercare_order"),
+        pk=pk,
     )
     access.lock_actor(
         actor,
@@ -195,6 +204,8 @@ def read_notice(actor, pk):
         if preliminary.fulfilment_order_id
         else preliminary.payment_order.seller_id
         if preliminary.payment_order_id
+        else preliminary.aftercare_order.seller_id
+        if preliminary.aftercare_order_id
         else preliminary.negotiation.seller_id
         if preliminary.negotiation_id
         else preliminary.order.seller_id
@@ -215,6 +226,7 @@ def preference(actor):
     return {
         "message_email": row.message_email if row else True,
         "payment_email": row.payment_email if row else True,
+        "aftercare_email": row.aftercare_email if row else True,
         "locale": row.locale if row else "fa-AF",
         "version": row.version if row else 0,
     }
@@ -229,7 +241,8 @@ def set_preference(actor, data):
     if data["version"] != (0 if created else row.version):
         raise CommandConflict()
     row.message_email = data["message_email"]
-    row.payment_email = data.get("payment_email",row.payment_email)
+    row.payment_email = data.get("payment_email", row.payment_email)
+    row.aftercare_email = data.get("aftercare_email", row.aftercare_email)
     row.locale = data["locale"]
     row.version = 1 if created else row.version + 1
     row.save()

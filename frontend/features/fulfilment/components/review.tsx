@@ -1,9 +1,11 @@
 "use client";
 import type { Locale } from "../../../lib/i18n/locales";
 import { Confirmation } from "../../negotiations/components/confirmation";
-import { action } from "../../orders/components/controls";
+import { action as buyerAction } from "../../orders/components/controls";
+import { salesAction } from "../../sales/components/seller-sales-ui";
 import { localTimestamp } from "../../messaging/api";
 import { fulfilmentCopy, fulfilmentState } from "../copy";
+import { aftercareCopy } from "../../aftercare/copy";
 import type { Context, Detail, Reviewed } from "../types";
 import { DeliveryEvidence } from "./evidence";
 export function DeliveryReview({
@@ -26,6 +28,7 @@ export function DeliveryReview({
 	confirm: () => void;
 }) {
 	const t = fulfilmentCopy[locale],
+		action = context === "seller" ? salesAction : buyerAction,
 		body = review.intent.body instanceof FormData ? null : review.intent.body;
 	const stale =
 		body !== null &&
@@ -114,10 +117,15 @@ export function DeliveryReview({
 				</p>
 			))}
 			<div className="flex flex-wrap gap-3">
-				{review.images.map((id) => (
-					<DeliveryEvidence key={id} {...{ id, context, locale }} />
-				))}
+				{(review.capability !== "refund" ||
+					(context === "seller" && row.capabilities.refund)) &&
+					review.images.map((id) => (
+						<DeliveryEvidence key={id} {...{ id, context, locale }} />
+					))}
 			</div>
+			{review.capability === "refund" && (
+				<p>{aftercareCopy[locale].deliveryNote}</p>
+			)}
 			{review.capability === "claim" && <p>{t.claimNote}</p>}
 			{review.intent.path === "deliver/" && <p>{t.noAuto}</p>}
 			{review.capability === "partial" && <p>{t.partialNote}</p>}

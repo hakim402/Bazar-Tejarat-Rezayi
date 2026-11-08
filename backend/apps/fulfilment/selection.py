@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 from rest_framework.exceptions import ValidationError
-from django.db.models import Sum, Q
+from django.db.models import Q
 from apps.inventory import services as stock, validation as quantities
 from apps.inventory.models import Bucket, Allocation
 from apps.organizations.access import Conflict
@@ -15,10 +15,14 @@ class HeldStockUnavailable(ValidationError):
 
 
 def demand(order):
-    return {
-        row["variant_id"]: row["quantity"]
-        for row in order.lines.values("variant_id").annotate(quantity=Sum("quantity"))
-    }
+    """Effective accepted demand including approved amendments."""
+    from apps.orders import aftercare
+
+    totals = {}
+    for item in aftercare.effective_lines(order):
+        variant = item["line"].variant_id
+        totals[variant] = totals.get(variant, Decimal(0)) + item["quantity"]
+    return totals
 
 
 def held(order, *, locked=False):
@@ -61,22 +65,18 @@ def prepared_lines(order, data, *, now=None):
     allocation = None
     if order.payment_method == "advance":
         allocation = held(order, locked=True)
-        rows = list(
-            allocation.lines.select_related(
-                "bucket__batch", "bucket__position__variant__unit", "bucket__position__variant__product__published"
-            ).order_by("bucket__position_id", "bucket_id")
-        )
+        rows = stock.remaining_lines(allocation)
         lines = [
             {
-                "variant": str(x.bucket.position_id),
-                "batch": str(x.bucket.batch_id) if x.bucket.batch_id else None,
-                "quantity": format(x.quantity, ".3f"),
+                "variant": str(row.bucket.position_id),
+                "batch": str(row.bucket.batch_id) if row.bucket.batch_id else None,
+                "quantity": format(quantity, ".3f"),
             }
-            for x in rows
+            for row, quantity in rows
         ]
         if data.get("lines") is not None and v.canonical(data["lines"]) != v.canonical(lines):
             v.fail("lines", "exact_existing_hold")
-        if any(stock.expired(row.bucket, now) or not stock.active(row.bucket.position.variant) for row in rows):
+        if any(stock.expired(row.bucket, now) or not stock.active(row.bucket.position.variant) for row, _ in rows):
             raise HeldStockUnavailable({"lines": ["expired_or_inactive"]})
     else:
         lines = data.get("lines")
@@ -88,6 +88,15 @@ def store(preparation, rows):
         m.PreparationLine.objects.create(
             preparation=preparation, variant_id=bucket.position_id, bucket=bucket, quantity=quantity
         )
+
+
+def demand_matches(preparation):
+    """A preparation stays current only while it matches effective accepted demand."""
+    wanted = demand(preparation.order)
+    prepared = {}
+    for row in preparation.lines.select_related("bucket"):
+        prepared[row.variant_id] = prepared.get(row.variant_id, Decimal(0)) + row.quantity
+    return prepared == wanted
 
 
 def display(preparation):
@@ -155,12 +164,12 @@ def held_display(order):
             "variant": str(row.bucket.position_id),
             "bucket": str(row.bucket_id),
             "batch": str(row.bucket.batch_id) if row.bucket.batch_id else None,
-            "quantity": format(row.quantity, ".3f"),
+            "quantity": format(quantity, ".3f"),
             "batch_code": row.bucket.batch.code if row.bucket.batch_id else "",
             "expires_on": row.bucket.batch.expires_on if row.bucket.batch_id else None,
             "sku": accepted[row.bucket.position_id].get("sku", ""),
             "unit": accepted[row.bucket.position_id].get("unit", ""),
             "unit_labels": accepted[row.bucket.position_id].get("unit_labels", {}),
         }
-        for row in intent.allocation.lines.select_related("bucket__batch").order_by("bucket__position_id", "bucket_id")
+        for row, quantity in stock.remaining_lines(intent.allocation)
     ]

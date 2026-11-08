@@ -301,3 +301,67 @@ test("semantic colour contrast and final control styling", async ({ page }) => {
 		JSON.stringify(results, null, 2),
 	);
 });
+for (const width of [1280, 375])
+	test(`${width}: Phase 4 editor and inventory composition screenshots`, async ({
+		browser,
+	}) => {
+		test.setTimeout(120000);
+		const product = designProduct(),
+			context = await catalogueActor(browser),
+			page = await context.newPage();
+		await page.setViewportSize({ width, height: 900 });
+		await page.goto(`/en/account/seller/catalogue/${product.id}`);
+		for (const title of [
+			catalogueCopy.en.basicInfo,
+			catalogueCopy.en.variants,
+			catalogueCopy.en.pricing,
+			catalogueCopy.en.images,
+		])
+			await expect(
+				page.getByRole("heading", { name: title, exact: true }),
+			).toBeVisible();
+		await expect(page.locator("#catalogue-revision")).toBeVisible();
+		await expect(page.locator("#catalogue-revision option").first()).toHaveText(
+			catalogueCopy.en.selectRevision,
+		);
+		await expect(
+			page.getByRole("button", { name: /Variant 1/ }).first(),
+		).toBeVisible();
+		await expect(page.locator("label[for=catalogue-file]")).toBeVisible();
+		await expect(
+			page.getByRole("region", { name: catalogueCopy.en.preview }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("button", { name: catalogueCopy.en.save, exact: true }),
+		).toBeVisible();
+		await choosePreference(page, messages.en.theme, "light");
+		await reflow(page);
+		await page.screenshot({
+			path: `${evidence}/phase4-editor-en-${width}-light.png`,
+			fullPage: true,
+		});
+		await page.goto("/en/account/seller/inventory");
+		await page.waitForSelector("main dl a", { timeout: 90000 });
+		await expect(
+			page.getByRole("heading", {
+				name: inventoryCopy.en.inventoryAtGlance,
+				exact: true,
+			}),
+		).toBeVisible();
+		expect(await page.locator("main dl a").count()).toBe(7);
+		await expect(
+			page.getByRole("button", {
+				name: inventoryCopy.en.filters,
+				exact: true,
+			}),
+		).toBeVisible();
+		if (width === 1280) await expect(page.getByRole("table")).toBeVisible();
+		else await expect(page.getByRole("table")).toBeHidden();
+		await choosePreference(page, messages.en.theme, "light");
+		await reflow(page);
+		await page.screenshot({
+			path: `${evidence}/phase4-inventory-en-${width}-light.png`,
+			fullPage: true,
+		});
+		await context.close();
+	});

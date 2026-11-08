@@ -1,5 +1,7 @@
 import type { Locale } from "../../lib/i18n/locales";
 import { fulfilmentCopy } from "./copy";
+import { aftercareCopy } from "../aftercare/copy";
+import { uuidPattern } from "../../lib/routes/account-routes";
 import { actualTime, moneyUnits, wholeSelection } from "./validation";
 import type { Detail, DisplayLine, Receipt, Intent } from "./types";
 export type Mode =
@@ -9,6 +11,7 @@ export type Mode =
 	| "partial"
 	| "charge"
 	| "claim"
+	| "refund"
 	| "correction"
 	| "withdraw"
 	| "tracking"
@@ -21,6 +24,7 @@ const paths: Record<Mode, string> = {
 	partial: "partial-authorization/",
 	charge: "charges/",
 	claim: "claims/",
+	refund: "delivery-refunds/",
 	correction: "corrections/",
 	withdraw: "claims/withdraw/",
 	tracking: "tracking/",
@@ -88,14 +92,14 @@ export function buildAction(
 			goods_version: base.goods_version,
 		},
 		fields: Record<string, string> = {};
-	const needsReason = !["arrange", "claim"].includes(mode),
-		needsTime = ["claim", "correction", "tracking", "deliver"].includes(mode),
-		needsMoney = ["claim", "correction", "charge"].includes(mode);
+	const needsReason = !["arrange", "claim", "refund"].includes(mode),
+		needsTime = ["claim", "correction", "tracking", "deliver", "refund"].includes(mode),
+		needsMoney = ["claim", "correction", "charge", "refund"].includes(mode);
 	const actual = needsTime ? actualTime(at) : null;
 	if (
 		(needsReason && (reason.trim().length < 3 || reason.length > 1000)) ||
 		(needsTime && !actual) ||
-		(needsMoney && moneyUnits(amount, mode !== "claim") === null)
+		(needsMoney && moneyUnits(amount, mode !== "claim" && mode !== "refund") === null)
 	) {
 		return null;
 	}
@@ -109,10 +113,14 @@ export function buildAction(
 	}
 	if (needsTime) {
 		body[
-			mode === "claim" || mode === "correction" ? "paid_at" : "occurred_at"
+			mode === "refund"
+				? "sent_at"
+				: mode === "claim" || mode === "correction" ? "paid_at" : "occurred_at"
 		] = actual;
 		fields[
-			mode === "tracking" || mode === "deliver" ? t.occurredAt : t.paidAt
+			mode === "refund"
+				? aftercareCopy[locale].sentAt
+				: mode === "tracking" || mode === "deliver" ? t.occurredAt : t.paidAt
 		] = actual ?? "";
 	}
 	if (mode === "recipient") {
@@ -206,6 +214,34 @@ export function buildAction(
 				receipt: receipt?.id,
 				receipt_version: receipt?.version,
 			});
+	}
+	if (mode === "refund") {
+		const chosen = row.refund_providers.find((item) => item.id === provider),
+			units = moneyUnits(amount),
+			bound = chosen ? moneyUnits(chosen.refundable, true) : null,
+			r = aftercareCopy[locale];
+		if (
+			!row.capabilities.refund ||
+			!chosen || !uuidPattern.test(provider) ||
+			units === null || bound === null || units > bound ||
+			!reference.trim() || reference.trim().length > 160 ||
+			!description.trim() || description.trim().length > 500 ||
+			images.length > 3 || new Set(images).size !== images.length ||
+			images.some((id) => !uuidPattern.test(id))
+		) return null;
+		Object.assign(body, {
+			provider: chosen.id,
+			currency: row.currency,
+			reference: reference.trim(),
+			description: description.trim(),
+			evidence: [...images],
+		});
+		Object.assign(fields, {
+			[t.provider]: `${chosen.name} · ${chosen.id}`,
+			[r.limit]: `${chosen.refundable} ${row.currency}`,
+			[r.reference]: reference.trim(),
+			[t.description]: description.trim(),
+		});
 	}
 	if (mode === "withdraw") {
 		if (

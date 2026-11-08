@@ -1,4 +1,14 @@
+from django.utils import timezone
 from rest_framework import serializers
+
+
+class AwareDateTime(serializers.DateTimeField):
+    default_error_messages = {"aware_required": "Include an explicit time zone."}
+
+    def enforce_timezone(self, value):
+        if timezone.is_naive(value):
+            self.fail("aware_required")
+        return super().enforce_timezone(value)
 
 LOCALES = ["fa-AF", "en", "ps", "ar"]
 BRAND_NAMES = {

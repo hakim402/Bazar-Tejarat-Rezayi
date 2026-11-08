@@ -443,14 +443,15 @@ test("native taxonomy permission maintains a schema without product review right
 	const context = await catalogueActor(browser, "taxonomy"),
 		page = await context.newPage();
 	await page.goto(`${apiOrigin}/admin/catalogue/category/new/`);
-	const payload = JSON.parse(await page.locator("[name=payload]").inputValue());
-	payload.version = 0;
-	payload.units = ["kg"];
-	payload.code = `synthetic-${randomUUID().slice(0, 8)}`;
-	for (const locale of locales) payload.labels[locale] = `Synthetic ${locale}`;
-	await page.locator("[name=payload]").fill(JSON.stringify(payload));
+	const code = `synthetic-${randomUUID().slice(0, 8)}`;
+	await page.locator("[name=code]").fill(code);
+	for (const locale of locales)
+		await page
+			.locator(`[name=label_${locale.toLowerCase().replace("-", "_")}]`)
+			.fill(`Synthetic ${locale}`);
+	await page.locator("[name=units]").fill("kg");
 	await page.locator("#catalogue-operation button").click();
-	await expect(page.locator("[name=payload]")).toBeVisible();
+	await expect(page.locator("[name=code]")).toBeVisible();
 	expect(
 		(await page.goto(`${apiOrigin}/admin/catalogue/product/`))?.status(),
 	).toBe(403);

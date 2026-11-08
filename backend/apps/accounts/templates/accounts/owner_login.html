@@ -1,6 +1,6 @@
 {% load static i18n %}
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="{{ locale }}" dir="{{ direction }}">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="same-origin"><meta name="color-scheme" content="light dark">
   <title>{{ t.title }} | Bazar Rezayi</title>
@@ -12,16 +12,19 @@
 <div class="ra:mx-auto ra:flex ra:min-h-dvh ra:max-w-5xl ra:flex-col ra:px-4 ra:py-5 ra:sm:px-6">
   <header class="ra:flex ra:flex-wrap ra:items-center ra:justify-between ra:gap-3">
     <a href="{{ frontend_url }}" class="ra:inline-flex ra:min-h-11 ra:items-center" aria-label="Bazar Rezayi marketplace">
-      <img src="{% static 'accounts/brand-en.svg' %}" alt="Bazar Rezayi" width="140" height="40" class="ra:block ra:h-auto ra:w-36 ra:dark:hidden">
-      <img src="{% static 'accounts/brand-en-white.svg' %}" alt="Bazar Rezayi" width="140" height="40" class="ra:hidden ra:h-auto ra:w-36 ra:dark:block">
+      <img src="{% if locale == 'fa-af' %}{% static 'accounts/site-logo-fa-AF-blue.svg' %}{% else %}{% static 'accounts/brand-en.svg' %}{% endif %}" alt="Bazar Rezayi" width="140" height="40" class="ra:block ra:h-auto ra:w-36 ra:dark:hidden">
+      <img src="{% if locale == 'fa-af' %}{% static 'accounts/site-logo-fa-AF-white.svg' %}{% else %}{% static 'accounts/brand-en-white.svg' %}{% endif %}" alt="Bazar Rezayi" width="140" height="40" class="ra:hidden ra:h-auto ra:w-36 ra:dark:block">
     </a>
-    <a class="ra:inline-flex ra:min-h-11 ra:items-center ra:gap-2 ra:text-sm ra:text-muted ra:hover:text-action" href="{{ frontend_url }}"><span aria-hidden="true">←</span>{{ admin_copy.back_marketplace }}</a>
+    <div class="ra:flex ra:items-center ra:gap-3">
+      {% include 'unfold/helpers/language_switch.html' %}
+      <a class="ra:inline-flex ra:min-h-11 ra:items-center ra:gap-2 ra:text-sm ra:text-muted ra:hover:text-action" href="{{ frontend_url }}"><span aria-hidden="true">{% if direction == 'rtl' %}→{% else %}←{% endif %}</span>{{ admin_copy.back_marketplace }}</a>
+    </div>
   </header>
   <main class="ra:grid ra:flex-1 ra:items-center ra:py-8">
     <div class="ra:mx-auto ra:w-full ra:max-w-2xl">
     <div class="ra:mx-auto ra:grid ra:w-full ra:max-w-2xl ra:overflow-hidden ra:rounded-card ra:border ra:border-auth-line ra:bg-panel ra:shadow-auth ra:md:grid-cols-[13rem_minmax(0,1fr)]">
       <aside class="ra:hidden ra:flex-col ra:bg-brand-panel ra:p-5 ra:text-on-dark ra:md:flex">
-        <img src="{% static 'accounts/brand-en-white.svg' %}" alt="Bazar Rezayi" width="128" height="36" class="ra:block ra:h-auto ra:w-32">
+        <img src="{% if locale == 'fa-af' %}{% static 'accounts/site-logo-fa-AF-white.svg' %}{% else %}{% static 'accounts/brand-en-white.svg' %}{% endif %}" alt="Bazar Rezayi" width="128" height="36" class="ra:block ra:h-auto ra:w-32">
         <h2 class="ra:mt-8 ra:text-xl ra:font-bold ra:leading-snug">{{ admin_copy.signin_role|default:admin_copy.role_title }}</h2>
         <p class="ra:mt-3 ra:text-sm ra:leading-6 ra:text-on-dark/90">{{ admin_copy.signin_panel_body }}</p>
         <div class="ra:mt-auto ra:pt-5"><img src="{% static 'accounts/owner-welcome.webp' %}" alt="" width="168" height="144" loading="lazy" class="ra:block ra:h-36 ra:w-full ra:rounded-control ra:object-cover ra:object-bottom"></div>

@@ -34,11 +34,18 @@ def reconcile_locked(order):
                 or 0
             )
             hold_version = m.Blocker.objects.filter(order=order).aggregate(value=Max("event__version"))["value"] or 0
+            refund_version = (
+                m.DeliveryRefundDecision.objects.filter(order=order, action="confirmed").aggregate(
+                    value=Max("event__version")
+                )["value"]
+                or 0
+            )
             cause = {
                 "completion": str(prior.pk),
                 "goods_version": current.payment_version,
                 "provider_version": provider_version,
                 "hold_version": hold_version,
+                "refund_version": refund_version,
             }
             from .validation import digest
 

@@ -7,7 +7,14 @@ import { lineCents, moneyText } from "../validation";
 import { validateLines } from "../validation";
 import type { Line, Choice } from "../api";
 import type { Terms } from "../../orders/api";
-import { control, panel } from "../../orders/components/controls";
+import {
+	control as buyerControl,
+	panel as buyerPanel,
+} from "../../orders/components/controls";
+import {
+	salesControl,
+	salesPanel,
+} from "../../sales/components/seller-sales-ui";
 export function ProposalFields({
 	locale,
 	currency,
@@ -18,6 +25,7 @@ export function ProposalFields({
 	disabled = false,
 	labels = {},
 	metadata = {},
+	presentation,
 }: {
 	locale: Locale;
 	currency: string;
@@ -26,6 +34,7 @@ export function ProposalFields({
 	limits?: boolean;
 	prefillLimits?: boolean;
 	disabled?: boolean;
+	presentation?: "seller";
 	labels?: Record<string, string>;
 	metadata?: Record<
 		string,
@@ -33,6 +42,9 @@ export function ProposalFields({
 	>;
 }) {
 	const t = negotiationCopy[locale],
+		seller = presentation === "seller",
+		control = seller ? salesControl : buyerControl,
+		panel = seller ? salesPanel : buyerPanel,
 		errorId = useId();
 	const [touched, setTouched] = useState(false);
 	const explicitPrices = useRef(new Set<string>());
@@ -44,7 +56,13 @@ export function ProposalFields({
 					className={panel}
 					disabled={disabled}
 				>
-					<legend className="max-w-full break-all text-sm">
+					<legend
+						className={
+							seller
+								? "max-w-full break-words px-2 text-sm font-semibold"
+								: "max-w-full break-all text-sm"
+						}
+					>
 						<span dir="auto">{labels[line.variant] ?? line.variant}</span> ·{" "}
 						{commerceCopy[locale][line.tier]}
 					</legend>
@@ -120,21 +138,47 @@ export function ProposalFields({
 							{t.bounds}
 						</p>
 					)}
-					<p>
+					<p
+						className={
+							seller
+								? "rounded-xl bg-info p-3 text-sm font-semibold"
+								: undefined
+						}
+					>
 						{commerceCopy[locale].goods}:{" "}
 						<bdi>
 							{moneyText(lineCents(line))} {currency}
 						</bdi>
 					</p>
-					{limits && (
-						<p className="text-sm text-muted">
-							{t.limits}:{" "}
-							<bdi>
-								{line.max_quantity} {metadata[line.variant]?.unit} ·{" "}
-								{line.max_unit_price} {currency}
-							</bdi>
-						</p>
-					)}
+					{limits &&
+						(seller ? (
+							<dl className="grid gap-3 rounded-xl border border-border p-3 text-sm sm:grid-cols-2">
+								<div>
+									<dt className="text-xs text-muted">{t.maxQuantity}</dt>
+									<dd className="font-medium">
+										<bdi>
+											{line.max_quantity} {metadata[line.variant]?.unit}
+										</bdi>
+									</dd>
+								</div>
+								<div>
+									<dt className="text-xs text-muted">{t.maxPrice}</dt>
+									<dd className="font-medium">
+										<bdi>
+											{line.max_unit_price} {currency}
+										</bdi>
+									</dd>
+								</div>
+							</dl>
+						) : (
+							<p className="text-sm text-muted">
+								{t.limits}:{" "}
+								<bdi>
+									{line.max_quantity} {metadata[line.variant]?.unit} ·{" "}
+									{line.max_unit_price} {currency}
+								</bdi>
+							</p>
+						))}
 				</fieldset>
 			))}
 		</div>
@@ -146,21 +190,34 @@ export function TermsFields({
 	change,
 	terms,
 	disabled = false,
+	presentation,
 }: {
 	locale: Locale;
 	value: Choice;
 	change: (v: Choice) => void;
 	terms: Terms;
 	disabled?: boolean;
+	presentation?: "seller";
 }) {
 	const cityId = useId(),
 		countryId = useId(),
 		methodId = useId();
 	const t = negotiationCopy[locale],
+		seller = presentation === "seller",
+		control = seller ? salesControl : buyerControl,
 		destination = terms.destinations.find((d) => d.country === value.country);
 	return (
-		<fieldset className="grid gap-3 sm:grid-cols-3" disabled={disabled}>
-			<legend>{t.terms}</legend>
+		<fieldset
+			className={
+				seller
+					? `${salesPanel} grid gap-3 space-y-0! sm:grid-cols-3`
+					: "grid gap-3 sm:grid-cols-3"
+			}
+			disabled={disabled}
+		>
+			<legend className={seller ? "px-2 text-base font-semibold" : undefined}>
+				{t.terms}
+			</legend>
 			<label htmlFor={countryId} className="grid gap-2">
 				{t.country}
 				<select

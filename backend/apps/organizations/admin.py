@@ -9,6 +9,7 @@ from unfold.admin import ModelAdmin
 
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import admin_actor, permits
+from apps.accounts.admin_display import AdminDisplayMixin
 from .models import BusinessProfile, Invitation, Membership, OwnershipTransfer, InvitationMail
 from .profiles import PROFILE_FIELDS, update_profile
 from .contracts import BusinessProfileUpdate
@@ -16,12 +17,44 @@ from .forms import WorkflowForm
 from .owner_copy import COPY
 
 
-class ReadOnlyAdmin(ModelAdmin):
+class ReadOnlyAdmin(AdminDisplayMixin, ModelAdmin):
     actions = []
     list_per_page = 30
+    # Deterministic newest-first pagination for every read-only inspection list;
+    # subclasses may override with a domain-meaningful ordering.
+    ordering = ["-pk"]
+    # Optional presentation-only grouping: (title, description, field names).
+    fieldset_groups = ()
+    # Optional per-field help for subclasses that legitimately allow editing.
+    field_help = {}
+
+    RECORD_DESCRIPTION = (
+        "Guarded domain record — the values below are retained history. Supported changes happen "
+        "only through the linked guarded workflow; generic editing or deletion would bypass "
+        "version, evidence and independence safeguards."
+    )
 
     def get_fieldsets(self, request, obj=None):
-        return [(None, {"fields": self.get_fields(request, obj), "description": "Guarded domain record. Use its linked workflow for supported transitions; generic editing/deletion would bypass version, evidence or retained-history safeguards."})]
+        allowed = list(self.get_fields(request, obj))
+        if not self.fieldset_groups:
+            return [(None, {"fields": allowed, "description": self.RECORD_DESCRIPTION})]
+        sections, used = [], set()
+        for title, description, fields in self.fieldset_groups:
+            present = [name for name in fields if name in allowed and name not in used]
+            used.update(present)
+            if present:
+                sections.append((title, {"fields": present, "description": description}))
+        rest = [name for name in allowed if name not in used]
+        if rest:
+            sections.append(("Record details", {"fields": rest, "description": self.RECORD_DESCRIPTION}))
+        return sections
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for name, text in self.field_help.items():
+            if name in form.base_fields:
+                form.base_fields[name].help_text = text
+        return form
 
     def get_readonly_fields(self, request, obj=None):
         return [field.name for field in self.model._meta.fields]
@@ -45,7 +78,11 @@ class WorkflowAdmin(ReadOnlyAdmin):
 
     def guarded_workflow(self, obj):
         url = reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_workflow", args=[obj.pk])
-        return format_html('<a href="{}">Open guarded workflow</a>', url)
+        return format_html(
+            '<a class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm '
+            'font-semibold text-white hover:bg-primary-700" href="{}">Open guarded workflow</a>',
+            url,
+        )
 
     def get_urls(self):
         info = self.model._meta
@@ -63,7 +100,10 @@ class WorkflowAdmin(ReadOnlyAdmin):
         from .teams import change_member
 
         obj = get_object_or_404(self.get_queryset(request), pk=pk)
-        locale = "en"
+        language = (getattr(request, "LANGUAGE_CODE", "en") or "en").lower()
+        locale = {"fa-af": "fa-AF", "fa": "fa-AF", "ps": "ps", "ar": "ar"}.get(language, "en")
+        if locale not in COPY:
+            locale = "en"
         t = COPY[locale]
         actor = admin_actor(request)
         choices = [

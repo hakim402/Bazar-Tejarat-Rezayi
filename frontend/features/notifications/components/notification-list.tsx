@@ -1,5 +1,7 @@
 "use client";
 import { fulfilmentHref } from "../../fulfilment/api";
+import { aftercareHref } from "../../aftercare/api";
+import { aftercareCopy } from "../../aftercare/copy";
 import { fulfilmentCopy } from "../../fulfilment/copy";
 import { paymentHref } from "../../payments/api";
 import { paymentCopy } from "../../payments/copy";
@@ -116,7 +118,14 @@ export function NoticeList({
 								prefetch={false}
 								className="inline-flex min-h-11 items-center gap-3 font-bold"
 								href={
-									row.fulfilment
+									row.kind === "aftercare"
+										? aftercareHref(
+												locale,
+												context,
+												row.aftercare ?? undefined,
+												context === "seller" ? row.seller : undefined,
+											)
+										: row.fulfilment
 										? fulfilmentHref(
 												locale,
 												context,
@@ -152,7 +161,9 @@ export function NoticeList({
 														)
 								}
 							>
-								{row.kind === "fulfilment"
+								{row.kind === "aftercare"
+									? aftercareCopy[locale].title
+									: row.kind === "fulfilment"
 									? fulfilmentCopy[locale][
 											context === "buyer" ? "buyerTitle" : "sellerTitle"
 										]

@@ -17,6 +17,8 @@ PERMISSIONS = [
     ("decide_payment_shortage", "Decide shortage replacement/review referrals"),
     ("review_overdue", "Review assigned overdue and zero-balance cases"),
     ("read_payment_delivery", "Inspect payment delivery diagnostics"),
+    ("decide_goods_refund", "Decide independent seller refund reports"),
+    ("read_refund_evidence", "Inspect assigned private refund evidence"),
 ]
 
 
@@ -310,14 +312,18 @@ class EvidenceBinding(models.Model):
     claim = models.ForeignKey(Claim, null=True, on_delete=PROTECT, related_name="evidence_bindings")
     receipt = models.ForeignKey(Receipt, null=True, on_delete=PROTECT, related_name="evidence_bindings")
     correction = models.ForeignKey(Correction, null=True, on_delete=PROTECT, related_name="evidence_bindings")
+    report = models.ForeignKey("RefundReport", null=True, on_delete=PROTECT, related_name="evidence_bindings")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(claim__isnull=False, receipt__isnull=True, correction__isnull=True)
-                | Q(claim__isnull=True, receipt__isnull=False, correction__isnull=True)
-                | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=False),
+                condition=(
+                    Q(claim__isnull=False, receipt__isnull=True, correction__isnull=True, report__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=False, correction__isnull=True, report__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=False, report__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=True, report__isnull=False)
+                ),
                 name="payments_evidence_target",
             )
         ]
@@ -381,3 +387,69 @@ class Reminder(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["order", "generation", "slot"], name="payments_reminder_slot")]
+
+
+class RefundDue(models.Model):
+    """Seller-issued refund obligation. Creation is sealed; approval is never execution."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey("orders.SellerOrder", on_delete=PROTECT, related_name="refund_dues")
+    cause = models.CharField(max_length=12, choices=[("cancellation", "Cancellation"), ("amendment", "Amendment"), ("excess", "Excess")])
+    amount = models.DecimalField(max_digits=24, decimal_places=2)
+    currency = models.CharField(max_length=3)
+    event = models.OneToOneField(Event, on_delete=PROTECT)
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=PROTECT, related_name="refund_assignments"
+    )
+    version = models.PositiveBigIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0, currency__in=["AFN", "USD"], cause__in=["cancellation", "amendment", "excess"]),
+                name="payments_refund_due_values",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["assigned_to", "cause"], name="payments_refund_queue"),
+            models.Index(fields=["order", "-created_at", "id"], name="payments_refund_history"),
+        ]
+
+
+class RefundSeal(models.Model):
+    due = models.OneToOneField(RefundDue, primary_key=True, on_delete=PROTECT, related_name="seal")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class RefundReport(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    due = models.ForeignKey(RefundDue, on_delete=PROTECT, related_name="reports")
+    previous = models.OneToOneField("self", null=True, on_delete=PROTECT, related_name="replacement")
+    actor = models.ForeignKey("accounts.Account", on_delete=PROTECT)
+    event = models.OneToOneField(Event, on_delete=PROTECT)
+    amount = models.DecimalField(max_digits=24, decimal_places=2)
+    sent_at = models.DateTimeField()
+    reference = models.CharField(max_length=160)
+    description = models.CharField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(amount__gt=0), name="payments_refund_report_values"),
+        ]
+        indexes = [models.Index(fields=["due", "-created_at", "id"], name="payments_refund_reports")]
+
+
+class RefundDecision(models.Model):
+    report = models.OneToOneField(RefundReport, primary_key=True, on_delete=PROTECT, related_name="decision")
+    event = models.OneToOneField(Event, on_delete=PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=PROTECT, related_name="+")
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=PROTECT, related_name="+")
+    context = models.CharField(max_length=6)
+    action = models.CharField(
+        max_length=9,
+        choices=[("confirmed", "Confirmed"), ("rejected", "Rejected"), ("withdrawn", "Withdrawn")],
+    )
+    reason = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)

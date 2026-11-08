@@ -77,7 +77,7 @@ test("Owner MFA dashboard data, navigation, theme and model lists", async ({ pag
   await page.setViewportSize({ width: 1600, height: 1100 });
   await page.emulateMedia({ colorScheme: "light" });
   await enrollOwner(page);
-  await expect(page.getByTestId("dashboard-metric")).toHaveCount(4);
+  await expect(page.getByTestId("dashboard-metric")).toHaveCount(8);
   await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Marketplace activity" })).toBeVisible();
   const expected = JSON.parse(disposablePython("import json\nfrom apps.accounts.models import User\nfrom apps.catalogue.models import Product\nprint(json.dumps({'users':User.objects.count(),'products':Product.objects.count()}))"));

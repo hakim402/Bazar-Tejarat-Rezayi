@@ -69,7 +69,17 @@ export function safeReturn(
 			if (parts[2] !== "seller" || !sellerAccountRoute(parts.slice(3)))
 				return fallback;
 		}
-		if(context === "buyer" && url.pathname.startsWith(`/${locale}/account/`)) { const parts=url.pathname.split("/").filter(Boolean); if(parts[2]!=="buyer" || (["messages","notifications"].includes(parts[3]) && !communicationRoute(parts.slice(3)) || ["checkout","checkouts","orders","invoices"].includes(parts[3]) && !commerceRoute(parts.slice(3)))) return fallback; }
+		if (context === "buyer" && url.pathname.startsWith(`/${locale}/account/`)) {
+			const parts = url.pathname.split("/").filter(Boolean);
+			if (
+				parts[2] !== "buyer" ||
+				["fulfilment", "aftercare"].includes(parts[3]) ||
+				(["messages", "notifications"].includes(parts[3]) &&
+					!communicationRoute(parts.slice(3))) ||
+				(["checkout", "checkouts", "orders", "invoices", "payments", "deliveries", "cancellations"].includes(parts[3]) &&
+					!commerceRoute(parts.slice(3)))
+			) return fallback;
+		}
 		return url.origin === "https://return.example" &&
 			url.pathname.startsWith(`/${locale}/`) &&
 			!url.pathname.startsWith(`/${locale}/auth/`) &&

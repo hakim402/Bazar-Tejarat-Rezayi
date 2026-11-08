@@ -527,3 +527,242 @@ def additional_boundary_statements():
         )
     )
     return sql
+
+
+def _derive(statement, old, new, count=1):
+    """Exact-substring guard extension; fail loudly on generator drift."""
+    if statement.count(old) != count:
+        raise RuntimeError("The retained guard body no longer contains its reviewed clause.")
+    return statement.replace(old, new)
+
+
+def _aftercare_permission(user, code):
+    return f"""EXISTS(SELECT 1 FROM accounts_user u WHERE u.id={user} AND u.is_active AND u.email_verified AND u.is_staff AND (u.is_superuser OR EXISTS(SELECT 1 FROM accounts_user_groups ug JOIN auth_group_permissions gp ON gp.group_id=ug.group_id JOIN auth_permission p ON p.id=gp.permission_id JOIN django_content_type ct ON ct.id=p.content_type_id WHERE ug.user_id=u.id AND ct.app_label='orders' AND p.codename={code})))"""
+
+
+def _provider_receipts(provider, order):
+    return f"""(SELECT COALESCE(SUM({effective('r')}),0) FROM fulfilment_receipt r JOIN fulfilment_publication rp ON rp.event_id=r.event_id WHERE r.order_id={order} AND r.claim_id IN (SELECT c.id FROM fulfilment_claim c WHERE c.charge_id IN (SELECT cp.id FROM fulfilment_chargeproposal cp WHERE cp.provider_id={provider} AND cp.order_id={order})))"""
+
+
+def _confirmed_refunds(order, provider=None):
+    return (
+        "(SELECT COALESCE(SUM(dr.amount),0) FROM fulfilment_deliveryrefund dr JOIN fulfilment_deliveryrefunddecision dd "
+        f"ON dd.refund_id=dr.id WHERE dr.order_id={order} AND dd.action='confirmed'"
+        + (f" AND dr.provider_id={provider}" if provider is not None else "")
+        + ")"
+    )
+
+
+def _effective_quantity(line):
+    return f"""COALESCE((SELECT amended_line.proposed_quantity FROM orders_amendmentline amended_line JOIN orders_amendment amendment ON amendment.id=amended_line.amendment_id JOIN orders_amendmentdecision decision ON decision.amendment_id=amendment.id JOIN orders_aftercareevent decision_event ON decision_event.id=decision.event_id WHERE amended_line.line_id={line}.id AND amendment.order_id={line}.order_id AND amendment.state='approved' AND decision.action='approved' ORDER BY decision_event.version DESC LIMIT 1),{line}.quantity)"""
+
+
+def _accepted_total(order):
+    return f"""(CASE WHEN EXISTS(SELECT 1 FROM orders_cancellationrequest cancelled JOIN orders_cancellationdecision cancellation_decision ON cancellation_decision.request_id=cancelled.id WHERE cancelled.order_id={order} AND cancelled.state='approved' AND cancellation_decision.action='approved') THEN 0 ELSE COALESCE((SELECT amendment.after_total FROM orders_amendment amendment JOIN orders_amendmentdecision decision ON decision.amendment_id=amendment.id JOIN orders_aftercareevent decision_event ON decision_event.id=decision.event_id WHERE amendment.order_id={order} AND amendment.state='approved' AND decision.action='approved' ORDER BY decision_event.version DESC LIMIT 1),(SELECT original.goods_total FROM orders_sellerorder original WHERE original.id={order})) END)"""
+
+
+def _net_goods(order):
+    # Receipts/snapshot figures remain gross; only policy deducts confirmed refunds.
+    refunded = f"""(SELECT COALESCE(SUM(report.amount),0) FROM payments_refundreport report JOIN payments_refunddue due ON due.id=report.due_id JOIN payments_refunddecision decision ON decision.report_id=report.id WHERE due.order_id={order} AND decision.action='confirmed')"""
+    return f"({goods_confirmed(order)}-{refunded})"
+
+
+def _cancellation_blocks(order):
+    return f"EXISTS(SELECT 1 FROM orders_cancellationrequest cancellation WHERE cancellation.order_id={order} AND cancellation.state IN ('pending','approved'))"
+
+
+def _complete_lines_v4(preparation, order):
+    return _derive(complete_lines(preparation, order), "SUM(ol.quantity)", f"SUM({_effective_quantity('ol')})")
+
+
+def _held_quantity(line):
+    # Reduction has no publication column: the immutable reduce operation and
+    # its sealed, actual bucket movement are the native stock witness.
+    witnessed = """EXISTS(SELECT 1 FROM inventory_operation reduction_operation JOIN inventory_allocation allocation ON allocation.id=reduction.allocation_id JOIN inventory_operation original_operation ON original_operation.id=allocation.operation_id JOIN inventory_movement movement ON movement.operation_id=reduction_operation.id JOIN inventory_stocktransition witness ON witness.movement_id=movement.id WHERE reduction_operation.id=reduction.operation_id AND reduction_operation.action='reduce' AND reduction_operation.seller_id=original_operation.seller_id AND movement.bucket_id=reduction.bucket_id AND movement.physical_delta=0 AND movement.held_delta=-reduction.quantity AND witness.bucket_id=movement.bucket_id AND NOT witness.pending AND witness.after_physical=movement.physical_after AND witness.after_held=movement.held_after AND witness.after_physical-witness.before_physical=movement.physical_delta AND witness.after_held-witness.before_held=movement.held_delta)"""
+    return f"({line}.quantity-(SELECT COALESCE(SUM(reduction.quantity),0) FROM inventory_allocationreduction reduction WHERE reduction.allocation_id={line}.allocation_id AND reduction.bucket_id={line}.bucket_id AND ({witnessed})))"
+
+
+def _held_lines_invalid(preparation):
+    remaining = _held_quantity("a")
+    return f"""EXISTS(SELECT 1 FROM inventory_allocationline a WHERE a.allocation_id={preparation}.allocation_id AND ({remaining}<0 OR {remaining}>0 AND NOT EXISTS(SELECT 1 FROM fulfilment_preparationline l WHERE l.preparation_id={preparation}.id AND l.bucket_id=a.bucket_id AND l.quantity={remaining}))) OR EXISTS(SELECT 1 FROM fulfilment_preparationline l WHERE l.preparation_id={preparation}.id AND NOT EXISTS(SELECT 1 FROM inventory_allocationline a WHERE a.allocation_id={preparation}.allocation_id AND a.bucket_id=l.bucket_id AND {remaining}>0 AND {remaining}=l.quantity))"""
+
+
+def _eligible_v4(order):
+    eligible_now = _derive(
+        eligible(order),
+        f"{goods_confirmed(order)}>=o.goods_total AND {total(order)}>=c.amount",
+        f"{_net_goods(order)}>={_accepted_total(order)} AND ({total(order)}-{_confirmed_refunds(order)})>=c.amount",
+    )
+    return f"{eligible_now} AND NOT ({_cancellation_blocks(order)})"
+
+
+def refund_statements():
+    """Phase 14 refund/hold guards. The event, blocker, closure, publication,
+    case and evidence boundaries gain their refund/aftercare clauses; v1-v3
+    statement bytes are untouched. New fact rows are append-only."""
+    source = {s.split("`", 2)[1]: s for s in statements() if s.startswith("CREATE TRIGGER")}
+    participant = "EXISTS(SELECT 1 FROM accounts_account a WHERE a.id=NEW.account_id AND a.user_id=NEW.actor_id AND a.context=NEW.context AND a.status='active')"
+    event = _derive(
+        source["fulfilment_event_insert_guard"],
+        "AND NEW.action IN ('recipient_revised','delivery_claimed','claim_withdrawn','correction_proposed','delivered')",
+        "AND NEW.action IN ('recipient_revised','delivery_claimed','claim_withdrawn','correction_proposed','delivered','cancellation_hold')",
+    )
+    event = _derive(
+        event,
+        "('arrangement_proposed','prepared','charge_proposed','dispatched','dispatch_blocked','tracking_recorded','delivered')",
+        "('arrangement_proposed','prepared','charge_proposed','dispatched','dispatch_blocked','tracking_recorded','delivered','delivery_refund_reported')",
+    )
+    event = _derive(
+        event,
+        "NEW.action IN ('delivery_claimed','claim_withdrawn','correction_proposed')",
+        "NEW.action IN ('delivery_claimed','claim_withdrawn','correction_proposed','delivery_refund_reported')",
+    )
+    event = _derive(
+        event,
+        "'case_clear','case_refer','case_resolve'))",
+        "'case_clear','case_refer','case_resolve','cancellation_hold','delivery_refund_reported'))",
+    )
+    event = _derive(
+        event,
+        " OR (((NEW.context='owner'",
+        f" OR (NEW.context='seller' AND ({participant}) AND (NEW.action='cancellation_hold' AND ({seller('NEW.order_id', 'NEW.account_id', 'orders_negotiation')}))) OR (((NEW.context='owner'",
+    )
+    result = [event]
+    result.append(
+        trigger(
+            "fulfilment_event",
+            "INSERT",
+            reject(
+                f"(NEW.action='delivery_refund_reported' AND NEW.context='staff' AND (NOT ({permission('NEW.actor_id', chr(39) + 'record_delivery_refund' + chr(39))}) OR NOT EXISTS(SELECT 1 FROM fulfilment_reviewcase k WHERE k.order_id=NEW.order_id AND k.assigned_to_id=NEW.actor_id))) OR (NEW.action='cancellation_hold' AND NEW.context='staff' AND NOT ({_aftercare_permission('NEW.actor_id', chr(39) + 'read_aftercare' + chr(39))}))"
+            ),
+            suffix="refund_role_guard",
+        )
+    )
+    result.append(
+        _derive(
+            source["fulfilment_blocker_insert_source_guard"],
+            "e.action IN ('operational_hold') AND e.version=s.version",
+            "e.action IN ('operational_hold','cancellation_hold') AND (e.action='operational_hold' OR EXISTS(SELECT 1 FROM orders_cancellationrequest p WHERE p.order_id=NEW.order_id AND p.state='pending')) AND e.version=s.version",
+        )
+    )
+    result.append(
+        _derive(
+            source["fulfilment_blockerclosure_insert_guard"],
+            "NEW.disposition NOT IN ('erroneous','withdrawn')",
+            "NEW.disposition NOT IN ('erroneous','withdrawn','decided')",
+        )
+    )
+    publication = _derive(
+        source["fulfilment_publication_insert_guard"],
+        "e.action='arrangement_proposed' AND EXISTS(SELECT 1 FROM fulfilment_arrangement f WHERE f.event_id=e.id AND f.order_id=e.order_id)",
+        "e.action='cancellation_hold' AND EXISTS(SELECT 1 FROM fulfilment_blocker f WHERE f.event_id=e.id AND f.order_id=e.order_id) OR e.action='delivery_refund_reported' AND EXISTS(SELECT 1 FROM fulfilment_deliveryrefund f WHERE f.event_id=e.id AND f.order_id=e.order_id) OR e.action='arrangement_proposed' AND EXISTS(SELECT 1 FROM fulfilment_arrangement f WHERE f.event_id=e.id AND f.order_id=e.order_id)",
+    )
+    publication = _derive(
+        publication,
+        "(k.kind='correction' AND EXISTS(SELECT 1 FROM fulfilment_correction c WHERE c.id=k.correction_id AND c.order_id=k.order_id))",
+        "(k.kind='correction' AND EXISTS(SELECT 1 FROM fulfilment_correction c WHERE c.id=k.correction_id AND c.order_id=k.order_id)) OR (k.kind='refund' AND EXISTS(SELECT 1 FROM fulfilment_deliveryrefunddecision d WHERE d.event_id=ce.event_id AND d.refund_id=k.refund_id AND d.order_id=k.order_id AND d.action=IF(ce.action='approve','confirmed','rejected')))",
+    )
+    publication = _derive(
+        publication,
+        complete_lines("p.id", "p.order_id"),
+        _complete_lines_v4("p.id", "p.order_id"),
+    )
+    publication = _derive(
+        publication,
+        "EXISTS(SELECT 1 FROM inventory_allocationline a WHERE a.allocation_id=p.allocation_id AND NOT EXISTS(SELECT 1 FROM fulfilment_preparationline l WHERE l.preparation_id=p.id AND l.bucket_id=a.bucket_id AND l.quantity=a.quantity)) OR EXISTS(SELECT 1 FROM fulfilment_preparationline l WHERE l.preparation_id=p.id AND NOT EXISTS(SELECT 1 FROM inventory_allocationline a WHERE a.allocation_id=p.allocation_id AND a.bucket_id=l.bucket_id AND a.quantity=l.quantity))",
+        _held_lines_invalid("p"),
+    )
+    result.append(publication)
+    shipment = _derive(
+        source["fulfilment_shipment_insert_guard"],
+        complete_lines("NEW.preparation_id", "NEW.order_id"),
+        _complete_lines_v4("NEW.preparation_id", "NEW.order_id"),
+    )
+    shipment = _derive(
+        shipment,
+        "NEW.goods_confirmed>0 AND (NEW.goods_confirmed>=o.goods_total",
+        f"{_net_goods('NEW.order_id')}>0 AND ({_net_goods('NEW.order_id')}>={_accepted_total('o.id')}",
+    )
+    shipment = _derive(
+        shipment,
+        f"OR ({open_hold('NEW.order_id', 'cancellation')})",
+        f"OR ({open_hold('NEW.order_id', 'cancellation')}) OR ({_cancellation_blocks('NEW.order_id')}) OR EXISTS(SELECT 1 FROM fulfilment_preparation p WHERE p.id=NEW.preparation_id AND p.allocation_id IS NOT NULL AND ({_held_lines_invalid('p')}))",
+    )
+    result.append(shipment)
+    partial = _derive(
+        source["fulfilment_partialpermission_insert_guard"],
+        f"{goods_confirmed('o.id')}>0 AND {goods_confirmed('o.id')}<o.goods_total",
+        f"{_net_goods('o.id')}>0 AND {_net_goods('o.id')}<{_accepted_total('o.id')}",
+    )
+    result.append(partial)
+    result.append(
+        _derive(
+            source["fulfilment_completion_insert_guard"],
+            eligible("NEW.order_id"),
+            _eligible_v4("NEW.order_id"),
+        )
+    )
+    reviewcase = _derive(
+        source["fulfilment_reviewcase_insert_guard"],
+        "OR (NEW.kind IN ('logistics','stock','exception') AND NEW.proposal_id IS NULL AND NEW.claim_id IS NULL AND NEW.correction_id IS NULL AND NEW.blocker_id IS NULL)",
+        "OR (NEW.kind='refund' AND NEW.refund_id IS NOT NULL AND NEW.proposal_id IS NULL AND NEW.claim_id IS NULL AND NEW.correction_id IS NULL AND NEW.blocker_id IS NULL) OR (NEW.kind IN ('logistics','stock','exception') AND NEW.proposal_id IS NULL AND NEW.claim_id IS NULL AND NEW.correction_id IS NULL AND NEW.blocker_id IS NULL AND NEW.refund_id IS NULL)",
+    )
+    reviewcase = _derive(
+        reviewcase,
+        f"OR NOT ({accepted('NEW.order_id')})",
+        f"OR (NEW.kind<>'refund' AND NEW.refund_id IS NOT NULL) OR (NEW.kind='refund' AND NEW.refund_id IS NULL) OR NOT ({accepted('NEW.order_id')})",
+    )
+    result.append(reviewcase)
+    result.append(
+        _derive(
+            source["fulfilment_reviewcase_insert_target_guard"],
+            "OR (NEW.blocker_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM fulfilment_blocker b WHERE b.id=NEW.blocker_id AND b.order_id=NEW.order_id))",
+            "OR (NEW.blocker_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM fulfilment_blocker b WHERE b.id=NEW.blocker_id AND b.order_id=NEW.order_id)) OR (NEW.refund_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM fulfilment_deliveryrefund d WHERE d.id=NEW.refund_id AND d.order_id=NEW.order_id))",
+        )
+    )
+    result.append(
+        _derive(
+            source["fulfilment_caseevent_insert_guard"],
+            "WHEN 'blocker' THEN 'manage_delivery_holds' ELSE 'manage_logistics'",
+            "WHEN 'blocker' THEN 'manage_delivery_holds' WHEN 'refund' THEN 'confirm_delivery_refund' ELSE 'manage_logistics'",
+            count=2,
+        )
+    )
+    result.append(
+        _derive(
+            source["fulfilment_evidence_insert_guard"],
+            "NEW.purpose NOT IN ('claim','correction')",
+            "NEW.purpose NOT IN ('claim','correction','refund')",
+        )
+    )
+    binding = _derive(
+        source["fulfilment_evidencebinding_insert_guard"],
+        "WHERE image.id=NEW.evidence_id AND image.order_id=c.order_id AND image.creator_id=e.account_id AND image.purpose='correction' AND image.expires_at>UTC_TIMESTAMP(6) AND NOT EXISTS(SELECT 1 FROM fulfilment_publication pub WHERE pub.event_id=c.event_id))",
+        "WHERE image.id=NEW.evidence_id AND image.order_id=c.order_id AND image.creator_id=e.account_id AND image.purpose='correction' AND image.expires_at>UTC_TIMESTAMP(6) AND NOT EXISTS(SELECT 1 FROM fulfilment_publication pub WHERE pub.event_id=c.event_id)) OR EXISTS(SELECT 1 FROM fulfilment_evidence image JOIN fulfilment_deliveryrefund r ON r.id=NEW.refund_id JOIN fulfilment_event e ON e.id=r.event_id WHERE image.id=NEW.evidence_id AND image.order_id=r.order_id AND image.creator_id=e.account_id AND image.purpose='refund' AND image.expires_at>UTC_TIMESTAMP(6) AND NOT EXISTS(SELECT 1 FROM fulfilment_publication pub WHERE pub.event_id=r.event_id))",
+    )
+    binding = _derive(
+        binding,
+        "OR NEW.correction_id IS NOT NULL AND (SELECT COUNT(*) FROM fulfilment_evidencebinding b WHERE b.correction_id=NEW.correction_id)>=3",
+        "OR NEW.correction_id IS NOT NULL AND (SELECT COUNT(*) FROM fulfilment_evidencebinding b WHERE b.correction_id=NEW.correction_id)>=3 OR NEW.refund_id IS NOT NULL AND (SELECT COUNT(*) FROM fulfilment_evidencebinding b WHERE b.refund_id=NEW.refund_id)>=3",
+    )
+    result.append(binding)
+    result += [trigger("fulfilment_deliveryrefund", "UPDATE", reject()), trigger("fulfilment_deliveryrefund", "DELETE", reject())]
+    body = "DECLARE parent_id CHAR(32); SELECT order_id INTO parent_id FROM fulfilment_state WHERE order_id=NEW.order_id FOR UPDATE; "
+    body += reject(
+        """parent_id IS NULL OR NEW.currency<>(SELECT currency FROM orders_sellerorder WHERE id=NEW.order_id) OR NEW.sent_at>UTC_TIMESTAMP(6) OR CHAR_LENGTH(TRIM(NEW.description))=0 OR NOT EXISTS(SELECT 1 FROM fulfilment_provider p WHERE p.id=NEW.provider_id AND p.order_id=NEW.order_id) OR NOT EXISTS(SELECT 1 FROM fulfilment_event e JOIN fulfilment_state s ON s.order_id=e.order_id WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.action='delivery_refund_reported' AND e.version<=s.version) OR NOT (EXISTS(SELECT 1 FROM fulfilment_arrangement a JOIN fulfilment_publication ap ON ap.event_id=a.event_id WHERE a.order_id=NEW.order_id AND a.provider_id=NEW.provider_id AND NOT EXISTS(SELECT 1 FROM fulfilment_arrangement later JOIN fulfilment_publication lp ON lp.event_id=later.event_id JOIN fulfilment_event le ON le.id=later.event_id JOIN fulfilment_event ae ON ae.id=a.event_id WHERE later.order_id=NEW.order_id AND le.version>ae.version)) OR EXISTS(SELECT 1 FROM fulfilment_chargeproposal cp JOIN fulfilment_chargedecision cd ON cd.proposal_id=cp.id JOIN fulfilment_publication dp ON dp.event_id=cd.event_id WHERE cp.order_id=NEW.order_id AND cp.provider_id=NEW.provider_id AND cd.action='approved'))"""
+    )
+    body += reject(f"""{_confirmed_refunds('NEW.order_id', 'NEW.provider_id')}+NEW.amount>{_provider_receipts('NEW.provider_id', 'NEW.order_id')}""")
+    result.append(trigger("fulfilment_deliveryrefund", "INSERT", body))
+    result += [
+        trigger("fulfilment_deliveryrefunddecision", "UPDATE", reject()),
+        trigger("fulfilment_deliveryrefunddecision", "DELETE", reject()),
+    ]
+    body = "DECLARE parent_id CHAR(32); SELECT order_id INTO parent_id FROM fulfilment_state WHERE order_id=NEW.order_id FOR UPDATE; "
+    body += reject(
+        f"""parent_id IS NULL OR NEW.action NOT IN ('confirmed','rejected') OR CHAR_LENGTH(TRIM(NEW.reason))<3 OR NOT EXISTS(SELECT 1 FROM fulfilment_reviewcase k JOIN fulfilment_event e ON e.id=NEW.event_id JOIN fulfilment_state s ON s.order_id=e.order_id WHERE k.refund_id=NEW.refund_id AND e.order_id=NEW.order_id AND e.version<=s.version AND e.action=CASE NEW.action WHEN 'confirmed' THEN 'case_approve' ELSE 'case_reject' END AND e.actor_id=k.assigned_to_id AND ({permission('e.actor_id', chr(39) + 'confirm_delivery_refund' + chr(39))}) AND ({independent('NEW.order_id', 'e.actor_id')}) AND NOT EXISTS(SELECT 1 FROM fulfilment_deliveryrefund dr JOIN fulfilment_event de ON de.id=dr.event_id WHERE dr.id=NEW.refund_id AND de.actor_id=e.actor_id)) OR EXISTS(SELECT 1 FROM fulfilment_deliveryrefunddecision existing_decision WHERE existing_decision.refund_id=NEW.refund_id)"""
+    )
+    body += reject(
+        f"""NEW.action='confirmed' AND {_confirmed_refunds('NEW.order_id', '(SELECT provider_id FROM fulfilment_deliveryrefund WHERE id=NEW.refund_id)')}+(SELECT amount FROM fulfilment_deliveryrefund WHERE id=NEW.refund_id)>{_provider_receipts('(SELECT provider_id FROM fulfilment_deliveryrefund WHERE id=NEW.refund_id)', 'NEW.order_id')}"""
+    )
+    result.append(trigger("fulfilment_deliveryrefunddecision", "INSERT", body))
+    return result

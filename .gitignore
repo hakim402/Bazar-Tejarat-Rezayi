@@ -15,6 +15,7 @@
 *.rst
 *.txt
 !backend/apps/accounts/templates/accounts/email/*.txt
+!backend/apps/accounts/static/accounts/vendor/*.txt
 *.pdf
 *.doc
 *.docx
@@ -71,6 +72,7 @@ blob-report/
 venv/
 __pycache__/
 *.py[cod]
+*.mo
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/

@@ -92,6 +92,42 @@ class FinancialAdmin(MetadataAdmin):
     role = "financial"
 
 
+class RefundAdmin(MetadataAdmin):
+    refund_path = "pk"
+    list_display = ["id", "order", "amount", "currency", "created_at", "workflow_link"]
+    money_fields = {"amount": "currency"}
+
+    def staff_view(self, request, obj=None):
+        codes = access.rights(admin_actor(request))
+        return {"read_fulfilment", "confirm_delivery_refund"} <= codes and (
+            obj is None or self.staff_queryset(request, self.model.objects.filter(pk=obj.pk)).exists()
+        )
+
+    def staff_queryset(self, request, qs):
+        actor = admin_actor(request)
+        cases = access.case_scope(actor).filter(assigned_to=actor.user, kind="refund")
+        return qs.filter(**{self.refund_path + "__in": cases.values("refund_id")})
+
+    def get_fields(self, request, obj=None):
+        return [*super().get_fields(request, obj), "workflow_link"]
+
+    def workflow_link(self, obj):
+        refund_id = obj.pk if self.refund_path == "pk" else obj.refund_id
+        case = m.ReviewCase.objects.filter(refund_id=refund_id).first()
+        if case is None:
+            return "Unpublished"
+        return format_html(
+            '<a href="{}">{}</a>', reverse("admin:fulfilment_reviewcase_review", args=[case.pk]), "Open guarded refund review"
+        )
+
+
+class RefundDecisionAdmin(RefundAdmin):
+    refund_path = "refund_id"
+    list_display = ["id", "refund", "action", "created_at", "workflow_link"]
+    money_fields = {}
+    badge_fields = ("action",)
+
+
 class LineAdmin(LogisticsAdmin):
     order_path = "preparation__order_id"
 
@@ -136,6 +172,7 @@ class CaseAdmin(MetadataAdmin):
     list_display = ["id", "kind", "order", "state", "version", "reviewer", "workflow_link"]
     list_filter = ["kind", "state"]
     search_fields = ["id", "order__id"]
+    badge_fields = ("kind", "state")
 
     def staff_queryset(self, request, qs):
         return qs.filter(pk__in=access.case_scope(admin_actor(request)).values("pk"))
@@ -211,6 +248,8 @@ for model, admin in [
     (m.ClaimDecision, FinancialAdmin),
     (m.Receipt, FinancialAdmin),
     (m.Correction, FinancialAdmin),
+    (m.DeliveryRefund, RefundAdmin),
+    (m.DeliveryRefundDecision, RefundDecisionAdmin),
     (m.Blocker, MetadataAdmin),
     (m.BlockerClosure, MetadataAdmin),
     (m.Completion, MetadataAdmin),

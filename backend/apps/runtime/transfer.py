@@ -200,12 +200,12 @@ def export_source(output, *, source_revision):
         from .mariadb.schema import contract
 
         installed = Schema.objects.get(pk=1).contract
-        native_version = next((version for version in (3, 2, 1) if installed == contract(version)), None)
+        native_version = next((version for version in (4, 3, 2, 1) if installed == contract(version)), None)
         if native_version is None:
             raise TransferError("An unready or unknown native schema cannot be exported as a release snapshot.")
         verify(record=False, version=native_version)
         generated = reference(native_version)["structure"]["generated"]
-        if native_version in {2, 3}:
+        if native_version in {2, 3, 4}:
             from .native_restore import descriptor
 
             result.update(
@@ -351,7 +351,7 @@ def export_source(output, *, source_revision):
                 }
                 for row in Evidence.objects.order_by("pk")
             ]
-        if result.get("native_schema_version") == 3:
+        if result.get("native_schema_version") in {3, 4}:
             from apps.fulfilment.models import Evidence as DeliveryEvidence
 
             result["delivery_evidence_files"] = [
@@ -672,6 +672,8 @@ class Importer:
         verify(version=2)
         MigrationExecutor(connection).migrate([("runtime", "0007_fulfilment_v3")])
         verify(version=3)
+        MigrationExecutor(connection).migrate([("runtime", "0009_aftercare_v4")])
+        verify(version=4)
         # New definitions are additive metadata; no group/account assignment is
         # created. Keep this transaction atomic with final transfer publication.
         from django.contrib.contenttypes.management import create_contenttypes

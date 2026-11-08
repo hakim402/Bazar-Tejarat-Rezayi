@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
@@ -136,7 +137,7 @@ class RevisionAdmin(ReadOnlyAdmin):
             ids = {revision.body.get(key) for key in ("logo", "banner")} - {None}
             images = {str(item.pk): item for item in StoreMedia.objects.filter(store_id=revision.store_id, pk__in=ids)}
             media = [{"url": reverse("admin:marketplace_store_media", args=[images[revision.body[role]].pk]), "name": role.capitalize()} for role in ("logo", "banner") if revision.body.get(role) in images]
-        return render(request, "marketplace/review.html", {**self.admin_site.each_context(request), "title": "Review public store details",
+        return render(request, "marketplace/review.html", {**self.admin_site.each_context(request), "title": _("Review public store details"),
             "revision": revision, "form": form, "independent_decision": independent_decision, "can_act": len(choices) > 1, "can_read": can_read,
             "public_store_url": f"{settings.FRONTEND_ORIGIN}/en/stores/{revision.store_id}",
             "editions": revision.body["editions"].items() if can_read else [], "public_body": revision.body if can_read else None, "media": media}, status=status)
@@ -183,7 +184,7 @@ class FeatureAdmin(ReadOnlyAdmin):
                 status = error.status_code
             else:
                 return HttpResponseRedirect(request.path)
-        return render(request, "marketplace/feature.html", {**self.admin_site.each_context(request), "title": "Featured Rezayi store", "form": form}, status=status)
+        return render(request, "marketplace/feature.html", {**self.admin_site.each_context(request), "title": _("Featured Rezayi store"), "form": form}, status=status)
 
 
 owner_site.register(StoreRevision, RevisionAdmin)

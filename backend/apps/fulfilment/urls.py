@@ -14,6 +14,7 @@ urlpatterns = [
     path("<marketplace:context>/orders/<uuid:pk>/claims/", v.Claim.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/claims/withdraw/", v.Withdraw.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/corrections/", v.Correction.as_view()),
+    path("<marketplace:context>/orders/<uuid:pk>/delivery-refunds/", v.DeliveryRefund.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/dispatch/review/", v.Preview.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/dispatch/", v.Dispatch.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/tracking/", v.Tracking.as_view()),

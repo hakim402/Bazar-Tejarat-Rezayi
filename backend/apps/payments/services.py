@@ -3,11 +3,11 @@
 import hashlib
 from decimal import Decimal
 from django.db import transaction, DatabaseError
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
-from apps.accounts.models import User
+from apps.foundation.independence import eligible_reviewers
 from apps.organizations.access import Conflict
 from apps.runtime.locks import lock
 from . import access, queries, validation as v
@@ -313,9 +313,12 @@ def _plan(actor, order, state, data):
         ).shortage
     elif intent and intent.attempts.exists():
         raise Conflict("A changed shortage selection needs independent approval.")
-    demand = {
-        str(r["variant_id"]): r["quantity"] for r in order.lines.values("variant_id").annotate(quantity=Sum("quantity"))
-    }
+    from apps.orders.aftercare import effective_lines
+
+    demand = {}
+    for item in effective_lines(order):
+        variant_id = str(item["line"].variant_id)
+        demand[variant_id] = demand.get(variant_id, Decimal(0)) + item["quantity"]
     selected = stock.normalize_lines(data.get("lines"))
     totals = {}
     rows = []
@@ -355,6 +358,9 @@ def _plan(actor, order, state, data):
     return {"plan": str(plan.pk), "case": str(case.pk) if replacement else None, "version": state.version}
 
 
+FROZEN_ACTIONS = {"claim", "withdraw", "reject", "confirm", "receipt", "correction", "extension", "plan"}
+
+
 def mutate(actor, pk, action, data):
     key = v.identifier(data.get("command_id"), "command_id")
     fingerprint = v.digest(action, pk, data)
@@ -367,6 +373,11 @@ def mutate(actor, pk, action, data):
         if old is not None:
             result = old
         else:
+            if action in FROZEN_ACTIONS:
+                from apps.orders import aftercare
+
+                if aftercare.cancelled(order):
+                    raise Conflict("A cancelled order accepts no new goods money actions.")
             state = coordinator(order)
             expect(state.version, data.get("version"))
             if action == "claim":
@@ -434,36 +445,13 @@ def reviewers(case):
         "shortage": "decide_payment_shortage",
         "receipt": "review_payment",
     }.get(case.kind, "review_overdue")
-    candidates = (
-        User.objects.filter(is_active=True, email_verified=True, is_staff=True)
-        .filter(
-            Q(is_superuser=True)
-            | Q(
-                accounts__context="staff",
-                accounts__status="active",
-                groups__permissions__content_type__app_label="payments",
-                groups__permissions__codename=permission,
-            )
-        )
-        .filter(
-            Q(is_superuser=True)
-            | Q(
-                groups__permissions__content_type__app_label="payments",
-                groups__permissions__codename="read_payments",
-            )
-        )
-        .distinct()
-        .order_by("pk")
+    return eligible_reviewers(
+        "payments",
+        "read_payments",
+        permission,
+        lambda user: access.independent(case.order, user),
+        active_staff_account=True,
     )
-    # Native assignment choices are bounded; no contacts/email in the form label.
-    result = []
-    for user in candidates[:200]:
-        try:
-            access.independent(case.order, user)
-        except PermissionDenied:
-            continue
-        result.append(user)
-    return result
 
 
 def decide(actor, pk, data):
@@ -509,13 +497,23 @@ def decide(actor, pk, data):
                     raise Conflict()
                 if action not in {"approve", "reject", "replenish", "refer", "resolve"}:
                     v.fail("action")
+                from apps.orders.aftercare import cancelled
+
+                if cancelled(order) and (
+                    action == "replenish" or action == "approve" and case.kind in {"correction", "replacement"}
+                ):
+                    raise Conflict("A cancelled order cannot change goods payments or stock.")
                 if case.kind == "correction":
                     if action not in {"approve", "reject"}:
                         v.fail("action")
                     receipt = queries.effective_receipts(Receipt.objects.filter(pk=case.correction.receipt_id)).get()
                     expect(receipt.effective_version, case.correction.target_version)
                     if action == "approve":
-                        v.total([queries.confirmed(order) - receipt.effective_amount, case.correction.amount])
+                        from .refunds import due_total
+
+                        corrected = v.total([queries.confirmed(order) - receipt.effective_amount, case.correction.amount])
+                        if corrected < due_total(order):
+                            raise Conflict("A correction cannot reduce received money below retained refund obligations.")
                 elif case.kind == "replacement":
                     if action not in {"approve", "reject"}:
                         v.fail("action")

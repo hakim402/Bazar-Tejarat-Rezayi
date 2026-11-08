@@ -43,7 +43,32 @@ const paths = {
 	"arrow-down": "M12 5v14 M5 12l7 7 7-7",
 	"more-horizontal": "M5 12h.01 M12 12h.01 M19 12h.01",
 	eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+	image:
+		"M3 5h18v14H3Z M9 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0 M3 17l5-5 4 4 3-3 6 6",
 	sliders: "M4 6h16 M4 12h10 M4 18h6 M18 4v4 M10 10v4 M6 16v4",
+	warehouse: "M3 21V8l9-5 9 5v13 M3 21h18 M7 21V11h10v10 M7 15h10 M7 18h10",
+	history: "M3 11a9 9 0 1 1 2.6 7.4 M3 4v7h7 M12 7v5l3 2",
+	"shopping-bag": "M5 7h14l2 14H3Z M8 9V6a4 4 0 0 1 8 0v3",
+	handshake:
+		"m2 8 4-4 4 2h4l4-2 4 4-3 7 M2 8l3 7 5 5a2 2 0 0 0 3-1 M6 5l-2 2 M18 5l2 2 M14 6l-5 5a2 2 0 0 0 3 2l2-2 5 5a2 2 0 0 1-3 3l-4-4 M16 19l-5-5",
+	truck:
+		"M2 4h12v13H2Z M14 8h4l4 5v4h-8 M14 13h8 M8 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0 M20 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0",
+	return: "M9 4 3 10l6 6 M3 10h11a7 7 0 0 1 7 7v3",
+	receipt: "M5 3l3 2 4-2 4 2 3-2v18l-3-2-4 2-4-2-3 2Z M8 9h8 M8 13h8 M8 17h4",
+	wallet:
+		"M20 7V4H5a3 3 0 0 0 0 6h16v11H5a3 3 0 0 1-3-3V7 M21 13h-5v5h5 M17 15.5h.01",
+	"user-circle":
+		"M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M15 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M5 18a7 7 0 0 1 14 0",
+	gear: "m10 2-.7 3-2 .9-2.7-.9-2 3.5 2 2v3l-2 2 2 3.5 2.7-.9 2 .9.7 3h4l.7-3 2-.9 2.7.9 2-3.5-2-2v-3l2-2-2-3.5-2.7.9-2-.9-.7-3Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
+	"shield-lock":
+		"M12 3 3 7v6c0 4 5 7 9 9 4-2 9-5 9-9V7Z M8 11h8v6H8Z M10 11V9a2 2 0 0 1 4 0v2",
+	link: "m10 13 4-4 M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0 M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0",
+	sun: "M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5",
+	moon: "M21 13a9 9 0 1 1-10-10 7 7 0 0 0 10 10Z",
+	monitor: "M2 4h20v12H2Z M8 20h8 M12 16v4",
+	more: "M5 12h.01 M12 12h.01 M19 12h.01",
+	"alert-triangle": "M12 3 22 20H2Z M12 9v4.5 M12 17h.01",
+	"check-circle": "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 m-14 1 3 3 5.5-6",
 } as const;
 export type IconName = keyof typeof paths;
 export function Icon({
@@ -51,6 +76,14 @@ export function Icon({
 	className = "size-5",
 	...props
 }: ComponentProps<"svg"> & { name: IconName }) {
+	const directional =
+		name === "arrow" ||
+		name.startsWith("arrow-") ||
+		name.startsWith("chevron") ||
+		name.startsWith("trending-") ||
+		name === "return";
+	const mirror = directional && !/\b(?:ltr|rtl):rotate-180\b/.test(className);
+
 	return (
 		<svg
 			viewBox="0 0 24 24"
@@ -60,7 +93,7 @@ export function Icon({
 			strokeLinecap="round"
 			strokeLinejoin="round"
 			aria-hidden="true"
-			className={`shrink-0 ${className}`}
+			className={`shrink-0 ${mirror ? "rtl:-scale-x-100" : ""} ${className}`}
 			{...props}
 		>
 			<path d={paths[name]} />

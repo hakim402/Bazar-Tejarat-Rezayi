@@ -4,7 +4,14 @@ import type { Locale } from "../../../lib/i18n/locales";
 import type { Context, DisplayLine, StockOptions } from "../types";
 import { fulfilment } from "../api";
 import { fulfilmentCopy } from "../copy";
-import { action, control } from "../../orders/components/controls";
+import {
+	action as buyerAction,
+	control as buyerControl,
+} from "../../orders/components/controls";
+import {
+	salesAction,
+	salesControl,
+} from "../../sales/components/seller-sales-ui";
 export function StockSelection({
 	locale,
 	context,
@@ -21,6 +28,8 @@ export function StockSelection({
 	change: (lines: DisplayLine[]) => void;
 }) {
 	const t = fulfilmentCopy[locale],
+		action = context === "seller" ? salesAction : buyerAction,
+		control = context === "seller" ? salesControl : buyerControl,
 		[options, setOptions] = useState<StockOptions | null>(null),
 		[query, setQuery] = useState(""),
 		[page, setPage] = useState(1),

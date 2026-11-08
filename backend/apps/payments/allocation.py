@@ -21,6 +21,10 @@ def execute(order_id, *, now=None, skip_busy=False):
     initial = AllocationIntent.objects.filter(order_id=order_id).first()
     if not initial or initial.state not in {"pending", "blocked_zero"} or not initial.plan_id:
         return None
+    from apps.orders import aftercare
+
+    if aftercare.cancelled(initial.order):
+        return None
     number = (initial.attempts.aggregate(n=Max("number"))["n"] or 0) + 1
     token = uuid.uuid5(initial.id, f"{initial.plan_id}:{number}")
     with transaction.atomic():
@@ -37,7 +41,7 @@ def execute(order_id, *, now=None, skip_busy=False):
         intent = AllocationIntent.objects.select_for_update().select_related("order").get(order_id=order_id)
         if intent.plan_id != initial.plan_id or (intent.attempts.aggregate(n=Max("number"))["n"] or 0) + 1 != number:
             return None
-        if intent.allocation_id or intent.state not in {"pending", "blocked_zero"}:
+        if intent.allocation_id or intent.state not in {"pending", "blocked_zero"} or aftercare.cancelled(intent.order):
             return None
         if queries.confirmed(intent.order) <= 0:
             if intent.state != "blocked_zero":

@@ -6,7 +6,7 @@ import {
 	useRef,
 	type ReactNode,
 } from "react";
-import { Input, Select } from "../../../components/ui/form-field";
+import { Input, Select, Toggle } from "../../../components/ui/form-field";
 import type { ValidationIssue } from "../../../lib/api/private-client";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -58,9 +58,18 @@ export function Feedback({
 						<button
 							type="button"
 							className="min-h-11 border-0 bg-transparent p-0 text-start text-inherit underline cursor-pointer"
-							onClick={() =>
-								document.getElementById(fieldId(issue.path))?.focus()
-							}
+							onClick={() => {
+								const target = document.getElementById(fieldId(issue.path));
+								for (
+									let parent = target?.parentElement;
+									parent;
+									parent = parent.parentElement
+								) {
+									if (parent instanceof HTMLDetailsElement) parent.open = true;
+								}
+								target?.scrollIntoView({ block: "nearest" });
+								target?.focus();
+							}}
 						>
 							{rule(issue.code, locale)}
 						</button>
@@ -88,7 +97,7 @@ export function ValidationGroup({
 			tabIndex={-1}
 			aria-invalid={selected.length > 0}
 			aria-describedby={selected.length ? `${id}-error` : undefined}
-			className="grid min-w-0 gap-4 py-3 desktop:grid-cols-2"
+			className="m-0 grid min-w-0 gap-4 border-0 px-0 py-3 desktop:grid-cols-2"
 		>
 			<legend className="font-bold">{label}</legend>
 			{children}
@@ -111,6 +120,9 @@ export function Control({
 	children,
 	required = false,
 	decimal = false,
+	maxLength,
+	hint,
+	isolated = false,
 }: {
 	path: string;
 	label: string;
@@ -122,6 +134,9 @@ export function Control({
 	children?: ReactNode;
 	required?: boolean;
 	decimal?: boolean;
+	maxLength?: number;
+	hint?: string;
+	isolated?: boolean;
 }) {
 	const { issues, locale } = useContext(CatalogueValidation);
 	const selected = issues.filter((i) => i.path === path);
@@ -132,7 +147,11 @@ export function Control({
 		disabled,
 		required,
 		"aria-invalid": selected.length > 0,
-		"aria-describedby": selected.length ? `${id}-error` : undefined,
+		"aria-describedby":
+			[hint ? `${id}-hint` : "", selected.length ? `${id}-error` : ""]
+				.filter(Boolean)
+				.join(" ") || undefined,
+		...(isolated ? { dir: "ltr" as const } : {}),
 	};
 	return (
 		<div className="min-w-0 space-y-2">
@@ -150,16 +169,23 @@ export function Control({
 			) : textarea ? (
 				<textarea
 					{...props}
+					maxLength={maxLength}
 					className="w-full min-h-32 rounded-control border border-control bg-surface p-3"
 					onChange={(e) => onChange(e.target.value)}
 				/>
 			) : (
 				<Input
 					{...props}
+					maxLength={maxLength}
 					inputMode={decimal ? "decimal" : undefined}
 					onChange={(e) => onChange(e.target.value)}
 				/>
 			)}{" "}
+			{hint && (
+				<p id={`${id}-hint`} className="text-caption text-muted">
+					{hint}
+				</p>
+			)}
 			{selected.length > 0 && (
 				<p className="text-danger" id={`${id}-error`}>
 					{selected.map((i) => rule(i.code, locale)).join(" ")}
@@ -187,10 +213,13 @@ export function Attributes({
 		<div className="grid gap-4 desktop:grid-cols-2">
 			{fields.map((f) =>
 				f.type === "boolean" ? (
-					<label key={f.code} className="flex min-h-11 gap-3 items-center">
-						<input
-							className="size-5 accent-primary"
-							type="checkbox"
+					<label
+						key={f.code}
+						htmlFor={fieldId(`${path}.${f.code}`)}
+						className="flex min-h-11 cursor-pointer items-center gap-3"
+					>
+						<Toggle
+							id={fieldId(`${path}.${f.code}`)}
 							disabled={disabled}
 							checked={values[f.code] === true}
 							onChange={(e) =>

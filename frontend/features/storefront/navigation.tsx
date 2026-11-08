@@ -160,8 +160,13 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 					>
 						<Icon name="globe" />
 					</summary>
-					<div className="absolute end-0 top-full z-40 mt-3 hidden w-64 max-w-[85vw] rounded-2xl border border-border bg-surface p-4 shadow-card group-open/preferences:block max-[767px]:fixed max-[767px]:inset-x-3 max-[767px]:top-16 max-[767px]:w-auto max-[767px]:max-w-none">
-						<p className="mb-3 text-sm font-bold">{t.preferences}</p>
+					<div className="absolute end-0 top-full z-40 mt-3 hidden w-72 max-w-[85vw] rounded-2xl border border-border bg-surface p-5 shadow-card group-open/preferences:block max-[767px]:fixed max-[767px]:inset-x-3 max-[767px]:top-16 max-[767px]:w-auto max-[767px]:max-w-none">
+						<div className="mb-4 flex items-center gap-2">
+							<span className="flex size-8 items-center justify-center rounded-lg bg-info text-action">
+								<Icon name="sliders" className="size-4" />
+							</span>
+							<p className="text-sm font-bold">{t.preferences}</p>
+						</div>
 						<Preferences locale={locale} />
 					</div>
 				</details>

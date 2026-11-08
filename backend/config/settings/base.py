@@ -71,11 +71,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "apps.foundation.observability.RequestContextMiddleware",
     "apps.foundation.uploads.UploadBoundaryMiddleware",
-    "apps.accounts.admin_locale.AdminEnglishMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "apps.runtime.middleware.TargetSchemaMiddleware",
     "apps.accounts.middleware.ReadSafeSessionMiddleware",
+    "apps.accounts.admin_locale.AdminLanguageMiddleware",
     "django.middleware.common.CommonMiddleware",
     "apps.verification.uploads.EvidenceRequestLimitMiddleware",
     "apps.catalogue.media.CatalogueRequestLimitMiddleware",
@@ -145,6 +145,7 @@ LANGUAGE_CODE = "fa-af"
 LANG_INFO["fa-af"] = {"bidi": True, "code": "fa-af", "name": "Dari", "name_local": "دری", "fallback": ["fa"]}
 LANG_INFO["ps"] = {"bidi": True, "code": "ps", "name": "Pashto", "name_local": "پښتو"}
 LANGUAGES = [("fa-af", "دری"), ("en", "English"), ("ps", "پښتو"), ("ar", "العربية")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = "Asia/Kabul"
 USE_I18N = True
 USE_TZ = True
@@ -214,8 +215,8 @@ UNFOLD = {
     "SITE_URL": FRONTEND_ORIGIN,
     "STYLES": [lambda request: f"/static/accounts/admin.css?v={ADMIN_CSS_VERSION}"],
     "SITE_LOGO": {
-        "light": lambda request: "/static/accounts/brand-en.svg",
-        "dark": lambda request: "/static/accounts/brand-en-white.svg",
+        "light": lambda request: "/static/accounts/site-logo-fa-AF-blue.svg" if getattr(request, "LANGUAGE_CODE", "en") == "fa-af" else "/static/accounts/brand-en.svg",
+        "dark": lambda request: "/static/accounts/site-logo-fa-AF-white.svg" if getattr(request, "LANGUAGE_CODE", "en") == "fa-af" else "/static/accounts/brand-en-white.svg",
     },
 }
 
@@ -235,6 +236,8 @@ SPECTACULAR_SETTINGS = {
         "LocaleEnum": "apps.foundation.contracts.LOCALES",
         "CurrencyEnum": ["AFN", "USD"],
         "GoodsPaymentMethodEnum": ["advance", "cod"],
+        "AftercareRequestStateEnum": ["pending", "withdrawn", "approved", "rejected"],
+        "CommandRecoveryStateEnum": ["unknown", "applied", "rejected"],
         "CartMutationActionEnum": ["set", "remove"],
         "CompanyBundleEnum": "apps.organizations.models.BUNDLES",
         "BusinessProfileKindEnum": ["individual", "company", "business"],

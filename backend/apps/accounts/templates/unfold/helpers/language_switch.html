@@ -1,0 +1,8 @@
+{% load i18n %}
+<form method="post" action="{% url 'admin:admin_set_language' %}" class="ra:inline-flex" data-testid="admin-language-switch">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="ra:inline-flex ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:p-0.5" role="group" aria-label="{% translate 'Language' %}">
+    <button type="submit" name="language" value="en" aria-pressed="{% if request.LANGUAGE_CODE == 'en' %}true{% else %}false{% endif %}" class="ra:min-h-11 ra:rounded-md ra:px-3 ra:text-xs ra:font-bold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">English</button>
+    <button type="submit" name="language" value="fa-af" aria-pressed="{% if request.LANGUAGE_CODE == 'fa-af' %}true{% else %}false{% endif %}" class="ra:min-h-11 ra:rounded-md ra:px-3 ra:text-xs ra:font-bold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">دری</button>
+  </div>
+</form>

@@ -2,9 +2,20 @@ import Link from "next/link";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Context, Detail } from "../types";
 import { fulfilmentCopy, fulfilmentState } from "../copy";
+import { aftercareCopy, aftercareState } from "../../aftercare/copy";
 import { fulfilmentHref } from "../api";
 import { localTimestamp } from "../../messaging/api";
-import { action, panel } from "../../orders/components/controls";
+import {
+	action as buyerAction,
+	panel as buyerPanel,
+} from "../../orders/components/controls";
+import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
+import type { QueryReader } from "../../../lib/routes/account-routes";
+import {
+	salesAction,
+	salesPanel,
+	salesHistoryHref,
+} from "../../sales/components/seller-sales-ui";
 import { DeliveryEvidence } from "./evidence";
 export function DeliveryHistory({
 	locale,
@@ -12,14 +23,27 @@ export function DeliveryHistory({
 	row,
 	seller,
 	page,
+	returnParams,
 }: {
 	locale: Locale;
 	context: Context;
 	row: Detail;
 	seller: string;
 	page: number;
+	returnParams?: QueryReader;
 }) {
-	const t = fulfilmentCopy[locale];
+	const t = fulfilmentCopy[locale],
+		r = aftercareCopy[locale],
+		s = sellerSalesCopy[locale],
+		isSeller = context === "seller",
+		action = isSeller ? salesAction : buyerAction,
+		panel = isSeller ? salesPanel : buyerPanel;
+	const historyHref = (next: number) => {
+		const href = fulfilmentHref(locale, context, row.id, seller, next);
+		return isSeller && returnParams
+			? salesHistoryHref(href, returnParams)
+			: href;
+	};
 	const events: Record<string, string> = {
 		recipient_revised: t.recipient,
 		arrangement_proposed: t.arrangement,
@@ -29,6 +53,7 @@ export function DeliveryHistory({
 		delivery_claimed: t.claimDelivery,
 		claim_withdrawn: t.withdrawClaim,
 		correction_proposed: t.correctionDelivery,
+		delivery_refund_reported: r.deliveryRefund,
 		operational_hold: t.blockers,
 		dispatched: t.dispatch,
 		dispatch_blocked: t.notReady,
@@ -38,7 +63,7 @@ export function DeliveryHistory({
 	};
 	return (
 		<>
-			{" "}
+			{isSeller && <h2 className="text-lg font-semibold">{s.history}</h2>}
 			{row.proposals.length > 0 && (
 				<section className={panel}>
 					<h2 className="text-xl font-bold">{t.proposeCharge}</h2>
@@ -55,6 +80,50 @@ export function DeliveryHistory({
 					))}
 				</section>
 			)}
+			{(row.capabilities.financial_details ||
+				(context === "seller" && row.capabilities.refund)) &&
+				row.delivery_refunds.length > 0 && (
+					<section className={panel}>
+						<h2 className="text-xl font-bold">{r.deliveryRefunds}</h2>
+						<p>{r.deliveryNote}</p>
+						{row.delivery_refunds.map((refund) => (
+							<article
+								key={refund.id}
+								className="space-y-2 rounded-control border border-border p-3"
+							>
+								<p>
+									{t.provider}: <bdi>{refund.provider_name}</bdi> ·{" "}
+									<bdi>{refund.provider}</bdi>
+								</p>
+								<p>
+									<bdi>
+										{refund.amount} {refund.currency}
+									</bdi>{" "}
+									· {aftercareState(locale, refund.state)}
+								</p>
+								<p>
+									{r.target}: <bdi>{refund.id}</bdi>
+								</p>
+								<p>
+									{r.sentAt}:{" "}
+									<bdi>{localTimestamp(refund.sent_at, locale)}</bdi>
+								</p>
+								<p className="break-words">
+									{r.reference}: <bdi>{refund.reference}</bdi>
+								</p>
+								<p className="break-words whitespace-pre-wrap">
+									{refund.description}
+								</p>
+								<div className="flex flex-wrap gap-3">
+									{/* Returned refund IDs include own logistics proof without general evidence access. */}
+									{refund.evidence.map((id) => (
+										<DeliveryEvidence key={id} {...{ id, context, locale }} />
+									))}
+								</div>
+							</article>
+						))}
+					</section>
+				)}
 			{row.capabilities.financial_details && (
 				<>
 					<section className={panel}>
@@ -161,6 +230,13 @@ export function DeliveryHistory({
 			</section>
 			<section className={panel}>
 				<h2 className="text-xl font-bold">{t.history}</h2>
+				{isSeller && (
+					<p className="text-sm text-muted">
+						{s.results}:{" "}
+						<bdi>{new Intl.NumberFormat(locale).format(row.history_count)}</bdi>{" "}
+						· {s.page} <bdi>{new Intl.NumberFormat(locale).format(page)}</bdi>
+					</p>
+				)}
 				{row.history.map((event) => (
 					<p key={event.id}>
 						<bdi>v{event.version}</bdi> · {events[event.action] ?? t.review} ·{" "}
@@ -170,18 +246,12 @@ export function DeliveryHistory({
 				))}
 				<div className="flex flex-wrap gap-3">
 					{page > 1 && (
-						<Link
-							className={action}
-							href={fulfilmentHref(locale, context, row.id, seller, page - 1)}
-						>
+						<Link className={action} href={historyHref(page - 1)}>
 							{t.previous}
 						</Link>
 					)}
 					{page * 50 < row.history_count && (
-						<Link
-							className={action}
-							href={fulfilmentHref(locale, context, row.id, seller, page + 1)}
-						>
+						<Link className={action} href={historyHref(page + 1)}>
 							{t.next}
 						</Link>
 					)}

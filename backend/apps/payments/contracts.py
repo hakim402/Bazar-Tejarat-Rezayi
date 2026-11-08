@@ -2,6 +2,7 @@
 
 from rest_framework import serializers as s
 from drf_spectacular.utils import extend_schema_serializer
+from apps.foundation.contracts import AwareDateTime
 from apps.messaging.contracts import Strict
 from . import validation as v
 
@@ -95,10 +96,15 @@ class Summary(s.Serializer):
     number = s.CharField()
     currency = s.CharField()
     goods_total = s.CharField()
+    accepted_total = s.CharField()
     payment_method = s.CharField()
     seller_name = s.CharField(allow_blank=True)
     buyer_name = s.CharField(allow_blank=True)
     confirmed_total = s.CharField()
+    received = s.CharField()
+    refunded = s.CharField()
+    refund_due = s.CharField()
+    refundable_excess = s.CharField()
     remaining = s.CharField()
     overpayment = s.CharField()
     financial = s.CharField()
@@ -118,10 +124,32 @@ class Detail(Summary):
     cases = s.ListField(child=s.JSONField())
     extensions = s.ListField(child=s.JSONField())
     plans = s.ListField(child=s.JSONField())
+    refund_dues = s.ListField(child=s.JSONField())
+    refund_reports = s.ListField(child=s.JSONField())
     history = s.ListField(child=s.JSONField())
     history_count = s.IntegerField()
     history_page = s.IntegerField()
     selection = s.JSONField(allow_null=True)
+
+
+class RefundDueCommand(Command):
+    amount = Money()
+    reason = s.CharField(min_length=3, max_length=1000)
+
+
+class RefundReportCommand(Command):
+    due = s.UUIDField()
+    previous = s.UUIDField(required=False)
+    amount = Money()
+    sent_at = AwareDateTime()
+    reference = s.CharField(min_length=1, max_length=160)
+    description = s.CharField(min_length=1, max_length=500)
+    evidence = s.ListField(child=s.UUIDField(), max_length=3, default=list)
+
+
+class RefundWithdrawCommand(Command):
+    report = s.UUIDField()
+    reason = s.CharField(min_length=3, max_length=1000)
 
 
 class Page(s.Serializer):

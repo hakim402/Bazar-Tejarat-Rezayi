@@ -2242,6 +2242,62 @@
                 }
             }
         },
+        "/api/v1/fulfilment/{context}/orders/{id}/delivery-refunds/": {
+            "post": {
+                "operationId": "fulfilment_delivery_refund",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FulfilmentRefundCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FulfilmentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/fulfilment/{context}/orders/{id}/dispatch/": {
             "post": {
                 "operationId": "fulfilment_dispatch",
@@ -5057,6 +5113,328 @@
                 }
             }
         },
+        "/api/v1/orders/{context}/aftercare/": {
+            "get": {
+                "operationId": "aftercare_orders",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercarePage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/aftercare/{id}/": {
+            "get": {
+                "operationId": "aftercare_order_detail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/cancellations/": {
+            "get": {
+                "operationId": "aftercare_cancellations",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercarePage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/cancellations/{id}/": {
+            "get": {
+                "operationId": "aftercare_cancellation_detail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CancellationDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/cancellations/{id}/withdraw/": {
+            "post": {
+                "operationId": "aftercare_cancellation_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CancellationWithdrawCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/{context}/invoices/": {
             "get": {
                 "operationId": "orders_invoices",
@@ -5849,6 +6227,172 @@
                 }
             }
         },
+        "/api/v1/orders/{context}/orders/{id}/aftercare-commands/{key}/": {
+            "get": {
+                "operationId": "aftercare_command_lookup",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Settled"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/orders/{id}/aftercare-commands/{key}/reconcile/": {
+            "post": {
+                "operationId": "aftercare_command_settle",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Settled"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/orders/{id}/cancellations/": {
+            "post": {
+                "operationId": "aftercare_cancellation_request",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CancellationCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/buyer/checkouts/": {
             "get": {
                 "operationId": "orders_submissions",
@@ -6456,6 +7000,53 @@
                 }
             }
         },
+        "/api/v1/orders/seller/amendments/{id}/withdraw/": {
+            "post": {
+                "operationId": "aftercare_amendment_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AmendmentWithdrawCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/seller/checkout-terms/{id}/": {
             "get": {
                 "operationId": "orders_terms",
@@ -6736,6 +7327,53 @@
                                 "schema": {
                                     "type": "object",
                                     "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/seller/orders/{id}/amendments/": {
+            "post": {
+                "operationId": "aftercare_amendment_propose",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AmendmentCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
                                 }
                             }
                         },
@@ -8203,6 +8841,100 @@
                 }
             }
         },
+        "/api/v1/payments/seller/orders/{id}/refund-dues/": {
+            "post": {
+                "operationId": "payment_refund_due",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefundDueCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/orders/{id}/refund-reports/": {
+            "post": {
+                "operationId": "payment_refund_report",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefundReportCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/payments/seller/orders/{id}/stock-plans/": {
             "post": {
                 "operationId": "payment_stock_plan",
@@ -8411,6 +9143,53 @@
                         "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/CorrectionCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/seller/refund-reports/{id}/withdraw/": {
+            "post": {
+                "operationId": "payment_refund_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefundWithdrawCommandRequest"
                             }
                         }
                     },
@@ -8748,6 +9527,222 @@
                     "version"
                 ]
             },
+            "AftercareDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "capabilities": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "effective_lines": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "accepted_total": {
+                        "type": "string"
+                    },
+                    "payment_method": {
+                        "type": "string"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller_name": {
+                        "type": "string"
+                    },
+                    "buyer_name": {
+                        "type": "string"
+                    },
+                    "payment": {},
+                    "aftercare": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    },
+                    "cancellations": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "amendments": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "adjustments": {
+                        "type": "array",
+                        "items": {}
+                    }
+                },
+                "required": [
+                    "accepted_total",
+                    "adjustments",
+                    "aftercare",
+                    "amendments",
+                    "buyer_name",
+                    "cancellations",
+                    "capabilities",
+                    "currency",
+                    "effective_lines",
+                    "goods_total",
+                    "id",
+                    "invoice",
+                    "number",
+                    "payment",
+                    "payment_method",
+                    "seller",
+                    "seller_name",
+                    "version"
+                ]
+            },
+            "AftercareOutcome": {
+                "type": "object",
+                "properties": {
+                    "outcome": {},
+                    "current": {}
+                },
+                "required": [
+                    "current",
+                    "outcome"
+                ]
+            },
+            "AftercarePage": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "AftercareRequestStateEnum": {
+                "enum": [
+                    "pending",
+                    "withdrawn",
+                    "approved",
+                    "rejected"
+                ],
+                "type": "string",
+                "description": "* `pending` - pending\n* `withdrawn` - withdrawn\n* `approved` - approved\n* `rejected` - rejected"
+            },
+            "AmendmentCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AmendmentLineCommandRequest"
+                        },
+                        "maxItems": 100,
+                        "minItems": 1
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "lines",
+                    "reason",
+                    "version"
+                ]
+            },
+            "AmendmentLineCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "line": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "quantity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^\\d{1,9}\\.\\d{3}$"
+                    },
+                    "unit_price": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^\\d{1,9}\\.\\d{2}$"
+                    }
+                },
+                "required": [
+                    "line",
+                    "quantity",
+                    "unit_price"
+                ]
+            },
+            "AmendmentWithdrawCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "amendment": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "amendment",
+                    "command_id",
+                    "reason",
+                    "version"
+                ]
+            },
             "ApplicationActionActionEnum": {
                 "enum": [
                     "save",
@@ -8966,6 +9961,153 @@
                 ],
                 "type": "string",
                 "description": "* `individual` - individual\n* `company` - company\n* `business` - business"
+            },
+            "CancellationCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "reason",
+                    "version"
+                ]
+            },
+            "CancellationDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "order": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/AftercareRequestStateEnum"
+                    },
+                    "can_withdraw": {
+                        "type": "boolean"
+                    },
+                    "requester_context": {
+                        "type": "string"
+                    },
+                    "requester": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "initiator": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "payment_case": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "assigned": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "decided_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "decision": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "decision_reason": {
+                        "type": "string"
+                    },
+                    "order_detail": {
+                        "$ref": "#/components/schemas/AftercareDetail"
+                    }
+                },
+                "required": [
+                    "assigned",
+                    "can_withdraw",
+                    "created_at",
+                    "currency",
+                    "decided_at",
+                    "decision",
+                    "decision_reason",
+                    "id",
+                    "initiator",
+                    "invoice",
+                    "number",
+                    "order",
+                    "order_detail",
+                    "payment_case",
+                    "reason",
+                    "requester",
+                    "requester_context",
+                    "state",
+                    "version"
+                ]
+            },
+            "CancellationWithdrawCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "request": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "reason",
+                    "request",
+                    "version"
+                ]
             },
             "Capabilities": {
                 "type": "object",
@@ -9908,6 +11050,15 @@
                 "type": "string",
                 "description": "* `conversation_exists` - conversation_exists"
             },
+            "CommandRecoveryStateEnum": {
+                "enum": [
+                    "unknown",
+                    "applied",
+                    "rejected"
+                ],
+                "type": "string",
+                "description": "* `unknown` - unknown\n* `applied` - applied\n* `rejected` - rejected"
+            },
             "CompanyBundleEnum": {
                 "enum": [
                     "catalogue",
@@ -10600,6 +11751,9 @@
                     "goods_total": {
                         "type": "string"
                     },
+                    "accepted_total": {
+                        "type": "string"
+                    },
                     "payment_method": {
                         "type": "string"
                     },
@@ -10610,6 +11764,18 @@
                         "type": "string"
                     },
                     "confirmed_total": {
+                        "type": "string"
+                    },
+                    "received": {
+                        "type": "string"
+                    },
+                    "refunded": {
+                        "type": "string"
+                    },
+                    "refund_due": {
+                        "type": "string"
+                    },
+                    "refundable_excess": {
                         "type": "string"
                     },
                     "remaining": {
@@ -10673,6 +11839,14 @@
                         "type": "array",
                         "items": {}
                     },
+                    "refund_dues": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "refund_reports": {
+                        "type": "array",
+                        "items": {}
+                    },
                     "history": {
                         "type": "array",
                         "items": {}
@@ -10688,6 +11862,7 @@
                     }
                 },
                 "required": [
+                    "accepted_total",
                     "allocation",
                     "buyer",
                     "buyer_name",
@@ -10714,6 +11889,12 @@
                     "payment_method",
                     "plans",
                     "receipts",
+                    "received",
+                    "refund_due",
+                    "refund_dues",
+                    "refund_reports",
+                    "refundable_excess",
+                    "refunded",
                     "remaining",
                     "selection",
                     "seller",
@@ -11108,6 +12289,9 @@
             "EmailPreference": {
                 "type": "object",
                 "properties": {
+                    "aftercare_email": {
+                        "type": "boolean"
+                    },
                     "payment_email": {
                         "type": "boolean"
                     },
@@ -11122,6 +12306,7 @@
                     }
                 },
                 "required": [
+                    "aftercare_email",
                     "locale",
                     "message_email",
                     "payment_email",
@@ -11622,6 +12807,9 @@
                     "delivery_confirmed": {
                         "type": "string"
                     },
+                    "delivery_refunded": {
+                        "type": "string"
+                    },
                     "delivery_remaining": {
                         "type": "string",
                         "nullable": true
@@ -11702,6 +12890,14 @@
                         "type": "array",
                         "items": {}
                     },
+                    "refund_providers": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "delivery_refunds": {
+                        "type": "array",
+                        "items": {}
+                    },
                     "tracking": {
                         "type": "array",
                         "items": {}
@@ -11746,6 +12942,8 @@
                     "delivery",
                     "delivery_confirmed",
                     "delivery_excess",
+                    "delivery_refunded",
+                    "delivery_refunds",
                     "delivery_remaining",
                     "delivery_settled",
                     "destination",
@@ -11773,6 +12971,7 @@
                     "receipts",
                     "recipient",
                     "recipient_revision",
+                    "refund_providers",
                     "seller",
                     "stage",
                     "tracking",
@@ -11812,6 +13011,67 @@
                     "count",
                     "page",
                     "results"
+                ]
+            },
+            "FulfilmentRefundCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "goods_version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "provider": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/CurrencyEnum"
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "currency",
+                    "description",
+                    "goods_version",
+                    "provider",
+                    "reference",
+                    "sent_at",
+                    "version"
                 ]
             },
             "FulfilmentSummary": {
@@ -11888,6 +13148,9 @@
                     "delivery_confirmed": {
                         "type": "string"
                     },
+                    "delivery_refunded": {
+                        "type": "string"
+                    },
                     "delivery_remaining": {
                         "type": "string",
                         "nullable": true
@@ -11938,6 +13201,7 @@
                     "currency",
                     "delivery_confirmed",
                     "delivery_excess",
+                    "delivery_refunded",
                     "delivery_remaining",
                     "delivery_settled",
                     "destination",
@@ -13319,6 +14583,11 @@
                     "kind": {
                         "$ref": "#/components/schemas/NoticeRowKindEnum"
                     },
+                    "aftercare": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
                     "payment": {
                         "type": "string",
                         "format": "uuid",
@@ -13366,6 +14635,7 @@
                 },
                 "required": [
                     "action",
+                    "aftercare",
                     "conversation",
                     "created_at",
                     "fulfilment",
@@ -13386,10 +14656,11 @@
                     "order_accepted",
                     "negotiation",
                     "payment",
-                    "fulfilment"
+                    "fulfilment",
+                    "aftercare"
                 ],
                 "type": "string",
-                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment\n* `fulfilment` - fulfilment"
+                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment\n* `fulfilment` - fulfilment\n* `aftercare` - aftercare"
             },
             "Operation": {
                 "type": "object",
@@ -13765,6 +15036,9 @@
             "PatchedPreferenceCommandRequest": {
                 "type": "object",
                 "properties": {
+                    "aftercare_email": {
+                        "type": "boolean"
+                    },
                     "payment_email": {
                         "type": "boolean"
                     },
@@ -14728,7 +16002,7 @@
                 "type": "object",
                 "properties": {
                     "state": {
-                        "$ref": "#/components/schemas/RecoveryStateEnum"
+                        "$ref": "#/components/schemas/CommandRecoveryStateEnum"
                     },
                     "result": {
                         "nullable": true
@@ -14739,14 +16013,117 @@
                     "state"
                 ]
             },
-            "RecoveryStateEnum": {
-                "enum": [
-                    "unknown",
-                    "applied",
-                    "rejected"
-                ],
-                "type": "string",
-                "description": "* `unknown` - unknown\n* `applied` - applied\n* `rejected` - rejected"
+            "RefundDueCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "reason",
+                    "version"
+                ]
+            },
+            "RefundReportCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "due": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "amount",
+                    "command_id",
+                    "description",
+                    "due",
+                    "reference",
+                    "sent_at",
+                    "version"
+                ]
+            },
+            "RefundWithdrawCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "report": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "reason",
+                    "report",
+                    "version"
+                ]
             },
             "RegistrationRequest": {
                 "type": "object",
@@ -15149,6 +16526,21 @@
                 "required": [
                     "accounts",
                     "identity"
+                ]
+            },
+            "Settled": {
+                "type": "object",
+                "properties": {
+                    "state": {
+                        "$ref": "#/components/schemas/CommandRecoveryStateEnum"
+                    },
+                    "result": {
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "result",
+                    "state"
                 ]
             },
             "ShownPriceRequest": {
@@ -15707,6 +17099,9 @@
                     "goods_total": {
                         "type": "string"
                     },
+                    "accepted_total": {
+                        "type": "string"
+                    },
                     "payment_method": {
                         "type": "string"
                     },
@@ -15717,6 +17112,18 @@
                         "type": "string"
                     },
                     "confirmed_total": {
+                        "type": "string"
+                    },
+                    "received": {
+                        "type": "string"
+                    },
+                    "refunded": {
+                        "type": "string"
+                    },
+                    "refund_due": {
+                        "type": "string"
+                    },
+                    "refundable_excess": {
                         "type": "string"
                     },
                     "remaining": {
@@ -15758,6 +17165,7 @@
                     }
                 },
                 "required": [
+                    "accepted_total",
                     "allocation",
                     "buyer",
                     "buyer_name",
@@ -15775,6 +17183,10 @@
                     "overdue",
                     "overpayment",
                     "payment_method",
+                    "received",
+                    "refund_due",
+                    "refundable_excess",
+                    "refunded",
                     "remaining",
                     "seller",
                     "seller_name",

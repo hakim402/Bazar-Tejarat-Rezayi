@@ -13,6 +13,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render
 from django.urls import reverse, path
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -28,11 +29,12 @@ from .services import audit, begin_signin, finish_mfa, get_grant, admin_mfa_requ
 
 
 from .admin_access import GuardedAdminMixin, admin_actor, is_owner
+from .admin_display import AdminDisplayMixin
 
 
 class OwnerSite(UnfoldAdminSite):
     site_header = "Bazar Rezayi"
-    index_title = "Overview"
+    index_title = _("Overview")
     index_template = "accounts/admin/dashboard.html"
     site_title = "Bazar Rezayi"
 
@@ -51,8 +53,13 @@ class OwnerSite(UnfoldAdminSite):
         return super().admin_view(guarded, cacheable=cacheable)
 
     def register(self, model_or_iterable, admin_class=None, **options):
+        from .admin_labels import localize_model
         guarded = type("Guarded" + admin_class.__name__, (GuardedAdminMixin, admin_class), {})
-        return super().register(model_or_iterable, guarded, **options)
+        result = super().register(model_or_iterable, guarded, **options)
+        models = model_or_iterable if isinstance(model_or_iterable, (list, tuple)) else [model_or_iterable]
+        for model in models:
+            localize_model(model)
+        return result
 
     def get_app_list(self, request, app_label=None):
         # One fresh authority check for a directory, instead of rechecking it for
@@ -87,9 +94,11 @@ class OwnerSite(UnfoldAdminSite):
     def get_urls(self):
         from apps.site.admin import settings_urls
         from .admin_security import factor_reset, own_profile
+        from .admin_locale import set_language
         return [path("factor-reset/", self.admin_view(lambda request: factor_reset(self, request)),
                      name="factor_reset"), path("profile/", self.admin_view(lambda request: own_profile(self, request)),
-                     name="own_profile"), *settings_urls(self), *super().get_urls()]
+                     name="own_profile"), path("language/", set_language, name="admin_set_language"),
+                *settings_urls(self), *super().get_urls()]
 
     def has_permission(self, request):
         try:
@@ -102,20 +111,22 @@ class OwnerSite(UnfoldAdminSite):
     @method_decorator(csrf_protect)
     @method_decorator(sensitive_post_parameters())
     def login(self, request, extra_context=None):
-        locale = "en"
-        t = COPY[locale]
+        from .admin_locale import admin_language, frontend_locale
+        locale = admin_language(request)
+        copy_locale = frontend_locale(locale)
+        t = COPY[copy_locale]
         context = {
             "stage": "password",
             "error": "",
             "title": t["title"],
-            "subtitle": t["subtitle"] if admin_mfa_required() else PASSWORD_ONLY_SUBTITLES[locale],
+            "subtitle": t["subtitle"] if admin_mfa_required() else PASSWORD_ONLY_SUBTITLES[copy_locale],
             "site_header": self.site_header,
             "t": t,
             "locale": locale,
-            "direction": "ltr",
+            "direction": "rtl" if locale == "fa-af" else "ltr",
             "admin_copy": ADMIN_COPY,
-            "frontend_url": settings.FRONTEND_ORIGIN + "/en",
-            "recovery_url": settings.FRONTEND_ORIGIN + "/en/auth/forgot-password",
+            "frontend_url": settings.FRONTEND_ORIGIN + "/" + frontend_locale(locale),
+            "recovery_url": settings.FRONTEND_ORIGIN + "/" + frontend_locale(locale) + "/auth/forgot-password",
         }
         if self.has_permission(request):
             return HttpResponseRedirect(reverse("admin:index"))
@@ -221,7 +232,6 @@ class ChangeIdentityForm(StaffProvisioningFormMixin, UserChangeForm):
 
 
 class IdentityAdmin(UserAdmin, ModelAdmin):
-    change_list_template = "accounts/admin/provision_list.html"
     form = ChangeIdentityForm
     add_form = AddIdentityForm
     list_display = ["display_name", "email", "email_verified", "is_active", "is_staff", "is_superuser"]
@@ -256,7 +266,9 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
 
     def get_urls(self):
         # Shared-credential password changes use the audited session-invalidating workflow.
-        return [url for url in super().get_urls() if url.name != "accounts_user_password_change"]
+        # Django's UserAdmin hardcodes the native route name as "auth_user_password_change"
+        # even for a custom user model, so filter that exact name to retire the route.
+        return [url for url in super().get_urls() if url.name != "auth_user_password_change"]
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -303,12 +315,28 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
                   context="owner", fields=["groups"])
 
 
-class AccountAdmin(ModelAdmin):
+class AccountAdmin(AdminDisplayMixin, ModelAdmin):
     list_display = ["id", "user", "context", "status", "intent", "review_status"]
     list_filter = ["context", "status"]
     fields = ["user", "context", "status", "intent", "review_status", "permission_groups"]
     filter_horizontal = []
     actions = []
+    badge_fields = ("context", "status", "intent", "review_status")
+
+    ACCOUNT_HELP = {
+        "context": "Buyer and seller roles grow from marketplace activity; this form provisions staff accounts only.",
+        "status": "Suspended accounts lose marketplace access immediately; the underlying user identity is untouched.",
+        "intent": "Individual is the starting tier. Company upgrades happen in authenticated Settings with evidence review.",
+        "review_status": "Verification decisions belong to the verification workflow, not this form.",
+        "permission_groups": "Fresh Rezayi role grants define staff authority. Re-saving revokes any grant not selected here.",
+    }
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for name, text in self.ACCOUNT_HELP.items():
+            if name in form.base_fields:
+                form.base_fields[name].help_text = text
+        return form
 
     def get_readonly_fields(self, request, obj=None):
         return ["user", "context", "intent", "review_status", "permission_groups"] if obj else ["context", "intent", "review_status", "permission_groups"]
@@ -353,6 +381,9 @@ class AccountAdmin(ModelAdmin):
 class AuditAdmin(ModelAdmin):
     list_display = ["created_at", "actor", "context", "action", "account", "request_id"]
     list_filter = ["context", "action"]
+    search_fields = ["action", "request_id", "actor__email"]
+    ordering = ["-created_at", "-pk"]
+    list_per_page = 30
     readonly_fields = [field.name for field in AuditEvent._meta.fields]
     actions = []
 
@@ -372,7 +403,6 @@ owner_site.register(AuditEvent, AuditAdmin)
 
 
 class RoleAdmin(GroupAdmin, ModelAdmin):
-    change_list_template = "accounts/admin/provision_list.html"
     actions = []
 
     def has_delete_permission(self, request, obj=None):

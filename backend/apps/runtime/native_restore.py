@@ -1,8 +1,8 @@
 """Versioned native snapshot restore into an empty private target only.
 
 Restore uses reviewed CREATE TABLE definitions with real constraints, loads rows
-before installing guards, then verifies the complete v2 contract. No serving
-guard is removed and no applied migration is faked. Native source migration
+before installing guards, then verifies the snapshot's complete contract version.
+No serving guard is removed and no applied migration is faked. Native source migration
 records are reconstructed from a hash-verified trusted private snapshot of the
 same graph. Hashes prove consistency; operator provenance remains required.
 """
@@ -17,8 +17,8 @@ from . import transfer as t
 from .mariadb import schema
 
 
-def descriptor(version=3):
-    if version not in {2, 3}:
+def descriptor(version=4):
+    if version not in {2, 3, 4}:
         raise t.TransferError("Unsupported native recovery version.")
     path = Path(__file__).with_name("mariadb") / f"restore_v{version}.json"
     data = path.read_bytes()
@@ -50,7 +50,7 @@ def initialize(identifier, manifest):
     expected = descriptor(version)
     tables = expected["tables"]
     if (
-        version not in {2, 3}
+        version not in {2, 3, 4}
         or manifest.get("restore_ddl_sha256") != expected["sha256"]
         or manifest.get("source_vendor") != "mariadb"
     ):
@@ -156,7 +156,7 @@ class NativeImporter(t.Importer):
         if not re.fullmatch(r"[0-9a-f]{64}", expected_digest) or self.identifier != expected_digest:
             raise t.TransferError("Native snapshot differs from its separately retained source digest.")
         self.version = self.manifest.get("native_schema_version")
-        if self.version not in {2, 3}:
+        if self.version not in {2, 3, 4}:
             raise t.TransferError("Unsupported native snapshot version.")
         if self.manifest.get("generated_columns") != schema.reference(self.version)["structure"]["generated"]:
             raise t.TransferError("Native snapshot derived columns differ.")
@@ -194,11 +194,15 @@ class NativeImporter(t.Importer):
         t.validate_history()
         validate_payments()
         validate_evidence(self.manifest)
-        if self.version == 3:
+        if self.version in {3, 4}:
             from apps.fulfilment.recovery import validate_history, validate_evidence as validate_delivery_evidence
 
             validate_history()
             validate_delivery_evidence(self.manifest)
+        if self.version == 4:
+            from apps.orders.recovery import validate_history as validate_aftercare
+
+            validate_aftercare()
         self.journal.state = "validated"
         self.journal.save(update_fields=["state"])
         # Restore recorded native migrations, never forge PostgreSQL/native IDs.
@@ -206,7 +210,7 @@ class NativeImporter(t.Importer):
         from django.db.migrations.loader import MigrationLoader
 
         graph = MigrationLoader(connection, ignore_no_migrations=True).graph
-        publication = "0007_fulfilment_v3" if self.version == 3 else "0005_payments_v2"
+        publication = {2: "0005_payments_v2", 3: "0007_fulfilment_v3", 4: "0009_aftercare_v4"}[self.version]
         required = set(graph.forwards_plan(("runtime", publication)))
         if not required.issubset(recorded) or not recorded.issubset(set(graph.nodes)):
             raise t.TransferError("Snapshot migration graph is incomplete or older than its reviewed native graph.")
@@ -239,12 +243,12 @@ class NativeImporter(t.Importer):
         self.journal.completed_at = timezone.now()
         self.journal.save(update_fields=["state", "completed_at"])
         schema.verify(record=False, version=self.version)
-        if self.version == 3 and not schema.ready():
+        if self.version == 4 and not schema.ready():
             raise t.TransferError("Restored current schema did not pass native readiness.")
         return {
             "state": "complete",
             "native_schema_version": self.version,
-            "requires_upgrade": self.version != 3,
+            "requires_upgrade": self.version != 4,
             "manifest_sha256": self.identifier,
             "tables": report,
         }

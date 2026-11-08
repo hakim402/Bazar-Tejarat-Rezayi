@@ -7,6 +7,7 @@ from django.utils.html import format_html, format_html_join
 from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import permits
+from apps.accounts.admin_display import AdminDisplayMixin
 from .models import (
     Position,
     Batch,
@@ -18,10 +19,11 @@ from .models import (
     Shortage,
     Recovery,
     StockTransition,
+    AllocationReduction,
 )
 
 
-class InventoryAuditAdmin(ModelAdmin):
+class InventoryAuditAdmin(AdminDisplayMixin, ModelAdmin):
     list_per_page = 30
     actions = None
 
@@ -133,11 +135,11 @@ class ShortageAdmin(InventoryAuditAdmin):
 
 owner_site.register(Position, InventoryAuditAdmin, list_display=['variant', 'tracking', 'expiry_required', 'threshold', 'version'], list_filter=['tracking', 'expiry_required'], search_fields=['variant__sku'])
 owner_site.register(Batch, InventoryAuditAdmin, list_display=['code', 'position', 'expires_on', 'created_at'], search_fields=['code', 'position__variant__sku'])
-owner_site.register(Bucket, InventoryAuditAdmin, list_display=['position', 'batch', 'physical', 'held'], search_fields=['position__variant__sku'])
+owner_site.register(Bucket, InventoryAuditAdmin, list_display=['position', 'batch', 'physical', 'held'], quantity_fields=['physical', 'held'], search_fields=['position__variant__sku'])
 owner_site.register(Operation, InventoryAuditAdmin, list_display=['seller', 'action', 'reference', 'created_at'], list_filter=['action'], search_fields=['seller__display_name', 'reference'])
-owner_site.register(Movement, InventoryAuditAdmin, list_display=['operation', 'bucket', 'physical_delta', 'held_delta', 'created_at'])
-owner_site.register(Allocation, InventoryAuditAdmin, list_display=['operation', 'state'], list_filter=['state'])
-owner_site.register(AllocationLine, InventoryAuditAdmin, list_display=['allocation', 'bucket', 'quantity'])
+owner_site.register(Movement, InventoryAuditAdmin, list_display=['operation', 'bucket', 'physical_delta', 'held_delta', 'created_at'], quantity_fields=['physical_delta', 'held_delta'])
+owner_site.register(Allocation, InventoryAuditAdmin, list_display=['operation', 'state'], list_filter=['state'], badge_fields=['state'])
+owner_site.register(AllocationLine, InventoryAuditAdmin, list_display=['allocation', 'bucket', 'quantity'], quantity_fields=['quantity'])
 owner_site.register(Recovery, InventoryAuditAdmin, list_display=['shortage', 'operation'])
 owner_site.register(Shortage, ShortageAdmin)
 
@@ -153,3 +155,4 @@ class StockTransitionAdmin(InventoryAuditAdmin):
 
 
 owner_site.register(StockTransition, StockTransitionAdmin)
+owner_site.register(AllocationReduction, StockTransitionAdmin)

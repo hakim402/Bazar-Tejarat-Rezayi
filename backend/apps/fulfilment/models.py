@@ -20,6 +20,8 @@ PERMISSIONS = [
     ("read_delivery_evidence", "Inspect assigned private delivery evidence"),
     ("manage_delivery_holds", "Record and independently resolve operational holds"),
     ("confirm_delivery", "Confirm actual whole delivery of assigned shipments"),
+    ("record_delivery_refund", "Record provider-issued delivery refunds"),
+    ("confirm_delivery_refund", "Independently confirm provider delivery refunds"),
 ]
 
 
@@ -236,7 +238,36 @@ class Blocker(Fact):
 
 class BlockerClosure(Fact):
     blocker = models.OneToOneField(Blocker, on_delete=PROTECT, related_name="closure")
-    disposition = models.CharField(max_length=10, choices=[("erroneous", "Erroneous"), ("withdrawn", "Withdrawn")])
+    disposition = models.CharField(
+        max_length=10,
+        choices=[("erroneous", "Erroneous"), ("withdrawn", "Withdrawn"), ("decided", "Decided")],
+    )
+    reason = models.CharField(max_length=1000)
+
+
+class DeliveryRefund(Fact):
+    """Provider-issued delivery money returned to the payer, recorded separately
+    from goods refunds and bounded by confirmed provider receipts."""
+
+    provider = models.ForeignKey(Provider, on_delete=PROTECT, related_name="+")
+    amount = models.DecimalField(max_digits=24, decimal_places=2)
+    currency = models.CharField(max_length=3)
+    sent_at = models.DateTimeField()
+    reference = models.CharField(max_length=160)
+    description = models.CharField(max_length=500)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0, currency__in=["AFN", "USD"]), name="fulfilment_refund_values"
+            )
+        ]
+        indexes = [models.Index(fields=["order", "-created_at", "id"], name="fulfilment_refund_history")]
+
+
+class DeliveryRefundDecision(Fact):
+    refund = models.OneToOneField(DeliveryRefund, on_delete=PROTECT, related_name="decision")
+    action = models.CharField(max_length=9, choices=[("confirmed", "Confirmed"), ("rejected", "Rejected")])
     reason = models.CharField(max_length=1000)
 
 
@@ -260,13 +291,14 @@ class ReviewCase(models.Model):
     kind = models.CharField(
         max_length=12,
         choices=[
-            (k, k.title()) for k in ["logistics", "charge", "payment", "correction", "blocker", "stock", "exception"]
+            (k, k.title()) for k in ["logistics", "charge", "payment", "correction", "blocker", "stock", "exception", "refund"]
         ],
     )
     proposal = models.OneToOneField(ChargeProposal, null=True, on_delete=PROTECT, related_name="case")
     claim = models.OneToOneField(Claim, null=True, on_delete=PROTECT, related_name="case")
     correction = models.OneToOneField(Correction, null=True, on_delete=PROTECT, related_name="case")
     blocker = models.OneToOneField(Blocker, null=True, on_delete=PROTECT, related_name="case")
+    refund = models.OneToOneField(DeliveryRefund, null=True, on_delete=PROTECT, related_name="case")
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=PROTECT, related_name="+")
     state = models.CharField(
         max_length=8,
@@ -298,7 +330,9 @@ class Evidence(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey("orders.SellerOrder", on_delete=PROTECT, related_name="+")
     creator = models.ForeignKey("accounts.Account", on_delete=PROTECT, related_name="+")
-    purpose = models.CharField(max_length=10, choices=[("claim", "Claim"), ("correction", "Correction")])
+    purpose = models.CharField(
+        max_length=10, choices=[("claim", "Claim"), ("correction", "Correction"), ("refund", "Refund")]
+    )
     storage_alias = models.CharField(max_length=32, default="private_local")
     key = models.CharField(max_length=255)
     sha256 = models.CharField(max_length=64)
@@ -313,13 +347,17 @@ class EvidenceBinding(models.Model):
     evidence = models.OneToOneField(Evidence, primary_key=True, on_delete=PROTECT, related_name="binding")
     claim = models.ForeignKey(Claim, null=True, on_delete=PROTECT, related_name="images")
     correction = models.ForeignKey(Correction, null=True, on_delete=PROTECT, related_name="images")
+    refund = models.ForeignKey(DeliveryRefund, null=True, on_delete=PROTECT, related_name="images")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(claim__isnull=False, correction__isnull=True)
-                | Q(claim__isnull=True, correction__isnull=False),
+                condition=(
+                    Q(claim__isnull=False, correction__isnull=True, refund__isnull=True)
+                    | Q(claim__isnull=True, correction__isnull=False, refund__isnull=True)
+                    | Q(claim__isnull=True, correction__isnull=True, refund__isnull=False)
+                ),
                 name="fulfilment_image_target",
             )
         ]

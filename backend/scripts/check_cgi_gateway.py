@@ -282,7 +282,7 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
         assert request("/api/v1/auth/seller/session/")[0] == 403
         payment_checked = False
         delivery_case = None
-        if run.phase in {"phase-12-payments", "phase-13-fulfilment"}:
+        if run.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
             import uuid
             import io
             from PIL import Image
@@ -395,7 +395,7 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
             csrf = signin_payment("buyer", "phase03-buyer@example.test")
             assert request(path)[0] == 404
             payment_checked = True
-        if run.phase == "phase-13-fulfilment":
+        if run.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
             from scripts.cgi_fulfilment import participants
 
             delivery_case = participants(run, request, signin_payment)

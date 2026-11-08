@@ -8,6 +8,7 @@
 <p>{% translate "Recording a receipt does not transfer money. Review is independent of seller confirmation. Original invoices, accepted goods and receipt history remain immutable." %}</p>
 {% if not independent %}<p role="status">{% translate "You have a buyer/seller or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot approve your own case." %}</p>{% endif %}
 </section>
+{% if cancellation_url %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Staff-initiated cancellation' %}"><h2 class="ra:text-lg ra:font-semibold">{% translate "Staff-initiated cancellation" %}</h2><p>{% translate "Open a cancellation request cross-referenced to this paid-shortage case. Your staff identity is recorded as the initiator and a different independent assigned staff member decides it." %}</p><p><a href="{{ cancellation_url }}">{% translate "Open guarded cancellation request" %}</a></p></section>{% endif %}
 {% if detail %}
 <section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Current goods balance' %}">
 <h2 class="ra:text-lg ra:font-semibold">{% translate "Invoice" %} <bdi>{{ detail.number }}</bdi></h2>

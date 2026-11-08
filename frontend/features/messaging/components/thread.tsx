@@ -1,5 +1,8 @@
 "use client";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Icon } from "../../../components/ui/icon";
+import { sellerMessagesCopy } from "../../../lib/i18n/seller-messages";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { apiOrigin } from "../../../lib/api/client";
@@ -20,6 +23,12 @@ import { useVisiblePoll, accessLost } from "../hooks";
 import { clearDrafts, scopeKey } from "../drafts";
 import { Composer } from "./composer";
 import { control, action, Failure } from "./controls";
+import {
+	messageAction,
+	messageControl,
+	messagePanel,
+	sellerMessagesHref,
+} from "./seller-messages-ui";
 export function Thread({
 	identity,
 	locale,
@@ -33,7 +42,10 @@ export function Thread({
 	id: string;
 	seller: string;
 }) {
-	const t = communicationCopy[locale],
+	const search = useSearchParams(),
+		sellerPresentation = context === "seller",
+		copy = sellerMessagesCopy[locale],
+		t = communicationCopy[locale],
 		[detail, setDetail] = useState<Conversation | null>(null),
 		[rows, setRows] = useState<Message[]>([]),
 		[error, setError] = useState<unknown>(null),
@@ -228,29 +240,56 @@ export function Thread({
 		>
 			<Link
 				prefetch={false}
-				className={action}
-				href={`/${locale}/account/${context}/messages${seller ? `?seller=${seller}` : ""}`}
+				className={context === "seller" ? messageAction : action}
+				href={
+					sellerPresentation
+						? sellerMessagesHref(locale, seller, undefined, search, true)
+						: `/${locale}/account/${context}/messages${seller ? `?seller=${seller}` : ""}`
+				}
 			>
+				{sellerPresentation && (
+					<Icon name="arrow" className="size-4 ltr:rotate-180" />
+				)}
 				{t.back}
 			</Link>
 			{!!error && <Failure locale={locale} error={error} />}
 			{!detail && !error && <p role="status">{t.loading}</p>}
 			{detail && (
 				<>
-					<header className="space-y-2 rounded-card border border-border bg-surface p-4">
+					<header
+						className={
+							sellerPresentation
+								? messagePanel
+								: "space-y-2 rounded-card border border-border bg-surface p-4"
+						}
+					>
+						{sellerPresentation && (
+							<p className="flex items-center gap-2 text-xs font-semibold text-muted">
+								<Icon name="box" className="size-4" />
+								{copy.snapshot}
+							</p>
+						)}
 						<h2 className="break-words text-xl font-bold" dir="auto">
 							{detail.snapshot.title}
 						</h2>
-						<p dir="auto">
+						<p
+							dir="auto"
+							className={sellerPresentation ? "text-sm text-muted" : undefined}
+						>
 							{detail.snapshot.seller} ·{" "}
 							<bdi dir="ltr">{detail.snapshot.currency}</bdi>
 						</p>
 						{detail.can_send ? (
 							<Link
 								prefetch={false}
-								className="inline-flex min-h-11 items-center"
+								className={
+									sellerPresentation
+										? messageAction
+										: "inline-flex min-h-11 items-center"
+								}
 								href={`/${locale}/products/${detail.snapshot.product}`}
 							>
+								{sellerPresentation && <Icon name="eye" className="size-4" />}
 								{t.product}
 							</Link>
 						) : (
@@ -263,7 +302,7 @@ export function Thread({
 					{older && (
 						<button
 							type="button"
-							className={action}
+							className={context === "seller" ? messageAction : action}
 							disabled={busy}
 							onClick={() => void earlier()}
 						>
@@ -272,7 +311,12 @@ export function Thread({
 					)}
 					<section
 						ref={pane}
-						className="max-h-[38rem] min-w-0 space-y-4 overflow-y-auto rounded-card border border-border bg-page p-3 desktop:p-5"
+						className={
+							sellerPresentation
+								? "max-h-[38rem] min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-border bg-page p-3 focus-visible:outline-2 focus-visible:outline-action sm:p-5"
+								: "max-h-[38rem] min-w-0 space-y-4 overflow-y-auto rounded-card border border-border bg-page p-3 desktop:p-5"
+						}
+						tabIndex={sellerPresentation ? 0 : undefined}
 						aria-label={t.messages}
 						data-testid="message-history"
 					>
@@ -280,7 +324,11 @@ export function Thread({
 							<article
 								key={row.id}
 								data-sequence={row.own ? undefined : row.sequence}
-								className={`min-w-0 space-y-3 rounded-card border border-border p-4 ${row.own ? "ms-4 bg-info desktop:ms-12" : "me-4 bg-surface desktop:me-12"}`}
+								className={
+									sellerPresentation
+										? `w-fit min-w-0 max-w-[95%] space-y-3 rounded-2xl border border-border p-3 text-sm leading-relaxed shadow-sm sm:max-w-[85%] sm:p-4 ${row.own ? "ms-auto bg-info" : "me-auto bg-surface"}`
+										: `min-w-0 space-y-3 rounded-card border border-border p-4 ${row.own ? "ms-4 bg-info desktop:ms-12" : "me-4 bg-surface desktop:me-12"}`
+								}
 							>
 								<header className="flex flex-wrap items-center justify-between gap-2 text-sm">
 									<strong
@@ -290,7 +338,11 @@ export function Thread({
 										{row.own ? t.you : row.author}
 									</strong>
 									<time
-										className="min-w-0 [overflow-wrap:anywhere]"
+										className={
+											sellerPresentation
+												? "min-w-0 text-xs text-muted [overflow-wrap:anywhere]"
+												: "min-w-0 [overflow-wrap:anywhere]"
+										}
 										dateTime={row.created_at}
 									>
 										<bdi>{localTimestamp(row.created_at, locale)}</bdi>
@@ -328,11 +380,16 @@ export function Thread({
 					{newMessages && (
 						<button
 							type="button"
-							className={action}
+							className={context === "seller" ? messageAction : action}
 							onClick={() => {
 								pane.current?.scrollTo({
 									top: pane.current.scrollHeight,
-									behavior: "smooth",
+									behavior:
+										sellerPresentation &&
+										window.matchMedia("(prefers-reduced-motion: reduce)")
+											.matches
+											? "auto"
+											: "smooth",
 								});
 								setNewMessages(false);
 							}}
@@ -343,6 +400,7 @@ export function Thread({
 					<Composer
 						key={`${identity}:${context}:${seller}:${id}`}
 						locale={locale}
+						presentation={sellerPresentation ? "seller" : undefined}
 						draftKey={scopeKey(identity, context, seller, id)}
 						uploadPath={`messaging/${context}/conversations/${id}/uploads/`}
 						allowed={detail.can_send && !error}
@@ -385,7 +443,11 @@ function ProtectedImage({
 			) : (
 				<button
 					type="button"
-					className="min-h-11 max-w-full rounded-control border border-border p-2"
+					className={
+						context === "seller"
+							? "min-h-11 min-w-11 max-w-full rounded-xl border border-border bg-surface p-2 transition-colors hover:border-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
+							: "min-h-11 max-w-full rounded-control border border-border p-2"
+					}
 					aria-label={t.enlarge}
 					onClick={() => {
 						setOpen(true);
@@ -408,12 +470,16 @@ function ProtectedImage({
 			<dialog
 				ref={dialog}
 				onClose={() => setOpen(false)}
-				className="max-h-[90dvh] max-w-[92vw] space-y-3 rounded-card border border-border bg-surface p-4 text-foreground backdrop:bg-black/50"
+				className={
+					context === "seller"
+						? "max-h-[90dvh] max-w-[92vw] space-y-3 overflow-auto rounded-2xl border border-border bg-surface p-4 text-foreground shadow-lifted backdrop:bg-black/50"
+						: "max-h-[90dvh] max-w-[92vw] space-y-3 rounded-card border border-border bg-surface p-4 text-foreground backdrop:bg-black/50"
+				}
 				aria-label={t.enlarge}
 			>
 				<button
 					type="button"
-					className={action}
+					className={context === "seller" ? messageAction : action}
 					onClick={() => dialog.current?.close()}
 				>
 					{t.close}
@@ -465,7 +531,9 @@ function MessageReport({
 	}, []);
 	return (
 		<details
-			className="text-sm"
+			className={
+				context === "seller" ? "border-t border-border pt-1 text-sm" : "text-sm"
+			}
 			onToggle={(e) => {
 				if (!e.currentTarget.open || submitting.current) return;
 				const mine = {};
@@ -483,7 +551,14 @@ function MessageReport({
 					});
 			}}
 		>
-			<summary className="inline-flex min-h-11 cursor-pointer items-center font-bold text-action">
+			<summary
+				className={
+					context === "seller"
+						? "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 font-semibold text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+						: "inline-flex min-h-11 cursor-pointer items-center font-bold text-action"
+				}
+			>
+				{context === "seller" && <Icon name="shield" className="size-4" />}
 				{t.report}
 			</summary>
 			{result ? (
@@ -492,7 +567,11 @@ function MessageReport({
 				</p>
 			) : (
 				<form
-					className="space-y-3 py-3"
+					className={
+						context === "seller"
+							? "space-y-4 rounded-xl border border-border bg-surface p-3"
+							: "space-y-3 py-3"
+					}
 					onSubmit={(e) => {
 						e.preventDefault();
 						if (submitting.current) return;
@@ -539,12 +618,17 @@ function MessageReport({
 							});
 					}}
 				>
+					{context === "seller" && (
+						<p className="text-xs leading-relaxed text-muted">
+							{sellerMessagesCopy[locale].reportHelp}
+						</p>
+					)}
 					<label className="block space-y-2">
 						<span>{t.category}</span>
 						<select
 							value={category}
 							onChange={(e) => setCategory(e.target.value)}
-							className={control}
+							className={context === "seller" ? messageControl : control}
 							disabled={busy || !!pending.current}
 						>
 							{(["abuse", "spam", "privacy", "other"] as const).map((value) => (
@@ -563,11 +647,15 @@ function MessageReport({
 							maxLength={1000}
 							value={reason}
 							onChange={(e) => setReason(e.target.value)}
-							className={control}
+							className={context === "seller" ? messageControl : control}
 							disabled={busy || !!pending.current}
 						/>
 					</label>
-					<button type="submit" className={action} disabled={busy}>
+					<button
+						type="submit"
+						className={context === "seller" ? messageAction : action}
+						disabled={busy}
+					>
 						{busy ? t.sending : pending.current ? t.retry : t.submitReport}
 					</button>
 				</form>

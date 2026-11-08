@@ -1,132 +1,100 @@
 import Link from "next/link";
 import type { Locale } from "../../../lib/i18n/locales";
-import { interfaceCopy } from "../../../lib/i18n/interface";
-import { catalogueStatuses } from "../../../lib/i18n/catalogue";
+import { catalogueCopy, catalogueStatuses } from "../../../lib/i18n/catalogue";
+import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
+import type { QueryReader } from "../../../lib/routes/account-routes";
 import type { ProductList } from "../types";
-import { Icon, type IconName } from "../../../components/ui/icon";
+import { Icon } from "../../../components/ui/icon";
+import {
+	StatusBadge,
+	statusVariant,
+} from "../../../components/ui/status-badge";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { productHref, productLink } from "./seller-products-ui";
+
 export function CatalogueOverview({
 	locale,
 	list,
-	context,
+	seller,
+	filters,
 }: {
 	locale: Locale;
 	list: ProductList;
-	context: "seller";
+	seller?: string | null;
+	filters?: QueryReader;
 }) {
-	const t = interfaceCopy[locale];
-	const counts = [
-		{ key: "total", label: t.total, value: list.count, icon: "box" },
-		{
-			key: "published",
-			label: t.published,
-			value: list.results.filter((p) => p.state === "published").length,
-			icon: "check",
-		},
-		{
-			key: "submitted",
-			label: t.review,
-			value: list.results.filter((p) => p.state === "submitted").length,
-			icon: "shield",
-		},
-		{
-			key: "draft",
-			label: t.draft,
-			value: list.results.filter((p) => p.state === "draft").length,
-			icon: "file",
-		},
-	];
+	const t = sellerProductsCopy[locale];
 	return (
-		<section aria-label={t.summary} className="space-y-5">
-			<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-				{counts.map((c) => (
-					<div
-						key={c.key}
-						className="rounded-card border border-border bg-page p-4"
-					>
-						<span className="mb-3 flex size-10 items-center justify-center rounded-control bg-info text-action">
-							<Icon name={c.icon as IconName} />
-						</span>
-						<p className="text-sm text-muted">{c.label}</p>
-						<p className="mt-1 text-3xl font-bold">
-							<bdi data-testid={`catalogue-count-${c.key}`}>{c.value}</bdi>
-						</p>
-						{c.key !== "total" && (
-							<p className="text-xs text-muted">{t.currentPage}</p>
-						)}
-					</div>
-				))}
+		<section className="min-w-0 space-y-4" aria-label={t.title}>
+			<div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+				<span>{t.onPage}</span>
+				<span className="rounded-lg bg-info px-2.5 py-1 font-semibold tabular-nums text-action">
+					{new Intl.NumberFormat(locale).format(list.results.length)}
+				</span>
 			</div>
-			{list.results.length > 0 && (
-				<div className="rounded-card border border-border bg-page p-5">
-					<h2 className="mb-5 text-base">
-						{t.status}{" "}
-						<span className="font-normal text-muted">· {t.currentPage}</span>
-					</h2>
-					<div
-						className="flex h-24 items-end gap-3"
-						role="img"
-						aria-label={counts
-							.slice(1)
-							.map((c) => `${c.label}: ${c.value}`)
-							.join(", ")}
-					>
-						{counts.slice(1).map((c) => (
-							<div
-								key={c.key}
-								className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
-							>
-								<div className="flex w-full max-w-24 flex-1 flex-col justify-end overflow-hidden rounded-t-control bg-border">
-									<div
-										className={`flex min-h-1 items-center justify-center bg-primary text-sm font-bold text-on-primary ${c.value > 0 ? "min-h-8" : ""}`}
-										style={{
-											height: `${Math.max(4, (c.value / list.results.length) * 100)}%`,
-										}}
-									>
-										{c.value > 0 && c.value}
-									</div>
-								</div>
-								<span className="text-xs text-muted">{c.label}</span>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-			{list.results.length === 0 && (
-				<div className="rounded-card border border-dashed border-control p-8 text-center">
-					<Icon name="box" className="mx-auto mb-4 size-10 text-muted" />
-					<h2 className="text-lg">{t.empty}</h2>
-					<p className="mt-2 text-sm text-muted">{t.emptyBody}</p>
-				</div>
+			{!list.results.length && (
+				<EmptyState
+					icon="box"
+					title={catalogueCopy[locale].empty}
+					description={t.listHelp}
+				/>
 			)}
 			<ul className="m-0 grid list-none gap-3 p-0">
-				{list.results.map((p) => (
+				{list.results.map((product) => (
 					<li
-						key={p.id}
-						className="flex min-w-0 flex-wrap items-center gap-4 rounded-card border border-border p-4 hover:bg-page"
+						key={product.id}
+						className="flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"
 					>
-						<span className="flex size-12 shrink-0 items-center justify-center rounded-control bg-info text-action">
-							<Icon name="box" />
-						</span>
-						<div className="min-w-0 flex-1">
-							<Link
-								className="block font-bold text-foreground decoration-action hover:underline wrap-anywhere"
-								href={`/${locale}/account/${context}/catalogue/${p.id}`}
-							>
-								{p.title || p.id}
-							</Link>
-							<p className="mt-1 text-xs text-muted wrap-anywhere">
-								<bdi>
-									{list.sellers.find((s) => s.id === p.seller)?.name ??
-										p.seller}
-								</bdi>{" "}
-								· <bdi>#{p.version}</bdi>
-							</p>
+						<div className="flex min-w-0 flex-1 items-start gap-3">
+							<span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-info text-action">
+								<Icon name="box" />
+							</span>
+							<div className="min-w-0 space-y-1">
+								<Link
+									href={productHref(
+										locale,
+										`catalogue/${product.id}`,
+										seller,
+										filters,
+									)}
+									className="inline-flex min-h-11 items-center text-base font-semibold text-foreground no-underline hover:text-action wrap-anywhere"
+								>
+									{product.title || t.untitled}
+								</Link>
+								<p className="text-sm text-muted wrap-anywhere">
+									<bdi>{product.seller}</bdi>
+								</p>
+							</div>
 						</div>
-						<span
-							className={`rounded-full px-3 py-1 text-xs font-bold ${p.state === "published" ? "bg-success-surface text-success" : p.state === "submitted" ? "bg-warning-surface text-warning" : "bg-info text-action"}`}
+						<div className="grid min-w-0 grid-cols-2 gap-3 sm:w-64">
+							<div className="min-w-0 space-y-1.5">
+								<p className="text-xs text-muted">{t.latestStatus}</p>
+								<StatusBadge variant={statusVariant(product.state)}>
+									{catalogueStatuses[locale][product.state]}
+								</StatusBadge>
+							</div>
+							<div className="min-w-0 space-y-1.5">
+								<p className="text-xs text-muted">{t.publicStatus}</p>
+								<StatusBadge
+									variant={product.published ? "success" : "neutral"}
+								>
+									{product.published ? t.live : t.notLive}
+								</StatusBadge>
+							</div>
+						</div>
+						<Link
+							href={productHref(
+								locale,
+								`catalogue/${product.id}`,
+								seller,
+								filters,
+							)}
+							className={productLink}
+							aria-label={`${t.edit}: ${product.title || t.untitled}`}
 						>
-							{catalogueStatuses[locale][p.state]}
-						</span>
+							{t.edit}
+							<Icon name="arrow" className="size-4 rtl:rotate-180" />
+						</Link>
 					</li>
 				))}
 			</ul>

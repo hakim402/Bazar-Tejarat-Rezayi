@@ -37,7 +37,7 @@ def dispatch(actor, order, preparation, token, *, now=None):
         allocation = selection.held(order, locked=True)
         if confirmed(order) <= 0 or preparation.allocation_id != allocation.pk:
             raise Conflict("Positive goods funds and the original hold are required.")
-        actual = {row.bucket_id: row.quantity for row in allocation.lines.all()}
+        actual = {row.bucket_id: quantity for row, quantity in stock.remaining_lines(allocation)}
         selected = {row.bucket_id: row.quantity for row in preparation.lines.all()}
         if selected != actual:
             raise Conflict("Whole held stock must match the prepared selection.")

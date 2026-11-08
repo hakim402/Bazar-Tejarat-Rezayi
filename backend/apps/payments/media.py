@@ -4,14 +4,13 @@ import hashlib
 import uuid
 from datetime import timedelta
 from django.http import Http404
-from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied, NotFound
 from apps.catalogue.media import StorageUnavailable
-from apps.foundation.storage import FileLocation
+from apps.foundation.images import stage_image
 from apps.messaging.media import decode, response as image_response
 from apps.runtime.locks import lock
 from . import access, services, validation as v
@@ -20,7 +19,7 @@ from .models import Evidence
 
 def upload(actor, pk, key, file):
     owned = []
-    backend = None
+    backend = storages["private_local"]
     try:
         with transaction.atomic():
             lock("payments-command:" + str(key))
@@ -33,16 +32,8 @@ def upload(actor, pk, key, file):
             if old:
                 return old
             image_id = uuid.uuid4()
-            location = FileLocation("private_local", f"payments/{image_id.hex}.jpg")
-            backend = storages[location.storage_alias]
-            if backend.exists(location.key):
-                raise StorageUnavailable()
-            owned.append(location.key)
-            written = backend.save(location.key, ContentFile(data))
-            if written not in owned:
-                owned.append(written)
-            if written != location.key:
-                raise StorageUnavailable()
+            owned.append(f"payments/{image_id.hex}.jpg")
+            written = stage_image(data, "payments", image_id)
             item = Evidence.objects.create(
                 id=image_id,
                 order=order,
@@ -63,7 +54,7 @@ def upload(actor, pk, key, file):
                 {"id": str(item.pk), "width": width, "height": height, "size": len(data)},
             )
     except BaseException as error:
-        if backend:
+        if owned:
             for name in owned:
                 try:
                     backend.delete(name)
@@ -112,22 +103,6 @@ def response(actor, pk, *, head=False, case=None):
 
 
 def sweep_unbound(*, limit=10):
-    ids = list(
-        Evidence.objects.filter(expires_at__lte=timezone.now(), binding__isnull=True)
-        .order_by("expires_at", "pk")
-        .values_list("pk", flat=True)[:limit]
-    )
-    for pk in ids:
-        with transaction.atomic():
-            item = (
-                Evidence.objects.select_for_update()
-                .filter(pk=pk, binding__isnull=True, expires_at__lte=timezone.now())
-                .first()
-            )
-            if not item or item.storage_alias != "private_local" or item.key != f"payments/{item.pk.hex}.jpg":
-                continue
-            try:
-                storages[item.storage_alias].delete(item.key)
-            except Exception:
-                continue
-            item.delete()
+    from apps.foundation.images import sweep_unbound as expire
+
+    expire(Evidence, "payments", limit=limit)

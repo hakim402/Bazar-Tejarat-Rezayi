@@ -133,6 +133,15 @@ class Withdraw(Transition):
         return super().post(request, context, pk)
 
 
+class DeliveryRefund(Transition):
+    action = "refund"
+    serializer = c.RefundCommand
+
+    @extend_schema(operation_id="fulfilment_delivery_refund", request=c.RefundCommand, responses=c.Outcome)
+    def post(self, request, context, pk):
+        return super().post(request, context, pk)
+
+
 class Correction(Transition):
     action = "correction"
     serializer = c.CorrectionCommand

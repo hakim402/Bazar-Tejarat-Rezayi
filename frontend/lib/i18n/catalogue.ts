@@ -110,6 +110,21 @@ const en = {
 	filter: "Filter",
 	imageSelect: "Add staged image",
 	single: "One default variant is sufficient for a simple product.",
+	basicInfo: "Basic info",
+	basicInfoHelp: "Buyers find this product by its title, brand and category.",
+	descriptionSection: "Product description",
+	attributesHelp: "Fill the specifications defined by the selected category.",
+	pricing: "Pricing",
+	pricingHelp:
+		"New variant prices save with this draft. Saved variant prices change under Update live prices.",
+	priceSaved: "This draft has no new variants to price.",
+	variantLabel: "Variant",
+	noSku: "No SKU yet",
+	dropHint: "Drag an image here, or choose a file below.",
+	imageLabel: "Image",
+	noImages: "No images in this draft",
+	noImagesHelp: "Upload a cover image so buyers can see the product.",
+	selectRevision: "Choose a revision",
 };
 type Copy = typeof en;
 export const catalogueCopy: Record<Locale, Copy> = {
@@ -224,6 +239,21 @@ export const catalogueCopy: Record<Locale, Copy> = {
 		filter: "فیلتر",
 		imageSelect: "افزودن تصویر بارگذاری‌شده",
 		single: "برای محصول ساده یک گونهٔ پیش‌فرض کافی است.",
+		basicInfo: "اطلاعات پایه",
+		basicInfoHelp: "خریدار محصول را با نام، برند و دستهٔ آن می‌یابد.",
+		descriptionSection: "توضیح کامل محصول",
+		attributesHelp: "مشخصات تعریف‌شده در دستهٔ انتخاب‌شده را پر کنید.",
+		pricing: "قیمت‌گذاری",
+		pricingHelp:
+			"قیمت گونهٔ جدید با همین پیش‌نویس ذخیره می‌شود؛ قیمت گونهٔ ذخیره‌شده را از به‌روزرسانی قیمت جاری تغییر دهید.",
+		priceSaved: "همین پیش‌نویس گونهٔ جدیدی برای قیمت‌گذاری ندارد.",
+		variantLabel: "گونه",
+		noSku: "هنوز شناسه ندارد",
+		dropHint: "تصویر را اینجا بکشید یا از پایین فایل را انتخاب کنید.",
+		imageLabel: "تصویر",
+		noImages: "تصویری در این پیش‌نویس نیست",
+		noImagesHelp: "یک تصویر اصلی بارگذاری کنید تا خریدار محصول را ببیند.",
+		selectRevision: "یک نسخه را انتخاب کنید",
 	},
 	ps: {
 		taxonomyRule:
@@ -331,6 +361,21 @@ export const catalogueCopy: Record<Locale, Copy> = {
 		filter: "چاڼ",
 		imageSelect: "پورته شوی انځور زیاتول",
 		single: "د ساده محصول لپاره یوه بڼه بس ده.",
+		basicInfo: "معلومات اساسي",
+		basicInfoHelp: "پیرودونکی محصول د نوم، نښې او کټګورۍ له لارې مومي.",
+		descriptionSection: "د محصول بشپړ تشریح",
+		attributesHelp: "د ټاکل شوې کټګورۍ ټاکلې ځانګړنې ډکې کړئ.",
+		pricing: "بیه ټاکل",
+		pricingHelp:
+			"د نوې بڼې بیې له همدې مسودې سره خونديږي؛ د خوندي بڼې بیې د روانه بیه بدلولو څخه بدله کړئ.",
+		priceSaved: "همدا مسوده د بیې لپاره نوې بڼه نه لري.",
+		variantLabel: "بڼه",
+		noSku: "تر اوسه پېژند نشته",
+		dropHint: "انځور دلته کش کړئ یا له لاندې یې وټاکئ.",
+		imageLabel: "انځور",
+		noImages: "په دې مسوده کې انځور نشته",
+		noImagesHelp: "اصلي انځور پورته کړئ څو پیرودونکی محصول وویني.",
+		selectRevision: "یوه نسخه وټاکئ",
 	},
 	ar: {
 		taxonomyRule:
@@ -437,6 +482,21 @@ export const catalogueCopy: Record<Locale, Copy> = {
 		filter: "تصفية",
 		imageSelect: "إضافة صورة مرفوعة",
 		single: "يكفي خيار افتراضي واحد للمنتج البسيط.",
+		basicInfo: "معلومات أساسية",
+		basicInfoHelp: "يعثر المشتري على المنتج عبر الاسم والعلامة والفئة.",
+		descriptionSection: "وصف المنتج",
+		attributesHelp: "املأ المواصفات المحددة في الفئة المختارة.",
+		pricing: "التسعير",
+		pricingHelp:
+			"أسعار الخيارات الجديدة تُحفظ مع هذه المسودة؛ غيّر أسعار الخيارات المحفوظة من تحديث الأسعار الحالية.",
+		priceSaved: "لا توجد خيارات جديدة لتسعيرها في هذه المسودة.",
+		variantLabel: "خيار",
+		noSku: "لا رمز بعد",
+		dropHint: "اسحب صورة إلى هنا أو اختر ملفاً بالأسفل.",
+		imageLabel: "صورة",
+		noImages: "لا صور في هذه المسودة",
+		noImagesHelp: "ارفع صورة رئيسية ليراها المشتري.",
+		selectRevision: "اختر نسخة",
 	},
 };
 

@@ -1,6 +1,12 @@
 import type { ComponentProps } from "react";
 
-type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral";
+type BadgeVariant =
+	| "success"
+	| "warning"
+	| "danger"
+	| "info"
+	| "neutral"
+	| "accent";
 
 const badgeStyles: Record<BadgeVariant, string> = {
 	success: "bg-chip-success-bg text-chip-success",
@@ -8,22 +14,31 @@ const badgeStyles: Record<BadgeVariant, string> = {
 	danger: "bg-chip-danger-bg text-chip-danger",
 	info: "bg-chip-info-bg text-chip-info",
 	neutral: "bg-chip-neutral-bg text-chip-neutral",
+	accent: "bg-chip-accent-bg text-chip-accent",
 };
 
 export function StatusBadge({
 	variant = "neutral",
+	dot = true,
 	children,
 	className = "",
 	...props
 }: ComponentProps<"span"> & {
 	variant?: BadgeVariant;
+	dot?: boolean;
 }) {
 	return (
 		<span
-			className={`inline-flex items-center rounded-sm px-2 py-0.5 text-caption font-semibold ${badgeStyles[variant]} ${className}`}
+			className={`inline-flex max-w-full items-center gap-1.5 rounded-sm px-2 py-0.5 text-caption font-semibold ${badgeStyles[variant]} ${className}`}
 			{...props}
 		>
-			{children}
+			{dot && (
+				<span
+					aria-hidden="true"
+					className="size-1.5 shrink-0 rounded-full bg-current"
+				/>
+			)}
+			<span className="min-w-0 wrap-anywhere">{children}</span>
 		</span>
 	);
 }

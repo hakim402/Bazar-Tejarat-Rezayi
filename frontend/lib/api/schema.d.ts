@@ -660,6 +660,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fulfilment/{context}/orders/{id}/delivery-refunds/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fulfilment_delivery_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fulfilment/{context}/orders/{id}/dispatch/": {
         parameters: {
             query?: never;
@@ -1476,6 +1492,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{context}/aftercare/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aftercare_orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/aftercare/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aftercare_order_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/cancellations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aftercare_cancellations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/cancellations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aftercare_cancellation_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/cancellations/{id}/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aftercare_cancellation_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{context}/invoices/": {
         parameters: {
             query?: never;
@@ -1630,6 +1726,54 @@ export interface paths {
         get: operations["orders_detail"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/orders/{id}/aftercare-commands/{key}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aftercare_command_lookup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/orders/{id}/aftercare-commands/{key}/reconcile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aftercare_command_settle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/orders/{id}/cancellations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aftercare_cancellation_request"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1844,6 +1988,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/seller/amendments/{id}/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aftercare_amendment_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/seller/checkout-terms/{id}/": {
         parameters: {
             query?: never;
@@ -1918,6 +2078,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["negotiation_request_correction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/seller/orders/{id}/amendments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["aftercare_amendment_propose"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2308,6 +2484,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/seller/orders/{id}/refund-dues/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_refund_due"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/orders/{id}/refund-reports/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_refund_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/seller/orders/{id}/stock-plans/": {
         parameters: {
             query?: never;
@@ -2366,6 +2574,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["payment_receipt_correction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/seller/refund-reports/{id}/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payment_refund_withdraw"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2455,6 +2679,69 @@ export interface components {
             version: number;
             reason: string;
         };
+        AftercareDetail: {
+            /** Format: uuid */
+            id: string;
+            version: number;
+            capabilities: string[];
+            effective_lines: unknown[];
+            number: string;
+            /** Format: uuid */
+            invoice: string;
+            currency: string;
+            goods_total: string;
+            accepted_total: string;
+            payment_method: string;
+            /** Format: uuid */
+            seller: string;
+            seller_name: string;
+            buyer_name: string;
+            payment: unknown;
+            aftercare: {
+                [key: string]: boolean;
+            };
+            cancellations: unknown[];
+            amendments: unknown[];
+            adjustments: unknown[];
+        };
+        AftercareOutcome: {
+            outcome: unknown;
+            current: unknown;
+        };
+        AftercarePage: {
+            results: unknown[];
+            page: number;
+            count: number;
+        };
+        /**
+         * @description * `pending` - pending
+         *     * `withdrawn` - withdrawn
+         *     * `approved` - approved
+         *     * `rejected` - rejected
+         * @enum {string}
+         */
+        AftercareRequestStateEnum: "pending" | "withdrawn" | "approved" | "rejected";
+        AmendmentCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            lines: components["schemas"]["AmendmentLineCommandRequest"][];
+            reason: string;
+        };
+        AmendmentLineCommandRequest: {
+            /** Format: uuid */
+            line: string;
+            quantity: string;
+            unit_price: string;
+        };
+        AmendmentWithdrawCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            /** Format: uuid */
+            amendment: string;
+            reason: string;
+        };
         /**
          * @description * `save` - save
          *     * `submit` - submit
@@ -2535,6 +2822,49 @@ export interface components {
          * @enum {string}
          */
         BusinessProfileKindEnum: "individual" | "company" | "business";
+        CancellationCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            reason: string;
+        };
+        CancellationDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            order: string;
+            number: string;
+            /** Format: uuid */
+            invoice: string;
+            currency: string;
+            state: components["schemas"]["AftercareRequestStateEnum"];
+            can_withdraw: boolean;
+            requester_context: string;
+            /** Format: uuid */
+            requester: string | null;
+            /** Format: uuid */
+            initiator: string | null;
+            /** Format: uuid */
+            payment_case: string | null;
+            reason: string;
+            assigned: boolean;
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            decided_at: string | null;
+            decision: string | null;
+            decision_reason: string;
+            order_detail: components["schemas"]["AftercareDetail"];
+        };
+        CancellationWithdrawCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            /** Format: uuid */
+            request: string;
+            reason: string;
+        };
         Capabilities: {
             read: boolean;
             write: boolean;
@@ -2803,6 +3133,13 @@ export interface components {
          * @enum {string}
          */
         CodeEnum: "conversation_exists";
+        /**
+         * @description * `unknown` - unknown
+         *     * `applied` - applied
+         *     * `rejected` - rejected
+         * @enum {string}
+         */
+        CommandRecoveryStateEnum: "unknown" | "applied" | "rejected";
         /**
          * @description * `catalogue` - catalogue
          *     * `orders_negotiation` - orders_negotiation
@@ -3188,10 +3525,15 @@ export interface components {
             number: string;
             currency: string;
             goods_total: string;
+            accepted_total: string;
             payment_method: string;
             seller_name: string;
             buyer_name: string;
             confirmed_total: string;
+            received: string;
+            refunded: string;
+            refund_due: string;
+            refundable_excess: string;
             remaining: string;
             overpayment: string;
             financial: string;
@@ -3212,6 +3554,8 @@ export interface components {
             cases: unknown[];
             extensions: unknown[];
             plans: unknown[];
+            refund_dues: unknown[];
+            refund_reports: unknown[];
             history: unknown[];
             history_count: number;
             history_page: number;
@@ -3321,6 +3665,7 @@ export interface components {
             };
         };
         EmailPreference: {
+            aftercare_email: boolean;
             payment_email: boolean;
             message_email: boolean;
             locale: string;
@@ -3475,6 +3820,7 @@ export interface components {
             charge_id: string | null;
             charge_provider: string;
             delivery_confirmed: string;
+            delivery_refunded: string;
             delivery_remaining: string | null;
             delivery_excess: string | null;
             delivery_settled: boolean;
@@ -3499,6 +3845,8 @@ export interface components {
             receipts: unknown[];
             corrections: components["schemas"]["FulfilmentCorrectionRow"][];
             proposals: unknown[];
+            refund_providers: unknown[];
+            delivery_refunds: unknown[];
             tracking: unknown[];
             delivery: unknown;
             cases: unknown[];
@@ -3515,6 +3863,21 @@ export interface components {
             count: number;
             page: number;
             results: components["schemas"]["FulfilmentSummary"][];
+        };
+        FulfilmentRefundCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            goods_version: number;
+            /** Format: uuid */
+            provider: string;
+            amount: string;
+            currency: components["schemas"]["CurrencyEnum"];
+            /** Format: date-time */
+            sent_at: string;
+            reference: string;
+            description: string;
+            evidence?: string[];
         };
         FulfilmentSummary: {
             /** Format: uuid */
@@ -3543,6 +3906,7 @@ export interface components {
             charge_id: string | null;
             charge_provider: string;
             delivery_confirmed: string;
+            delivery_refunded: string;
             delivery_remaining: string | null;
             delivery_excess: string | null;
             delivery_settled: boolean;
@@ -3942,6 +4306,8 @@ export interface components {
             id: string;
             kind: components["schemas"]["NoticeRowKindEnum"];
             /** Format: uuid */
+            aftercare: string | null;
+            /** Format: uuid */
             payment: string | null;
             /** Format: uuid */
             fulfilment: string | null;
@@ -3967,9 +4333,10 @@ export interface components {
          *     * `negotiation` - negotiation
          *     * `payment` - payment
          *     * `fulfilment` - fulfilment
+         *     * `aftercare` - aftercare
          * @enum {string}
          */
-        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment" | "fulfilment";
+        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment" | "fulfilment" | "aftercare";
         Operation: {
             /** Format: uuid */
             operation: string;
@@ -4088,6 +4455,7 @@ export interface components {
             version?: number;
         };
         PatchedPreferenceCommandRequest: {
+            aftercare_email?: boolean;
             payment_email?: boolean;
             message_email?: boolean;
             locale?: components["schemas"]["LocaleEnum"];
@@ -4346,16 +4714,39 @@ export interface components {
          */
         ReconciliationStateEnum: "applied" | "rejected";
         Recovery: {
-            state: components["schemas"]["RecoveryStateEnum"];
+            state: components["schemas"]["CommandRecoveryStateEnum"];
             result: unknown;
         };
-        /**
-         * @description * `unknown` - unknown
-         *     * `applied` - applied
-         *     * `rejected` - rejected
-         * @enum {string}
-         */
-        RecoveryStateEnum: "unknown" | "applied" | "rejected";
+        RefundDueCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            amount: string;
+            reason: string;
+        };
+        RefundReportCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            /** Format: uuid */
+            due: string;
+            /** Format: uuid */
+            previous?: string;
+            amount: string;
+            /** Format: date-time */
+            sent_at: string;
+            reference: string;
+            description: string;
+            evidence?: string[];
+        };
+        RefundWithdrawCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            /** Format: uuid */
+            report: string;
+            reason: string;
+        };
         RegistrationRequest: {
             /** Format: email */
             email: string;
@@ -4467,6 +4858,10 @@ export interface components {
         SessionData: {
             identity: components["schemas"]["IdentityData"];
             accounts: components["schemas"]["AccountData"][];
+        };
+        Settled: {
+            state: components["schemas"]["CommandRecoveryStateEnum"];
+            result: unknown;
         };
         ShownPriceRequest: {
             /** Format: uuid */
@@ -4638,10 +5033,15 @@ export interface components {
             number: string;
             currency: string;
             goods_total: string;
+            accepted_total: string;
             payment_method: string;
             seller_name: string;
             buyer_name: string;
             confirmed_total: string;
+            received: string;
+            refunded: string;
+            refund_due: string;
+            refundable_excess: string;
             remaining: string;
             overpayment: string;
             financial: string;
@@ -5911,6 +6311,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DeliveryCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentOutcome"];
+                };
+            };
+        };
+    };
+    fulfilment_delivery_refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FulfilmentRefundCommandRequest"];
             };
         };
         responses: {
@@ -7281,6 +7707,154 @@ export interface operations {
             };
         };
     };
+    aftercare_orders: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+                page?: number;
+                seller?: string;
+            };
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercarePage"];
+                };
+            };
+        };
+    };
+    aftercare_order_detail: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareDetail"];
+                };
+            };
+        };
+    };
+    aftercare_cancellations: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+                page?: number;
+                seller?: string;
+            };
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercarePage"];
+                };
+            };
+        };
+    };
+    aftercare_cancellation_detail: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancellationDetail"];
+                };
+            };
+        };
+    };
+    aftercare_cancellation_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancellationWithdrawCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
+                };
+            };
+        };
+    };
     orders_invoices: {
         parameters: {
             query?: {
@@ -7606,6 +8180,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderRow"];
+                };
+            };
+        };
+    };
+    aftercare_command_lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settled"];
+                };
+            };
+        };
+    };
+    aftercare_command_settle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settled"];
+                };
+            };
+        };
+    };
+    aftercare_cancellation_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancellationCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
                 };
             };
         };
@@ -7964,6 +8610,31 @@ export interface operations {
             };
         };
     };
+    aftercare_amendment_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AmendmentWithdrawCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
+                };
+            };
+        };
+    };
     orders_terms: {
         parameters: {
             query?: {
@@ -8120,6 +8791,31 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    aftercare_amendment_propose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AmendmentCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
                 };
             };
         };
@@ -8802,6 +9498,56 @@ export interface operations {
             };
         };
     };
+    payment_refund_due: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundDueCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_refund_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundReportCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
     payment_stock_plan: {
         parameters: {
             query?: never;
@@ -8907,6 +9653,31 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CorrectionCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    payment_refund_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundWithdrawCommandRequest"];
             };
         };
         responses: {

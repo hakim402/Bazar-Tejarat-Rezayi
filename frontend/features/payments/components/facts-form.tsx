@@ -6,7 +6,16 @@ import { PaymentEvidence } from "./evidence";
 import type { Context } from "../../messaging/api";
 import { paymentCopy } from "../copy";
 import { actualTime, moneyUnits } from "../validation";
-import { action, control, panel } from "../../orders/components/controls";
+import {
+	action as defaultAction,
+	control as defaultControl,
+	panel as defaultPanel,
+} from "../../orders/components/controls";
+import {
+	salesAction,
+	salesControl,
+	salesPanel,
+} from "../../sales/components/seller-sales-ui";
 export function FactsForm({
 	locale,
 	row,
@@ -58,7 +67,11 @@ export function FactsForm({
 		[reason, setReason] = useState(""),
 		[invalid, setInvalid] = useState(false);
 	const correction = !!receipt,
-		claim = row.capabilities.claim && !correction;
+		claim = row.capabilities.claim && !correction,
+		seller = context === "seller",
+		action = seller ? salesAction : defaultAction,
+		control = seller ? salesControl : defaultControl,
+		panel = seller ? salesPanel : defaultPanel;
 	return (
 		<form
 			className={panel}
@@ -95,7 +108,11 @@ export function FactsForm({
 				);
 			}}
 		>
-			<h3 className="font-semibold">
+			<h3
+				className={
+					seller ? "text-lg font-semibold tracking-tight" : "font-semibold"
+				}
+			>
 				{correction ? t.correction : claim ? t.claim : t.receipt}
 			</h3>
 			<p className="text-sm text-muted">
@@ -114,8 +131,15 @@ export function FactsForm({
 					· v{receipt.version}
 				</p>
 			)}
-			<fieldset disabled={disabled} className="space-y-3">
-				<label className="block">
+			<fieldset
+				disabled={disabled}
+				className={seller ? "grid min-w-0 gap-4 sm:grid-cols-2" : "space-y-3"}
+			>
+				<label
+					className={
+						seller ? "block min-w-0 space-y-2 text-sm font-medium" : "block"
+					}
+				>
 					{t.amount} <bdi>{row.currency}</bdi>
 					<input
 						required
@@ -130,7 +154,11 @@ export function FactsForm({
 						maxLength={25}
 					/>
 				</label>
-				<label className="block">
+				<label
+					className={
+						seller ? "block min-w-0 space-y-2 text-sm font-medium" : "block"
+					}
+				>
 					{t.paidAt}
 					<input
 						required
@@ -142,7 +170,7 @@ export function FactsForm({
 						onChange={(e) => setPaidAt(e.target.value)}
 					/>
 				</label>
-				<div className="block">
+				<div className={seller ? "min-w-0 space-y-2 sm:col-span-2" : "block"}>
 					<label htmlFor={descriptionId}>{t.description}</label>
 					<textarea
 						id={descriptionId}
@@ -156,7 +184,7 @@ export function FactsForm({
 					/>
 				</div>
 				{correction && (
-					<div className="block">
+					<div className={seller ? "min-w-0 space-y-2 sm:col-span-2" : "block"}>
 						<label htmlFor={reasonId}>{t.reason}</label>
 						<textarea
 							id={reasonId}
@@ -171,7 +199,13 @@ export function FactsForm({
 						/>
 					</div>
 				)}
-				<label className="block">
+				<label
+					className={
+						seller
+							? "block min-w-0 space-y-2 border-t border-border pt-4 text-sm font-semibold sm:col-span-2"
+							: "block"
+					}
+				>
 					{t.evidence}
 					<input
 						type="file"
@@ -191,11 +225,31 @@ export function FactsForm({
 						}}
 					/>
 				</label>
-				<p className="text-sm text-muted">
+				<p
+					className={
+						seller
+							? "text-xs leading-relaxed text-muted sm:col-span-2"
+							: "text-sm text-muted"
+					}
+				>
 					{t.evidenceNote} ({evidence.length}/3)
 				</p>
-				<p className="text-sm text-muted">{t.inputTimezone}</p>
-				<div className="flex flex-wrap gap-3">
+				<p
+					className={
+						seller
+							? "text-xs leading-relaxed text-muted sm:col-span-2"
+							: "text-sm text-muted"
+					}
+				>
+					{t.inputTimezone}
+				</p>
+				<div
+					className={
+						seller
+							? "flex min-w-0 flex-wrap gap-3 sm:col-span-2"
+							: "flex flex-wrap gap-3"
+					}
+				>
 					{evidence.map((id) => (
 						<div key={id}>
 							<PaymentEvidence {...{ id, context, locale }} />
@@ -210,11 +264,25 @@ export function FactsForm({
 					))}
 				</div>
 				{invalid && (
-					<p role="alert" id={errorId}>
+					<p
+						role="alert"
+						id={errorId}
+						className={
+							seller
+								? "rounded-xl border border-warning bg-warning-surface p-3 text-sm text-warning sm:col-span-2"
+								: undefined
+						}
+					>
 						{t.error}
 					</p>
 				)}
-				<button type="submit" data-payment-facts-review className={action}>
+				<button
+					type="submit"
+					data-payment-facts-review
+					className={
+						seller ? `${action} justify-self-start sm:col-span-2` : action
+					}
+				>
 					{t.exact}
 				</button>
 			</fieldset>

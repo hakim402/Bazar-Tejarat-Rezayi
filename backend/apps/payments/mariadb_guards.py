@@ -7,10 +7,11 @@ def accepted(order):
     return f"EXISTS(SELECT 1 FROM orders_sellerorder o LEFT JOIN orders_checkoutoutcome c ON c.id=o.outcome_id LEFT JOIN orders_negotiation n ON n.id=o.negotiation_id WHERE o.id={order} AND (c.state='accepted' OR n.state='accepted'))"
 
 
-def seller_account(order, account):
+def seller_account(order, account, *, bundles=("payments_refunds",)):
+    bundle_clause = " OR ".join(f"JSON_CONTAINS(m.bundles,'\"{bundle}\"')" for bundle in bundles)
     return f"""EXISTS(SELECT 1 FROM orders_sellerorder o JOIN organizations_businessprofile p ON p.id=o.seller_id JOIN accounts_account a ON a.id={account} JOIN accounts_user u ON u.id=a.user_id
         WHERE o.id={order} AND a.context='seller' AND a.status='active' AND u.is_active AND u.email_verified
-        AND (p.kind='individual' AND p.account_id=a.id OR p.kind='company' AND EXISTS(SELECT 1 FROM organizations_membership m WHERE m.company_id=p.id AND m.account_id=a.id AND m.active AND (m.is_owner OR JSON_CONTAINS(m.bundles,'"payments_refunds"')))))"""
+        AND (p.kind='individual' AND p.account_id=a.id OR p.kind='company' AND EXISTS(SELECT 1 FROM organizations_membership m WHERE m.company_id=p.id AND m.account_id=a.id AND m.active AND (m.is_owner OR {bundle_clause}))))"""
 
 
 def permission(user, code):
@@ -68,6 +69,89 @@ def published_event(event, action):
         AND ({action} NOT IN ('case_assign','case_approve','case_reject','case_replenish','case_refer','case_resolve','overdue_cleared','overdue_reopened') OR EXISTS(SELECT 1 FROM payments_caseevent k WHERE k.event_id={event})))"""
 
 
+def event_statement(*, refunds=False):
+    """The sealed financial event boundary. Phase 14 adds refund actions;
+    legacy constructions stay byte-identical for the frozen v1/v2 contracts."""
+    body = "DECLARE current_version BIGINT; SELECT version INTO current_version FROM payments_finance WHERE order_id=NEW.order_id FOR UPDATE; "
+    body += reject(f"current_version IS NULL OR NEW.version<>current_version+1 OR NOT ({accepted('NEW.order_id')})")
+    buyer = "EXISTS(SELECT 1 FROM orders_sellerorder o JOIN accounts_account a ON a.id=o.buyer_id JOIN accounts_user u ON u.id=a.user_id WHERE o.id=NEW.order_id AND NEW.account_id=a.id AND NEW.actor_id=u.id AND a.context='buyer' AND a.status='active' AND u.is_active AND u.email_verified)"
+    seller = (
+        seller_account("NEW.order_id", "NEW.account_id")
+        + " AND EXISTS(SELECT 1 FROM accounts_account a WHERE a.id=NEW.account_id AND a.user_id=NEW.actor_id)"
+    )
+    seller_actions = [
+        "receipt_confirmed",
+        "claim_rejected",
+        "correction_proposed",
+        "deadline_extended",
+        "stock_plan_submitted",
+        "replacement_proposed",
+    ]
+    staff_actions = ["case_assign", "case_approve", "case_reject", "case_replenish", "case_refer", "case_resolve"]
+    if refunds:
+        seller_actions += ["refund_due_created", "refund_reported", "refund_withdrawn"]
+        staff_actions += ["refund_due_created", "refund_assigned", "refund_confirmed", "refund_rejected"]
+    staff_authority = permission("NEW.actor_id", "'read_payments'")
+    if refunds:
+        staff_authority += " OR (NEW.action='refund_due_created' AND EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id WHERE e.order_id=NEW.order_id AND e.version=s.version AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context AND (EXISTS(SELECT 1 FROM orders_cancellationdecision d WHERE d.event_id=e.id AND d.action='approved') OR EXISTS(SELECT 1 FROM orders_amendmentdecision d WHERE d.event_id=e.id AND d.action='approved'))))"
+    seller_list = ",".join(f"'{action}'" for action in seller_actions)
+    staff_list = ",".join(f"'{action}'" for action in staff_actions)
+    body += reject(f"""NOT ((NEW.context='buyer' AND NEW.action IN ('claim_submitted','claim_withdrawn') AND ({buyer}))
+        OR (NEW.context='seller' AND NEW.action IN ({seller_list}) AND ({seller}))
+        OR (NEW.context IN ('owner','staff') AND NEW.action IN ({staff_list}) AND ({staff_authority}))
+        OR (NEW.context='system' AND NEW.actor_id IS NULL AND NEW.account_id IS NULL AND NEW.action IN ('allocation_review','allocation_shortage','stock_reserved','overdue_reminder','overdue_reopened','overdue_cleared')))""")
+    return trigger("payments_event", "INSERT", body)
+
+
+def command_source_statement(*, refunds=False):
+    mapping = [
+        ("claim", "claim_submitted"),
+        ("receipt", "receipt_confirmed"),
+        ("confirm", "receipt_confirmed"),
+        ("withdraw", "claim_withdrawn"),
+        ("reject", "claim_rejected"),
+        ("correction", "correction_proposed"),
+        ("extension", "deadline_extended"),
+    ]
+    if refunds:
+        mapping += [
+            ("due", "refund_due_created"),
+            ("report", "refund_reported"),
+            ("refund_withdraw", "refund_withdrawn"),
+            ("refund_assign", "refund_assigned"),
+            ("refund_confirm", "refund_confirmed"),
+            ("refund_reject", "refund_rejected"),
+        ]
+    command_action = "CASE NEW.action " + " ".join(f"WHEN '{name}' THEN '{action}'" for name, action in mapping) + " WHEN 'plan' THEN (SELECT action FROM payments_event WHERE id=NEW.event_id) ELSE NEW.action END"
+    command_source = f"(NEW.action NOT IN ('upload','absence_fence') AND EXISTS(SELECT 1 FROM payments_event e WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context AND e.action={command_action} AND ({published_event('e.id', 'e.action')}))) OR (NEW.action='absence_fence' AND NEW.event_id IS NULL AND NEW.digest=REPEAT('0',64) AND JSON_TYPE(JSON_EXTRACT(NEW.result,'$.settled'))='BOOLEAN' AND JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.settled'))='true') OR (NEW.action='upload' AND NEW.event_id IS NULL AND EXISTS(SELECT 1 FROM payments_evidence image WHERE image.order_id=NEW.order_id AND image.creator_id=NEW.account_id AND image.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.id')),'-','')))"
+    return trigger("payments_command", "INSERT", reject(f"NOT ({command_source})"), suffix="source_guard")
+
+
+def command_result_statement(*, refunds=False):
+    result_identity = """(NEW.action='claim' AND EXISTS(SELECT 1 FROM payments_claim c WHERE c.event_id=NEW.event_id AND c.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.claim')),'-','')))
+        OR (NEW.action IN ('receipt','confirm') AND EXISTS(SELECT 1 FROM payments_receipt r JOIN payments_receiptseal seal ON seal.receipt_id=r.id WHERE r.event_id=NEW.event_id AND r.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.receipt')),'-','')))
+        OR (NEW.action IN ('withdraw','reject') AND EXISTS(SELECT 1 FROM payments_claimdecision d WHERE d.event_id=NEW.event_id AND d.claim_id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.claim')),'-','')))
+        OR (NEW.action='correction' AND EXISTS(SELECT 1 FROM payments_correction c WHERE c.event_id=NEW.event_id AND c.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.correction')),'-','')))
+        OR (NEW.action='extension' AND EXISTS(SELECT 1 FROM payments_extension x WHERE x.event_id=NEW.event_id AND x.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.extension')),'-','')))
+        OR (NEW.action='plan' AND EXISTS(SELECT 1 FROM payments_stockplan p JOIN payments_stockplanseal seal ON seal.plan_id=p.id WHERE p.event_id=NEW.event_id AND p.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.plan')),'-','')))
+        OR (NEW.action IN ('case_assign','case_approve','case_reject','case_replenish','case_refer','case_resolve') AND EXISTS(SELECT 1 FROM payments_caseevent k WHERE k.event_id=NEW.event_id AND k.case_id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.case')),'-','')))"""
+    if refunds:
+        result_identity += """
+        OR (NEW.action='due' AND EXISTS(SELECT 1 FROM payments_refunddue d JOIN payments_refundseal seal ON seal.due_id=d.id WHERE d.event_id=NEW.event_id AND d.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.refund_due')),'-','')))
+        OR (NEW.action='report' AND EXISTS(SELECT 1 FROM payments_refundreport r WHERE r.event_id=NEW.event_id AND r.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.report')),'-','')))
+        OR (NEW.action='refund_withdraw' AND EXISTS(SELECT 1 FROM payments_refunddecision d WHERE d.event_id=NEW.event_id AND d.action='withdrawn'))
+        OR (NEW.action='refund_assign' AND EXISTS(SELECT 1 FROM payments_refunddue d JOIN payments_event e ON e.id=NEW.event_id AND e.order_id=d.order_id WHERE d.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.due')),'-','') AND e.action='refund_assigned'))
+        OR (NEW.action IN ('refund_confirm','refund_reject') AND EXISTS(SELECT 1 FROM payments_refunddecision d WHERE d.event_id=NEW.event_id AND d.action=CASE NEW.action WHEN 'refund_confirm' THEN 'confirmed' ELSE 'rejected' END AND d.report_id IN (SELECT r.id FROM payments_refundreport r WHERE r.due_id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.due')),'-',''))))"""
+    return trigger(
+        "payments_command",
+        "INSERT",
+        reject(
+            f"NEW.digest NOT REGEXP BINARY '^[0-9a-f]{{64}}$' OR (NEW.action NOT IN ('upload','absence_fence') AND (NOT ({result_identity}) OR NOT (JSON_TYPE(JSON_EXTRACT(NEW.result,'$.version')) <=> 'INTEGER') OR NOT EXISTS(SELECT 1 FROM payments_event e WHERE e.id=NEW.event_id AND e.version=CAST(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.version')) AS UNSIGNED))))"
+        ),
+        suffix="result_guard",
+    )
+
+
 def statements():
     result = []
     for table in [
@@ -100,18 +184,7 @@ def statements():
             ),
         )
     )
-    body = "DECLARE current_version BIGINT; SELECT version INTO current_version FROM payments_finance WHERE order_id=NEW.order_id FOR UPDATE; "
-    body += reject(f"current_version IS NULL OR NEW.version<>current_version+1 OR NOT ({accepted('NEW.order_id')})")
-    buyer = "EXISTS(SELECT 1 FROM orders_sellerorder o JOIN accounts_account a ON a.id=o.buyer_id JOIN accounts_user u ON u.id=a.user_id WHERE o.id=NEW.order_id AND NEW.account_id=a.id AND NEW.actor_id=u.id AND a.context='buyer' AND a.status='active' AND u.is_active AND u.email_verified)"
-    seller = (
-        seller_account("NEW.order_id", "NEW.account_id")
-        + " AND EXISTS(SELECT 1 FROM accounts_account a WHERE a.id=NEW.account_id AND a.user_id=NEW.actor_id)"
-    )
-    body += reject(f"""NOT ((NEW.context='buyer' AND NEW.action IN ('claim_submitted','claim_withdrawn') AND ({buyer}))
-        OR (NEW.context='seller' AND NEW.action IN ('receipt_confirmed','claim_rejected','correction_proposed','deadline_extended','stock_plan_submitted','replacement_proposed') AND ({seller}))
-        OR (NEW.context IN ('owner','staff') AND NEW.action IN ('case_assign','case_approve','case_reject','case_replenish','case_refer','case_resolve') AND ({permission("NEW.actor_id", "'read_payments'")}))
-        OR (NEW.context='system' AND NEW.actor_id IS NULL AND NEW.account_id IS NULL AND NEW.action IN ('allocation_review','allocation_shortage','stock_reserved','overdue_reminder','overdue_reopened','overdue_cleared')))""")
-    result.append(trigger("payments_event", "INSERT", body))
+    result.append(event_statement())
     result.append(
         trigger(
             "payments_command",
@@ -121,26 +194,8 @@ def statements():
             ),
         )
     )
-    command_action = "CASE NEW.action WHEN 'claim' THEN 'claim_submitted' WHEN 'receipt' THEN 'receipt_confirmed' WHEN 'confirm' THEN 'receipt_confirmed' WHEN 'withdraw' THEN 'claim_withdrawn' WHEN 'reject' THEN 'claim_rejected' WHEN 'correction' THEN 'correction_proposed' WHEN 'extension' THEN 'deadline_extended' WHEN 'plan' THEN (SELECT action FROM payments_event WHERE id=NEW.event_id) ELSE NEW.action END"
-    command_source = f"(NEW.action NOT IN ('upload','absence_fence') AND EXISTS(SELECT 1 FROM payments_event e WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context AND e.action={command_action} AND ({published_event('e.id', 'e.action')}))) OR (NEW.action='absence_fence' AND NEW.event_id IS NULL AND NEW.digest=REPEAT('0',64) AND JSON_TYPE(JSON_EXTRACT(NEW.result,'$.settled'))='BOOLEAN' AND JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.settled'))='true') OR (NEW.action='upload' AND NEW.event_id IS NULL AND EXISTS(SELECT 1 FROM payments_evidence image WHERE image.order_id=NEW.order_id AND image.creator_id=NEW.account_id AND image.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.id')),'-','')))"
-    result.append(trigger("payments_command", "INSERT", reject(f"NOT ({command_source})"), suffix="source_guard"))
-    result_identity = """(NEW.action='claim' AND EXISTS(SELECT 1 FROM payments_claim c WHERE c.event_id=NEW.event_id AND c.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.claim')),'-','')))
-        OR (NEW.action IN ('receipt','confirm') AND EXISTS(SELECT 1 FROM payments_receipt r JOIN payments_receiptseal seal ON seal.receipt_id=r.id WHERE r.event_id=NEW.event_id AND r.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.receipt')),'-','')))
-        OR (NEW.action IN ('withdraw','reject') AND EXISTS(SELECT 1 FROM payments_claimdecision d WHERE d.event_id=NEW.event_id AND d.claim_id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.claim')),'-','')))
-        OR (NEW.action='correction' AND EXISTS(SELECT 1 FROM payments_correction c WHERE c.event_id=NEW.event_id AND c.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.correction')),'-','')))
-        OR (NEW.action='extension' AND EXISTS(SELECT 1 FROM payments_extension x WHERE x.event_id=NEW.event_id AND x.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.extension')),'-','')))
-        OR (NEW.action='plan' AND EXISTS(SELECT 1 FROM payments_stockplan p JOIN payments_stockplanseal seal ON seal.plan_id=p.id WHERE p.event_id=NEW.event_id AND p.id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.plan')),'-','')))
-        OR (NEW.action IN ('case_assign','case_approve','case_reject','case_replenish','case_refer','case_resolve') AND EXISTS(SELECT 1 FROM payments_caseevent k WHERE k.event_id=NEW.event_id AND k.case_id=REPLACE(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.case')),'-','')))"""
-    result.append(
-        trigger(
-            "payments_command",
-            "INSERT",
-            reject(
-                f"NEW.digest NOT REGEXP BINARY '^[0-9a-f]{{64}}$' OR (NEW.action NOT IN ('upload','absence_fence') AND (NOT ({result_identity}) OR NOT (JSON_TYPE(JSON_EXTRACT(NEW.result,'$.version')) <=> 'INTEGER') OR NOT EXISTS(SELECT 1 FROM payments_event e WHERE e.id=NEW.event_id AND e.version=CAST(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.version')) AS UNSIGNED))))"
-            ),
-            suffix="result_guard",
-        )
-    )
+    result.append(command_source_statement())
+    result.append(command_result_statement())
     result.append(
         trigger(
             "payments_claim",
@@ -360,16 +415,26 @@ def evidence_statements():
             ),
         )
     )
+    result.append(trigger("payments_evidencebinding", "INSERT", evidencebinding_statement()))
+    return result
+
+
+def evidencebinding_statement(*, refunds=False):
+    """Private payment evidence binds once to its exact author/target pair;
+    Phase 14 adds the sealed refund report target. Legacy bytes are frozen."""
     body = "DECLARE parent_id CHAR(32); SELECT id INTO parent_id FROM payments_evidence WHERE id=NEW.evidence_id FOR UPDATE; "
-    body += reject("""NOT EXISTS(SELECT 1 FROM payments_evidence e WHERE e.id=NEW.evidence_id AND e.expires_at>UTC_TIMESTAMP(6)
+    binding = """NOT EXISTS(SELECT 1 FROM payments_evidence e WHERE e.id=NEW.evidence_id AND e.expires_at>UTC_TIMESTAMP(6)
         AND ((NEW.claim_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_claim c WHERE c.id=NEW.claim_id AND c.order_id=e.order_id AND c.actor_id=e.creator_id) AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.claim_id=NEW.claim_id)<3)
         OR (NEW.receipt_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_receipt r WHERE r.id=NEW.receipt_id AND r.order_id=e.order_id AND r.actor_id=e.creator_id) AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.receipt_id=NEW.receipt_id)<3)
-        OR (NEW.correction_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_correction c JOIN payments_receipt r ON r.id=c.receipt_id WHERE c.id=NEW.correction_id AND r.order_id=e.order_id AND c.actor_id=e.creator_id) AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.correction_id=NEW.correction_id)<3)))""")
-    body += reject(
-        "(NEW.receipt_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_receiptseal seal WHERE seal.receipt_id=NEW.receipt_id)) OR (NEW.correction_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_reviewcase k WHERE k.correction_id=NEW.correction_id)) OR (NEW.claim_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_claim c JOIN notifications_event n ON n.payment_event_id=c.event_id WHERE c.id=NEW.claim_id))"
-    )
-    result.append(trigger("payments_evidencebinding", "INSERT", body))
-    return result
+        OR (NEW.correction_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_correction c JOIN payments_receipt r ON r.id=c.receipt_id WHERE c.id=NEW.correction_id AND r.order_id=e.order_id AND c.actor_id=e.creator_id) AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.correction_id=NEW.correction_id)<3)"""
+    sealed = "(NEW.receipt_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_receiptseal seal WHERE seal.receipt_id=NEW.receipt_id)) OR (NEW.correction_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_reviewcase k WHERE k.correction_id=NEW.correction_id)) OR (NEW.claim_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_claim c JOIN notifications_event n ON n.payment_event_id=c.event_id WHERE c.id=NEW.claim_id))"
+    if refunds:
+        binding += """
+        OR (NEW.report_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_refundreport r JOIN payments_refunddue d ON d.id=r.due_id WHERE r.id=NEW.report_id AND d.order_id=e.order_id AND r.actor_id=e.creator_id AND NOT EXISTS(SELECT 1 FROM payments_refunddecision x WHERE x.report_id=r.id)) AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.report_id=NEW.report_id)<3)"""
+        sealed += " OR (NEW.report_id IS NOT NULL AND (EXISTS(SELECT 1 FROM payments_refunddecision x WHERE x.report_id=NEW.report_id) OR EXISTS(SELECT 1 FROM payments_refundreport r JOIN notifications_event n ON n.payment_event_id=r.event_id WHERE r.id=NEW.report_id)))"
+    body += reject(binding + "))")
+    body += reject(sealed)
+    return body
 
 
 def delivery_statements():
@@ -432,4 +497,78 @@ def delivery_statements():
         )
     )
     result.append(trigger("payments_sweepcursor", "DELETE", reject()))
+    return result
+
+
+def aftercare_replacements():
+    from apps.orders.mariadb_guards import effective_line_value, effective_order_total
+
+    result = []
+    for statement in plan_statements() + case_statements() + delivery_statements():
+        revised = statement
+        if statement.startswith('CREATE TRIGGER `payments_stockplanseal_insert_guard`'):
+            revised = revised.replace('SUM(l.quantity)', f"SUM({effective_line_value('l', 'quantity')})")
+        if '<o.goods_total' in revised:
+            revised = revised.replace('<o.goods_total', '<' + effective_order_total('o.id'))
+        if revised != statement:
+            result.append(revised)
+    return result
+
+
+def refund_statements():
+    from apps.orders.mariadb_guards import effective_order_total
+
+    result = aftercare_replacements() + [
+        event_statement(refunds=True),
+        command_source_statement(refunds=True),
+        command_result_statement(refunds=True),
+        trigger("payments_evidencebinding", "INSERT", evidencebinding_statement(refunds=True)),
+    ]
+    cancelled = "EXISTS(SELECT 1 FROM orders_cancellationrequest request JOIN orders_cancellationdecision decision ON decision.request_id=request.id WHERE request.order_id=NEW.order_id AND decision.action='approved')"
+    result.append(trigger("payments_event", "INSERT", reject(f"({cancelled}) AND NEW.action IN ('claim_submitted','claim_withdrawn','receipt_confirmed','claim_rejected','correction_proposed','deadline_extended','stock_plan_submitted','replacement_proposed','allocation_review','allocation_shortage','stock_reserved','overdue_reminder','overdue_reopened')"), suffix="aftercare_guard"))
+    result.append(trigger("payments_caseevent", "INSERT", reject(f"""EXISTS(SELECT 1 FROM payments_reviewcase k WHERE k.id=NEW.case_id AND (
+        ((NEW.action='approve' AND k.kind IN ('correction','replacement') OR NEW.action='replenish') AND EXISTS(SELECT 1 FROM orders_cancellationrequest request JOIN orders_cancellationdecision decision ON decision.request_id=request.id WHERE request.order_id=k.order_id AND decision.action='approved'))
+        OR (NEW.action='approve' AND k.kind='correction' AND EXISTS(SELECT 1 FROM payments_correction c JOIN payments_receipt r ON r.id=c.receipt_id WHERE c.id=k.correction_id AND {confirmed('k.order_id')}-{effective('r')}+c.amount<(SELECT COALESCE(SUM(d.amount),0) FROM payments_refunddue d WHERE d.order_id=k.order_id)))))"""), suffix="aftercare_guard"))
+    for table in ("refundseal", "refundreport", "refunddecision"):
+        result += retained("payments_" + table)
+    result.append(trigger("payments_refunddue", "DELETE", reject()))
+    body = "DECLARE current_version BIGINT; SELECT version INTO current_version FROM payments_finance WHERE order_id=NEW.order_id FOR UPDATE; "
+    cancellation_source = "EXISTS(SELECT 1 FROM orders_cancellationrequest p JOIN orders_cancellationdecision d ON d.request_id=p.id WHERE p.order_id=NEW.order_id AND p.state='approved' AND d.action='approved')"
+    amendment_source = "EXISTS(SELECT 1 FROM orders_amendment a JOIN orders_amendmentdecision d ON d.amendment_id=a.id WHERE a.order_id=NEW.order_id AND a.state='approved' AND d.action='approved')"
+    body += reject(
+        f"""current_version IS NULL OR NEW.version<>1 OR NEW.assigned_to_id IS NOT NULL OR NEW.currency<>(SELECT currency FROM orders_sellerorder WHERE id=NEW.order_id) OR (NEW.cause='cancellation' AND NOT ({cancellation_source})) OR (NEW.cause='amendment' AND NOT ({amendment_source})) OR (NEW.cause='excess' AND ({cancellation_source})) OR {confirmed('NEW.order_id')}-COALESCE((SELECT SUM(prior.amount) FROM payments_refunddue prior WHERE prior.order_id=NEW.order_id),0)<NEW.amount OR NOT EXISTS(SELECT 1 FROM payments_event e JOIN payments_finance f ON f.order_id=e.order_id WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.action='refund_due_created' AND e.version<=f.version)"""
+    )
+    body += reject(f"""NEW.amount<=0 OR NEW.cause NOT IN ('cancellation','amendment','excess') OR (NEW.cause IN ('amendment','excess') AND NEW.amount>GREATEST({confirmed('NEW.order_id')}-{effective_order_total('NEW.order_id')}-COALESCE((SELECT SUM(prior.amount) FROM payments_refunddue prior WHERE prior.order_id=NEW.order_id),0),0))
+        OR NOT EXISTS(SELECT 1 FROM payments_event e JOIN payments_finance f ON f.order_id=e.order_id WHERE e.id=NEW.event_id AND e.version=f.version AND ((NEW.cause='excess' AND e.context='seller') OR (NEW.cause IN ('cancellation','amendment') AND e.context IN ('staff','owner'))))""")
+    result.append(trigger("payments_refunddue", "INSERT", body))
+    result.append(
+        trigger(
+            "payments_refunddue",
+            "UPDATE",
+            reject(
+                f"""NOT ({same("id order_id cause amount currency event_id created_at")}) OR NEW.version<>OLD.version+1 OR NOT EXISTS(SELECT 1 FROM payments_event e JOIN payments_finance f ON f.order_id=e.order_id WHERE e.order_id=NEW.order_id AND e.version=f.version AND ((e.action='refund_assigned' AND NOT (NEW.assigned_to_id <=> OLD.assigned_to_id)) OR ((NEW.assigned_to_id <=> OLD.assigned_to_id) AND EXISTS(SELECT 1 FROM payments_refunddecision decision JOIN payments_refundreport report ON report.id=decision.report_id WHERE decision.event_id=e.id AND report.due_id=NEW.id AND decision.action IN ('confirmed','rejected')))))"""
+            ),
+        )
+    )
+    body = "DECLARE parent_id CHAR(32); SELECT id INTO parent_id FROM payments_refunddue WHERE id=NEW.due_id FOR UPDATE; "
+    body += reject(
+        """parent_id IS NULL OR NOT EXISTS(SELECT 1 FROM payments_refunddue d JOIN payments_event e ON e.id=d.event_id JOIN payments_finance f ON f.order_id=e.order_id WHERE d.id=NEW.due_id AND e.action='refund_due_created' AND e.version<=f.version)"""
+    )
+    result.append(trigger("payments_refundseal", "INSERT", body))
+    body = "DECLARE parent_id CHAR(32); SELECT id INTO parent_id FROM payments_refunddue WHERE id=NEW.due_id FOR UPDATE; "
+    body += reject(
+        f"""parent_id IS NULL OR NEW.amount<>(SELECT amount FROM payments_refunddue WHERE id=NEW.due_id) OR NEW.sent_at>UTC_TIMESTAMP(6) OR CHAR_LENGTH(TRIM(NEW.description))=0 OR NOT EXISTS(SELECT 1 FROM payments_refunddue d JOIN payments_event e ON e.id=NEW.event_id JOIN payments_finance f ON f.order_id=e.order_id WHERE d.id=NEW.due_id AND e.order_id=d.order_id AND e.action='refund_reported' AND e.version<=f.version AND e.account_id=NEW.actor_id) OR NOT ({seller_account("(SELECT order_id FROM payments_refunddue WHERE id=NEW.due_id)", "NEW.actor_id")}) OR EXISTS(SELECT 1 FROM payments_refundreport r JOIN payments_refunddecision x ON x.report_id=r.id WHERE r.due_id=NEW.due_id AND x.action='confirmed') OR EXISTS(SELECT 1 FROM payments_refundreport r WHERE r.due_id=NEW.due_id AND NOT EXISTS(SELECT 1 FROM payments_refunddecision x WHERE x.report_id=r.id)) OR (NEW.previous_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM payments_refundreport r JOIN payments_refunddecision x ON x.report_id=r.id WHERE r.id=NEW.previous_id AND r.due_id=NEW.due_id AND x.action IN ('withdrawn','rejected') AND NOT EXISTS(SELECT 1 FROM payments_refundreport y WHERE y.previous_id=r.id)))"""
+    )
+    result.append(trigger("payments_refundreport", "INSERT", body))
+    body = "DECLARE parent_id CHAR(32); SELECT id INTO parent_id FROM payments_refunddue WHERE id=(SELECT due_id FROM payments_refundreport WHERE id=NEW.report_id) FOR UPDATE; "
+    body += reject(
+        """parent_id IS NULL OR NEW.action NOT IN ('confirmed','rejected','withdrawn') OR CHAR_LENGTH(TRIM(NEW.reason))<3 OR NOT EXISTS(SELECT 1 FROM payments_refundreport r JOIN payments_refunddue d ON d.id=r.due_id JOIN payments_event e ON e.id=NEW.event_id JOIN payments_finance f ON f.order_id=e.order_id WHERE r.id=NEW.report_id AND e.order_id=d.order_id AND e.version<=f.version AND e.action=CASE NEW.action WHEN 'confirmed' THEN 'refund_confirmed' WHEN 'rejected' THEN 'refund_rejected' ELSE 'refund_withdrawn' END) OR EXISTS(SELECT 1 FROM payments_refunddecision x WHERE x.report_id=NEW.report_id) OR NOT EXISTS(SELECT 1 FROM payments_refundreport r WHERE r.id=NEW.report_id AND NOT EXISTS(SELECT 1 FROM payments_refunddecision x WHERE x.report_id=r.id)) OR (NEW.action='confirmed' AND NOT EXISTS(SELECT 1 FROM payments_refundreport r WHERE r.id=NEW.report_id AND r.amount=(SELECT amount FROM payments_refunddue WHERE id=r.due_id)))"""
+    )
+    body += reject(
+        f"""NOT EXISTS(SELECT 1 FROM payments_event e WHERE e.id=NEW.event_id AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context) OR (NEW.action IN ('confirmed','rejected') AND (NEW.context NOT IN ('owner','staff') OR NOT EXISTS(SELECT 1 FROM payments_refunddue d JOIN payments_refundreport r ON r.due_id=d.id WHERE r.id=NEW.report_id AND d.assigned_to_id=NEW.actor_id AND ({permission('NEW.actor_id', "'decide_goods_refund'")}) AND ({independent('(SELECT order_id FROM payments_refunddue WHERE id=parent_id)', 'NEW.actor_id')})) OR EXISTS(SELECT 1 FROM payments_refundreport own JOIN payments_refunddue own_due ON own_due.id=own.due_id JOIN accounts_account own_account ON own_account.id=own.actor_id WHERE own_due.order_id=(SELECT order_id FROM payments_refunddue WHERE id=parent_id) AND own_account.user_id=NEW.actor_id))) OR (NEW.action='withdrawn' AND NOT EXISTS(SELECT 1 FROM payments_refundreport r JOIN payments_event e ON e.id=NEW.event_id WHERE r.id=NEW.report_id AND e.account_id=r.actor_id AND e.context='seller'))"""
+    )
+    body += reject(
+        f"""NEW.action='confirmed' AND {confirmed('(SELECT order_id FROM payments_refunddue WHERE id=parent_id)')}-(SELECT COALESCE(SUM(rep.amount),0) FROM payments_refundreport rep JOIN payments_refunddecision d2 ON d2.report_id=rep.id JOIN payments_refunddue due2 ON due2.id=rep.due_id WHERE due2.order_id=(SELECT order_id FROM payments_refunddue WHERE id=parent_id) AND d2.action='confirmed')<(SELECT amount FROM payments_refunddue WHERE id=parent_id)"""
+    )
+    result.append(trigger("payments_refunddecision", "INSERT", body))
     return result

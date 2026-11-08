@@ -1,9 +1,9 @@
 """Independent assigned native decisions, separate from seller/logistics authority."""
 
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from apps.accounts.models import User
+from apps.foundation.independence import eligible_reviewers
 from apps.organizations.access import Conflict
 from . import models as m, access, queries, validation as v
 from .services import emit
@@ -16,32 +16,25 @@ CODES = {
     "logistics": "manage_logistics",
     "stock": "manage_logistics",
     "exception": "manage_logistics",
+    "refund": "confirm_delivery_refund",
 }
 
 
 def reviewers(case, *, user_id=None):
-    code = CODES[case.kind]
-    read = Q(groups__permissions__content_type__app_label="fulfilment", groups__permissions__codename="read_fulfilment")
-    decide = Q(groups__permissions__content_type__app_label="fulfilment", groups__permissions__codename=code)
-    qs = (
-        User.objects.filter(is_active=True, email_verified=True, is_staff=True)
-        .filter(Q(is_superuser=True) | read)
-        .filter(Q(is_superuser=True) | decide)
-        .distinct()
-        .order_by("pk")
+    def independent(user):
+        access.independent(case.order, user)
+        if case.blocker_id and case.blocker.event.actor_id == user.pk:
+            raise PermissionDenied("The blocker author cannot clear it.")
+        if case.refund_id and case.refund.event.actor_id == user.pk:
+            raise PermissionDenied("The delivery-refund reporter cannot confirm it.")
+
+    return eligible_reviewers(
+        "fulfilment",
+        "read_fulfilment",
+        CODES[case.kind],
+        independent,
+        user_id=user_id,
     )
-    if user_id is not None:
-        qs = qs.filter(pk=user_id)
-    result = []
-    for user in qs[:200]:
-        try:
-            access.independent(case.order, user)
-            if case.blocker_id and case.blocker.event.actor_id == user.pk:
-                continue
-        except APIException:
-            continue
-        result.append(user)
-    return result
 
 
 def decide(actor, order, state, action, data):
@@ -75,7 +68,7 @@ def decide(actor, order, state, action, data):
             raise PermissionDenied("An eligible independent reviewer is required.")
         case.assigned_to = user
     elif action in {"approve", "reject"}:
-        if case.kind not in {"charge", "payment", "correction"}:
+        if case.kind not in {"charge", "payment", "correction", "refund"}:
             raise PermissionDenied()
         if case.kind == "charge":
             proposal = case.proposal
@@ -96,6 +89,22 @@ def decide(actor, order, state, action, data):
                 event=event,
                 proposal=proposal,
                 action="approved" if action == "approve" else "rejected",
+                reason=reason,
+            )
+        elif case.kind == "refund":
+            refund = case.refund
+            if m.DeliveryRefundDecision.construction.filter(refund=refund).exists():
+                raise Conflict("This exact delivery refund is already decided.")
+            if action == "approve":
+                received = queries.provider_receipts(order, refund.provider)
+                confirmed = queries.confirmed_refunds(order, refund.provider)
+                if confirmed + refund.amount > received:
+                    raise Conflict("Provider-confirmed refunds cannot exceed confirmed provider receipts.")
+            m.DeliveryRefundDecision.construction.create(
+                order=order,
+                event=event,
+                refund=refund,
+                action="confirmed" if action == "approve" else "rejected",
                 reason=reason,
             )
         elif case.kind == "payment":
@@ -131,8 +140,8 @@ def decide(actor, order, state, action, data):
         if case.blocker.event.actor_id == actor.user.pk:
             raise PermissionDenied("Another independent reviewer must clear this hold.")
         disposition = data.get("disposition")
-        if disposition not in {"erroneous", "withdrawn"}:
-            v.fail("disposition", "erroneous_or_withdrawn_only")
+        if disposition not in {"erroneous", "withdrawn", "decided"}:
+            v.fail("disposition", "erroneous_withdrawn_or_decided_only")
         m.BlockerClosure.construction.create(
             order=order, event=event, blocker=case.blocker, disposition=disposition, reason=reason
         )

@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema, OpenApiTypes
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -183,3 +184,46 @@ class WithdrawClaim(ClaimAction):
     @extend_schema(operation_id="payment_claim_withdraw", request=c.DecisionCommand, responses=c.Outcome)
     def post(self, request, pk):
         return super().post(request, "buyer", pk, "withdraw")
+
+
+class RefundDue(OrderView):
+    @extend_schema(operation_id="payment_refund_due", request=c.RefundDueCommand, responses=c.Outcome)
+    def post(self, request, pk):
+        query(request)
+        actor = self.actor("seller")
+        throttle(actor, "refund_due", pk, limit=20)
+        from . import refunds
+
+        result = refunds.mutate(actor, pk, "due", self.data(c.RefundDueCommand))
+        return Response(c.Outcome({"outcome": result, "current": queries.detail(actor, pk)}).data, status=201)
+
+
+class RefundReport(OrderView):
+    @extend_schema(operation_id="payment_refund_report", request=c.RefundReportCommand, responses=c.Outcome)
+    def post(self, request, pk):
+        query(request)
+        actor = self.actor("seller")
+        throttle(actor, "refund_report", pk, limit=20)
+        from . import refunds
+
+        result = refunds.mutate(actor, pk, "report", self.data(c.RefundReportCommand))
+        return Response(c.Outcome({"outcome": result, "current": queries.detail(actor, pk)}).data, status=201)
+
+
+class RefundWithdraw(OrderView):
+    @extend_schema(operation_id="payment_refund_withdraw", request=c.RefundWithdrawCommand, responses=c.Outcome)
+    def post(self, request, pk):
+        query(request)
+        actor = self.actor("seller")
+        throttle(actor, "refund_withdraw", pk, limit=20)
+        from . import refunds
+        from .models import RefundReport
+
+        row = get_object_or_404(
+            RefundReport.objects.filter(due__order__in=access.scope(actor, write=True)), pk=pk
+        )
+        data = self.data(c.RefundWithdrawCommand)
+        if data["report"] != row.pk:
+            raise ValidationError({"report": ["The packet must match the requested resource."]})
+        result = refunds.mutate(actor, row.due.order_id, "refund_withdraw", data)
+        return Response(c.Outcome({"outcome": result, "current": queries.detail(actor, row.due.order_id)}).data)

@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block content %}
+<div class="rz-owner ra:space-y-6 ra:min-w-0">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{% translate "Order cancellation review" %}</h1>
+<p><bdi>{{ record.id }}</bdi> · {{ record.state }} · Version {{ record.version }} · {{ record.requester_context }}</p>
+<p>{% translate "Cancellations take effect before dispatch only. Approval is terminal: it releases an unshipped advance reservation exactly once, freezes new money actions and creates a refund due bounded by confirmed received money. History stays retained and readable." %}</p>
+<p dir="auto">{{ record.reason }}</p>
+{% if not independent %}<p role="status">{% translate "You have a requester, buyer/seller or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot decide this request." %}</p>{% endif %}
+</section>
+{% if projection %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Current goods balance' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Invoice" %} <bdi>{{ record.order.invoice.number }}</bdi></h2>
+<dl><dt>{% translate "Accepted total" %}</dt><dd><bdi>{{ projection.accepted_total }} {{ record.order.currency }}</bdi></dd><dt>{% translate "Received" %}</dt><dd><bdi>{{ projection.received }} {{ record.order.currency }}</bdi></dd><dt>{% translate "Refunded" %}</dt><dd><bdi>{{ projection.refunded }} {{ record.order.currency }}</bdi></dd><dt>{% translate "Refund due" %}</dt><dd><bdi>{{ projection.refund_due }} {{ record.order.currency }}</bdi></dd><dt>{% translate "Remaining" %}</dt><dd><bdi>{{ projection.remaining }} {{ record.order.currency }}</bdi></dd><dt>{% translate "Excess" %}</dt><dd><bdi>{{ projection.overpayment }} {{ record.order.currency }}</bdi></dd></dl>
+<p>{% translate "Money" %}: {{ projection.financial }} · Stock: {{ projection.allocation }}</p>
+{% if record.payment_case_id %}<p>{% translate "Opened from paid-shortage case" %}: <bdi>{{ record.payment_case_id }}</bdi></p>{% endif %}
+{% if record.blocker_id %}<p>{% translate "Linked operational hold" %}: <bdi>{{ record.blocker_id }}</bdi></p>{% endif %}
+</section>
+{% if record.decision %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Retained decision" %}</h2><p>{{ record.decision.action }} · {{ record.decision.created_at }} · {{ record.decision.context }}</p><p dir="auto">{{ record.decision.reason }}</p></section>{% endif %}
+{% if adjustments %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Invoice adjustments" %}</h2><p>{% translate "The original invoice row, number and bytes are untouched; adjustments are separate traceable records." %}</p>{% for row in adjustments %}<article class="ra:border ra:border-line ra:rounded-control ra:p-3"><p>{{ row.cause }} · <bdi>{{ row.before_total }} → {{ row.after_total }} {{ record.order.currency }}</bdi> · {{ row.created_at }}</p><p dir="auto">{{ row.reason }}</p></article>{% endfor %}</section>{% endif %}
+{% else %}<p role="status">{% translate "Only assignment metadata is available. Current assignment is required for private money and adjustment content." %}</p>{% endif %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Guarded decision" %}</h2><form method="post" class="ra:space-y-3">{% csrf_token %}{{ form.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2">{% translate "Record guarded decision" %}</button></form></section>
+</div>
+{% endblock %}

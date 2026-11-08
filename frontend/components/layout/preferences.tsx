@@ -10,7 +10,22 @@ import {
 import { messages } from "../../lib/i18n/messages";
 import { useSite } from "../../features/site/context";
 import { useNavigation } from "./navigation-guard";
-export function Preferences({ locale }: { locale: Locale }) {
+import { Icon } from "../ui/icon";
+import { sellerShellCopy } from "../../lib/i18n/seller-shell";
+
+const themeOptions = [
+	{ value: "system", icon: "monitor" as const },
+	{ value: "light", icon: "sun" as const },
+	{ value: "dark", icon: "moon" as const },
+];
+
+export function Preferences({
+	locale,
+	compact = false,
+}: {
+	locale: Locale;
+	compact?: boolean;
+}) {
 	const t = messages[locale],
 		path = usePathname(),
 		navigate = useNavigation();
@@ -22,53 +37,166 @@ export function Preferences({ locale }: { locale: Locale }) {
 			if (value && ["light", "dark", "system"].includes(value)) setTheme(value);
 		} catch {}
 	}, []);
+	useEffect(() => {
+		if (!compact) return;
+		const root = document.documentElement;
+		const sync = () => setTheme(root.dataset.theme ?? "system");
+		sync();
+		const observer = new MutationObserver(sync);
+		observer.observe(root, {
+			attributes: true,
+			attributeFilter: ["data-theme"],
+		});
+		return () => observer.disconnect();
+	}, [compact]);
+
+	function changeLocale(next: Locale) {
+		if (next === locale) return;
+		const href =
+			localizePath(path, next) + location.search + location.hash;
+		navigate(() => {
+			// biome-ignore lint/suspicious/noDocumentCookie: supports browsers without Cookie Store API.
+			document.cookie = `rezayi-locale=${next}; Path=/; SameSite=Lax; Max-Age=31536000`;
+			location.assign(href);
+		});
+	}
+
+	function changeTheme(value: string) {
+		setTheme(value);
+		document.documentElement.dataset.theme = value;
+		try {
+			localStorage.setItem("rezayi-theme", value);
+		} catch {}
+	}
+
+	if (compact) {
+		return (
+			<div className="flex items-center gap-2">
+				<details className="group relative">
+					<summary
+						className="flex h-9 min-w-20 list-none cursor-pointer items-center justify-center gap-1.5 rounded-control border border-border bg-surface px-2 text-caption font-medium text-muted hover:bg-info"
+						aria-label={t.language}
+					>
+						<Icon name="globe" className="size-3.5" />
+						<bdi>{sellerShellCopy[locale].localeCode}</bdi>
+						<Icon name="chevron-down" className="size-3" />
+					</summary>
+					<div className="absolute end-0 top-full z-50 mt-1.5 hidden w-40 rounded-xl border border-border bg-surface p-1.5 shadow-lifted group-open:block">
+						{locales.map((code) => (
+							<button
+								key={code}
+								type="button"
+								lang={code}
+								dir={code === "en" ? "ltr" : "rtl"}
+								onClick={() => changeLocale(code)}
+								className={`flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors ${
+									code === locale
+										? "bg-action text-on-primary font-bold"
+										: "text-foreground hover:bg-info"
+								}`}
+							>
+								{languageNames[code]}
+							</button>
+						))}
+					</div>
+				</details>
+				<details className="group relative">
+					<summary
+						className="flex h-9 w-9 list-none cursor-pointer items-center justify-center rounded-control border border-border bg-surface text-muted hover:bg-info"
+						aria-label={`${t.theme}: ${theme === "dark" ? t.dark : theme === "light" ? t.light : t.system}`}
+					>
+						<Icon
+							name={theme === "dark" ? "moon" : "sun"}
+							className="size-4"
+						/>
+					</summary>
+					<div className="absolute end-0 top-full z-50 mt-1.5 hidden rounded-xl border border-border bg-surface p-1.5 shadow-lifted group-open:block">
+						{themeOptions.map(({ value, icon }) => (
+							<button
+								key={value}
+								type="button"
+								onClick={() => changeTheme(value)}
+								className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+									value === theme
+										? "bg-action text-on-primary font-bold"
+										: "text-foreground hover:bg-info"
+								}`}
+							>
+								<Icon name={icon} className="size-4" />
+								{t[value as "system" | "light" | "dark"]}
+							</button>
+						))}
+					</div>
+				</details>
+			</div>
+		);
+	}
+
 	return (
-		<div className="preferences flex min-w-0 flex-wrap items-center gap-2 text-sm">
-			<label className="min-w-0 max-w-full">
-				<span className="sr-only">{t.language}</span>
-				<select
-					className="min-h-11 max-w-full rounded-control border border-border bg-surface px-2 text-foreground"
-					aria-label={t.language}
-					value={locale}
-					onChange={(event) => {
-						const href =
-							localizePath(path, event.target.value as Locale) +
-							location.search +
-							location.hash;
-						navigate(() => {
-							// biome-ignore lint/suspicious/noDocumentCookie: supports browsers without Cookie Store API.
-							document.cookie = `rezayi-locale=${event.target.value}; Path=/; SameSite=Lax; Max-Age=31536000`;
-							location.assign(href);
-						});
-					}}
-				>
-					{locales.map((value) => (
-						<option key={value} value={value} lang={value}>
-							{languageNames[value]}
-						</option>
-					))}
-				</select>
-			</label>
-			<label className="min-w-0 max-w-full">
-				<span className="sr-only">{t.theme}</span>
-				<select
-					className="min-h-11 max-w-full rounded-control border border-border bg-surface px-2 text-foreground"
+		<div className="flex min-w-0 flex-col gap-4">
+			<div className="space-y-2.5">
+				<p className="text-[0.7rem] font-semibold text-muted">
+					{t.language}
+				</p>
+				<div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label={t.language}>
+					{locales.map((code) => {
+						const active = code === locale;
+						return (
+							<button
+								key={code}
+								type="button"
+								role="radio"
+								aria-checked={active}
+								lang={code}
+								dir={code === "en" ? "ltr" : "rtl"}
+								onClick={() => changeLocale(code)}
+								className={`relative flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition-all ${
+									active
+										? "bg-action text-on-primary shadow-sm"
+										: "border border-border/70 bg-surface text-foreground hover:border-action/30 hover:bg-info"
+								}`}
+							>
+								{active && <Icon name="check" className="size-3.5" />}
+								<span className={active ? "" : "ms-1"}>
+									{languageNames[code]}
+								</span>
+							</button>
+						);
+					})}
+				</div>
+			</div>
+			<div className="h-px bg-border/50" />
+			<div className="space-y-2.5">
+				<p className="text-[0.7rem] font-semibold text-muted">
+					{t.theme}
+				</p>
+				<div
+					className="flex w-full items-center justify-between"
+					role="radiogroup"
 					aria-label={t.theme}
-					value={theme}
-					onChange={(event) => {
-						const value = event.target.value;
-						setTheme(value);
-						document.documentElement.dataset.theme = value;
-						try {
-							localStorage.setItem("rezayi-theme", value);
-						} catch {}
-					}}
 				>
-					<option value="system">{t.system}</option>
-					<option value="light">{t.light}</option>
-					<option value="dark">{t.dark}</option>
-				</select>
-			</label>
+					{themeOptions.map(({ value, icon }) => {
+						const active = value === theme;
+						return (
+							<button
+								key={value}
+								type="button"
+								role="radio"
+								aria-checked={active}
+								aria-label={t[value as "system" | "light" | "dark"]}
+								onClick={() => changeTheme(value)}
+								className={`relative flex size-10 items-center justify-center rounded-xl transition-all duration-300 ${
+									active
+										? "bg-action text-on-primary shadow-sm"
+										: "text-muted hover:bg-info hover:text-foreground"
+								}`}
+							>
+								<Icon name={icon} className="size-[1.1rem]" />
+							</button>
+						);
+					})}
+				</div>
+			</div>
 		</div>
 	);
 }

@@ -3,6 +3,7 @@ from apps.messaging.contracts import Strict
 
 
 class PreferenceCommand(Strict):
+    aftercare_email = s.BooleanField(required=False)
     payment_email = s.BooleanField(required=False)
     message_email = s.BooleanField()
     locale = s.ChoiceField(choices=["fa-AF", "ps", "ar", "en"])
@@ -10,6 +11,7 @@ class PreferenceCommand(Strict):
 
 
 class EmailPreference(s.Serializer):
+    aftercare_email = s.BooleanField()
     payment_email = s.BooleanField()
     message_email = s.BooleanField()
     locale = s.CharField()
@@ -18,7 +20,8 @@ class EmailPreference(s.Serializer):
 
 class NoticeRow(s.Serializer):
     id = s.UUIDField()
-    kind = s.ChoiceField(choices=["message", "report_status", "order_accepted", "negotiation", "payment", "fulfilment"])
+    kind = s.ChoiceField(choices=["message", "report_status", "order_accepted", "negotiation", "payment", "fulfilment", "aftercare"])
+    aftercare = s.UUIDField(allow_null=True)
     payment = s.UUIDField(allow_null=True)
     fulfilment = s.UUIDField(allow_null=True)
     negotiation = s.UUIDField(allow_null=True)

@@ -232,8 +232,87 @@ class ProductAdmin(ReadOnlyAdmin):
         )
 
 
-class CategoryForm(forms.Form):
-    payload = forms.JSONField(widget=forms.Textarea(attrs={"rows": 20, "dir": "ltr"}))
+LABEL_FIELDS = {"fa-AF": "label_fa_af", "en": "label_en", "ps": "label_ps", "ar": "label_ar"}
+
+
+class TaxonomyBaseForm(forms.Form):
+    version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
+    code = forms.SlugField(
+        max_length=40,
+        help_text="Permanent identity: lowercase letters, digits and hyphens. It cannot change after creation.",
+    )
+    label_fa_af = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text="Required Dari display name (default marketplace language).")
+    label_en = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "ltr"}), help_text="Required English display name.")
+    label_ps = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text="Required Pashto display name.")
+    label_ar = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text="Required Arabic display name.")
+    active = forms.BooleanField(required=False, initial=True, help_text="Inactive entries stay retained but are not offered to new products.")
+
+    def initial_from_row(self, row):
+        initial = {"version": row["version"], "code": row["code"], "active": row["active"]}
+        initial.update({field: row["labels"].get(locale, "") for locale, field in LABEL_FIELDS.items()})
+        return initial
+
+    def labels_payload(self):
+        return {locale: self.cleaned_data[field] for locale, field in LABEL_FIELDS.items()}
+
+
+class CategoryForm(TaxonomyBaseForm):
+    parent = forms.ChoiceField(required=False, choices=(), help_text="Optional parent category. Hierarchy is bounded to four levels and cycles are refused.")
+    units = forms.CharField(max_length=200, help_text="Comma-separated sale unit codes, 1 to 9 entries, each at most 16 characters. Example: kg, piece.")
+    attributes = forms.JSONField(required=False, widget=forms.Textarea(attrs={"rows": 4, "dir": "ltr"}), help_text='Optional advanced attribute definitions as a JSON list. Leave [] unless this category needs extra variant attributes.')
+
+    def clean_units(self):
+        entries = [part.strip() for part in self.cleaned_data["units"].split(",")]
+        if not entries or any(not entry for entry in entries):
+            raise forms.ValidationError("Provide 1 to 9 unit codes separated by commas, without empty entries.")
+        return entries
+
+    def clean_attributes(self):
+        value = self.cleaned_data.get("attributes")
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise forms.ValidationError("Attributes must be a JSON list, for example [].")
+        return value
+
+    def payload(self):
+        return {
+            "version": self.cleaned_data["version"],
+            "code": self.cleaned_data["code"],
+            "labels": self.labels_payload(),
+            "parent": self.cleaned_data.get("parent") or None,
+            "attributes": self.cleaned_data["attributes"],
+            "units": self.cleaned_data["units"],
+            "active": self.cleaned_data["active"],
+        }
+
+
+class UnitForm(TaxonomyBaseForm):
+    code = forms.SlugField(max_length=16, help_text="Permanent identity: lowercase letters, digits and hyphens, at most 16 characters.")
+    fractional = forms.BooleanField(required=False, help_text="Allow fractional quantities such as 0.25 kg; whole-count units stay unchecked.")
+
+    def payload(self):
+        return {
+            "version": self.cleaned_data["version"],
+            "code": self.cleaned_data["code"],
+            "labels": self.labels_payload(),
+            "fractional": self.cleaned_data["fractional"],
+            "active": self.cleaned_data["active"],
+        }
+
+
+def taxonomy_error(form, error, generic):
+    detail = getattr(error, "detail", {})
+    mapped = False
+    if isinstance(detail, dict):
+        for key, messages in detail.items():
+            target = key if key in form.fields else None
+            if key == "labels":
+                target = None
+            form.add_error(target, messages if isinstance(messages, list) else [str(messages)])
+            mapped = True
+    if not mapped:
+        form.add_error(None, generic)
 
 
 class TaxonomyAdmin(ReadOnlyAdmin):
@@ -282,22 +361,30 @@ class CategoryAdmin(TaxonomyAdmin):
         if code is None:
             row = {"version": 0, "code": "", "labels": {locale: "" for locale in LOCALES},
                    "parent": None, "attributes": [], "units": [], "active": True}
-        form = CategoryForm(request.POST if request.method == "POST" else None, initial={"payload": row})
+        form = CategoryForm(request.POST if request.method == "POST" else None)
+        form.initial = form.initial_from_row(row)
+        form.initial.update({"parent": row["parent"] or "", "units": ", ".join(row["units"]), "attributes": row["attributes"]})
+        form.fields["parent"].choices = [("", "No parent (top level)")] + [
+            (c.code, f"{c.code} — {c.labels.get('en') or c.labels.get('fa-AF') or ''}")
+            for c in Category.objects.order_by("code") if c.code != code
+        ]
+        if code is not None:
+            form.fields["code"].disabled = True
         t = localize(form, locale)
         if request.method == "POST" and form.is_valid():
             try:
-                contract = contracts.CatalogueTaxonomyInput(data=form.cleaned_data["payload"])
+                contract = contracts.CatalogueTaxonomyInput(data=form.payload())
                 contract.is_valid(raise_exception=True)
                 if code is None and contract.validated_data["version"] != 0 or code is not None and contract.validated_data["code"] != code:
-                    form.add_error("payload", ADMIN_COPY["category_identity_guard"])
+                    form.add_error("code", ADMIN_COPY["category_identity_guard"])
                 else:
                     taxonomy.save_category(actor, contract.validated_data)
                     return redirect("admin:catalogue_taxonomy", code=contract.validated_data["code"])
-            except APIException:
-                form.add_error(None, t["error"])
+            except APIException as error:
+                taxonomy_error(form, error, t["error"])
         return render(
             request,
-            "catalogue/workflow.html",
+            "catalogue/taxonomy_form.html",
             dict(
                 self.admin_site.each_context(request),
                 title=t["payload"],
@@ -305,6 +392,9 @@ class CategoryAdmin(TaxonomyAdmin):
                 t=t,
                 locale=locale,
                 direction="ltr" if locale == "en" else "rtl",
+                editing=code is not None,
+                kind="category",
+                cancel_url=reverse("admin:catalogue_category_changelist"),
             ),
         )
 
@@ -333,22 +423,26 @@ class UnitAdmin(TaxonomyAdmin):
         if code is None:
             row = {"version": 0, "code": "", "labels": {locale: "" for locale in LOCALES},
                    "fractional": False, "active": True}
-        form = CategoryForm(request.POST if request.method == "POST" else None, initial={"payload": row})
+        form = UnitForm(request.POST if request.method == "POST" else None)
+        form.initial = form.initial_from_row(row)
+        form.initial["fractional"] = row["fractional"]
+        if code is not None:
+            form.fields["code"].disabled = True
         t = localize(form, locale)
         if request.method == "POST" and form.is_valid():
             try:
-                contract = contracts.CatalogueUnitInput(data=form.cleaned_data["payload"])
+                contract = contracts.CatalogueUnitInput(data=form.payload())
                 contract.is_valid(raise_exception=True)
                 if code is None and contract.validated_data["version"] != 0 or code is not None and contract.validated_data["code"] != code:
-                    form.add_error("payload", ADMIN_COPY["unit_identity_guard"])
+                    form.add_error("code", ADMIN_COPY["unit_identity_guard"])
                 else:
                     taxonomy.save_unit(actor, contract.validated_data)
                     return redirect("admin:catalogue_unit", code=contract.validated_data["code"])
-            except APIException:
-                form.add_error(None, t["error"])
+            except APIException as error:
+                taxonomy_error(form, error, t["error"])
         return render(
             request,
-            "catalogue/workflow.html",
+            "catalogue/taxonomy_form.html",
             dict(
                 self.admin_site.each_context(request),
                 title=t["unit"],
@@ -356,6 +450,9 @@ class UnitAdmin(TaxonomyAdmin):
                 t=t,
                 locale=locale,
                 direction="ltr" if locale == "en" else "rtl",
+                editing=code is not None,
+                kind="unit",
+                cancel_url=reverse("admin:catalogue_saleunit_changelist"),
             ),
         )
 

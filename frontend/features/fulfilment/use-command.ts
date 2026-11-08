@@ -12,11 +12,21 @@ import {
 } from "./api";
 import type { Context, Intent, Outcome, Recovery } from "./types";
 
+function isRefund(intent: Intent) {
+	return (
+		intent.path === "delivery-refunds/" ||
+		(intent.upload &&
+			intent.body instanceof FormData &&
+			intent.body.get("purpose") === "refund")
+	);
+}
+
 export function useFulfilmentCommand({
 	scope,
 	context,
 	id,
 	attempt,
+	refundAllowed,
 	onApplied,
 	onDenied,
 }: {
@@ -24,6 +34,7 @@ export function useFulfilmentCommand({
 	context: Context;
 	id: string;
 	attempt: string | null;
+	refundAllowed?: boolean;
 	onApplied: (
 		intent: Intent | undefined,
 		result: Record<string, unknown>,
@@ -39,6 +50,7 @@ export function useFulfilmentCommand({
 		[error, setError] = useState<unknown>(null),
 		[absent, setAbsent] = useState(false);
 	const owned = useRef<object | null>(null),
+		controller = useRef<AbortController | null>(null),
 		alive = useRef(true),
 		callbacks = useRef({ onApplied, onDenied });
 	callbacks.current = { onApplied, onDenied };
@@ -47,8 +59,24 @@ export function useFulfilmentCommand({
 		return () => {
 			alive.current = false;
 			owned.current = null;
+			controller.current?.abort();
 		};
 	}, []);
+	useLayoutEffect(() => {
+		if (refundAllowed !== false) return;
+		const packet = pendingFulfilment(scope) ?? pending;
+		if (!packet || !isRefund(packet)) return;
+		// Drop private packet/files and late callbacks, retaining only the opaque
+		// command key for explicit reconciliation. Never resend on restored access.
+		controller.current?.abort();
+		owned.current = null;
+		settleFulfilment(scope);
+		setPending(undefined);
+		setReference(packet.key);
+		fulfilmentReference(packet.key);
+		setBusy(false);
+		setError(null);
+	}, [refundAllowed, pending, scope]);
 	function finish() {
 		settleFulfilment(scope);
 		setPending(undefined);
@@ -56,8 +84,13 @@ export function useFulfilmentCommand({
 		fulfilmentReference(null);
 	}
 	async function send(packet: Intent) {
-		if (owned.current || pendingFulfilment(scope) || reference) return;
+		if (
+			owned.current || pendingFulfilment(scope) || reference ||
+			(isRefund(packet) && (context !== "seller" || refundAllowed !== true))
+		) return;
 		const owner = {};
+		const request = new AbortController();
+		controller.current = request;
 		owned.current = owner;
 		const intent = retainFulfilment(scope, packet);
 		setPending(intent);
@@ -71,6 +104,7 @@ export function useFulfilmentCommand({
 				context,
 				`orders/${id}/${intent.path}`,
 				intent.body,
+				request.signal,
 			);
 			if (!alive.current || owned.current !== owner) return;
 			finish();
@@ -88,6 +122,8 @@ export function useFulfilmentCommand({
 			setError(error);
 			if (accessLost(error)) {
 				clearFulfilmentIntents();
+				setPending(undefined);
+				setError(null);
 				callbacks.current.onDenied();
 			} else if (
 				error instanceof AccountError &&
@@ -107,6 +143,8 @@ export function useFulfilmentCommand({
 			key = packet?.key ?? reference;
 		if (!key || owned.current) return;
 		const owner = {};
+		const request = new AbortController();
+		controller.current = request;
 		owned.current = owner;
 		setBusy(true);
 		setError(null);
@@ -115,6 +153,7 @@ export function useFulfilmentCommand({
 				context,
 				`orders/${id}/commands/${key}/reconcile/`,
 				{},
+				request.signal,
 			);
 			if (!alive.current || owned.current !== owner) return;
 			if (recovered.state === "unknown") return;
@@ -127,6 +166,8 @@ export function useFulfilmentCommand({
 				setError(error);
 				if (accessLost(error)) {
 					clearFulfilmentIntents();
+					setPending(undefined);
+					setError(null);
 					callbacks.current.onDenied();
 				}
 			}

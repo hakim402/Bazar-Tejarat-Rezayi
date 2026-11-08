@@ -6,6 +6,7 @@ export function EmptyState({
 	title,
 	description,
 	action,
+	borderless = false,
 	className = "",
 	...props
 }: ComponentProps<"div"> & {
@@ -13,16 +14,15 @@ export function EmptyState({
 	title: string;
 	description?: string;
 	action?: React.ReactNode;
+	borderless?: boolean;
 }) {
 	return (
 		<div
-			className={`flex min-h-[12rem] flex-col items-center justify-center rounded-card border border-dashed border-border bg-surface p-8 text-center ${className}`}
+			className={`flex min-h-[12rem] min-w-0 flex-col items-center justify-center p-6 text-center wrap-anywhere ${borderless ? "" : "rounded-card border border-dashed border-border bg-surface"} ${className}`}
 			{...props}
 		>
-			<div className="mb-4 flex size-14 items-center justify-center rounded-full bg-info/50 text-muted">
-				<Icon name={icon} className="size-7" />
-			</div>
-			<h3 className="text-section-title font-bold text-foreground">{title}</h3>
+			<Icon name={icon} className="mb-3 size-12 text-muted" />
+			<h3 className="text-body font-semibold text-foreground">{title}</h3>
 			{description && (
 				<p className="mt-2 max-w-md text-body text-muted">{description}</p>
 			)}

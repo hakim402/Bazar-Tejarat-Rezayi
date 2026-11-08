@@ -1,5 +1,6 @@
 "use client";
 import { fulfilmentCopy } from "../../features/fulfilment/copy";
+import { aftercareCopy } from "../../features/aftercare/copy";
 import { paymentCopy } from "../../features/payments/copy";
 import { negotiationCopy } from "../../features/negotiations/copy";
 import Link from "next/link";
@@ -42,6 +43,12 @@ export function WorkspaceNavigation({
 				context === "buyer" ? "buyerTitle" : "sellerTitle"
 			],
 		icon: "box",
+	});
+	links.push({
+		href: `${base}/${context === "buyer" ? "cancellations" : "aftercare"}`,
+		label:
+			aftercareCopy[locale][context === "buyer" ? "buyerTitle" : "sellerTitle"],
+		icon: "file",
 	});
 	links.push({
 		href: `${base}/payments`,

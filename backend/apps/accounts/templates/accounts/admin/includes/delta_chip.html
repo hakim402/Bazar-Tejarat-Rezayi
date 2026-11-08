@@ -1,0 +1,21 @@
+{% load i18n %}
+{% if delta %}
+  {% if delta.direction == 'up' %}
+    <span class="ra:inline-flex ra:items-center ra:gap-1 ra:text-xs ra:font-semibold ra:text-success" title="{{ admin_copy.vs_previous }}" data-testid="metric-delta">
+      <span data-admin-icon class="material-symbols-outlined ra:text-sm" aria-hidden="true">trending_up</span>
+      {% if delta.percent != None %}<bdi dir="ltr">+{{ delta.percent }}%</bdi>{% else %}<bdi dir="ltr">{{ delta.current }}</bdi> {{ admin_copy.new_this_week }}{% endif %}
+    </span>
+    {% if delta.percent != None %}<span class="ra:text-xs ra:text-muted">{{ admin_copy.vs_previous }}</span>{% endif %}
+  {% elif delta.direction == 'down' %}
+    <span class="ra:inline-flex ra:items-center ra:gap-1 ra:text-xs ra:font-semibold ra:text-danger" title="{{ admin_copy.vs_previous }}" data-testid="metric-delta">
+      <span data-admin-icon class="material-symbols-outlined ra:text-sm" aria-hidden="true">trending_down</span>
+      <bdi dir="ltr">{{ delta.percent }}%</bdi>
+    </span>
+    <span class="ra:text-xs ra:text-muted">{{ admin_copy.vs_previous }}</span>
+  {% else %}
+    <span class="ra:inline-flex ra:items-center ra:gap-1 ra:text-xs ra:font-medium ra:text-muted" title="{{ admin_copy.vs_previous }}" data-testid="metric-delta">
+      <span data-admin-icon class="material-symbols-outlined ra:text-sm" aria-hidden="true">trending_flat</span>
+      {{ admin_copy.no_change }}
+    </span>
+  {% endif %}
+{% endif %}

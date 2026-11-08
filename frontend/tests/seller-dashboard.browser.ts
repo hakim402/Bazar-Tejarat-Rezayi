@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { catalogueActor } from "./support/catalogue-runtime";
 import { stockFixture, inventoryApi } from "./support/inventory-runtime";
 import { inventoryCopy } from "../lib/i18n/inventory";
+import { sellerShellCopy } from "../lib/i18n/seller-shell";
 import { locales } from "../lib/i18n/locales";
 import { messages } from "../lib/i18n/messages";
 import { choosePreference } from "./support/site-preferences";
@@ -47,6 +48,10 @@ for (const locale of locales)
 				for (const screen of screens) {
 					await page.goto(`${base}${screen ? `/${screen}` : ""}${scope}`);
 					await expect(page.locator("main h1").first()).toBeVisible();
+					if (!screen && width === 320) {
+						const heading = await page.locator("main h1").boundingBox();
+						expect(heading?.width).toBeGreaterThanOrEqual(width - 40);
+					}
 					if (screen === "catalogue")
 						await expect(
 							page.getByTestId("catalogue-count-total"),
@@ -64,15 +69,137 @@ for (const locale of locales)
 			}
 			if (width === 390) {
 				await page.goto(base + scope);
-				const summary = page.locator("aside summary");
-				await summary.focus();
-				await summary.press("Enter");
+				const more = page.getByRole("button", {
+					name: sellerShellCopy[locale].more,
+					exact: true,
+				});
+				await more.focus();
+				await more.press("Enter");
+				const drawer = page.getByRole("dialog");
+				await expect(drawer).toBeVisible();
 				await expect(
-					page.getByRole("navigation", { name: inventoryCopy[locale].menu }),
+					drawer.getByRole("navigation", {
+						name: sellerShellCopy[locale].navigation,
+						exact: true,
+					}),
 				).toBeVisible();
+				await expect(drawer.locator('a[href*="/notifications"]')).toBeVisible();
+				await page.keyboard.press("Escape");
+				await expect(drawer).not.toBeVisible();
+				await expect(more).toBeFocused();
 			}
 			await context.close();
 		});
+test("seller Overview groups, truthful summaries and custom controls remain keyboard accessible", async ({
+	browser,
+}) => {
+	const context = await catalogueActor(browser, "stock");
+	const page = await context.newPage();
+	const fixture = stockFixture();
+	const base = `/en/account/seller?seller=${fixture.seller}`;
+	await page.setViewportSize({ width: 1440, height: 1000 });
+	await page.goto(base);
+	const main = page.locator("main");
+	await expect(
+		main.getByRole("heading", { name: inventoryCopy.en.overview, exact: true }),
+	).toBeVisible();
+	await expect(main).toContainText(sellerShellCopy.en.salesUnavailable);
+	await expect(main).toContainText(sellerShellCopy.en.attentionCategoriesHint);
+	await expect(
+		main.getByRole("link", { name: new RegExp(inventoryCopy.en.addProduct) }),
+	).toHaveCount(1);
+	const sidebar = page.locator("aside");
+	const settings = sidebar.getByRole("button", {
+		name: sellerShellCopy.en.settingsSecurity,
+		exact: true,
+	});
+	await expect(settings).toHaveAttribute("aria-expanded", "false");
+	await settings.press("Enter");
+	await expect(settings).toHaveAttribute("aria-expanded", "true");
+	await expect(sidebar.locator('a[href*="/password"]')).toBeVisible();
+	await settings.click();
+	await expect(sidebar.locator('a[href*="/password"]')).not.toBeVisible();
+	await page
+		.getByRole("button", { name: sellerShellCopy.en.jumpTo, exact: true })
+		.click();
+	const jump = page.getByRole("dialog", {
+		name: sellerShellCopy.en.jumpTo,
+		exact: true,
+	});
+	await jump.getByRole("searchbox").fill("password");
+	await expect(jump.locator('a[href*="/password"]')).toBeVisible();
+	await jump.getByRole("searchbox").fill("ZZZ-NO-PAGE");
+	await expect(jump.getByRole("status")).toHaveText(sellerShellCopy.en.noPages);
+	await page.keyboard.press("Escape");
+	await expect(jump).not.toBeVisible();
+	const theme = page
+		.locator("header")
+		.getByRole("combobox", { name: messages.en.theme, exact: true });
+	await theme.press("End");
+	await theme.press("Enter");
+	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+	await theme.press("Home");
+	await theme.press("Enter");
+	await expect(page.locator("html")).toHaveAttribute("data-theme", "system");
+	const business = main.getByRole("combobox", {
+		name: inventoryCopy.en.business,
+		exact: true,
+	});
+	await business.click();
+	await expect(
+		page.getByRole("listbox", { name: inventoryCopy.en.business, exact: true }),
+	).toBeVisible();
+	await business.press("Escape");
+	await expect(business).toBeFocused();
+	await expect(page).toHaveURL(base);
+	await page.goto(
+		`/en/account/seller/inventory/movements?seller=${fixture.seller}`,
+	);
+	await expect(
+		sidebar.getByRole("button", {
+			name: inventoryCopy.en.inventory,
+			exact: true,
+		}),
+	).toHaveAttribute("aria-expanded", "true");
+	await expect(sidebar.locator('a[aria-current="page"]')).toHaveAttribute(
+		"href",
+		`/en/account/seller/inventory/movements?seller=${fixture.seller}`,
+	);
+	await page.setViewportSize({ width: 320, height: 900 });
+	await page.goto(base);
+	await expect(
+		page.getByRole("button", { name: sellerShellCopy.en.jumpTo, exact: true }),
+	).toBeVisible();
+	const more = page.getByRole("button", {
+		name: sellerShellCopy.en.more,
+		exact: true,
+	});
+	await more.click();
+	const drawer = page.getByRole("dialog", {
+		name: sellerShellCopy.en.navigation,
+		exact: true,
+	});
+	const drawerTheme = drawer.getByRole("combobox", {
+		name: messages.en.theme,
+		exact: true,
+	});
+	await drawerTheme.press("End");
+	await page.keyboard.press("Escape");
+	await expect(drawer).toBeVisible();
+	await expect(drawerTheme).toBeFocused();
+	await drawerTheme.press("Tab");
+	await expect(
+		drawer.getByRole("button", { name: sellerShellCopy.en.close, exact: true }),
+	).toBeFocused();
+	await page.keyboard.press("Escape");
+	await expect(drawer).not.toBeVisible();
+	await expect(more).toBeFocused();
+	expect(
+		await page.evaluate(() => document.documentElement.scrollWidth),
+	).toBeLessThanOrEqual(320);
+	await context.close();
+});
+
 test("strict direct URLs, full-scope filters, pagination, back and profile selection", async ({
 	browser,
 }) => {

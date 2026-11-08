@@ -4,23 +4,242 @@ import json
 import sys
 import uuid
 from copy import deepcopy
+from datetime import timedelta
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError, call_command
+from django.contrib.auth.models import Group
 from django.db import connection
 from django.test import override_settings
+from django.utils import timezone
 from config.testing import assert_owned_database
 from apps.accounts.models import User, Account
+from apps.catalogue.models import Product, Translation, Variant
 from apps.organizations.models import BusinessProfile, Membership, BUNDLES
 from apps.verification.models import ReviewCase
-from apps.catalogue.models import Product, Translation
 from apps.catalogue import services as catalogue, translations
 from apps.catalogue.media import upload
 from apps.inventory import services as inventory
 from apps.inventory.models import Position
 from apps.cart import services as cart
 from apps.orders import services as orders
+from apps.orders.models import SellerOrder
 from apps.messaging.management.commands.seed_messaging_examples import actor
 from apps.marketplace.management.commands.seed_marketplace_examples import image_file
+
+
+def example_aftercare_order(buyer, sku, quantity, method="advance"):
+    """One fresh single-line order reusing the Phase 10 synthetic fixtures."""
+    assert_owned_database(connection)
+    if settings.PRODUCTION or not settings.DEBUG:
+        raise CommandError("Only native disposable browser fixtures are permitted.")
+    variant = Variant.objects.get(sku=sku)
+    current = cart.buyer(buyer)
+    cart.mutate(
+        buyer.request,
+        buyer,
+        {
+            "command_id": uuid.uuid4(),
+            "version": current.version if current else 0,
+            "action": "set",
+            "variant": variant.pk,
+            "tier": "retail",
+            "quantity": quantity,
+        },
+    )
+    current = cart.buyer(buyer)
+    lines = list(current.lines.filter(variant=variant, tier="retail").values_list("pk", flat=True))
+    result = orders.submit(
+        buyer,
+        {
+            "command_id": uuid.uuid4(),
+            "version": current.version,
+            "currency": "AFN",
+            "lines": lines,
+            "choices": [{"seller": variant.product.seller_id, "country": "AF", "city": "Kabul", "method": method}],
+            "locale": "en",
+        },
+    )
+    return SellerOrder.objects.get(pk=result["outcomes"][0]["order"])
+
+
+def finance_version(order):
+    from apps.payments.models import Finance
+
+    return Finance.objects.filter(order=order).values_list("version", flat=True).first() or 0
+
+
+def aftercare_version(order):
+    from apps.orders.models import Aftercare
+
+    return Aftercare.objects.filter(order=order).values_list("version", flat=True).first() or 0
+
+
+def cancellation_and_refund(buyer, seller, root, staff):
+    """Buyer request, staff approval, then seller report and staff confirmation."""
+    assert_owned_database(connection)
+    from apps.orders import cancellations
+    from apps.orders.models import CancellationRequest
+    from apps.payments import refunds
+    from apps.payments import services as goods
+    from apps.payments.models import RefundDue
+
+    order = example_aftercare_order(buyer, "P10-A-00-ABC123", "5.000")
+    goods.mutate(
+        seller,
+        order.pk,
+        "receipt",
+        {
+            "command_id": uuid.uuid4(),
+            "version": finance_version(order),
+            "amount": format(order.goods_total, ".2f"),
+            "currency": "AFN",
+            "paid_at": timezone.now() - timedelta(minutes=1),
+            "description": "Synthetic full advance funds",
+        },
+    )
+    cancellations.mutate(buyer, order.pk, "request", {
+        "command_id": uuid.uuid4(),
+        "version": aftercare_version(order),
+        "reason": "Synthetic buyer cancellation request",
+    })
+    request = CancellationRequest.objects.filter(order=order).order_by("-created_at", "pk").first()
+    cancellations.decide(
+        root,
+        request.pk,
+        {
+            "command_id": uuid.uuid4(),
+            "action": "assign",
+            "version": aftercare_version(order),
+            "request_version": request.version,
+            "reason": "Independent synthetic assignment",
+            "assigned_to": staff.user.pk,
+        },
+    )
+    request.refresh_from_db()
+    cancellations.decide(
+        staff,
+        request.pk,
+        {
+            "command_id": uuid.uuid4(),
+            "action": "approve",
+            "version": aftercare_version(order),
+            "request_version": request.version,
+            "reason": "Independent synthetic cancellation approval",
+        },
+    )
+    due = RefundDue.objects.filter(order=order).first()
+    refunds.decide(
+        root,
+        due.pk,
+        {
+            "command_id": uuid.uuid4(),
+            "action": "assign",
+            "version": finance_version(order),
+            "due_version": due.version,
+            "reason": "Independent synthetic refund assignment",
+            "assigned_to": staff.user.pk,
+        },
+    )
+    due.refresh_from_db()
+    refunds.mutate(
+        seller,
+        order.pk,
+        "report",
+        {
+            "command_id": uuid.uuid4(),
+            "version": finance_version(order),
+            "due": str(due.pk),
+            "amount": format(due.amount, ".2f"),
+            "sent_at": timezone.now() - timedelta(minutes=1),
+            "reference": "Synthetic refund reference",
+            "description": "Synthetic seller-issued goods refund",
+        },
+    )
+    refunds.decide(
+        staff,
+        due.pk,
+        {
+            "command_id": uuid.uuid4(),
+            "action": "confirm",
+            "version": finance_version(order),
+            "due_version": due.version,
+            "reason": "Independent synthetic refund confirmation",
+        },
+    )
+
+
+def amendment_example(buyer, seller, root, staff):
+    assert_owned_database(connection)
+    from apps.orders import amendments
+    from apps.orders.models import Amendment, OrderLine
+
+    order = example_aftercare_order(buyer, "P10-A-01-ABC123", "5.000")
+    line = OrderLine.objects.filter(order=order).order_by("pk").first()
+    amendments.mutate(
+        seller,
+        order.pk,
+        "propose",
+        {
+            "command_id": uuid.uuid4(),
+            "version": aftercare_version(order),
+            "lines": [{"line": str(line.pk), "quantity": "4.000", "unit_price": format(line.unit_price, ".2f")}],
+            "reason": "Synthetic seller quantity decrease",
+        },
+    )
+    amendment = Amendment.objects.filter(order=order).order_by("-created_at", "pk").first()
+    amendments.decide(
+        root,
+        amendment.pk,
+        {
+            "command_id": uuid.uuid4(),
+            "action": "assign",
+            "version": aftercare_version(order),
+            "amendment_version": amendment.version,
+            "reason": "Independent synthetic assignment",
+            "assigned_to": staff.user.pk,
+        },
+    )
+    amendment.refresh_from_db()
+    amendments.decide(
+        staff,
+        amendment.pk,
+        {
+            "command_id": uuid.uuid4(),
+            "action": "approve",
+            "version": aftercare_version(order),
+            "amendment_version": amendment.version,
+            "reason": "Independent synthetic amendment approval",
+        },
+    )
+
+
+def delivery_refund_example(buyer, seller, root):
+    """Provider delivery refund recorded by the seller and confirmed independently."""
+    assert_owned_database(connection)
+    from apps.fulfilment import models as delivery_models
+    from apps.fulfilment import queries as delivery_queries
+    from apps.fulfilment.management.commands.seed_fulfilment_examples import command as delivery, review
+
+    order = example_aftercare_order(buyer, "P10-A-02-ABC123", "5.000", method="cod")
+    delivery(order, buyer, "recipient", recipient_revision=0,
+             name="Synthetic delivery recipient",
+             phone="000-TEST-ONLY",
+             address="Synthetic private address — never real contact data",
+             instructions="Synthetic manual handover",
+             reason="Initial synthetic recipient")
+    arrangement = delivery(order, seller, "arrange", provider="Synthetic manual delivery provider",
+                           arranger="seller", self_delivery=False, instructions="Manual whole-order delivery")
+    delivery(order, seller, "charge", provider=arrangement["provider"], amount="5.00", currency="AFN",
+             reason="Separate synthetic delivery cost")
+    review(delivery_models.ReviewCase.objects.get(order=order, kind="charge"), root)
+    delivery(order, buyer, "claim", charge=delivery_queries.current_charge(order).pk, amount="5.00",
+             currency="AFN", paid_at=timezone.now() - timedelta(minutes=1),
+             description="Synthetic provider delivery funds")
+    review(delivery_models.ReviewCase.objects.get(order=order, kind="payment"), root)
+    delivery(order, seller, "refund", provider=arrangement["provider"], amount="2.00", currency="AFN",
+             sent_at=timezone.now() - timedelta(minutes=1), reference="Synthetic provider refund reference",
+             description="Synthetic provider-issued delivery refund")
+    review(delivery_models.ReviewCase.objects.get(order=order, kind="refund"), root)
 
 
 class Command(BaseCommand):
@@ -35,6 +254,7 @@ class Command(BaseCommand):
         if User.objects.filter(email="phase10-buyer@example.test").exists():
             return
         call_command("setup_order_groups", verbosity=0)
+        call_command("setup_aftercare_groups", verbosity=0)
         users = {}
         for name, context in [
             ("buyer", "buyer"),
@@ -225,6 +445,35 @@ class Command(BaseCommand):
                             "locale": "en",
                         },
                     )
+        staff = User.objects.create_user(
+            "phase10-aftercare@example.test",
+            password,
+            display_name="آزمایشی • Synthetic aftercare staff",
+            email_verified=True,
+            is_staff=True,
+        )
+        Account.objects.create(user=staff, context="staff")
+        staff.groups.add(
+            *Group.objects.filter(
+                name__in=[
+                    "Rezayi: Aftercare metadata",
+                    "Rezayi: Cancellation review",
+                    "Rezayi: Amendment review",
+                    "Rezayi: Goods refund review",
+                ]
+            )
+        )
+        with override_settings(OWNER_MFA_REQUIRED=False):
+            buyer = actor(users["buyer"], "buyer")
+            seller = actor(users["owner-a"], "seller")
+            owner = actor(root, "owner")
+            reviewer = actor(staff, "staff")
+            cancellation_and_refund(buyer, seller, owner, reviewer)
+            amendment_example(buyer, seller, owner, reviewer)
+            delivery_refund_example(buyer, seller, owner)
+        self.stdout.write(
+            "Owned synthetic aftercare cancellation, amendment, goods refund and delivery refund examples prepared."
+        )
         self.stdout.write(
             "Commerce synthetic seller terms, stock, role capabilities and retained multi-page invoice prepared."
         )

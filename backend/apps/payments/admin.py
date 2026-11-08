@@ -15,7 +15,7 @@ from apps.accounts.admin_access import admin_actor, is_owner
 from apps.accounts.models import User, AuditEvent
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.orders.admin import private_document
-from . import models as m, access, queries, services, media
+from . import models as m, access, queries, services, media, refunds
 
 
 def assigned_orders(actor):
@@ -79,15 +79,18 @@ class FinanceAdmin(PaymentAdmin):
 
 class ClaimAdmin(PaymentAdmin):
     list_display = ["id", "order", "amount", "currency", "paid_at"]
+    money_fields = {"amount": "currency"}
 
 
 class ReceiptAdmin(PaymentAdmin):
     list_display = ["id", "order", "amount", "currency", "paid_at"]
+    money_fields = {"amount": "currency"}
 
 
 class CorrectionAdmin(PaymentAdmin):
     order_path = "receipt__order_id"
     list_display = ["id", "receipt", "target_version", "amount", "created_at"]
+    money_fields = {"amount": None}
 
 
 class PlanLineAdmin(PaymentAdmin):
@@ -146,6 +149,17 @@ class CaseForm(forms.Form):
     )
 
 
+class CaseOpenForm(forms.Form):
+    command_id = forms.UUIDField(widget=forms.HiddenInput)
+    version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
+    reason = forms.CharField(
+        label=ADMIN_COPY["payment_reason"],
+        min_length=3,
+        max_length=1000,
+        widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}),
+    )
+
+
 class CaseAdmin(PaymentAdmin):
     list_display = ["id", "kind", "order", "state", "version", "reviewer", "workspace"]
     list_filter = ["kind", "state", "overdue_active"]
@@ -162,6 +176,7 @@ class CaseAdmin(PaymentAdmin):
         "created_at",
     ]
     search_fields = ["id", "order__id"]
+    badge_fields = ("kind", "state")
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
@@ -171,7 +186,7 @@ class CaseAdmin(PaymentAdmin):
 
     def workspace(self, obj):
         return format_html(
-            '<a href="{}">{}</a>',
+            '<a href="{}" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700">{}</a>',
             reverse("admin:payments_reviewcase_workflow", args=[obj.pk]),
             ADMIN_COPY["payment_open_review"],
         )
@@ -182,8 +197,61 @@ class CaseAdmin(PaymentAdmin):
     def get_urls(self):
         return [
             path("<uuid:pk>/review/", self.admin_site.admin_view(self.workflow), name="payments_reviewcase_workflow"),
+            path(
+                "<uuid:pk>/cancellation/",
+                self.admin_site.admin_view(self.open_cancellation),
+                name="payments_reviewcase_cancellation",
+            ),
             *super().get_urls(),
         ]
+
+    @private_document
+    def open_cancellation(self, request, pk):
+        """The one guarded staff-opened cancellation path, bound to a shortage case."""
+        from apps.orders import cancellations
+        from apps.orders.access import aftercare_rights
+        from apps.orders.models import Aftercare, CancellationRequest
+
+        actor = admin_actor(request)
+        case = get_object_or_404(access.case_scope(actor).select_related("order__invoice"), pk=pk, kind="shortage")
+        if request.method not in {"GET", "HEAD", "POST"} or set(request.GET):
+            raise PermissionDenied()
+        if "assign_aftercare" not in aftercare_rights(actor):
+            raise PermissionDenied()
+        access.audit(actor, case, "payment_case_cancellation_workspace")
+        form = CaseOpenForm(
+            request.POST if request.method == "POST" else None,
+            initial={
+                "command_id": uuid.uuid4(),
+                "version": Aftercare.objects.filter(order=case.order).values_list("version", flat=True).first() or 0,
+            },
+        )
+        status = 200
+        if request.method == "POST" and form.is_valid():
+            try:
+                cancellations.open_from_case(actor, case.pk, form.cleaned_data)
+            except APIException as error:
+                form.add_error(None, ADMIN_COPY["payment_changed"])
+                status = error.status_code
+            else:
+                return HttpResponseRedirect(request.path)
+        linked = CancellationRequest.objects.filter(payment_case=case).order_by("-created_at", "pk")[:20]
+        response = render(
+            request,
+            "payments/shortage_cancellation.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Open a cancellation from a paid-shortage case",
+                "opts": m.ReviewCase._meta,
+                "case": case,
+                "form": form,
+                "linked": linked,
+            },
+            status=status,
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["Referrer-Policy"] = "same-origin"
+        return response
 
     @private_document
     def workflow(self, request, pk):
@@ -232,6 +300,12 @@ class CaseAdmin(PaymentAdmin):
                 actions.insert(0, ("replenish", ADMIN_COPY["payment_replenish"]))
             choices += actions
         projection = queries.projection(case.order)
+        cancellation_url = None
+        if case.kind == "shortage":
+            from apps.orders.access import aftercare_rights
+
+            if "assign_aftercare" in aftercare_rights(actor):
+                cancellation_url = reverse("admin:payments_reviewcase_cancellation", args=[case.pk])
         form = CaseForm(
             request.POST if request.method == "POST" else None,
             initial={
@@ -294,6 +368,7 @@ class CaseAdmin(PaymentAdmin):
                 "independent": independent,
                 "page": page,
                 "next_page": page + 1,
+                "cancellation_url": cancellation_url,
             },
             status=status,
         )
@@ -302,6 +377,177 @@ class CaseAdmin(PaymentAdmin):
         # Evidence responses retain their separate no-referrer policy.
         response["Referrer-Policy"] = "same-origin"
         return response
+
+
+class RefundDueAdmin(PaymentAdmin):
+    list_display = ["id", "order", "cause", "amount", "currency", "state", "reviewer", "workspace"]
+    list_filter = ["cause"]
+    search_fields = ["id", "order__id"]
+    badge_fields = ("cause",)
+    money_fields = {"amount": "currency"}
+    fields = ["id", "order", "cause", "amount", "currency", "event", "assigned_to", "version", "created_at"]
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+    def state(self, obj):
+        return queries.due_state(obj)
+
+    def reviewer(self, obj):
+        return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
+
+    def workspace(self, obj):
+        return format_html(
+            '<a href="{}" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700">Open guarded refund review</a>',
+            self.review_url(obj.pk),
+        )
+
+    def review_url(self, pk):
+        return reverse("admin:payments_refunddue_review", args=[pk])
+
+    def staff_queryset(self, request, qs):
+        return refunds.refund_scope(admin_actor(request))
+
+    def get_urls(self):
+        return [
+            path("<uuid:pk>/review/", self.admin_site.admin_view(self.workflow), name="payments_refunddue_review"),
+            path(
+                "<uuid:pk>/evidence/<uuid:image>/",
+                self.admin_site.admin_view(self.evidence),
+                name="payments_refund_evidence",
+            ),
+            *super().get_urls(),
+        ]
+
+    @private_document
+    def workflow(self, request, pk):
+        from apps.orders.access import aftercare_rights
+
+        actor = admin_actor(request)
+        due = get_object_or_404(
+            refunds.refund_scope(actor).select_related(
+                "order__invoice", "order__buyer__user", "order__seller__account__user"
+            ),
+            pk=pk,
+        )
+        if request.method not in {"GET", "HEAD", "POST"} or set(request.GET):
+            raise PermissionDenied()
+        access.audit(actor, due, "payment_refund_workspace")
+        codes = access.rights(actor)
+        care = aftercare_rights(actor)
+        can_inspect = actor.context == "owner" or due.assigned_to_id == actor.user.pk
+        choices = [("", ADMIN_COPY["payment_choose_action"])]
+        if "assign_aftercare" in care:
+            choices.append(("assign", ADMIN_COPY["payment_assign"]))
+        independent = True
+        try:
+            refunds.independent(due.order, actor.user)
+        except APIException:
+            independent = False
+        # pending_report selects for update; the workspace only needs existence.
+        pending = m.RefundReport.objects.filter(due=due, decision__isnull=True).exists()
+        confirmed = m.RefundDecision.objects.filter(report__due=due, action="confirmed").exists()
+        if can_inspect and pending and not confirmed and "decide_goods_refund" in codes and independent:
+            choices += [("confirm", "Confirm the exact seller refund report"), ("reject", ADMIN_COPY["payment_reject"])]
+        projection = queries.projection(due.order)
+        form = CaseForm(
+            request.POST if request.method == "POST" else None,
+            initial={
+                "command_id": uuid.uuid4(),
+                "version": projection["version"],
+                "case_version": due.version,
+                "assigned_to": due.assigned_to_id,
+            },
+        )
+        form.fields["action"].choices = choices
+        form.fields["assigned_to"].queryset = User.objects.filter(pk__in=[x.pk for x in refunds.reviewers(due)])
+        if "assign_aftercare" not in care:
+            form.fields.pop("assigned_to")
+        status = 200
+        if request.method == "POST" and form.is_valid():
+            data = {
+                "command_id": form.cleaned_data["command_id"],
+                "action": form.cleaned_data["action"],
+                "version": form.cleaned_data["version"],
+                "due_version": form.cleaned_data["case_version"],
+                "reason": form.cleaned_data["reason"],
+            }
+            if form.cleaned_data.get("assigned_to"):
+                data["assigned_to"] = form.cleaned_data["assigned_to"].pk
+            try:
+                refunds.decide(actor, pk, data)
+            except APIException as error:
+                form.add_error(None, ADMIN_COPY["payment_changed"])
+                status = error.status_code
+            else:
+                return HttpResponseRedirect(request.path)
+        reports = []
+        images = []
+        if can_inspect:
+            reports = list(due.reports.select_related("decision").order_by("-created_at", "pk")[:20])
+            if "read_refund_evidence" in codes:
+                images = [
+                    {
+                        "id": binding.evidence_id,
+                        "url": reverse("admin:payments_refund_evidence", args=[due.pk, binding.evidence_id]),
+                    }
+                    for binding in m.EvidenceBinding.objects.filter(report__due=due).order_by("created_at", "pk")[:20]
+                ]
+        response = render(
+            request,
+            "payments/refund.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Goods refund review",
+                "opts": m.RefundDue._meta,
+                "due": due,
+                "form": form,
+                "projection": projection if can_inspect else None,
+                "reports": reports,
+                "images": images,
+                "independent": independent,
+                "pending": pending is not None,
+                "confirmed": confirmed,
+            },
+            status=status,
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["Referrer-Policy"] = "same-origin"
+        return response
+
+    @private_document
+    def evidence(self, request, pk, image):
+        if request.method not in {"GET", "HEAD"} or set(request.GET):
+            raise PermissionDenied()
+        from apps.messaging.media import response as image_response
+
+        actor = admin_actor(request)
+        if "read_refund_evidence" not in access.rights(actor):
+            raise PermissionDenied()
+        due = get_object_or_404(refunds.refund_scope(actor), pk=pk)
+        refunds.require_due(actor, due)
+        item = get_object_or_404(m.Evidence.objects.filter(binding__report__due=due), pk=image)
+        access.audit(actor, item, "refund_evidence_head" if request.method == "HEAD" else "refund_evidence_read")
+        result = image_response(item, head=request.method == "HEAD")
+        result["Content-Disposition"] = 'inline; filename="refund-evidence.jpg"'
+        result["Accept-Ranges"] = "none"
+        return result
+
+
+class RefundReportAdmin(PaymentAdmin):
+    order_path = "due__order_id"
+    list_display = ["id", "due", "amount", "sent_at", "created_at"]
+    money_fields = {"amount": None}
+
+
+class RefundDecisionAdmin(PaymentAdmin):
+    order_path = "report__due__order_id"
+    list_display = ["report", "action", "created_at"]
+    badge_fields = ("action",)
+
+
+class RefundSealAdmin(PaymentAdmin):
+    order_path = "due__order_id"
 
 
 class EvidenceAdmin(PaymentAdmin):
@@ -402,6 +648,10 @@ for model, admin in [
     (m.AllocationAttempt, AttemptAdmin),
     (m.ReviewCase, CaseAdmin),
     (m.CaseEvent, CaseEventAdmin),
+    (m.RefundDue, RefundDueAdmin),
+    (m.RefundReport, RefundReportAdmin),
+    (m.RefundDecision, RefundDecisionAdmin),
+    (m.RefundSeal, RefundSealAdmin),
     (m.Evidence, EvidenceAdmin),
     (m.EvidenceBinding, BindingAdmin),
     (m.Event, PaymentAdmin),

@@ -43,6 +43,45 @@ class OwnerDashboardTests(TestCase):
         self.assertEqual(bootstrap["default_locale"], "fa-AF")
         self.assertEqual(bootstrap["supported_locales"], ["fa-AF", "en", "ps", "ar"])
 
+    def switch_language(self, language, next_url="/admin/"):
+        self.client.get("/admin/login/")
+        token = self.client.cookies.get("csrftoken")
+        return self.client.post(
+            "/admin/language/",
+            {"language": language, "next": next_url, "csrfmiddlewaretoken": token.value if token else ""},
+            HTTP_X_CSRFTOKEN=token.value if token else "",
+        )
+
+    def test_admin_language_switcher_sets_dari_rtl_without_touching_marketplace(self):
+        # Default admin language is English even when the marketplace default is Dari.
+        self.assertEqual(self.client.get("/admin/login/").status_code, 200)
+        switch = self.switch_language("fa-af", "/admin/login/")
+        self.assertEqual(switch.status_code, 302)
+        self.assertEqual(switch["Location"], "/admin/login/")
+        login = self.client.get("/admin/login/")
+        self.assertContains(login, '<html lang="fa-af" dir="rtl">')
+        self.assertEqual(login["Content-Language"], "fa-af")
+        self.assertContains(login, "ورود مدیر سیستم")
+        # An unsafe next target is refused; the preference still applies.
+        self.switch_language("en", "https://evil.example/")
+        back = self.client.get("/admin/login/")
+        self.assertEqual(back["Content-Language"], "en")
+        self.assertContains(back, '<html lang="en" dir="ltr">')
+        # Marketplace/API localization is independent of the admin preference.
+        bootstrap = self.client.get("/api/v1/bootstrap/").json()
+        self.assertEqual(bootstrap["default_locale"], "fa-AF")
+
+    def test_owner_dashboard_renders_dari_labels_and_navigation(self):
+        self.authorize()
+        self.switch_language("fa-af", "/admin/")
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Language"], "fa-af")
+        self.assertContains(response, 'dir="rtl"')
+        self.assertContains(response, "رسیدهای تأییدشده")
+        self.assertContains(response, "سفارش‌های پذیرفته‌شده")
+        self.assertContains(response, "تنظیمات سایت")
+
     def test_dashboard_denies_anonymous_password_only_and_staff(self):
         self.assertEqual(self.client.get("/admin/").status_code, 302)
         signin(self.client, "owner", self.owner.email)
@@ -73,7 +112,14 @@ class OwnerDashboardTests(TestCase):
         self.authorize()
         response = self.client.get("/admin/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([metric["value"] for metric in response.context["metrics"]], [3, 1, 1, 1])
+        # Only the three commerce KPIs remain; this fixture has no orders/receipts/deliveries.
+        # Force English so the lazy labels are compared independently of any leaked active locale.
+        with translation.override("en"):
+            self.assertEqual(
+                [metric["label"] for metric in response.context["metrics"]],
+                ["Accepted orders", "Confirmed receipts", "Completed deliveries"],
+            )
+        self.assertEqual([metric["value"] for metric in response.context["metrics"]], [0, 0, 0])
         self.assertEqual(response.context["pending_total"], 1)
         series = response.context["series"]
         self.assertEqual(len(series), 14)

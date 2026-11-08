@@ -46,6 +46,20 @@ export function Field({
 		</label>
 	);
 }
+export const toggleClass =
+	"relative h-6 w-11 shrink-0 appearance-none rounded-full border border-control bg-control before:absolute before:start-0.5 before:top-0.5 before:size-4.5 before:rounded-full before:bg-surface before:content-[''] checked:border-primary checked:bg-primary checked:before:start-5.5 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 motion-reduce:transition-none";
+export function Toggle({ className = "", ...props }: ComponentProps<"input">) {
+	return (
+		<input
+			id={props.id ?? `field-${props.name}`}
+			type="checkbox"
+			role="switch"
+			aria-checked={props.checked}
+			className={`${toggleClass} ${className}`}
+			{...props}
+		/>
+	);
+}
 export function CheckField({
 	compact = false,
 	label,

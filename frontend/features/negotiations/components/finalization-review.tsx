@@ -8,11 +8,13 @@ export function FinalizationReview({
 	currency,
 	preview,
 	reason,
+	presentation,
 }: {
 	locale: Locale;
 	currency: string;
 	preview: FinalPreviewResult;
 	reason: string;
+	presentation?: "seller";
 }) {
 	const t = negotiationCopy[locale];
 	const final: Proposal = {
@@ -34,6 +36,7 @@ export function FinalizationReview({
 					<ProposalSummary
 						locale={locale}
 						currency={currency}
+						presentation={presentation}
 						proposal={preview.proposal}
 					/>
 				</section>
@@ -42,6 +45,7 @@ export function FinalizationReview({
 					<ProposalSummary
 						locale={locale}
 						currency={currency}
+						presentation={presentation}
 						proposal={final}
 					/>
 				</section>

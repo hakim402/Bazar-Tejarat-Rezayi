@@ -152,7 +152,7 @@ def capabilities(actor, order, *, read_scope=None):
         or finance
         or native
         and resource()
-        and bool(codes & {"confirm_delivery_payment", "correct_delivery_payment"})
+        and bool(codes & {"confirm_delivery_payment", "correct_delivery_payment", "confirm_delivery_refund", "record_delivery_refund"})
     )
     return {
         "recipient": buyer or logistics or staff_logistics and "read_recipients" in codes,
@@ -163,6 +163,8 @@ def capabilities(actor, order, *, read_scope=None):
         "deliver": buyer or logistics and writable or staff_logistics and "confirm_delivery" in codes,
         "partial": role("concession") and writable,
         "claim": buyer or finance and writable,
+        "refund": (logistics or finance) and writable
+        or native and resource() and "record_delivery_refund" in codes,
         "financial_details": financial_read,
         "evidence": buyer or finance or native and resource() and "read_delivery_evidence" in codes,
         "handover": logistics or staff_logistics and {"print_handover", "read_recipients"} <= codes,
@@ -208,7 +210,7 @@ def independent(order, user, *, provider=None):
 def require_case(actor, case, code, *, decide=False):
     if code not in rights(actor) or not case_scope(actor).filter(pk=case.pk).exists():
         raise NotFound()
-    if actor.context != "owner" and case.assigned_to_id != actor.user.pk:
+    if actor.context != "owner" and code != "assign_fulfilment" and case.assigned_to_id != actor.user.pk:
         raise NotFound()
     if decide:
         if case.assigned_to_id != actor.user.pk:

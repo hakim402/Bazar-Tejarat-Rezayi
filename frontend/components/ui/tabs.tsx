@@ -5,6 +5,7 @@ export interface TabItem {
 	label: string;
 	href?: string;
 	active?: boolean;
+	onClick?: () => void;
 }
 
 export function TabNav({
@@ -18,8 +19,7 @@ export function TabNav({
 }) {
 	return (
 		<nav
-			className={`flex gap-1 border-b border-border ${className}`}
-			aria-label="Section navigation"
+			className={`flex min-w-0 flex-wrap gap-1 border-b border-border ${className}`}
 			{...props}
 		>
 			{tabs.map((tab) => {
@@ -45,7 +45,8 @@ export function TabNav({
 						key={tab.label}
 						type="button"
 						aria-current={isActive ? "page" : undefined}
-						className={`min-h-11 border-b-2 px-4 py-2 text-body font-semibold transition-colors motion-reduce:transition-none ${
+						onClick={tab.onClick}
+						className={`min-h-11 cursor-pointer border-b-2 px-4 py-2 text-body font-semibold transition-colors motion-reduce:transition-none ${
 							isActive
 								? "border-action text-action"
 								: "border-transparent text-muted hover:text-foreground"

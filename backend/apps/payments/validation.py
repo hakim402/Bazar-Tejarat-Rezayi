@@ -2,16 +2,14 @@
 
 import hashlib
 import json
-import re
 from datetime import datetime
-from decimal import Decimal, localcontext
 from uuid import UUID
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from apps.foundation import money as exact
 from apps.messaging.contracts import safe_text
 
-MAX_MONEY = Decimal("9999999999999999999999.99")
-ZERO = Decimal("0.00")
+ZERO = exact.ZERO
 
 
 def fail(field, code="invalid"):
@@ -26,21 +24,19 @@ def identifier(value, field="id"):
 
 
 def money(value, *, zero=False):
-    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{1,22}\.[0-9]{2}", value):
-        fail("amount", "exact_money_string")
-    amount = Decimal(value)
-    if amount > MAX_MONEY or (amount < 0 if zero else amount <= 0):
+    try:
+        return exact.parse(value, zero=zero)
+    except exact.MoneyError as error:
+        if error.kind == "format":
+            fail("amount", "exact_money_string")
         fail("amount", "positive_money" if not zero else "nonnegative_money")
-    return amount
 
 
 def total(values):
-    with localcontext() as context:
-        context.prec = 50
-        value = sum(values, ZERO)
-        if not ZERO <= value <= MAX_MONEY:
-            fail("amount", "aggregate_overflow")
-        return value
+    try:
+        return exact.sum_exact(values)
+    except exact.MoneyError:
+        fail("amount", "aggregate_overflow")
 
 
 def text(value, field="reason", maximum=1000, minimum=3):

@@ -117,6 +117,7 @@ class NativeProcessCleanupTests(SimpleTestCase):
         run.tsconfig = '{"include":[]}'
         run.next_env = None
         run.logs = []
+        run.labels = ()
         run.acquired = True
         run.runtime = root / "owned-runtime"
         run.runtime.mkdir()

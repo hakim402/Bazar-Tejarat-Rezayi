@@ -81,3 +81,77 @@ def can_receive(order, account):
             or profiles(account, invoices=True).filter(pk=order.seller_id).exists()
         )
     )
+
+
+def aftercare_rights(actor):
+    from apps.accounts.admin_access import permission_codes
+    from .models import AFTERCARE_PERMISSIONS
+
+    return (
+        {code for code, _ in AFTERCARE_PERMISSIONS}
+        if actor.context == "owner"
+        else set(permission_codes(actor.account, "orders"))
+        if actor.context == "staff"
+        else set()
+    )
+
+
+def aftercare_participant(order, user):
+    """Current or historical participant identities excluded from decisions."""
+    from rest_framework.exceptions import PermissionDenied
+    from apps.organizations.models import Membership
+
+    buyer_profiles = BusinessProfile.objects.filter(account_id=order.buyer_id).values("pk")
+    if (
+        user.pk in [order.buyer.user_id, order.seller.account.user_id]
+        or Membership.objects.filter(
+            Q(company_id=order.seller_id) | Q(company_id__in=buyer_profiles), account__user=user
+        ).exists()
+        or order.goods_receipts.filter(actor__user=user).exists()
+        or order.payment_plans.filter(actor__user=user).exists()
+        or order.amendments.filter(actor__user=user).exists()
+    ):
+        raise PermissionDenied("An independent reviewer must decide this case.")
+
+
+def cancellation_scope(actor):
+    from .models import CancellationRequest
+
+    if actor.context == "owner":
+        return CancellationRequest.objects.all()
+    if actor.context != "staff" or "read_aftercare" not in aftercare_rights(actor):
+        return CancellationRequest.objects.none()
+    qs = (
+        CancellationRequest.objects.exclude(order__buyer__user=actor.user)
+        .exclude(order__seller__account__user=actor.user)
+        .exclude(order__seller__memberships__account__user=actor.user)
+        .exclude(order__buyer__business_profiles__memberships__account__user=actor.user)
+        .exclude(order__goods_receipts__actor__user=actor.user)
+        .exclude(order__payment_plans__actor__user=actor.user)
+        .exclude(order__amendments__actor__user=actor.user)
+        .exclude(requester_user=actor.user)
+    )
+    if "assign_aftercare" not in aftercare_rights(actor):
+        qs = qs.filter(assigned_to=actor.user)
+    return qs.distinct()
+
+
+def amendment_scope(actor):
+    from .models import Amendment
+
+    if actor.context == "owner":
+        return Amendment.objects.all()
+    if actor.context != "staff" or "read_aftercare" not in aftercare_rights(actor):
+        return Amendment.objects.none()
+    qs = (
+        Amendment.objects.exclude(order__buyer__user=actor.user)
+        .exclude(order__seller__account__user=actor.user)
+        .exclude(order__seller__memberships__account__user=actor.user)
+        .exclude(order__buyer__business_profiles__memberships__account__user=actor.user)
+        .exclude(order__goods_receipts__actor__user=actor.user)
+        .exclude(order__payment_plans__actor__user=actor.user)
+        .exclude(actor__user=actor.user)
+    )
+    if "assign_aftercare" not in aftercare_rights(actor):
+        qs = qs.filter(assigned_to=actor.user)
+    return qs.distinct()

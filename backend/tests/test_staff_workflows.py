@@ -221,30 +221,31 @@ class TaxonomyCreationAdminTests(TransactionTestCase):
         user, _, _ = role_user("taxonomy-creation", "catalogue", ["manage_taxonomy"])
         client = APIClient(enforce_csrf_checks=True)
         admin_signin(client, user)
+        labels = {f"label_{locale.lower().replace('-', '_')}": f"Synthetic unit {locale}" for locale in ["fa-AF", "ps", "ar", "en"]}
         unit = {
             "version": 0,
             "code": "synthetic-unit",
-            "labels": {locale: "Synthetic unit" for locale in ["fa-AF", "ps", "ar", "en"]},
-            "fractional": True,
-            "active": True,
+            **labels,
+            "fractional": "on",
+            "active": "on",
         }
-        response = admin_post(client, "/admin/catalogue/saleunit/new/", {"payload": json.dumps(unit)})
+        response = admin_post(client, "/admin/catalogue/saleunit/new/", unit)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(SaleUnit.objects.filter(pk=unit["code"]).exists())
         category = {
             "version": 0,
             "code": "synthetic-category",
-            "labels": {locale: "Synthetic category" for locale in ["fa-AF", "ps", "ar", "en"]},
-            "parent": None,
-            "attributes": [],
-            "units": [unit["code"]],
-            "active": True,
+            **{f"label_{locale.lower().replace('-', '_')}": f"Synthetic category {locale}" for locale in ["fa-AF", "ps", "ar", "en"]},
+            "parent": "",
+            "attributes": "[]",
+            "units": unit["code"],
+            "active": "on",
         }
-        response = admin_post(client, "/admin/catalogue/category/new/", {"payload": json.dumps(category)})
+        response = admin_post(client, "/admin/catalogue/category/new/", category)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Category.objects.filter(pk=category["code"]).exists())
         response = admin_post(
-            client, f"/admin/catalogue/category/{category['code']}/workflow/", {"payload": json.dumps(category)}
+            client, f"/admin/catalogue/category/{category['code']}/workflow/", category
         )
         self.assertTrue(response.context["form"].errors)
         self.assertContains(client.get("/admin/catalogue/category/"), "Create category")

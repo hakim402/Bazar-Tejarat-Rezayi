@@ -1,0 +1,11 @@
+Chart.js v4.5.0 — vendored UMD build for the owner dashboard activity chart.
+
+Source: https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js
+Retrieved: 2026-11-07 (local preview work; no CDN reference at page load)
+File: chart.umd.min.js
+SHA-256: b7929ad4d5323b8244f85d79bba0b3d1495e66f79a2f0023be7f4de5ba4fbac8
+Bytes: 208337
+License: MIT (see LICENSE-chartjs.txt)
+
+Loaded only by the owner dashboard template via {% static %}; no other page
+references it. Upgrade by replacing the file and updating this receipt.

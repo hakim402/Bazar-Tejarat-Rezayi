@@ -5,8 +5,19 @@ from django.db.models import OuterRef, Subquery, Sum, Value, F, DecimalField, In
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from apps.orders import aftercare
 from . import access
-from .models import Finance, Receipt, Correction, Extension, AllocationIntent, ReviewCase, Event
+from .models import (
+    Finance,
+    Receipt,
+    Correction,
+    Extension,
+    AllocationIntent,
+    ReviewCase,
+    Event,
+    RefundDecision,
+    RefundReport,
+)
 
 MONEY = DecimalField(max_digits=24, decimal_places=2)
 
@@ -49,7 +60,7 @@ def annotate(qs):
     extension = Extension.objects.filter(order_id=OuterRef("pk")).order_by("-generation")
     state = Finance.objects.filter(order_id=OuterRef("pk"))
     allocation = AllocationIntent.objects.filter(order_id=OuterRef("pk"))
-    return qs.annotate(
+    return aftercare.annotate(qs).annotate(
         payment_total=Coalesce(Subquery(ledger[:1]), Value(Decimal("0.00")), output_field=MONEY),
         payment_version=Coalesce(Subquery(state.values("version")[:1]), Value(0), output_field=IntegerField()),
         payment_due=Coalesce(Subquery(extension.values("due_at")[:1]), F("due_at"), output_field=DateTimeField()),
@@ -65,12 +76,18 @@ def projection(order):
     if not hasattr(order, "payment_total"):
         order = annotate(type(order).objects.filter(pk=order.pk)).get()
     paid = order.payment_total
-    remaining = max(order.goods_total - paid, Decimal("0.00"))
-    excess = max(paid - order.goods_total, Decimal("0.00"))
+    figures = aftercare.money_figures(order, paid)
+    remaining = Decimal(figures["remaining"])
+    excess = Decimal(figures["excess"])
     return {
+        "accepted_total": format(aftercare.accepted_total(order), ".2f"),
         "confirmed_total": format(paid, ".2f"),
-        "remaining": format(remaining, ".2f"),
-        "overpayment": format(excess, ".2f"),
+        "received": figures["received"],
+        "refunded": figures["refunded"],
+        "refund_due": figures["refund_due"],
+        "refundable_excess": format(max(excess - order.refund_due_total, Decimal("0.00")), ".2f"),
+        "remaining": figures["remaining"],
+        "overpayment": figures["excess"],
         "financial": "unpaid" if paid == 0 else "overpaid" if excess else "partial" if remaining else "paid",
         "allocation": order.payment_actual_allocation
         if order.payment_actual_allocation in {"consumed", "released"}
@@ -107,15 +124,15 @@ def page(actor, *, page=1, seller=None, state=""):
         .order_by("-accepted_at", "pk")
     )
     if state == "overdue":
-        qs = qs.filter(payment_due__lte=timezone.now(), payment_total__lt=F("goods_total"))
+        qs = qs.filter(payment_due__lte=timezone.now(), payment_total__lt=F("accepted_total"))
     elif state == "unpaid":
         qs = qs.filter(payment_total=0)
     elif state == "partial":
-        qs = qs.filter(payment_total__gt=0, payment_total__lt=F("goods_total"))
+        qs = qs.filter(payment_total__gt=0, payment_total__lt=F("accepted_total"))
     elif state == "paid":
-        qs = qs.filter(payment_total=F("goods_total"))
+        qs = qs.filter(payment_total=F("accepted_total"))
     elif state == "overpaid":
-        qs = qs.filter(payment_total__gt=F("goods_total"))
+        qs = qs.filter(payment_total__gt=F("accepted_total"))
     return {"count": qs.count(), "page": page, "results": [row(actor, x) for x in qs[(page - 1) * 20 : page * 20]]}
 
 
@@ -194,6 +211,8 @@ def detail(actor, pk, *, page=1, seller=None):
         history_count=0,
         history_page=page,
         selection=None,
+        refund_dues=[],
+        refund_reports=[],
     )
     if not result["capabilities"]["details"]:
         return result
@@ -291,7 +310,67 @@ def detail(actor, pk, *, page=1, seller=None):
                 or ""
             ),
         }
+    result["refund_dues"] = [
+        {
+            "id": str(due.pk),
+            "cause": due.cause,
+            "amount": format(due.amount, ".2f"),
+            "currency": due.currency,
+            "assigned": due.assigned_to_id is not None,
+            "version": due.version,
+            **due_status(due, can_report=result["capabilities"]["refund"]),
+            "created_at": due.created_at,
+        }
+        for due in order.refund_dues.prefetch_related("reports__decision").order_by("-created_at", "pk")[
+            (page - 1) * 20 : page * 20
+        ]
+    ]
+    reports = (
+        RefundReport.objects.filter(due__order=order)
+        .select_related("due", "decision")
+        .prefetch_related("evidence_bindings")
+        .order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
+    )
+    result["refund_reports"] = [
+        {
+            "id": str(report.pk),
+            "due": str(report.due_id),
+            "previous": str(report.previous_id) if report.previous_id else None,
+            "amount": format(report.amount, ".2f"),
+            "sent_at": report.sent_at,
+            "reference": report.reference,
+            "description": report.description,
+            "state": report.decision.action if getattr(report, "decision", None) else "pending",
+            "reason": report.decision.reason if getattr(report, "decision", None) else "",
+            "evidence": evidence_ids(report) if result["capabilities"]["evidence"] else [],
+            "can_withdraw": bool(
+                result["capabilities"]["refund"] and report.actor_id == getattr(actor.account, "pk", None)
+                and getattr(report, "decision", None) is None
+            ),
+            "created_at": report.created_at,
+        }
+        for report in reports
+    ]
     return result
+
+
+def due_status(due, *, can_report):
+    latest = due.reports.order_by("-created_at", "pk").select_related("decision").first()
+    state = due_state(due)
+    return {
+        "state": state,
+        "can_report": can_report and state == "due",
+        "previous": str(latest.pk) if latest and state == "due" else None,
+    }
+
+
+def due_state(due):
+    confirmed = RefundDecision.objects.filter(report__due=due, action="confirmed").exists()
+    if confirmed:
+        return "confirmed"
+    if RefundReport.objects.filter(due=due, decision__action__isnull=True).exists():
+        return "reported"
+    return "due"
 
 
 def before_correction(correction):

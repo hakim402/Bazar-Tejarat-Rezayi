@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { modalScreens } from "../../lib/routes/auth-routes";
 import type { AuthScreen } from "../../lib/i18n/auth-screens";
 
-/** Open the real compact-header disclosure before changing a visitor preference. */
+/** Change a visitor preference through whichever real control the page offers. */
 export async function choosePreference(
 	page: Page,
 	label: string,
@@ -20,10 +20,33 @@ export async function choosePreference(
 		await page.keyboard.press("Escape");
 		await expect(modal).toHaveCount(0);
 	}
-	const select = page.getByLabel(label, { exact: true });
-	const details = page.locator("header details").filter({ has: select });
-	if (!(await select.isVisible())) await details.locator("summary").click();
-	await select.selectOption(value);
+	// A closed seller drawer keeps a hidden copy of the same selects, so the
+	// header instance is addressed explicitly instead of page-wide.
+	const header = page.locator("header");
+	const select = header.getByLabel(label, { exact: true });
+	const details = header.locator("details").filter({ has: select });
+	const drawer = page.locator('nav button[aria-haspopup="dialog"]');
+	const choose = async (control: typeof select) => {
+		if (await control.evaluate((element) => element.tagName === "SELECT"))
+			await control.selectOption(value);
+		else {
+			await control.click();
+			await page
+				.getByRole("option")
+				.and(page.locator(`button[value="${value}"]`))
+				.click();
+		}
+	};
+	if (await select.isVisible()) await choose(select);
+	else if (await details.count()) {
+		await details.locator("summary").click();
+		await select.selectOption(value);
+	} else {
+		// Below the seller desktop breakpoint the header controls move to the drawer.
+		await drawer.click();
+		await choose(page.getByRole("dialog").getByLabel(label, { exact: true }));
+		await page.keyboard.press("Escape");
+	}
 	if ((await details.count()) && (await details.locator("summary").isVisible()))
 		await details.locator("summary").press("Escape");
 	if (reopen) {

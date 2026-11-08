@@ -78,25 +78,30 @@ def capabilities(actor, order):
         seller = Verification.objects.filter(
             profile=order.seller, revision=order.seller.revision, status="approved"
         ).exists()
+    from apps.orders.aftercare import cancelled
+
+    active = not cancelled(order)
     privileged = actor.context in {"owner", "staff"}
     return {
-        "claim": buyer,
-        "receipt": seller,
-        "correction": seller,
-        "extension": seller and order.payment_method == "advance",
-        "selection": seller and order.payment_method == "advance",
+        "claim": buyer and active,
+        "receipt": seller and active,
+        "correction": seller and active,
+        "extension": seller and active and order.payment_method == "advance",
+        "selection": seller and active and order.payment_method == "advance",
+        "refund": seller,
+        "excess_refund": seller and active,
         "details": buyer or seller_reader or privileged,
         "evidence": buyer or seller_reader or privileged and "read_payment_evidence" in rights(actor),
     }
 
 
-def lock_order(actor, pk, *, write=False, additional_users=(), assignment=False):
-    def selected():
+def lock_order(actor, pk, *, write=False, additional_users=(), assignment=False, selected=None):
+    if selected is None:
         if assignment and actor.context == "staff" and "assign_payment_case" in rights(actor):
-            return SellerOrder.objects.filter(payment_cases__in=case_scope(actor)).distinct()
-        return scope(actor, write=write)
-
-    initial = get_object_or_404(selected(), pk=pk)
+            selected = SellerOrder.objects.filter(payment_cases__in=case_scope(actor)).distinct()
+        else:
+            selected = scope(actor, write=write)
+    initial = get_object_or_404(selected, pk=pk)
     buyer_business = BusinessProfile.objects.filter(account_id=initial.buyer_id, kind="business").first()
     ids = [initial.seller_id] + ([buyer_business.pk] if buyer_business else [])
     list(BusinessProfile.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
@@ -109,7 +114,7 @@ def lock_order(actor, pk, *, write=False, additional_users=(), assignment=False)
     list(User.objects.select_for_update().filter(pk__in=users).order_by("pk"))
     list(Account.objects.select_for_update().filter(pk__in=account_ids).order_by("pk"))
     lock_actor(actor)
-    order = get_object_or_404(selected().select_related("seller__account__user", "buyer__user", "invoice"), pk=pk)
+    order = get_object_or_404(selected.select_related("seller__account__user", "buyer__user", "invoice"), pk=pk)
     if write and actor.context == "seller":
         from apps.verification.models import ReviewCase as Verification
 

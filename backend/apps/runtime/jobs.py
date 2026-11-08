@@ -14,6 +14,7 @@ SWEEPS = {
     "guest_sweep": 3600,
     "payment_sweep": 60,
     "fulfilment_sweep": 60,
+    "aftercare_sweep": 60,
 }
 KINDS = {*SWEEPS, "translation"}
 
@@ -53,9 +54,9 @@ def claim(*, excluded_sweeps=()):
     due = Job.objects.select_for_update(skip_locked=True).filter(
         Q(state="queued", available_at__lte=now) | Q(state="running", lease_until__lte=now)
     )
-    # Six canonical primary-key lookups stay bounded even with a large ordinary
+    # Seven canonical primary-key lookups stay bounded even with a large ordinary
     # backlog. The dispatcher excludes sweeps already served in this invocation,
-    # leaving at least four of its ten slots for normal work. Noncanonical jobs
+    # leaving at least three of its ten slots for normal work. Noncanonical jobs
     # retain FIFO order and are never silently omitted.
     canonical = {kind + ":" for kind in SWEEPS}
     eligible = canonical - set(excluded_sweeps)
@@ -111,6 +112,10 @@ def execute(row):
         from apps.fulfilment.jobs import sweep
 
         sweep()
+    elif row.kind == "aftercare_sweep":
+        from apps.notifications.aftercare_events import sweep as aftercare_sweep
+
+        aftercare_sweep()
     elif row.kind == "guest_sweep":
         from apps.cart.services import expire_guests
 

@@ -8,7 +8,10 @@ from rest_framework.exceptions import APIException
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import permits, admin_actor
 from apps.organizations.admin import ReadOnlyAdmin
-from .models import Outbox, Attempt, Event, Notice, Preference, OrderNoticeCursor
+from .models import (
+    Outbox, Attempt, Event, Notice, Preference, OrderNoticeCursor,
+    AftercareNoticeCursor, AftercareEmail, AftercareEmailAttempt,
+)
 from .delivery import retry
 
 
@@ -153,4 +156,5 @@ for model in (Event, Notice, Preference):
     owner_site.register(model, PrivateMetadataAdmin)
 
 
-owner_site.register(OrderNoticeCursor, PrivateMetadataAdmin)
+for model in (OrderNoticeCursor, AftercareNoticeCursor, AftercareEmail, AftercareEmailAttempt):
+    owner_site.register(model, PrivateMetadataAdmin)

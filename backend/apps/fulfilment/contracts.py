@@ -1,22 +1,10 @@
 """Strict bounded typed private packets; no JSON authority for financial input."""
 
 from rest_framework import serializers as s
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema_serializer
+from apps.foundation.contracts import AwareDateTime
 from apps.messaging.contracts import Strict
 from apps.payments.contracts import Money
-
-
-class AwareDateTime(s.DateTimeField):
-    default_error_messages = {"aware_required": "Include an explicit time zone."}
-
-    def enforce_timezone(self, value):
-        # Reject an offset-less API timestamp before DRF can attach the server
-        # zone. Native Django forms separately disclose/use their own timezone.
-        if timezone.is_naive(value):
-            self.fail("aware_required")
-        return super().enforce_timezone(value)
-
 
 class Query(Strict):
     seller = s.UUIDField(required=False)
@@ -80,6 +68,17 @@ class ClaimCommand(Command):
 
 class WithdrawCommand(Reason):
     claim = s.UUIDField()
+
+
+@extend_schema_serializer(component_name="FulfilmentRefundCommand")
+class RefundCommand(Command):
+    provider = s.UUIDField()
+    amount = Money()
+    currency = s.ChoiceField(choices=["AFN", "USD"])
+    sent_at = AwareDateTime()
+    reference = s.CharField(min_length=1, max_length=160)
+    description = s.CharField(min_length=1, max_length=500)
+    evidence = s.ListField(child=s.UUIDField(), max_length=3, default=list)
 
 
 @extend_schema_serializer(component_name="FulfilmentCorrectionCommand")
@@ -157,6 +156,7 @@ class Summary(s.Serializer):
     charge_id = s.UUIDField(allow_null=True)
     charge_provider = s.CharField(allow_blank=True)
     delivery_confirmed = s.CharField()
+    delivery_refunded = s.CharField()
     delivery_remaining = s.CharField(allow_null=True)
     delivery_excess = s.CharField(allow_null=True)
     delivery_settled = s.BooleanField()
@@ -194,6 +194,8 @@ class Detail(Summary):
     receipts = s.ListField(child=s.JSONField())
     corrections = FulfilmentCorrectionRow(many=True)
     proposals = s.ListField(child=s.JSONField())
+    refund_providers = s.ListField(child=s.JSONField())
+    delivery_refunds = s.ListField(child=s.JSONField())
     tracking = s.ListField(child=s.JSONField())
     delivery = s.JSONField(allow_null=True)
     cases = s.ListField(child=s.JSONField())

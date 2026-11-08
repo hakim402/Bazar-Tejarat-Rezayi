@@ -1,0 +1,49 @@
+{% extends 'admin/base_site.html' %}{% load i18n %}
+{% block content %}
+<div class="rz-owner ra:space-y-6 ra:min-w-0" lang="{{ locale }}" dir="{{ direction }}">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{{ title }}</h1>
+{% if kind == "category" %}
+<p class="ra:text-sm ra:text-muted">{% translate "Categories organise the marketplace catalogue in up to four levels. Every entry keeps a permanent code and a name in all four marketplace languages; products reference these codes, so identities never change after creation." %}</p>
+{% else %}
+<p class="ra:text-sm ra:text-muted">{% translate "Sale units define how quantities are counted or weighed. Every unit keeps a permanent code and a name in all four marketplace languages; fractional units allow quantities such as 0.25 kg." %}</p>
+{% endif %}
+{% if editing %}<p role="status">{% translate "You are editing a retained entry. The code is permanent and the current version is checked on save; if another administrator changed it first, reload and review again." %}</p>{% endif %}
+</section>
+<form method="post" id="catalogue-operation" class="ra:space-y-6">{% csrf_token %}
+{{ form.version }}
+{{ form.non_field_errors }}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Identity" %}</h2>
+<p>{{ form.code.label_tag }}{{ form.code }}{{ form.code.errors }}<span class="helptext">{{ form.code.help_text }}</span></p>
+</section>
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Names in all four languages" %}</h2>
+<p>{{ form.label_fa_af.label_tag }}{{ form.label_fa_af }}{{ form.label_fa_af.errors }}<span class="helptext">{{ form.label_fa_af.help_text }}</span></p>
+<p>{{ form.label_en.label_tag }}{{ form.label_en }}{{ form.label_en.errors }}<span class="helptext">{{ form.label_en.help_text }}</span></p>
+<p>{{ form.label_ps.label_tag }}{{ form.label_ps }}{{ form.label_ps.errors }}<span class="helptext">{{ form.label_ps.help_text }}</span></p>
+<p>{{ form.label_ar.label_tag }}{{ form.label_ar }}{{ form.label_ar.errors }}<span class="helptext">{{ form.label_ar.help_text }}</span></p>
+</section>
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Structure and availability" %}</h2>
+{% if kind == "category" %}
+<p>{{ form.parent.label_tag }}{{ form.parent }}{{ form.parent.errors }}<span class="helptext">{{ form.parent.help_text }}</span></p>
+<p>{{ form.units.label_tag }}{{ form.units }}{{ form.units.errors }}<span class="helptext">{{ form.units.help_text }}</span></p>
+{% else %}
+<p class="ra:flex-row ra:items-center ra:gap-2">{{ form.fractional }}{{ form.fractional.label_tag }}{{ form.fractional.errors }}<span class="helptext">{{ form.fractional.help_text }}</span></p>
+{% endif %}
+<p class="ra:flex-row ra:items-center ra:gap-2">{{ form.active }}{{ form.active.label_tag }}{{ form.active.errors }}<span class="helptext">{{ form.active.help_text }}</span></p>
+</section>
+{% if kind == "category" %}
+<details class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5">
+<summary class="ra:cursor-pointer ra:font-semibold">{% translate "Advanced attributes (optional)" %}</summary>
+<p class="ra:mt-3">{{ form.attributes.label_tag }}{{ form.attributes }}{{ form.attributes.errors }}<span class="helptext">{{ form.attributes.help_text }}</span></p>
+</details>
+{% endif %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:flex ra:flex-row ra:items-center ra:gap-4">
+<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{% if editing %}{% translate "Save guarded changes" %}{% elif kind == "category" %}{% translate "Create category" %}{% else %}{% translate "Create sale unit" %}{% endif %}</button>
+<a href="{{ cancel_url }}">{% translate "Back to list" %}</a>
+</section>
+</form>
+</div>
+{% endblock %}

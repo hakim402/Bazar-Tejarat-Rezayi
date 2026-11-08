@@ -54,10 +54,14 @@ def workflow(admin, request, pk):
         independent_decision = False
     can_act = independent_decision and (can_decide or permits(request, "verification", "assign_review"))
     editable = current and case.status in {"submitted", "under_review"} and can_act
-    t = COPY["en"]
+    language = (getattr(request, "LANGUAGE_CODE", "en") or "en").lower()
+    locale = {"fa-af": "fa-AF", "fa": "fa-AF", "ps": "ps", "ar": "ar"}.get(language, "en")
+    if locale not in COPY:
+        locale = "en"
+    t = COPY[locale]
     form = ReviewWorkflowForm(
         request.POST if request.method == "POST" else None,
-        case=case, locale="en", initial={"version": case.version},
+        case=case, locale=locale, initial={"version": case.version},
     )
     form.fields["action"].choices = [
         ("", ADMIN_COPY["review_choose"]),

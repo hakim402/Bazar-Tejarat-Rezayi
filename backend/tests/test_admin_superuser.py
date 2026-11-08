@@ -4,7 +4,7 @@ from django.apps import apps
 from django.contrib.auth.models import Group
 from django.db import connections
 from django.test import TransactionTestCase, override_settings, RequestFactory
-from django.urls import reverse, resolve
+from django.urls import reverse, resolve, NoReverseMatch
 from rest_framework.test import APIClient
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_navigation import navigation
@@ -23,6 +23,25 @@ class SuperAdminTests(TransactionTestCase):
         initialize()
         self.client = APIClient(enforce_csrf_checks=True)
         self.assertEqual(admin_signin(self.client, self.root).status_code, 302)
+
+    def test_native_user_password_route_is_retired_for_audited_workflow(self):
+        # Django hardcodes the native per-user password route name; it must be removed so
+        # shared-credential changes go through the audited session-invalidating workflow.
+        with self.assertRaises(NoReverseMatch):
+            reverse("admin:auth_user_password_change", args=[self.root.pk])
+        self.assertEqual(resolve(reverse("admin:password_change")).url_name, "password_change")
+        names = [u.name for u in owner_site._registry[User].get_urls()]
+        self.assertNotIn("auth_user_password_change", names)
+
+    def test_user_and_role_changelists_use_native_add_tool(self):
+        # The bespoke provision_list.html wrapper is retired; Unfold's native object-tool Add link
+        # must remain for the permitted owner-only provisioning lists.
+        for model, add_name in [(User, "accounts_user_add"), (Group, "auth_group_add")]:
+            admin = owner_site._registry[model]
+            self.assertIsNone(admin.change_list_template, model._meta.label)
+            response = self.client.get(reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"))
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(reverse(f"admin:{add_name}"), response.content.decode())
 
     def test_root_without_owner_flag_groups_or_account_all_active_models(self):
         self.assertFalse(self.root.owner_authority or self.root.groups.exists() or self.root.accounts.exists())
@@ -112,12 +131,15 @@ class SuperAdminTests(TransactionTestCase):
             self.assertEqual(self.client.get(reverse(f'admin:{info.app_label}_{info.model_name}_delete', args=[obj.pk])).status_code, 403)
 
     def test_sidebar_every_link_resolves_and_only_one_filtered_account_active(self):
+        from django.utils import translation
         request = RequestFactory().get('/admin/accounts/account/?context__exact=seller')
         request.user, request.session = self.root, self.client.session
-        groups = navigation(request)
-        self.assertEqual(str(groups[-1]['title']), 'Site Settings')
-        active = [str(item['title']) for group in groups for item in group['items'] if item['active']]
-        self.assertEqual(active, ['Seller accounts'])
+        # The admin middleware forces English; assert the same default-English contract here.
+        with translation.override('en'):
+            groups = navigation(request)
+            self.assertEqual(str(groups[-1]['title']), 'Site Settings')
+            active = [str(item['title']) for group in groups for item in group['items'] if item['active']]
+            self.assertEqual(active, ['Seller accounts'])
         for group in groups:
             for item in group['items']:
                 resolve(item['link'].split('?')[0])
@@ -210,8 +232,16 @@ class SuperAdminTests(TransactionTestCase):
         runtime = {m._meta.label_lower for m in apps.get_app_config("runtime").get_models()}
         payments={"payments."+name for name in ["finance","event","command","claim","claimdecision","receipt","receiptseal","correction","extension","stockplan","stockplanline","stockplanseal","allocationintent","allocationattempt","reviewcase","caseevent","evidence","evidencebinding","noticecursor","email","emailattempt","sweepcursor","reminder"]}
         fulfilment = {model._meta.label_lower for model in apps.get_app_config("fulfilment").get_models()} | {"inventory.stocktransition"}
-        self.assertEqual(legacy | communication | commerce | negotiation | runtime | payments | fulfilment, {model._meta.label_lower for model in owner_site._registry})
-        for label in legacy | communication | commerce | negotiation | runtime | payments | fulfilment:
+        aftercare = {
+            'orders.aftercare', 'orders.aftercareevent', 'orders.aftercarecommand',
+            'orders.cancellationrequest', 'orders.cancellationdecision', 'orders.amendment',
+            'orders.amendmentline', 'orders.amendmentdecision', 'orders.invoiceadjustment',
+            'payments.refunddue', 'payments.refundseal', 'payments.refundreport', 'payments.refunddecision',
+            'inventory.allocationreduction',
+        }
+        expected = legacy | communication | commerce | negotiation | runtime | payments | fulfilment | aftercare
+        self.assertEqual(expected, {model._meta.label_lower for model in owner_site._registry})
+        for label in expected:
             app, model = label.split('.')
             self.assertTrue(resolve(reverse(f'admin:{app}_{model}_changelist')))
         self.assertFalse(any(model._meta.label_lower == 'sessions.session' for model in owner_site._registry))

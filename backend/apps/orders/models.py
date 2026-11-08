@@ -269,3 +269,191 @@ class NegotiationSubmissionFence(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["buyer", "key"], name="orders_submission_recovery_fence")]
+
+
+AFTERCARE_PERMISSIONS = [
+    ("read_aftercare", "Inspect assigned aftercare metadata"),
+    ("assign_aftercare", "Assign independent aftercare reviewers and open case cancellations"),
+    ("decide_cancellation", "Decide independent order cancellations"),
+    ("decide_amendment", "Decide independent order amendments"),
+]
+
+
+class Aftercare(models.Model):
+    order = models.OneToOneField(SellerOrder, primary_key=True, on_delete=models.PROTECT, related_name="aftercare")
+    version = models.PositiveBigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        permissions = AFTERCARE_PERMISSIONS
+
+
+class AftercareEvent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(SellerOrder, on_delete=models.PROTECT, related_name="aftercare_events")
+    version = models.PositiveBigIntegerField()
+    action = models.CharField(max_length=32)
+    actor = models.ForeignKey("accounts.User", null=True, on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
+    context = models.CharField(max_length=8)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["order", "version"], name="orders_aftercare_event_version")]
+        indexes = [models.Index(fields=["order", "-created_at", "id"], name="orders_aftercare_history")]
+
+
+class AftercareCommand(models.Model):
+    id = models.UUIDField(primary_key=True, editable=False)
+    order = models.ForeignKey(SellerOrder, on_delete=models.PROTECT, related_name="aftercare_commands")
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
+    context = models.CharField(max_length=8)
+    event = models.OneToOneField(AftercareEvent, null=True, on_delete=models.PROTECT)
+    action = models.CharField(max_length=32)
+    digest = models.CharField(max_length=64)
+    result = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CancellationRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(SellerOrder, on_delete=models.PROTECT, related_name="cancellation_requests")
+    state = models.CharField(
+        max_length=9,
+        default="pending",
+        choices=[("pending", "Pending"), ("withdrawn", "Withdrawn"), ("approved", "Approved"), ("rejected", "Rejected")],
+    )
+    requester_account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT, related_name="+")
+    requester_user = models.ForeignKey("accounts.User", null=True, on_delete=models.PROTECT, related_name="+")
+    requester_context = models.CharField(max_length=8, choices=[("buyer", "Buyer"), ("seller", "Seller"), ("staff", "Staff")])
+    payment_case = models.ForeignKey("payments.ReviewCase", null=True, on_delete=models.PROTECT, related_name="+")
+    blocker = models.ForeignKey("fulfilment.Blocker", null=True, on_delete=models.PROTECT, related_name="+")
+    reason = models.CharField(max_length=1000)
+    assigned_to = models.ForeignKey("accounts.User", null=True, on_delete=models.PROTECT, related_name="cancellation_assignments")
+    version = models.PositiveBigIntegerField(default=1)
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT, related_name="cancellation")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # One pending request per order is trigger-enforced natively;
+            # MariaDB has no partial unique index.
+            models.CheckConstraint(
+                condition=Q(state__in=["pending", "withdrawn", "approved", "rejected"]),
+                name="orders_cancellation_state",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(requester_account__isnull=False, requester_user__isnull=True, requester_context__in=["buyer", "seller"])
+                    | Q(requester_account__isnull=True, requester_user__isnull=False, requester_context="staff")
+                ),
+                name="orders_cancellation_requester",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["assigned_to", "state"], name="orders_cancellation_queue"),
+            models.Index(fields=["order", "-created_at", "id"], name="orders_cancellation_history"),
+        ]
+
+
+class CancellationDecision(models.Model):
+    request = models.OneToOneField(CancellationRequest, primary_key=True, on_delete=models.PROTECT, related_name="decision")
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
+    context = models.CharField(max_length=8)
+    action = models.CharField(max_length=8, choices=[("approved", "Approved"), ("rejected", "Rejected")])
+    reason = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Amendment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(SellerOrder, on_delete=models.PROTECT, related_name="amendments")
+    state = models.CharField(
+        max_length=9,
+        default="pending",
+        choices=[("pending", "Pending"), ("withdrawn", "Withdrawn"), ("approved", "Approved"), ("rejected", "Rejected")],
+    )
+    actor = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+")
+    assigned_to = models.ForeignKey("accounts.User", null=True, on_delete=models.PROTECT, related_name="amendment_assignments")
+    after_total = models.DecimalField(max_digits=24, decimal_places=2)
+    version = models.PositiveBigIntegerField(default=1)
+    reason = models.CharField(max_length=1000)
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT, related_name="amendment")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # One pending proposal per order is trigger-enforced natively;
+            # MariaDB has no partial unique index.
+            models.CheckConstraint(
+                condition=Q(state__in=["pending", "withdrawn", "approved", "rejected"], after_total__gt=0),
+                name="orders_amendment_state",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["assigned_to", "state"], name="orders_amendment_queue"),
+            models.Index(fields=["order", "-created_at", "id"], name="orders_amendment_history"),
+        ]
+
+
+class AmendmentLine(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    amendment = models.ForeignKey(Amendment, on_delete=models.PROTECT, related_name="lines")
+    line = models.ForeignKey(OrderLine, on_delete=models.PROTECT, related_name="amendment_lines")
+    proposed_quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    proposed_unit_price = models.DecimalField(max_digits=11, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["amendment", "line"], name="orders_amendment_line"),
+            models.CheckConstraint(
+                condition=Q(proposed_quantity__gt=0, proposed_unit_price__gt=0), name="orders_amendment_line_values"
+            ),
+        ]
+
+
+class AmendmentDecision(models.Model):
+    amendment = models.OneToOneField(Amendment, primary_key=True, on_delete=models.PROTECT, related_name="decision")
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
+    context = models.CharField(max_length=8)
+    action = models.CharField(max_length=8, choices=[("approved", "Approved"), ("rejected", "Rejected")])
+    reason = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class InvoiceAdjustment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(SellerOrder, on_delete=models.PROTECT, related_name="invoice_adjustments")
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="adjustments")
+    cause = models.CharField(max_length=12, choices=[("cancellation", "Cancellation"), ("amendment", "Amendment")])
+    cancellation = models.OneToOneField(CancellationRequest, null=True, on_delete=models.PROTECT, related_name="adjustment")
+    amendment = models.OneToOneField(Amendment, null=True, on_delete=models.PROTECT, related_name="adjustment")
+    before_lines = models.JSONField()
+    after_lines = models.JSONField()
+    before_total = models.DecimalField(max_digits=24, decimal_places=2)
+    after_total = models.DecimalField(max_digits=24, decimal_places=2)
+    reason = models.CharField(max_length=1000)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT, related_name="invoice_adjustment")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(cause__in=["cancellation", "amendment"], before_total__gt=0, after_total__gte=0),
+                name="orders_adjustment_values",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(cause="cancellation", cancellation__isnull=False, amendment__isnull=True, after_total=0)
+                    | Q(cause="amendment", cancellation__isnull=True, amendment__isnull=False, after_total__gt=0)
+                ),
+                name="orders_adjustment_source",
+            ),
+        ]
+        indexes = [models.Index(fields=["invoice", "-created_at", "id"], name="orders_adjustment_history")]

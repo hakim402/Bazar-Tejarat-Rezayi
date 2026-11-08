@@ -1,5 +1,20 @@
 "use client";
 import { SessionEntry } from "./session-entry";
+import {
+	SalesFrame,
+	SalesHeader,
+	SalesBusinessSelect,
+	SalesEmpty,
+	SalesPagination,
+	SalesRelated,
+	salesHref,
+	salesAction,
+	salesPanel,
+} from "../../sales/components/seller-sales-ui";
+import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
+import { Icon } from "../../../components/ui/icon";
+import { StatusBadge } from "../../../components/ui/status-badge";
+import { AftercareSection } from "../../aftercare/section";
 import Link from "next/link";
 import { fulfilmentHref } from "../../fulfilment/api";
 import { fulfilmentCopy, fulfilmentState } from "../../fulfilment/copy";
@@ -81,6 +96,7 @@ function Reader({
 }) {
 	const t = commerceCopy[locale],
 		router = useRouter(),
+		search = useSearchParams(),
 		[data, setData] = useState<
 			Page<Order> | Order | Page<Submission> | Submission | null
 		>(null),
@@ -109,14 +125,26 @@ function Reader({
 					mode === "invoices" ? x.invoices : x.orders,
 				);
 				setProfiles(allowed);
-				if (!seller) {
-					if (allowed[0])
-						router.replace(
-							`/${locale}/account/seller/${mode}?seller=${allowed[0].id}`,
-						);
+				if (!allowed.length) {
+					setData({ results: [], count: 0, page });
+					setError(null);
 					return;
 				}
-				if (!allowed.some((x) => x.id === seller)) throw new Error("scope");
+				if (!seller && !id) {
+					router.replace(
+						salesHref(
+							locale,
+							mode === "invoices" ? "invoices" : "orders",
+							allowed[0].id,
+							undefined,
+							undefined,
+							{ page: String(page) },
+						),
+					);
+					return;
+				}
+				if (seller && !allowed.some((x) => x.id === seller))
+					throw new Error("scope");
 			}
 			const q = id
 				? `?locale=${locale}`
@@ -128,6 +156,20 @@ function Reader({
 				controller.signal,
 			);
 			if (live.current === mine) {
+				if (context === "seller" && value && "seller" in value) {
+					if (!seller) {
+						router.replace(
+							salesHref(
+								locale,
+								mode === "invoices" ? "invoices" : "orders",
+								value.seller,
+								id,
+							),
+						);
+						return;
+					}
+					if (value.seller !== seller) throw new Error("scope");
+				}
 				setData(value);
 				setError(null);
 			}
@@ -195,6 +237,191 @@ function Reader({
 		}
 	}
 	const title = mode === "checkouts" ? t.history : t[mode];
+	if (context === "seller" && mode !== "checkouts") {
+		const section = mode,
+			copy = sellerSalesCopy[locale];
+		return (
+			<SalesFrame seller>
+				<section className="min-w-0 space-y-6" data-testid="orders-workspace">
+					<SalesHeader
+						locale={locale}
+						section={section}
+						seller={seller}
+						title={
+							id && data && "number" in data ? (
+								<>
+									{copy[section]} · <bdi>{data.number}</bdi>
+								</>
+							) : undefined
+						}
+						back={
+							id
+								? salesHref(locale, section, seller, undefined, search)
+								: undefined
+						}
+						business={
+							<SalesBusinessSelect
+								locale={locale}
+								value={seller}
+								profiles={profiles}
+								onChange={(next) =>
+									router.push(salesHref(locale, section, next))
+								}
+							/>
+						}
+					/>
+					<Failure locale={locale} error={error} />
+					{!data && !error && (
+						<div className={`${salesPanel} min-h-40`} role="status">
+							<p className="text-sm text-muted">{t.loading}</p>
+						</div>
+					)}
+					{data &&
+						("results" in data ? (
+							<>
+								{data.results.length === 0 ? (
+									<SalesEmpty
+										locale={locale}
+										noBusiness={profiles.length === 0}
+									/>
+								) : (
+									<div className="space-y-3">
+										{data.results.map((row) =>
+											"outcomes" in row ? null : (
+												<article key={row.id} className={salesPanel}>
+													<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+														<div className="min-w-0 space-y-2">
+															<h2 className="text-lg font-semibold">
+																<Link
+																	className="inline-flex min-h-11 items-center gap-2 text-action"
+																	href={salesHref(
+																		locale,
+																		section,
+																		row.seller,
+																		section === "invoices"
+																			? row.invoice
+																			: row.id,
+																		search,
+																	)}
+																>
+																	<Icon
+																		name={
+																			section === "invoices"
+																				? "receipt"
+																				: "shopping-bag"
+																		}
+																		className="size-5"
+																	/>
+																	<bdi>{row.number}</bdi>
+																</Link>
+															</h2>
+															<p dir="auto" className="text-sm text-muted">
+																{row.snapshot.buyer}
+															</p>
+															<p className="text-sm text-muted">
+																<bdi>
+																	{localTimestamp(row.accepted_at, locale)}
+																</bdi>
+															</p>
+														</div>
+														<div className="min-w-0 space-y-3">
+															<p className="text-xs font-medium text-muted">
+																{t.goods}
+															</p>
+															<p className="text-xl font-semibold tabular-nums">
+																<bdi>
+																	{row.goods_total} {row.currency}
+																</bdi>
+															</p>
+															<div className="flex flex-wrap gap-2">
+																<StatusBadge dot={false}>
+																	{paymentState(
+																		locale,
+																		row.dimensions.financial,
+																	)}
+																</StatusBadge>
+																<StatusBadge dot={false}>
+																	{fulfilmentState(
+																		locale,
+																		row.dimensions.fulfilment,
+																	)}
+																</StatusBadge>
+															</div>
+														</div>
+														<Link
+															className={salesAction}
+															href={salesHref(
+																locale,
+																section,
+																row.seller,
+																section === "invoices" ? row.invoice : row.id,
+																search,
+															)}
+														>
+															{copy.view}
+															<Icon name="arrow" className="size-4" />
+														</Link>
+													</div>
+												</article>
+											),
+										)}
+									</div>
+								)}
+								<SalesPagination
+									locale={locale}
+									page={page}
+									count={data.count}
+									onPage={(next) =>
+										router.push(
+											salesHref(locale, section, seller, undefined, search, {
+												page: String(next),
+											}),
+										)
+									}
+								/>
+							</>
+						) : "outcomes" in data ? null : (
+							<>
+								<SalesRelated
+									locale={locale}
+									seller={data.seller}
+									links={[
+										...(section === "invoices"
+											? [{ section: "orders" as const, id: data.id }]
+											: [{ section: "invoices" as const, id: data.invoice }]),
+										{ section: "payments", id: data.id },
+										{ section: "fulfilment", id: data.id },
+									]}
+								/>
+								<OrderDocument
+									order={data}
+									locale={locale}
+									context={context}
+									seller={data.seller}
+									busy={busy}
+									pdf={() => void pdf(data)}
+								/>
+								<AftercareSection
+									locale={locale}
+									context={context}
+									orderId={data.id}
+									seller={data.seller}
+								/>
+							</>
+						))}
+					<button
+						type="button"
+						className={salesAction}
+						disabled={busy}
+						onClick={() => setReload((value) => value + 1)}
+					>
+						<Icon name="history" className="size-4" />
+						{t.reload}
+					</button>
+				</section>
+			</SalesFrame>
+		);
+	}
 	return (
 		<section className="min-w-0 space-y-5" data-testid="orders-workspace">
 			<h1 className="text-3xl font-bold">{title}</h1>
@@ -300,14 +527,21 @@ function Reader({
 						resume={() => void resume(data)}
 					/>
 				) : (
-					<OrderDocument
-						order={data}
-						locale={locale}
-						context={context}
-						seller={seller}
-						busy={busy}
-						pdf={() => void pdf(data)}
-					/>
+					<>
+						<OrderDocument
+							order={data}
+							locale={locale}
+							context={context}
+							seller={seller}
+							busy={busy}
+							pdf={() => void pdf(data)}
+						/>
+						<AftercareSection
+							locale={locale}
+							context={context}
+							orderId={data.id}
+						/>
+					</>
 				))
 			)}
 			<button
@@ -446,28 +680,40 @@ function OrderDocument({
 	busy: boolean;
 	pdf: () => void;
 }) {
-	const t = commerceCopy[locale];
+	const t = commerceCopy[locale],
+		documentAction = context === "seller" ? salesAction : action;
 	return (
-		<article className={panel} data-testid="invoice-document">
+		<article
+			className={context === "seller" ? salesPanel : panel}
+			data-testid="invoice-document"
+		>
 			<h2 className="text-2xl font-bold">
-				<bdi>{order.number}</bdi>
+				{context === "seller" ? (
+					sellerSalesCopy[locale].original
+				) : (
+					<bdi>{order.number}</bdi>
+				)}
 			</h2>
-			<Link
-				className={action}
-				href={paymentHref(locale, context, order.id, seller)}
-			>
-				{paymentCopy[locale].title}
-			</Link>
-			<Link
-				className={action}
-				href={fulfilmentHref(locale, context, order.id, seller)}
-			>
-				{
-					fulfilmentCopy[locale][
-						context === "buyer" ? "buyerTitle" : "sellerTitle"
-					]
-				}
-			</Link>
+			{context === "buyer" && (
+				<>
+					<Link
+						className={action}
+						href={paymentHref(locale, context, order.id, seller)}
+					>
+						{paymentCopy[locale].title}
+					</Link>
+					<Link
+						className={action}
+						href={fulfilmentHref(locale, context, order.id, seller)}
+					>
+						{
+							fulfilmentCopy[locale][
+								context === "buyer" ? "buyerTitle" : "sellerTitle"
+							]
+						}
+					</Link>
+				</>
+			)}
 			<p dir="auto">
 				{order.snapshot.buyer} · {order.snapshot.seller}
 			</p>
@@ -487,7 +733,11 @@ function OrderDocument({
 					return (
 						<section
 							key={row.id}
-							className="space-y-2 border-b border-border pb-4"
+							className={
+								context === "seller"
+									? "min-w-0 space-y-3 rounded-xl border border-border bg-page p-4"
+									: "space-y-2 border-b border-border pb-4"
+							}
 						>
 							<h3 className="break-words font-bold" dir="auto">
 								{row.snapshot.titles[source]}
@@ -597,11 +847,16 @@ function OrderDocument({
 				</p>
 			)}
 			<div className="flex flex-wrap gap-3">
-				<button type="button" className={action} disabled={busy} onClick={pdf}>
+				<button
+					type="button"
+					className={documentAction}
+					disabled={busy}
+					onClick={pdf}
+				>
 					{t.pdf}
 				</button>
 				<Link
-					className={action}
+					className={documentAction}
 					href={`${invoiceHref(locale, context, order.invoice, seller).split("?")[0]}/print${seller ? `?seller=${seller}` : ""}`}
 				>
 					{t.print}

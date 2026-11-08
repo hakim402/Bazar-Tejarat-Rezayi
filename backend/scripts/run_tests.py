@@ -94,13 +94,16 @@ class TestRun:
             "phase-11-negotiation",
             "phase-12-payments",
             "phase-13-fulfilment",
+            "phase-14-aftercare",
         }:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
         self.evidence = (
             ROOT
             / (
-                "doc/progress/phase-13-fulfilment/evidence/runs"
-                if work_package == "phase-13-fulfilment" or phase == "phase-13-fulfilment"
+                "doc/progress/phase-14-aftercare/evidence/runs"
+                if work_package == "phase-14-aftercare" or phase == "phase-14-aftercare"
+                else "doc/progress/phase-13-fulfilment/evidence/runs"
+                if work_package == "phase-13-fulfilment"
                 else "doc/progress/phase-12-payments/evidence/runs"
                 if work_package == "phase-12-payments" or phase == "phase-12-payments"
                 else "doc/progress/cpanel-only-preparation/evidence/runs"
@@ -108,7 +111,7 @@ class TestRun:
                 else "doc/progress/phase-11-negotiation/evidence/runs"
                 if phase == "phase-11-negotiation"
                 else "doc/progress/phase-10-commerce/evidence/runs"
-                if phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}
+                if phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}
                 else "doc/progress/phase-09-messaging/evidence/runs"
                 if phase == "phase-09-messaging"
                 else "doc/progress/admin-superuser-and-phase08-fixes/evidence/runs"
@@ -122,6 +125,7 @@ class TestRun:
                     "phase-11-negotiation",
                     "phase-12-payments",
                     "phase-13-fulfilment",
+                    "phase-14-aftercare",
                 }
                 else (
                     "doc/progress/staff-admin-transition/evidence/runs"
@@ -325,7 +329,7 @@ class TestRun:
                 name="cgi-owned-identities",
                 data=json.dumps({"password": self.password}),
             )
-            if self.phase in {"phase-12-payments", "phase-13-fulfilment"}:
+            if self.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
                 self.python(
                     "-m",
                     "scripts.prepare_browser_tests",
@@ -334,7 +338,9 @@ class TestRun:
                 )
             self.python(
                 "-m",
-                "scripts.check_fulfilment_worker" if self.phase == "phase-13-fulfilment" else "scripts.check_worker",
+                "scripts.check_fulfilment_worker"
+                if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+                else "scripts.check_worker",
                 name="cgi-required-scheduler",
             )
             try:
@@ -348,8 +354,8 @@ class TestRun:
                 from scripts.check_cross_engine_transfer import check
             except ModuleNotFoundError:
                 from check_cross_engine_transfer import check
-            if self.phase in {"phase-12-payments", "phase-13-fulfilment"}:
-                if self.phase == "phase-13-fulfilment":
+            if self.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
+                if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
                     from scripts.check_fulfilment_upgrade import owned_check
 
                     owned_check(self)
@@ -368,6 +374,8 @@ class TestRun:
                 "Explicit frontend-only scope: backend test suite not rerun; schema/migrations/native checks remain required.",
                 flush=True,
             )
+        if getattr(self, "tests_only", False):
+            return
         self.python("manage.py", "check", name="backend-check")
         self.python("manage.py", "makemigrations", "--check", "--dry-run", name="migration-consistency")
         self.python("-m", "pip", "check", name="backend-dependencies")
@@ -394,9 +402,11 @@ class TestRun:
             self.python("-m", "scripts.check_mariadb_runtime_role", name="native-dml-role-integrity")
         self.python(
             "-m",
-            "scripts.check_fulfilment_worker" if self.phase == "phase-13-fulfilment" else "scripts.check_worker",
+            "scripts.check_fulfilment_worker"
+            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+            else "scripts.check_worker",
             name="production-budget-worker-execution"
-            if self.phase == "phase-13-fulfilment"
+            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
             else "durable-worker-execution",
         )
         self.python("-m", "scripts.check_native_runtime", name="durable-scheduler-and-claims")
@@ -435,7 +445,10 @@ class TestRun:
             "PLAYWRIGHT_EMAIL_PREVIEWS_DIR": str(self.evidence / "email-previews"),
             "PLAYWRIGHT_BROWSER_CHANNEL": "chromium",
             "IDENTITY_BROWSER_TESTS": "1",
-            "FULFILMENT_BROWSER_TESTS": "1" if self.phase == "phase-13-fulfilment" else "0",
+            "FULFILMENT_BROWSER_TESTS": "1"
+            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+            else "0",
+            "AFTERCARE_BROWSER_TESTS": "1" if self.phase == "phase-14-aftercare" else "0",
             "ORGANIZATIONS_BROWSER_TESTS": "1"
             if self.phase
             in {
@@ -448,6 +461,7 @@ class TestRun:
                 "phase-11-negotiation",
                 "phase-12-payments",
                 "phase-13-fulfilment",
+                "phase-14-aftercare",
             }
             else "0",
             "SITE_BROWSER_TESTS": "1",
@@ -463,10 +477,11 @@ class TestRun:
                 "phase-11-negotiation",
                 "phase-12-payments",
                 "phase-13-fulfilment",
+                "phase-14-aftercare",
             }
             else "0",
             "COMMERCE_BROWSER_TESTS": "1"
-            if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}
+            if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}
             else "0",
             "MESSAGING_BROWSER_TESTS": "1"
             if self.phase
@@ -476,6 +491,7 @@ class TestRun:
                 "phase-11-negotiation",
                 "phase-12-payments",
                 "phase-13-fulfilment",
+                "phase-14-aftercare",
             }
             else "0",
             "MARKETPLACE_BROWSER_TESTS": "1"
@@ -487,6 +503,7 @@ class TestRun:
                 "phase-11-negotiation",
                 "phase-12-payments",
                 "phase-13-fulfilment",
+                "phase-14-aftercare",
             }
             else "0",
             "INVENTORY_BROWSER_TESTS": "1"
@@ -499,6 +516,7 @@ class TestRun:
                 "phase-11-negotiation",
                 "phase-12-payments",
                 "phase-13-fulfilment",
+                "phase-14-aftercare",
             }
             else "0",
             "REZAYI_TEST_PROJECT": self.project,
@@ -540,10 +558,11 @@ class TestRun:
             "phase-11-negotiation",
             "phase-12-payments",
             "phase-13-fulfilment",
+            "phase-14-aftercare",
         }:
             self.python("-m", "scripts.check_messaging_worker", name="native-communication-dispatch")
         self.worker = self.start([str(PYTHON), "-m", "scripts.test_cron"], "browser-cron-clock")
-        if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}:
+        if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
             self.python(
                 "-m",
                 "scripts.check_commerce_documents",
@@ -551,7 +570,7 @@ class TestRun:
                 str(self.evidence / "invoices"),
                 name="commerce-documents",
             )
-        if self.phase in {"phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}:
+        if self.phase in {"phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
             self.python(
                 "-m",
                 "scripts.check_negotiation_documents",
@@ -559,7 +578,7 @@ class TestRun:
                 str(self.evidence / "negotiation-documents"),
                 name="negotiation-documents",
             )
-        if self.phase == "phase-13-fulfilment":
+        if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
             self.python(
                 "-m",
                 "scripts.check_fulfilment_documents",
@@ -646,7 +665,7 @@ class TestRun:
                 (
                     "--global-timeout=5400000"
                     if self.phase
-                    in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment"}
+                    in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}
                     else "--global-timeout=2700000"
                     if self.phase == "phase-09-messaging"
                     else "--global-timeout=1800000"
@@ -667,6 +686,7 @@ class TestRun:
             "phase-11-negotiation",
             "phase-12-payments",
             "phase-13-fulfilment",
+            "phase-14-aftercare",
         }:
             self.python(
                 "-c",
@@ -682,6 +702,7 @@ class TestRun:
             "phase-11-negotiation",
             "phase-12-payments",
             "phase-13-fulfilment",
+            "phase-14-aftercare",
         }:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
             self.start_web()
@@ -909,6 +930,8 @@ class TestRun:
                             "transfer_only": getattr(self, "transfer_only", False),
                             "cgi_only": getattr(self, "cgi_only", False),
                             "frontend_only": getattr(self, "frontend_only", False),
+                            "tests_only": getattr(self, "tests_only", False),
+                            "test_labels": list(self.labels),
                             "phase": self.phase,
                             "browser_spec": self.browser_spec,
                             "evidence": str(self.evidence.relative_to(ROOT)),
@@ -957,6 +980,7 @@ def main():
             "phase-11-negotiation",
             "phase-12-payments",
             "phase-13-fulfilment",
+            "phase-14-aftercare",
         ],
         default="phase-03-identity",
     )
@@ -964,6 +988,7 @@ def main():
         "--browser-spec",
         action="append",
         choices=[
+            "aftercare.browser.ts",
             "fulfilment.browser.ts",
             "payments.browser.ts",
             "negotiations.browser.ts",
@@ -1000,6 +1025,7 @@ def main():
             "cpanel-only-preparation",
             "phase-12-payments",
             "phase-13-fulfilment",
+            "phase-14-aftercare",
         ],
         help="Scoped evidence location; does not change fixture or permission policy",
     )
@@ -1010,6 +1036,7 @@ def main():
         help="Explicit client/browser correction scope; retains schema, migration, dependency and native checks but does not rerun backend tests",
     )
     parser.add_argument("--test-label", action="append", default=[])
+    parser.add_argument("--tests-only", action="store_true", help="Focused labelled backend tests and lint only; no full-gate claim")
     parser.add_argument(
         "--cleanup-probe", choices=["failure", "interrupt"], help="Provision then fail/interrupt to verify teardown"
     )
@@ -1018,6 +1045,8 @@ def main():
         parser.error("--frontend-only and --backend-only are mutually exclusive")
     if args.test_label and not args.backend_only:
         parser.error("--test-label requires --backend-only")
+    if args.tests_only and (not args.backend_only or not args.test_label or args.cgi_only or args.transfer_only or args.cross_engine):
+        parser.error("--tests-only requires --backend-only and --test-label, without CGI/transfer scopes")
     if args.cgi_only:
         if args.database != "mariadb":
             parser.error("--cgi-only requires the native MariaDB target")
@@ -1043,7 +1072,9 @@ def main():
 
         run_class = MariaDBRun
         args.work_package = args.work_package or (
-            "phase-13-fulfilment"
+            "phase-14-aftercare"
+            if args.phase == "phase-14-aftercare"
+            else "phase-13-fulfilment"
             if args.phase == "phase-13-fulfilment"
             else "phase-12-payments"
             if args.phase == "phase-12-payments"
@@ -1054,6 +1085,7 @@ def main():
     run.transfer_only = args.transfer_only
     run.cross_engine = args.cross_engine
     run.frontend_only = args.frontend_only
+    run.tests_only = args.tests_only
     run.cleanup_probe = args.cleanup_probe
 
     def interrupted(signum, frame):

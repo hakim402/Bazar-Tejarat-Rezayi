@@ -3,7 +3,7 @@
 Private construction rows may exist, but acceptance cannot. Parent locks serialize
 line insertion with publication; no writable connection flag disables guards.
 """
-from apps.runtime.mariadb.ddl import reject, same, trigger
+from apps.runtime.mariadb.ddl import reject, same, trigger, retained
 
 
 def j(value, path):
@@ -177,3 +177,202 @@ def revision_body():
         OR (SELECT JSON_LENGTH(JSON_EXTRACT(previous.body,'$.lines')) FROM orders_negotiationrevision previous
             WHERE previous.request_id=NEW.request_id AND previous.number=NEW.number-1)<>JSON_LENGTH(JSON_EXTRACT(NEW.body,'$.lines')))""", "Request selection is immutable")
     return body
+
+
+def _aftercare_permission(user, code):
+    return f"""EXISTS(SELECT 1 FROM accounts_user u WHERE u.id={user} AND u.is_active AND u.email_verified AND u.is_staff AND (u.is_superuser OR EXISTS(SELECT 1 FROM accounts_user_groups ug JOIN auth_group_permissions gp ON gp.group_id=ug.group_id JOIN auth_permission p ON p.id=gp.permission_id JOIN django_content_type ct ON ct.id=p.content_type_id WHERE ug.user_id=u.id AND ct.app_label='orders' AND p.codename={code})))"""
+
+
+def _seller_orders(order, account):
+    return f"""EXISTS(SELECT 1 FROM orders_sellerorder o JOIN organizations_businessprofile b ON b.id=o.seller_id JOIN accounts_account a ON a.id={account} JOIN accounts_user u ON u.id=a.user_id WHERE o.id={order} AND a.context='seller' AND a.status='active' AND u.is_active AND u.email_verified AND (b.kind='individual' AND b.account_id=a.id OR b.kind='company' AND EXISTS(SELECT 1 FROM organizations_membership m WHERE m.company_id=b.id AND m.account_id=a.id AND m.active AND (m.is_owner OR JSON_CONTAINS(m.bundles,'"orders_negotiation"')))))"""
+
+
+def _participant():
+    return "EXISTS(SELECT 1 FROM accounts_account a WHERE a.id=NEW.account_id AND a.user_id=NEW.actor_id AND a.context=NEW.context AND a.status='active')"
+
+
+def _buyer_order(order, account, actor):
+    return f"EXISTS(SELECT 1 FROM orders_sellerorder o JOIN accounts_account a ON a.id=o.buyer_id JOIN accounts_user u ON u.id=a.user_id WHERE o.id={order} AND a.id={account} AND u.id={actor} AND a.status='active' AND u.is_active AND u.email_verified)"
+
+
+def effective_line_value(line, field, *, before=None):
+    boundary = f" AND change_event.version<{before}" if before else ""
+    return f"COALESCE((SELECT change_line.proposed_{field} FROM orders_amendmentline change_line JOIN orders_amendment change_parent ON change_parent.id=change_line.amendment_id JOIN orders_amendmentdecision change_decision ON change_decision.amendment_id=change_parent.id JOIN orders_aftercareevent change_event ON change_event.id=change_decision.event_id WHERE change_line.line_id={line}.id AND change_parent.state='approved' AND change_decision.action='approved'{boundary} ORDER BY change_event.version DESC LIMIT 1),{line}.{field})"
+
+
+def effective_order_total(order):
+    return f"IF(EXISTS(SELECT 1 FROM orders_cancellationrequest cancelled_order JOIN orders_cancellationdecision cancelled_decision ON cancelled_decision.request_id=cancelled_order.id WHERE cancelled_order.order_id={order} AND cancelled_decision.action='approved'),0,COALESCE((SELECT approved_order.after_total FROM orders_amendment approved_order JOIN orders_amendmentdecision approved_decision ON approved_decision.amendment_id=approved_order.id JOIN orders_aftercareevent approved_event ON approved_event.id=approved_decision.event_id WHERE approved_order.order_id={order} AND approved_order.state='approved' AND approved_decision.action='approved' ORDER BY approved_event.version DESC LIMIT 1),(SELECT original_order.goods_total FROM orders_sellerorder original_order WHERE original_order.id={order})))"
+
+
+def aftercare_independent(order, user):
+    from apps.payments.mariadb_guards import independent
+
+    return f"({independent(order, user)}) AND NOT EXISTS(SELECT 1 FROM orders_amendment proposal JOIN accounts_account proposer ON proposer.id=proposal.actor_id WHERE proposal.order_id={order} AND proposer.user_id={user})"
+
+
+def adjustment_snapshot_guard(field, *, before=False):
+    boundary = "(SELECT version FROM orders_aftercareevent WHERE id=NEW.event_id)" if before else None
+    quantity = effective_line_value("l", "quantity", before=boundary)
+    price = effective_line_value("l", "unit_price", before=boundary)
+    rows = f"JSON_TABLE(NEW.{field},'$[*]' COLUMNS(line CHAR(36) PATH '$.line',variant CHAR(36) PATH '$.variant',tier VARCHAR(9) PATH '$.tier',quantity VARCHAR(32) PATH '$.quantity',unit_price VARCHAR(32) PATH '$.unit_price',goods_amount VARCHAR(32) PATH '$.goods_amount'))"
+    total = "NEW.before_total" if before else "NEW.after_total"
+    return reject(f"""JSON_TYPE(NEW.{field})<>'ARRAY' OR JSON_LENGTH(NEW.{field})<>(SELECT COUNT(*) FROM orders_orderline l WHERE l.order_id=NEW.order_id)
+        OR (SELECT COUNT(DISTINCT snapshot.line) FROM {rows} snapshot)<>JSON_LENGTH(NEW.{field})
+        OR EXISTS(SELECT 1 FROM {rows} snapshot LEFT JOIN orders_orderline l ON l.id=REPLACE(snapshot.line,'-','') AND l.order_id=NEW.order_id WHERE l.id IS NULL OR NOT (REPLACE(snapshot.variant,'-','') <=> l.variant_id) OR NOT (snapshot.tier <=> l.tier) OR NOT (snapshot.quantity REGEXP BINARY '^[0-9]+[.][0-9]{{3}}$') OR NOT (snapshot.unit_price REGEXP BINARY '^[0-9]+[.][0-9]{{2}}$') OR NOT (snapshot.goods_amount REGEXP BINARY '^[0-9]+[.][0-9]{{2}}$') OR NOT (CAST(snapshot.quantity AS DECIMAL(12,3)) <=> {quantity}) OR NOT (CAST(snapshot.unit_price AS DECIMAL(11,2)) <=> {price}) OR NOT (CAST(snapshot.goods_amount AS DECIMAL(24,2)) <=> ROUND({quantity}*{price},2)))
+        OR {total}<>(SELECT SUM(ROUND({quantity}*{price},2)) FROM orders_orderline l WHERE l.order_id=NEW.order_id)""")
+
+
+def decision_guard(kind):
+    parent = "cancellationrequest" if kind == "cancellation" else "amendment"
+    key = "request_id" if kind == "cancellation" else "amendment_id"
+    permission = "decide_cancellation" if kind == "cancellation" else "decide_amendment"
+    body = f"DECLARE target_order CHAR(32); DECLARE target_state VARCHAR(9); DECLARE reviewer CHAR(32); SELECT order_id,state,assigned_to_id INTO target_order,target_state,reviewer FROM orders_{parent} WHERE id=NEW.{key} FOR UPDATE; "
+    identity = f"((NEW.context='owner' AND NEW.account_id IS NULL AND EXISTS(SELECT 1 FROM accounts_user u WHERE u.id=NEW.actor_id AND u.is_superuser)) OR (NEW.context='staff' AND ({_participant()})))"
+    independent = aftercare_independent("target_order", "NEW.actor_id")
+    body += reject(f"""target_order IS NULL OR target_state<>'pending' OR reviewer IS NULL OR reviewer<>NEW.actor_id
+        OR NEW.action NOT IN ('approved','rejected') OR CHAR_LENGTH(TRIM(NEW.reason)) NOT BETWEEN 3 AND 1000
+        OR NOT ({identity}) OR NOT ({_aftercare_permission('NEW.actor_id', repr(permission))})
+        OR NOT ({_aftercare_permission('NEW.actor_id', repr('read_aftercare'))}) OR NOT ({independent})
+        OR EXISTS(SELECT 1 FROM fulfilment_shipment shipped WHERE shipped.order_id=target_order)
+        OR EXISTS(SELECT 1 FROM fulfilment_completion finished WHERE finished.order_id=target_order)
+        OR EXISTS(SELECT 1 FROM orders_cancellationrequest cancelled JOIN orders_cancellationdecision decided ON decided.request_id=cancelled.id WHERE cancelled.order_id=target_order AND decided.action='approved')
+        OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id WHERE e.id=NEW.event_id AND e.order_id=target_order AND e.version=s.version AND e.action=CONCAT('{kind}_',NEW.action) AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context)""")
+    if kind == "cancellation":
+        body += reject(f"""EXISTS(SELECT 1 FROM orders_cancellationrequest request WHERE request.id=NEW.request_id AND (request.requester_user_id=NEW.actor_id OR (request.requester_context='seller' AND NOT ({_seller_orders('target_order', 'request.requester_account_id')}))))""")
+    else:
+        quantity = effective_line_value("l", "quantity")
+        price = effective_line_value("l", "unit_price")
+        body += reject(f"""NEW.action='approved' AND (NOT EXISTS(SELECT 1 FROM orders_amendmentline proposal WHERE proposal.amendment_id=NEW.amendment_id)
+            OR EXISTS(SELECT 1 FROM orders_amendmentline proposal JOIN orders_orderline l ON l.id=proposal.line_id JOIN catalogue_variant v ON v.id=l.variant_id WHERE proposal.amendment_id=NEW.amendment_id AND (l.order_id<>target_order OR proposal.proposed_quantity<=0 OR proposal.proposed_quantity>={quantity} OR proposal.proposed_unit_price<=0 OR proposal.proposed_unit_price>{price} OR MOD(proposal.proposed_quantity,v.quantity_increment)<>0 OR (l.tier='wholesale' AND proposal.proposed_quantity<v.minimum_wholesale)))
+            OR (SELECT proposal.after_total FROM orders_amendment proposal WHERE proposal.id=NEW.amendment_id)<>(SELECT SUM(ROUND(COALESCE(proposal.proposed_quantity,{quantity})*COALESCE(proposal.proposed_unit_price,{price}),2)) FROM orders_orderline l LEFT JOIN orders_amendmentline proposal ON proposal.line_id=l.id AND proposal.amendment_id=NEW.amendment_id WHERE l.order_id=target_order))""")
+    return trigger(f"orders_{kind}decision", "INSERT", body)
+
+
+def aftercare_statements():
+    from apps.payments.mariadb_guards import accepted
+
+    result = []
+    for table in ("aftercareevent", "aftercarecommand", "cancellationdecision", "amendmentdecision", "invoiceadjustment"):
+        result += retained("orders_" + table)
+    result.append(trigger("orders_aftercare", "INSERT", reject(f"NEW.version<>0 OR NOT ({accepted('NEW.order_id')})")))
+    result.append(trigger("orders_aftercare", "DELETE", reject()))
+    result.append(
+        trigger(
+            "orders_aftercare",
+            "UPDATE",
+            reject(
+                f"NOT ({same('order_id created_at')}) OR (NEW.version<>OLD.version AND (NEW.version<>OLD.version+1 OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e WHERE e.order_id=NEW.order_id AND e.version=NEW.version)))"
+            ),
+        )
+    )
+    owner = "EXISTS(SELECT 1 FROM accounts_user u WHERE u.id=NEW.actor_id AND u.is_superuser AND u.is_staff AND u.is_active AND u.email_verified)"
+    staff = _aftercare_permission("NEW.actor_id", "'read_aftercare'")
+    body = "DECLARE current_version BIGINT; SELECT version INTO current_version FROM orders_aftercare WHERE order_id=NEW.order_id FOR UPDATE; "
+    body += reject(f"current_version IS NULL OR NEW.version<>current_version+1 OR NOT ({accepted('NEW.order_id')})")
+    body += reject(
+        f"""NOT ((NEW.context='buyer' AND ({_participant()}) AND ({_buyer_order('NEW.order_id', 'NEW.account_id', 'NEW.actor_id')}) AND NEW.action IN ('cancellation_requested','cancellation_withdrawn'))
+        OR (NEW.context='seller' AND ({_participant()}) AND ({_seller_orders('NEW.order_id', 'NEW.account_id')}) AND NEW.action IN ('cancellation_requested','cancellation_withdrawn','amendment_proposed','amendment_withdrawn'))
+        OR (NEW.context IN ('owner','staff') AND (NEW.context='owner' AND ({owner}) OR NEW.context='staff' AND ({staff})) AND NEW.action IN ('cancellation_assigned','cancellation_opened','cancellation_approved','cancellation_rejected','amendment_assigned','amendment_approved','amendment_rejected')))"""
+    )
+    result.append(trigger("orders_aftercareevent", "INSERT", body))
+    result.append(
+        trigger(
+            "orders_aftercarecommand",
+            "INSERT",
+            reject(
+                "NEW.context NOT IN ('buyer','seller','staff','owner') OR CHAR_LENGTH(NEW.digest)<>64 OR NOT JSON_VALID(NEW.result) OR NOT EXISTS(SELECT 1 FROM accounts_user u WHERE u.id=NEW.actor_id AND u.is_active AND u.email_verified) OR (NEW.context<>'owner' AND NOT EXISTS(SELECT 1 FROM accounts_account a WHERE a.id=NEW.account_id AND a.user_id=NEW.actor_id AND a.context=NEW.context AND a.status='active')) OR (NEW.context='owner' AND NOT EXISTS(SELECT 1 FROM accounts_user u WHERE u.id=NEW.actor_id AND u.is_superuser AND u.is_staff))"
+            ),
+            suffix="identity_guard",
+        )
+    )
+    command_action = "CASE NEW.action WHEN 'request' THEN 'cancellation_requested' WHEN 'withdraw' THEN 'cancellation_withdrawn' WHEN 'propose' THEN 'amendment_proposed' WHEN 'amendment_withdraw' THEN 'amendment_withdrawn' WHEN 'cancellation_assign' THEN 'cancellation_assigned' WHEN 'cancellation_open' THEN 'cancellation_opened' WHEN 'cancellation_approve' THEN 'cancellation_approved' WHEN 'cancellation_reject' THEN 'cancellation_rejected' WHEN 'amendment_assign' THEN 'amendment_assigned' WHEN 'amendment_approve' THEN 'amendment_approved' WHEN 'amendment_reject' THEN 'amendment_rejected' ELSE NEW.action END"
+    result.append(
+        trigger(
+            "orders_aftercarecommand",
+            "INSERT",
+            reject(
+                f"(NEW.action<>'absence_fence' AND NOT EXISTS(SELECT 1 FROM orders_aftercareevent e WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context AND e.action={command_action})) OR (NEW.action='absence_fence' AND (NEW.event_id IS NOT NULL OR NEW.digest<>REPEAT('0',64) OR NOT (JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.settled'))<=>'true')))"
+            ),
+            suffix="source_guard",
+        )
+    )
+    result.append(
+        trigger(
+            "orders_aftercarecommand",
+            "INSERT",
+            reject(
+                "NEW.digest NOT REGEXP BINARY '^[0-9a-f]{64}$' OR (NEW.action<>'absence_fence' AND (NOT (JSON_TYPE(JSON_EXTRACT(NEW.result,'$.version')) <=> 'INTEGER') OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e WHERE e.id=NEW.event_id AND e.version=CAST(JSON_UNQUOTE(JSON_EXTRACT(NEW.result,'$.version')) AS UNSIGNED))))"
+            ),
+            suffix="result_guard",
+        )
+    )
+    cancelled = "EXISTS(SELECT 1 FROM orders_cancellationrequest p JOIN orders_cancellationdecision d ON d.request_id=p.id WHERE p.order_id=NEW.order_id AND d.action='approved')"
+    body = "DECLARE order_seller CHAR(32); DECLARE order_buyer CHAR(32); SELECT seller_id,buyer_id INTO order_seller,order_buyer FROM orders_sellerorder WHERE id=NEW.order_id FOR UPDATE; "
+    requester = f"""((NEW.requester_account_id IS NOT NULL AND NEW.requester_user_id IS NULL AND NEW.requester_context IN ('buyer','seller') AND ((NEW.requester_context='buyer' AND NEW.requester_account_id=order_buyer) OR (NEW.requester_context='seller' AND {_seller_orders('NEW.order_id', 'NEW.requester_account_id')})))
+        OR (NEW.requester_account_id IS NULL AND NEW.requester_user_id IS NOT NULL AND NEW.requester_context='staff' AND ({_aftercare_permission('NEW.requester_user_id', chr(39) + 'assign_aftercare' + chr(39))})))"""
+    body += reject(
+        f"""order_seller IS NULL OR NEW.version<>1 OR NEW.assigned_to_id IS NOT NULL OR NEW.state<>'pending' OR CHAR_LENGTH(TRIM(NEW.reason))<3 OR NOT ({requester}) OR EXISTS(SELECT 1 FROM orders_cancellationrequest p WHERE p.order_id=NEW.order_id AND p.state='pending') OR EXISTS(SELECT 1 FROM orders_sellerorder o JOIN fulfilment_shipment s ON s.order_id=o.id WHERE o.id=NEW.order_id) OR EXISTS(SELECT 1 FROM fulfilment_completion c WHERE c.order_id=NEW.order_id) OR ({cancelled}) OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.action=IF(NEW.requester_context='staff','cancellation_opened','cancellation_requested') AND e.version=s.version) OR (NEW.payment_case_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM payments_reviewcase k WHERE k.id=NEW.payment_case_id AND k.order_id=NEW.order_id AND k.kind='shortage'))"""
+    )
+    from apps.payments.mariadb_guards import confirmed, permission
+
+    body += reject(f"""NOT EXISTS(SELECT 1 FROM orders_aftercareevent e WHERE e.id=NEW.event_id AND ((NEW.requester_context IN ('buyer','seller') AND e.account_id=NEW.requester_account_id AND e.context=NEW.requester_context AND NEW.payment_case_id IS NULL) OR (NEW.requester_context='staff' AND e.actor_id=NEW.requester_user_id AND e.context IN ('owner','staff'))))
+        OR (NEW.requester_context='staff' AND (NEW.payment_case_id IS NULL OR {confirmed('NEW.order_id')}<=0 OR NOT ({permission('NEW.requester_user_id', repr('read_payments'))}) OR NOT EXISTS(SELECT 1 FROM payments_reviewcase k JOIN payments_allocationintent i ON i.order_id=k.order_id JOIN accounts_user u ON u.id=NEW.requester_user_id WHERE k.id=NEW.payment_case_id AND k.order_id=NEW.order_id AND k.kind='shortage' AND k.state IN ('open','referred') AND (u.is_superuser OR k.assigned_to_id=u.id) AND i.state IN ('shortage','review_required') AND i.allocation_id IS NULL)))""")
+    result.append(trigger("orders_cancellationrequest", "INSERT", body))
+    identity = "id order_id requester_account_id requester_user_id requester_context payment_case_id reason event_id created_at"
+    witnessed = f"""EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+        WHERE e.order_id=NEW.order_id AND e.version=s.version
+        AND ((e.action='cancellation_assigned' AND NEW.state=OLD.state AND NOT (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND ({_aftercare_permission('e.actor_id', repr('assign_aftercare'))}) AND (NEW.assigned_to_id IS NULL OR (({_aftercare_permission('NEW.assigned_to_id', repr('decide_cancellation'))}) AND ({_aftercare_permission('NEW.assigned_to_id', repr('read_aftercare'))}) AND ({aftercare_independent('NEW.order_id', 'NEW.assigned_to_id')}) AND NOT (NEW.assigned_to_id <=> OLD.requester_user_id))))
+        OR (e.action=CONCAT('cancellation_',NEW.state) AND OLD.state='pending' AND NEW.state IN ('withdrawn','approved','rejected') AND (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND ((NEW.state='withdrawn' AND e.context=OLD.requester_context AND e.account_id=OLD.requester_account_id)
+                OR EXISTS(SELECT 1 FROM orders_cancellationdecision d WHERE d.request_id=NEW.id AND d.event_id=e.id AND d.action=NEW.state)))))"""
+    witness = f"""(NEW.version=OLD.version AND NEW.state=OLD.state AND (NEW.assigned_to_id <=> OLD.assigned_to_id) AND (NEW.blocker_id <=> OLD.blocker_id))
+        OR (NEW.version=OLD.version AND NEW.state=OLD.state AND (NEW.assigned_to_id <=> OLD.assigned_to_id) AND OLD.blocker_id IS NULL AND NEW.blocker_id IS NOT NULL AND EXISTS(SELECT 1 FROM fulfilment_blocker b WHERE b.id=NEW.blocker_id AND b.order_id=NEW.order_id))
+        OR (NEW.version=OLD.version+1 AND (NEW.blocker_id <=> OLD.blocker_id) AND OLD.state='pending' AND ({witnessed}))"""
+    result += [
+        trigger("orders_cancellationrequest", "DELETE", reject()),
+        trigger("orders_cancellationrequest", "UPDATE", reject(f"NOT ({same(identity)}) OR NOT ({witness})")),
+    ]
+    body = "DECLARE order_seller CHAR(32); SELECT seller_id INTO order_seller FROM orders_sellerorder WHERE id=NEW.order_id FOR UPDATE; "
+    body += reject(
+        f"""order_seller IS NULL OR NEW.version<>1 OR NEW.assigned_to_id IS NOT NULL OR NEW.state<>'pending' OR NEW.after_total<=0 OR CHAR_LENGTH(TRIM(NEW.reason))<3 OR NOT ({_seller_orders('NEW.order_id', 'NEW.actor_id')}) OR EXISTS(SELECT 1 FROM orders_amendment p WHERE p.order_id=NEW.order_id AND p.state='pending') OR EXISTS(SELECT 1 FROM orders_sellerorder o JOIN fulfilment_shipment s ON s.order_id=o.id WHERE o.id=NEW.order_id) OR EXISTS(SELECT 1 FROM fulfilment_completion c WHERE c.order_id=NEW.order_id) OR ({cancelled}) OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.action='amendment_proposed' AND e.account_id=NEW.actor_id AND e.version=s.version)"""
+    )
+    result.append(trigger("orders_amendment", "INSERT", body))
+    amendment_identity = "id order_id actor_id after_total reason event_id created_at"
+    amendment_witnessed = f"""EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+        WHERE e.order_id=NEW.order_id AND e.version=s.version AND OLD.state='pending'
+        AND ((e.action='amendment_assigned' AND NEW.state=OLD.state AND NOT (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND ({_aftercare_permission('e.actor_id', repr('assign_aftercare'))}) AND (NEW.assigned_to_id IS NULL OR (({_aftercare_permission('NEW.assigned_to_id', repr('decide_amendment'))}) AND ({_aftercare_permission('NEW.assigned_to_id', repr('read_aftercare'))}) AND ({aftercare_independent('NEW.order_id', 'NEW.assigned_to_id')}))))
+        OR (e.action=CONCAT('amendment_',NEW.state) AND NEW.state IN ('withdrawn','approved','rejected') AND (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND ((NEW.state='withdrawn' AND e.context='seller' AND e.account_id=OLD.actor_id)
+                OR EXISTS(SELECT 1 FROM orders_amendmentdecision d WHERE d.amendment_id=NEW.id AND d.event_id=e.id AND d.action=NEW.state)))))"""
+    amendment_witness = f"""(NEW.version=OLD.version AND NEW.state=OLD.state AND (NEW.assigned_to_id <=> OLD.assigned_to_id)) OR (NEW.version=OLD.version+1 AND ({amendment_witnessed}))"""
+    result += [
+        trigger("orders_amendment", "DELETE", reject()),
+        trigger("orders_amendment", "UPDATE", reject(f"NOT ({same(amendment_identity)}) OR NOT ({amendment_witness})")),
+    ]
+    result += [trigger("orders_amendmentline", "DELETE", reject())]
+    result.append(
+        trigger(
+            "orders_amendmentline",
+            "UPDATE",
+            reject(f"NOT ({same('id amendment_id line_id proposed_quantity proposed_unit_price')})"),
+        )
+    )
+    body = "DECLARE order_id CHAR(32); DECLARE current_state VARCHAR(9); SELECT a.order_id,a.state INTO order_id,current_state FROM orders_amendment a WHERE a.id=NEW.amendment_id FOR UPDATE; "
+    body += reject(
+        f"""order_id IS NULL OR current_state<>'pending' OR EXISTS(SELECT 1 FROM orders_amendmentdecision d WHERE d.amendment_id=NEW.amendment_id) OR NOT EXISTS(SELECT 1 FROM orders_orderline l JOIN catalogue_variant v ON v.id=l.variant_id WHERE l.id=NEW.line_id AND l.order_id=order_id AND NEW.proposed_quantity>0 AND NEW.proposed_quantity<{effective_line_value('l', 'quantity')} AND NEW.proposed_unit_price>0 AND NEW.proposed_unit_price<={effective_line_value('l', 'unit_price')} AND MOD(NEW.proposed_quantity,v.quantity_increment)=0 AND (l.tier<>'wholesale' OR NEW.proposed_quantity>=v.minimum_wholesale)) OR EXISTS(SELECT 1 FROM orders_amendmentline x WHERE x.amendment_id=NEW.amendment_id AND x.line_id=NEW.line_id)"""
+    )
+    result.append(trigger("orders_amendmentline", "INSERT", body))
+    body = "DECLARE invoice_order CHAR(32); DECLARE event_order CHAR(32); DECLARE event_action VARCHAR(32); SELECT i.order_id INTO invoice_order FROM orders_sellerorder o JOIN orders_invoice i ON i.order_id=o.id WHERE i.id=NEW.invoice_id; SELECT e.order_id,e.action INTO event_order,event_action FROM orders_aftercareevent e WHERE e.id=NEW.event_id; "
+    body += reject(
+        """invoice_order IS NULL OR invoice_order<>NEW.order_id OR event_order IS NULL OR event_order<>NEW.order_id OR CHAR_LENGTH(TRIM(NEW.reason))<3 OR (NEW.cancellation_id IS NOT NULL AND NEW.amendment_id IS NOT NULL) OR (NEW.cancellation_id IS NULL AND NEW.amendment_id IS NULL) OR (NEW.cancellation_id IS NOT NULL AND (NEW.amendment_id IS NOT NULL OR event_action<>'cancellation_approved' OR NOT EXISTS(SELECT 1 FROM orders_cancellationrequest p JOIN orders_cancellationdecision d ON d.request_id=p.id WHERE p.id=NEW.cancellation_id AND p.order_id=NEW.order_id AND d.action='approved') OR NEW.after_total<>0 OR JSON_LENGTH(NEW.after_lines)<>0)) OR (NEW.amendment_id IS NOT NULL AND (NEW.cancellation_id IS NOT NULL OR event_action<>'amendment_approved' OR NOT EXISTS(SELECT 1 FROM orders_amendment a JOIN orders_amendmentdecision d ON d.amendment_id=a.id WHERE a.id=NEW.amendment_id AND a.order_id=NEW.order_id AND d.action='approved') OR NEW.after_total<=0))"""
+    )
+    body += reject("""NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id WHERE e.id=NEW.event_id AND e.version=s.version AND e.actor_id=NEW.actor_id)
+        OR (NEW.cause='cancellation' AND NOT EXISTS(SELECT 1 FROM orders_cancellationdecision d WHERE d.request_id=NEW.cancellation_id AND d.event_id=NEW.event_id AND d.actor_id=NEW.actor_id AND d.action='approved'))
+        OR (NEW.cause='amendment' AND NOT EXISTS(SELECT 1 FROM orders_amendmentdecision d JOIN orders_amendment a ON a.id=d.amendment_id WHERE d.amendment_id=NEW.amendment_id AND d.event_id=NEW.event_id AND d.actor_id=NEW.actor_id AND d.action='approved' AND a.after_total=NEW.after_total))""")
+    body += adjustment_snapshot_guard("before_lines", before=True)
+    body += "IF NEW.cause='amendment' THEN " + adjustment_snapshot_guard("after_lines") + "END IF; "
+    result.append(trigger("orders_invoiceadjustment", "INSERT", body))
+    result += [decision_guard("cancellation"), decision_guard("amendment")]
+    return result

@@ -1,5 +1,5 @@
 import unicodedata
-from decimal import Decimal, ROUND_HALF_UP, localcontext
+from apps.foundation import money as exact
 from rest_framework.exceptions import ValidationError
 from apps.messaging.contracts import safe_text
 
@@ -50,11 +50,9 @@ def destinations(rows):
 
 
 def money(price, quantity):
-    if price is None or price <= 0:
-        raise ValidationError({"price": ["tier_unavailable"]})
-    with localcontext() as ctx:
-        ctx.prec = 40
-        value = (price * quantity).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
-    if value <= 0 or value >= Decimal("1e22"):
-        raise ValidationError({"amount": ["bounds"]})
-    return value
+    try:
+        return exact.line_amount(price, quantity)
+    except exact.MoneyError as error:
+        if error.kind == "tier":
+            raise ValidationError({"price": ["tier_unavailable"]}) from None
+        raise ValidationError({"amount": ["bounds"]}) from None

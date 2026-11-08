@@ -42,6 +42,12 @@ def publish(event):
     enqueue("fulfilment_sweep")
 
 
+def seal(event):
+    """Publish a fact without a separate participant notice; the aftercare
+    notification channel owns the corresponding notice."""
+    m.Publication.objects.create(event=event)
+
+
 def new_case(order, kind, resource, *, audit_source=None, **target):
     key = hashlib.sha256(f"{order.pk}:{kind}:{resource}".encode()).hexdigest()
     case, created = m.ReviewCase.objects.get_or_create(key=key, defaults={"order": order, "kind": kind, **target})
@@ -79,6 +85,9 @@ def allowed(actor, order, action):
             raise PermissionDenied()
     elif action == "upload":
         if not caps["claim"]:
+            raise PermissionDenied()
+    elif action == "refund":
+        if not caps["refund"]:
             raise PermissionDenied()
     elif action == "blocker":
         if (
@@ -127,6 +136,22 @@ def stock_token(order, key):
     return uuid.uuid5(order, "fulfilment-dispatch:" + str(key))
 
 
+FROZEN_TRANSITIONS = {
+    "recipient",
+    "arrange",
+    "prepare",
+    "partial",
+    "charge",
+    "claim",
+    "withdraw",
+    "correction",
+    "blocker",
+    "dispatch",
+    "tracking",
+    "deliver",
+}
+
+
 def mutate(actor, pk, action, data, *, now=None):
     key = v.identifier(data.get("command_id"), "command_id")
     digest = v.digest(action, pk, data)
@@ -146,6 +171,11 @@ def mutate(actor, pk, action, data, *, now=None):
         old = previous(actor, order, key, action, digest)
         if old is not None:
             return old
+        if action in FROZEN_TRANSITIONS:
+            from apps.orders import aftercare
+
+            if aftercare.cancelled(order):
+                raise Conflict("A cancelled order accepts no new fulfilment actions.")
         v.expect(state.version, data.get("version"))
         v.expect(finance.version, data.get("goods_version"))
         access.audit(actor, order, "fulfilment_" + action, "Guarded physical/delivery transition")

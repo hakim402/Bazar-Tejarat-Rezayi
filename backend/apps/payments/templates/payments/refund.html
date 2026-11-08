@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block content %}
+<div class="rz-owner ra:space-y-6 ra:min-w-0">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{% translate "Goods refund review" %}</h1>
+<p><bdi>{{ due.id }}</bdi> · {{ due.cause }} · <bdi>{{ due.amount }} {{ due.currency }}</bdi> · Version {{ due.version }}</p>
+<p>{% translate "A confirmed report reduces the remaining refund due only. It never reduces confirmed received, edits a sealed receipt, changes the accepted invoice or moves platform money. Approval is never execution." %}</p>
+{% if not independent %}<p role="status">{% translate "You have a buyer/seller, report-author or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot confirm or reject this refund." %}</p>{% endif %}
+{% if confirmed %}<p role="status">{% translate "This refund due already has a retained confirmation." %}</p>{% elif not pending %}<p role="status">{% translate "No pending seller refund report exists for this due yet." %}</p>{% endif %}
+</section>
+{% if projection %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Current goods balance' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Invoice" %} <bdi>{{ due.order.invoice.number }}</bdi></h2>
+<dl><dt>{% translate "Accepted total" %}</dt><dd><bdi>{{ projection.accepted_total }} {{ due.currency }}</bdi></dd><dt>{% translate "Received" %}</dt><dd><bdi>{{ projection.received }} {{ due.currency }}</bdi></dd><dt>{% translate "Refunded" %}</dt><dd><bdi>{{ projection.refunded }} {{ due.currency }}</bdi></dd><dt>{% translate "Refund due" %}</dt><dd><bdi>{{ projection.refund_due }} {{ due.currency }}</bdi></dd><dt>{% translate "Remaining" %}</dt><dd><bdi>{{ projection.remaining }} {{ due.currency }}</bdi></dd><dt>{% translate "Excess" %}</dt><dd><bdi>{{ projection.overpayment }} {{ due.currency }}</bdi></dd></dl>
+<p>{% translate "Money" %}: {{ projection.financial }} · Stock: {{ projection.allocation }}</p>
+</section>
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Seller refund reports" %}</h2>{% for report in reports %}<article class="ra:border ra:border-line ra:rounded-control ra:p-3"><p><bdi>{{ report.id }}</bdi> · <bdi>{{ report.amount }} {{ due.currency }}</bdi> · {{ report.sent_at }}{% if report.previous_id %} · {% translate "replaces" %} <bdi>{{ report.previous_id }}</bdi>{% endif %}</p><p dir="auto">{{ report.reference }}</p><p dir="auto">{{ report.description }}</p><p>{% if report.decision %}{{ report.decision.action }} · {{ report.decision.created_at }} · <span dir="auto">{{ report.decision.reason }}</span>{% else %}pending{% endif %}</p></article>{% empty %}<p>{% translate "No refund reports recorded for this due." %}</p>{% endfor %}<p>{% translate "One confirmed report per due, for the exact due amount. A rejected or withdrawn report is retained and may be replaced by a corrected report linked to it." %}</p></section>
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Protected refund evidence" %}</h2>{% for image in images %}<p><a href="{{ image.url }}" rel="noreferrer">{% translate "Open protected image" %} <bdi>{{ image.id }}</bdi></a></p>{% empty %}<p>{% translate "No evidence available under your current permission." %}</p>{% endfor %}</section>
+{% else %}<p role="status">{% translate "Only assignment metadata is available. Current assignment and explicit refund permissions are required for private content." %}</p>{% endif %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Guarded decision" %}</h2><form method="post" class="ra:space-y-3">{% csrf_token %}{{ form.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2">{% translate "Record guarded decision" %}</button></form></section>
+</div>
+{% endblock %}

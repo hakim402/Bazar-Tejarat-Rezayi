@@ -8,6 +8,7 @@ import {
 } from "../lib/routes/account-routes.ts";
 import { inventoryRequest } from "../features/inventory/api/inventory.ts";
 import { inventoryCopy } from "../lib/i18n/inventory.ts";
+import { sellerShellCopy } from "../lib/i18n/seller-shell.ts";
 const id = "aabbccdd-1234-5678-abcd-0123456789ab";
 test("strict seller registry reserves movements and rejects malformed/trailing routes", () => {
 	assert.equal(sellerRoute()?.screen, "overview");
@@ -80,6 +81,15 @@ test("every stock label is supplied in all four locales", () => {
 			inventoryCopy[locale].inventory,
 			inventoryCopy.en.inventory,
 		);
+	}
+});
+
+test("seller navigation and unavailable-summary copy has four-locale parity", () => {
+	const keys = Object.keys(sellerShellCopy.en).sort();
+	for (const locale of ["fa-AF", "en", "ps", "ar"] as const) {
+		assert.deepEqual(Object.keys(sellerShellCopy[locale]).sort(), keys);
+		for (const value of Object.values(sellerShellCopy[locale]))
+			assert.ok(value.trim().length > 0);
 	}
 });
 

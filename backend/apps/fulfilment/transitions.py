@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from apps.organizations.access import Conflict
+from apps.orders import aftercare
 from apps.payments import queries as goods
 from apps.payments.models import Finance
 from . import models as m, queries, selection, validation as v
@@ -91,7 +92,8 @@ def prepare(actor, order, state, data, *, now=None):
 def partial(actor, order, state, data, **_):
     no_shipment(order)
     paid = goods.confirmed(order)
-    if order.payment_method != "advance" or not Decimal(0) < paid < order.goods_total:
+    net = paid - aftercare.refund_figures(order)["refunded"]
+    if order.payment_method != "advance" or not Decimal(0) < net < aftercare.accepted_total(order):
         raise Conflict("Partial authorization requires positive partial advance funds.")
     event = emit(order, state, "partial_authorized", actor)
     item = m.PartialPermission.construction.create(
@@ -193,6 +195,40 @@ def blocker(actor, order, state, data, **_):
     return {"blocker": str(item.pk)}, event
 
 
+def refund(actor, order, state, data, **_):
+    """Provider-issued delivery refund report; independent staff confirm it."""
+    if data.get("currency") != order.currency:
+        v.fail("currency", "order_currency")
+    amount = v.money(data.get("amount"))
+    sent_at = v.actual_time(data.get("sent_at"))
+    arrangement = m.Arrangement.objects.filter(order=order).order_by("-event__version").first()
+    charge = queries.current_charge(order)
+    candidates = {str(arrangement.provider_id)} if arrangement else set()
+    if charge:
+        candidates.add(str(charge.provider_id))
+    if str(data.get("provider")) not in candidates:
+        v.fail("provider", "current_provider_or_payee")
+    provider = m.Provider.objects.get(pk=data["provider"])
+    received = queries.provider_receipts(order, provider)
+    confirmed = queries.confirmed_refunds(order, provider)
+    if confirmed + amount > received:
+        v.fail("amount", "provider_receipt_bound")
+    event = emit(order, state, "delivery_refund_reported", actor)
+    item = m.DeliveryRefund.construction.create(
+        order=order,
+        event=event,
+        provider=provider,
+        amount=amount,
+        currency=order.currency,
+        sent_at=sent_at,
+        reference=v.text(data.get("reference"), "reference", 160, 1),
+        description=v.text(data.get("description"), "description", 500, 1),
+    )
+    bind(actor, order, data.get("evidence", []), purpose="refund", refund=item)
+    new_case(order, "refund", item.pk, refund=item)
+    return {"refund": str(item.pk)}, event
+
+
 def packet(actor, order, state, data):
     preparation = get_object_or_404(
         m.Preparation.objects.select_related("recipient", "arrangement__provider", "order"),
@@ -209,6 +245,8 @@ def packet(actor, order, state, data):
         or preparation.arrangement_id != arrangement.pk
     ):
         raise Conflict("Re-prepare the current recipient and arrangement.")
+    if not selection.demand_matches(preparation):
+        raise Conflict("Re-prepare the current accepted demand.")
     if not charge or charge.provider_id != arrangement.provider_id:
         raise Conflict("Staff must finalize the current provider delivery charge.")
     if actor.context == "seller" and arrangement.arranger != "seller":
@@ -234,7 +272,7 @@ def packet(actor, order, state, data):
         "charge_amount": format(charge.amount, ".2f"),
         "currency": order.currency,
         "goods_confirmed": format(paid, ".2f"),
-        "goods_total": format(order.goods_total, ".2f"),
+        "goods_total": format(aftercare.accepted_total(order), ".2f"),
         "partial_permission": str(permission.pk) if permission else None,
         "lines": selection.display(preparation),
         "stock_effect": "consume_hold" if order.payment_method == "advance" else "deduct_cod",
@@ -266,7 +304,8 @@ def dispatch(actor, order, state, data, *, now=None):
     if any(v.canonical(data.get(k)) != v.canonical(value) for k, value in expected.items()):
         raise Conflict("Commit the exact reviewed dispatch packet.")
     paid = goods.confirmed(order)
-    if order.payment_method == "advance" and (paid <= 0 or paid < order.goods_total and not permission):
+    net = paid - aftercare.refund_figures(order)["refunded"]
+    if order.payment_method == "advance" and (net <= 0 or net < aftercare.accepted_total(order) and not permission):
         return blocked(actor, order, state, "positive_funds_and_partial_permission", preparation)
     from apps.inventory.fulfilment import dispatch as write_stock
 
@@ -334,6 +373,7 @@ APPLY = {
         "withdraw",
         "correction",
         "blocker",
+        "refund",
         "dispatch",
         "tracking",
         "deliver",

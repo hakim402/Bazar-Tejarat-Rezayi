@@ -8,6 +8,7 @@ export type Capability =
 	| "deliver"
 	| "partial"
 	| "claim"
+	| "refund"
 	| "financial_details"
 	| "evidence"
 	| "handover"
@@ -33,6 +34,7 @@ export type Summary = {
 	charge_id: string | null;
 	charge_provider: string;
 	delivery_confirmed: string;
+	delivery_refunded: string;
 	delivery_remaining: string | null;
 	delivery_excess: string | null;
 	delivery_settled: boolean;
@@ -91,6 +93,19 @@ export type Receipt = {
 	evidence: string[];
 };
 export type Detail = Summary & {
+	refund_providers: { id: string; name: string; refundable: string }[];
+	delivery_refunds: {
+		id: string;
+		provider: string;
+		provider_name: string;
+		amount: string;
+		currency: string;
+		sent_at: string;
+		reference: string;
+		description: string;
+		state: "pending" | "confirmed" | "rejected";
+		evidence: string[];
+	}[];
 	held_lines: DisplayLine[];
 	recipient: Recipient | null;
 	recipient_revision: number;

@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from drf_spectacular.utils import extend_schema, OpenApiTypes
 from apps.messaging.views import PrivateView, query, throttle
 from apps.cart.contracts import BoundedJSONParser
@@ -222,3 +222,146 @@ class ByCommand(OrderView):
         query(request)
         row = get_object_or_404(CheckoutSubmission, buyer=actor.account, key=pk)
         return Response(c.Submission(queries.submission_data(actor, row.pk)).data)
+
+
+class AftercareList(OrderView):
+    @extend_schema(operation_id="aftercare_orders", parameters=[c.Query], responses=c.AftercarePage)
+    def get(self, request, context):
+        actor = self.actor(context)
+        data = query(request, c.Query)
+        if data.get("seller") and actor.context != "seller":
+            raise PermissionDenied()
+        from . import aftercare_queries
+
+        return Response(c.AftercarePage(aftercare_queries.aftercare_page(actor, page=data["page"], seller=data.get("seller"))).data)
+
+
+class AftercareDetail(OrderView):
+    @extend_schema(operation_id="aftercare_order_detail", parameters=[c.DocumentQuery], responses=c.AftercareDetail)
+    def get(self, request, context, pk):
+        actor = self.actor(context)
+        query(request, c.DocumentQuery)
+        from . import aftercare_queries
+
+        return Response(c.AftercareDetail(aftercare_queries.aftercare_detail(actor, pk)).data)
+
+
+class CancellationList(OrderView):
+    @extend_schema(operation_id="aftercare_cancellations", parameters=[c.Query], responses=c.AftercarePage)
+    def get(self, request, context):
+        actor = self.actor(context)
+        data = query(request, c.Query)
+        if data.get("seller") and actor.context != "seller":
+            raise PermissionDenied()
+        from . import aftercare_queries
+
+        return Response(c.AftercarePage(aftercare_queries.cancellation_page(actor, page=data["page"], seller=data.get("seller"))).data)
+
+
+class CancellationDetail(OrderView):
+    @extend_schema(operation_id="aftercare_cancellation_detail", parameters=[c.DocumentQuery], responses=c.CancellationDetail)
+    def get(self, request, context, pk):
+        actor = self.actor(context)
+        query(request, c.DocumentQuery)
+        from . import aftercare_queries
+
+        return Response(aftercare_queries.cancellation_detail(actor, pk))
+
+
+class SubmitCancellation(OrderView):
+    @extend_schema(operation_id="aftercare_cancellation_request", request=c.CancellationCommand, responses=c.AftercareOutcome)
+    def post(self, request, context, pk):
+        query(request)
+        actor = self.actor(context)
+        throttle(actor, "cancellation_request", pk, limit=20)
+        from . import aftercare_queries, cancellations
+
+        outcome = cancellations.mutate(actor, pk, "request", self.data(c.CancellationCommand))
+        return Response(
+            c.AftercareOutcome({"outcome": outcome, "current": aftercare_queries.aftercare_detail(actor, pk)}).data,
+            status=201,
+        )
+
+
+class WithdrawCancellation(OrderView):
+    @extend_schema(operation_id="aftercare_cancellation_withdraw", request=c.CancellationWithdrawCommand, responses=c.AftercareOutcome)
+    def post(self, request, context, pk):
+        query(request)
+        actor = self.actor(context)
+        throttle(actor, "cancellation_withdraw", pk, limit=20)
+        from . import aftercare_queries, cancellations
+        from .models import CancellationRequest
+
+        base = (
+            CancellationRequest.objects.filter(order__buyer=actor.account)
+            if actor.context == "buyer"
+            else CancellationRequest.objects.filter(order__in=cancellations.requesters(actor))
+        )
+        row = get_object_or_404(base, pk=pk)
+        data = self.data(c.CancellationWithdrawCommand)
+        if data["request"] != row.pk:
+            raise ValidationError({"request": ["The packet must match the requested resource."]})
+        outcome = cancellations.mutate(actor, row.order_id, "withdraw", data)
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": outcome, "current": aftercare_queries.aftercare_detail(actor, row.order_id)}
+            ).data
+        )
+
+
+class ProposeAmendment(OrderView):
+    @extend_schema(operation_id="aftercare_amendment_propose", request=c.AmendmentCommand, responses=c.AftercareOutcome)
+    def post(self, request, pk):
+        query(request)
+        actor = self.actor("seller")
+        throttle(actor, "amendment_propose", pk, limit=20)
+        from . import aftercare_queries, amendments
+
+        outcome = amendments.mutate(actor, pk, "propose", self.data(c.AmendmentCommand))
+        return Response(
+            c.AftercareOutcome({"outcome": outcome, "current": aftercare_queries.aftercare_detail(actor, pk)}).data,
+            status=201,
+        )
+
+
+class WithdrawAmendment(OrderView):
+    @extend_schema(operation_id="aftercare_amendment_withdraw", request=c.AmendmentWithdrawCommand, responses=c.AftercareOutcome)
+    def post(self, request, pk):
+        query(request)
+        actor = self.actor("seller")
+        throttle(actor, "amendment_withdraw", pk, limit=20)
+        from . import aftercare_queries, amendments
+        from .models import Amendment
+
+        row = get_object_or_404(Amendment.objects.filter(order__in=amendments.proposers(actor)), pk=pk)
+        data = self.data(c.AmendmentWithdrawCommand)
+        if data["amendment"] != row.pk:
+            raise ValidationError({"amendment": ["The packet must match the requested resource."]})
+        outcome = amendments.mutate(actor, row.order_id, "withdraw", data)
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": outcome, "current": aftercare_queries.aftercare_detail(actor, row.order_id)}
+            ).data
+        )
+
+
+class AftercareCommand(OrderView):
+    @extend_schema(operation_id="aftercare_command_lookup", responses=c.Settled)
+    def get(self, request, context, pk, key):
+        query(request)
+        actor = self.actor(context)
+        from . import cancellations
+
+        return Response(c.Settled(cancellations.reconcile(actor, pk, key)).data)
+
+
+class AftercareSettle(OrderView):
+    @extend_schema(operation_id="aftercare_command_settle", request=c.EmptyCommand, responses=c.Settled)
+    def post(self, request, context, pk, key):
+        query(request)
+        self.data(c.EmptyCommand)
+        actor = self.actor(context)
+        throttle(actor, "aftercare_settle", pk, limit=20)
+        from . import cancellations
+
+        return Response(c.Settled(cancellations.settle(actor, pk, key)).data)

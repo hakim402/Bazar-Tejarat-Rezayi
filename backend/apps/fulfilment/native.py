@@ -156,7 +156,7 @@ def actions(actor, order, case, caps):
         except APIException:
             independent = False
         if case.assigned_to_id == actor.user.pk and review.CODES[case.kind] in codes and independent:
-            if case.kind in {"charge", "payment", "correction"}:
+            if case.kind in {"charge", "payment", "correction", "refund"}:
                 if case.kind != "charge" or not dispatched:
                     result.append(("case_approve", COPY["fulfilment_approve"]))
                 result.append(("case_reject", COPY["fulfilment_reject"]))
@@ -343,6 +343,8 @@ def workflow(request, pk, *, case_pk=None):
                 __import__("django.db.models", fromlist=["Q"]).Q(correction_id=case.correction_id)
                 | __import__("django.db.models", fromlist=["Q"]).Q(claim_id=case.correction.receipt.claim_id)
             )
+        elif case.refund_id:
+            bindings = m.EvidenceBinding.objects.filter(refund_id=case.refund_id)
         images = [
             {
                 "id": b.evidence_id,

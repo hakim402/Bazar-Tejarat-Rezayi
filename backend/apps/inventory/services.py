@@ -364,30 +364,49 @@ def settle(actor, profile_id, allocation_id, data, *, release=False, now=None):
     return _apply_settlement(actor, profile, allocation_id, payload, token, digest, release=release, now=now)
 
 
+def remaining_lines(allocation):
+    """Effective held per-bucket quantities after recorded partial reductions.
+
+    A bucket emptied by a reduction drops out: the frozen original line stays,
+    but preparation, dispatch and display only ever see still-held quantities.
+    """
+    reductions = {}
+    for row in allocation.reductions.all():
+        reductions[row.bucket_id] = reductions.get(row.bucket_id, ZERO) + row.quantity
+    rows = list(
+        allocation.lines.select_related(
+            "bucket__batch", "bucket__position__variant__unit", "bucket__position__variant__product__published"
+        ).order_by("bucket__position_id", "bucket_id")
+    )
+    return [
+        (row, remaining)
+        for row in rows
+        if (remaining := row.quantity - reductions.get(row.bucket_id, ZERO)) > 0
+    ]
+
+
 def _apply_settlement(actor, profile, allocation_id, payload, token, digest, *, release=False, now=None):
     """Accounting only; manual or sealed fulfilment caller owns transition authority."""
     action = "release" if release else "consume"
     group = get_object_or_404(Allocation.objects.select_for_update(), pk=allocation_id, operation__seller=profile)
     if group.state != "held":
         raise Conflict("This allocation is no longer held.")
-    rows = list(
-        group.lines.select_related(
-            "bucket__batch", "bucket__position__variant__unit", "bucket__position__variant__product__published"
-        ).order_by("bucket__position_id", "bucket_id")
-    )
-    ids = sorted({row.bucket.position_id for row in rows}, key=str)
+    selected_rows = remaining_lines(group)
+    ids = sorted({row.bucket.position_id for row, _ in selected_rows}, key=str)
     current_variants = {pk: locked_variant(profile, pk) for pk in ids}
     positions = list(Position.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
     buckets = {
         b.pk: b
         for b in Bucket.objects.select_related("batch")
         .select_for_update(**row_options())
-        .filter(pk__in=[r.bucket_id for r in rows])
+        .filter(pk__in=[row.bucket_id for row, _ in selected_rows])
         .order_by("pk")
     }
     now = clock(now)
     if not release and any(
-        expired(buckets[row.bucket_id], now) or not active(current_variants[row.bucket.position_id]) for row in rows
+        expired(buckets[row.bucket_id], now) or not active(current_variants[row.bucket.position_id])
+        for row, remaining in selected_rows
+        if remaining > 0
     ):
         fail("allocation", "expired_or_inactive")
     result = {"operation": str(token), "status": "released" if release else "consumed", "allocation": str(group.pk)}
@@ -399,7 +418,11 @@ def _apply_settlement(actor, profile, allocation_id, payload, token, digest, *, 
         token,
         digest,
         result,
-        [(buckets[row.bucket_id], ZERO if release else -row.quantity, -row.quantity) for row in rows],
+        [
+            (buckets[row.bucket_id], ZERO if release else -remaining, -remaining)
+            for row, remaining in selected_rows
+            if remaining > 0
+        ],
     )
     group.state = result["status"]
     group.save(update_fields=["state"])

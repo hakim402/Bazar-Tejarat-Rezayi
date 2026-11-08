@@ -6,6 +6,7 @@ from django.db.models import Q, OuterRef, Subquery, Exists, Sum, Value, F, Decim
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from apps.orders.models import SellerOrder
+from apps.orders.aftercare import effective_lines as aftercare_effective_lines
 from apps.payments import queries as goods
 from . import access, models as m, selection
 
@@ -31,6 +32,22 @@ def delivery_total(order):
     return effective_receipts(m.Receipt.objects.filter(order_id=order.pk)).aggregate(value=Sum("effective_amount"))[
         "value"
     ] or Decimal("0.00")
+
+
+def provider_receipts(order, provider):
+    """Confirmed effective provider receipts in the goods-order currency."""
+    return (
+        effective_receipts(m.Receipt.objects.filter(order_id=order.pk, claim__charge__provider_id=provider.pk))
+        .aggregate(value=Sum("effective_amount"))["value"]
+        or Decimal("0.00")
+    )
+
+
+def confirmed_refunds(order, provider=None):
+    qs = m.DeliveryRefund.objects.filter(order_id=order.pk, decision__action="confirmed")
+    if provider is not None:
+        qs = qs.filter(provider_id=provider.pk)
+    return qs.aggregate(value=Sum("amount"))["value"] or Decimal("0.00")
 
 
 def current_charge(order):
@@ -59,6 +76,12 @@ def annotate(qs):
         .annotate(total=Sum("effective_amount"))
         .values("total")
     )
+    refunded = (
+        m.DeliveryRefund.objects.filter(order_id=OuterRef("pk"), decision__action="confirmed")
+        .values("order_id")
+        .annotate(total=Sum("amount"))
+        .values("total")
+    )
     arrangement = m.Arrangement.objects.filter(order_id=OuterRef("pk")).order_by("-event__version")
     preparation = m.Preparation.objects.filter(order_id=OuterRef("pk")).order_by("-event__version")
     recipient = m.Recipient.objects.filter(order_id=OuterRef("pk")).order_by("-revision")
@@ -83,6 +106,7 @@ def annotate(qs):
         current_arrangement_id=Subquery(arrangement.values("pk")[:1]),
         last_dispatch_problem=Subquery(attempt.values("code")[:1]),
         delivery_paid=Coalesce(Subquery(paid[:1]), Value(Decimal("0.00")), output_field=MONEY),
+        delivery_refunded=Coalesce(Subquery(refunded[:1]), Value(Decimal("0.00")), output_field=MONEY),
         dispatched=Exists(shipment),
         delivered=Exists(delivery),
         completion_at=Subquery(completion.values("created_at")[:1]),
@@ -94,10 +118,13 @@ def annotate(qs):
 def dimensions(order):
     if not hasattr(order, "fulfilment_version"):
         order = annotate(SellerOrder.objects.filter(pk=order.pk)).get()
-    settled = order.final_charge_amount is not None and order.delivery_paid >= order.final_charge_amount
+    settled = (
+        order.final_charge_amount is not None
+        and order.delivery_paid - order.delivery_refunded >= order.final_charge_amount
+    )
     eligible = (
         order.delivered
-        and order.payment_total >= order.goods_total
+        and order.payment_total - order.refund_confirmed_total >= order.accepted_total
         and settled
         and not order.cancellation_hold
         and not order.dispute_open
@@ -116,7 +143,9 @@ def dimensions(order):
         "version": order.fulfilment_version,
         "goods_version": order.payment_version,
         "goods_confirmed": format(order.payment_total, ".2f"),
-        "goods_remaining": format(max(order.goods_total - order.payment_total, Decimal(0)), ".2f"),
+        "goods_remaining": format(
+            max(order.accepted_total - order.payment_total + order.refund_confirmed_total, Decimal(0)), ".2f"
+        ),
         "stage": physical,
         "allocation": financial["allocation"],
         "overdue": financial["overdue"],
@@ -125,10 +154,15 @@ def dimensions(order):
         "charge_id": str(order.final_charge_id) if order.final_charge_id else None,
         "charge_provider": order.final_charge_provider or "",
         "delivery_confirmed": format(order.delivery_paid, ".2f"),
-        "delivery_remaining": format(max(order.final_charge_amount - order.delivery_paid, Decimal(0)), ".2f")
+        "delivery_refunded": format(order.delivery_refunded, ".2f"),
+        "delivery_remaining": format(
+            max(order.final_charge_amount - order.delivery_paid + order.delivery_refunded, Decimal(0)), ".2f"
+        )
         if order.final_charge_amount is not None
         else None,
-        "delivery_excess": format(max(order.delivery_paid - order.final_charge_amount, Decimal(0)), ".2f")
+        "delivery_excess": format(
+            max(order.delivery_paid - order.delivery_refunded - order.final_charge_amount, Decimal(0)), ".2f"
+        )
         if order.final_charge_amount is not None
         else None,
         "delivery_settled": settled,
@@ -269,6 +303,7 @@ def detail(actor, pk, *, seller=None, page=1):
             and arrangement
             and preparation.recipient_id == recipient.pk
             and preparation.arrangement_id == arrangement.pk
+            and selection.demand_matches(preparation)
         )
         result["preparation"] = {
             "id": str(preparation.pk),
@@ -292,16 +327,49 @@ def detail(actor, pk, *, seller=None, page=1):
         }
     result["goods"] = [
         {
-            "variant": str(line.variant_id),
-            "tier": line.tier,
-            "quantity": format(line.quantity, ".3f"),
-            "sku": line.snapshot.get("sku", ""),
-            "unit": line.snapshot.get("unit", ""),
-            "unit_labels": line.snapshot.get("unit_labels", {}),
+            "variant": str(item["line"].variant_id),
+            "tier": item["line"].tier,
+            "quantity": format(item["quantity"], ".3f"),
+            "unit_price": format(item["unit_price"], ".2f"),
+            "sku": item["line"].snapshot.get("sku", ""),
+            "unit": item["line"].snapshot.get("unit", ""),
+            "unit_labels": item["line"].snapshot.get("unit_labels", {}),
         }
-        for line in order.lines.all()
+        for item in aftercare_effective_lines(order)
     ]
+    providers = {arrangement.provider_id: arrangement.provider} if arrangement else {}
+    charge = current_charge(order)
+    if charge:
+        providers[charge.provider_id] = charge.provider
+    result["refund_providers"] = [
+        {
+            "id": str(provider.pk),
+            "name": provider.name,
+            "refundable": format(max(provider_receipts(order, provider) - confirmed_refunds(order, provider), Decimal(0)), ".2f"),
+        }
+        for provider in providers.values()
+    ] if caps["refund"] else []
     offset = (page - 1) * 50
+    refunds = m.DeliveryRefund.objects.filter(order=order)
+    if not caps["financial_details"]:
+        refunds = refunds.filter(event__account=access.account_for(actor)) if caps["refund"] else refunds.none()
+    result["delivery_refunds"] = [
+        {
+            "id": str(x.pk),
+            "provider": str(x.provider_id),
+            "provider_name": x.provider.name,
+            "amount": format(x.amount, ".2f"),
+            "currency": x.currency,
+            "sent_at": x.sent_at,
+            "reference": x.reference,
+            "description": x.description,
+            "state": x.decision.action if getattr(x, "decision", None) else "pending",
+            "evidence": [str(image.evidence_id) for image in x.images.all()]
+            if caps["evidence"] or x.event.account_id == getattr(actor.account, "pk", None) else [],
+        }
+        for x in refunds.select_related("provider", "decision", "event").prefetch_related("images")
+        .order_by("-event__version")[offset : offset + 50]
+    ]
     proposals = (
         m.ChargeProposal.objects.filter(order=order)
         .select_related("provider", "decision")

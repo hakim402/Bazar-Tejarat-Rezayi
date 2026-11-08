@@ -40,22 +40,30 @@
 	--color-campaign-end: var(--campaign-end);
 	--color-campaign-lilac: var(--campaign-lilac);
 	--color-campaign-warm: var(--campaign-warm);
-	/* Chip colors — named by meaning, WCAG AA in light and dark. */
-	--color-chip-info: #005bab;
-	--color-chip-info-fg: #ffffff;
-	--color-chip-info-bg: #eaf4ff;
-	--color-chip-success: #176b49;
-	--color-chip-success-fg: #ffffff;
-	--color-chip-success-bg: #e8f5ee;
-	--color-chip-warning: #855600;
-	--color-chip-warning-fg: #ffffff;
-	--color-chip-warning-bg: #fff4d6;
-	--color-chip-danger: #b42335;
-	--color-chip-danger-fg: #ffffff;
-	--color-chip-danger-bg: #fdedef;
-	--color-chip-neutral: #526575;
-	--color-chip-neutral-fg: #ffffff;
-	--color-chip-neutral-bg: #e8edf2;
+	--color-overlay: var(--overlay);
+	--color-workspace-page: var(--workspace-page);
+	--color-workspace-surface: var(--workspace-surface);
+	--color-workspace-border: var(--workspace-border);
+	--color-chip-info: var(--chip-info);
+	--color-chip-info-fg: var(--chip-info-fg);
+	--color-chip-info-bg: var(--chip-info-bg);
+	--color-chip-info-icon: var(--chip-info-icon);
+	--color-chip-success: var(--chip-success);
+	--color-chip-success-fg: var(--chip-success-fg);
+	--color-chip-success-bg: var(--chip-success-bg);
+	--color-chip-warning: var(--chip-warning);
+	--color-chip-warning-fg: var(--chip-warning-fg);
+	--color-chip-warning-bg: var(--chip-warning-bg);
+	--color-chip-warning-icon: var(--chip-warning-icon);
+	--color-chip-danger: var(--chip-danger);
+	--color-chip-danger-fg: var(--chip-danger-fg);
+	--color-chip-danger-bg: var(--chip-danger-bg);
+	--color-chip-neutral: var(--chip-neutral);
+	--color-chip-neutral-fg: var(--chip-neutral-fg);
+	--color-chip-neutral-bg: var(--chip-neutral-bg);
+	--color-chip-accent: var(--chip-accent);
+	--color-chip-accent-fg: var(--chip-accent-fg);
+	--color-chip-accent-bg: var(--chip-accent-bg);
 	/* Typography scale. */
 	--text-page-title: 1.5rem;
 	--text-section-title: 1.125rem;
@@ -66,7 +74,7 @@
 	--radius-sm: 0.5rem;
 	/* Shadows. */
 	--shadow-sm: 0 1px 3px rgb(24 43 58 / 0.06);
-	--shadow-lifted: 0 4px 16px rgb(24 43 58 / 0.10);
+	--shadow-lifted: 0 4px 16px rgb(24 43 58 / 0.1);
 	/* Provider-owned identity; these colours do not follow the app theme. */
 	--color-provider-surface: #ffffff;
 	--color-provider-foreground: #1f1f1f;
@@ -108,6 +116,30 @@
 		--success-bg: #e8f5ee;
 		--warning: #855600;
 		--warning-bg: #fff4d6;
+		--overlay: rgb(24 43 58 / 0.48);
+		--workspace-page: #f6f7f9;
+		--workspace-surface: #fff;
+		--workspace-border: #e2e5ea;
+		--chip-info: var(--action);
+		--chip-info-fg: var(--button-text);
+		--chip-info-bg: var(--soft);
+		--chip-info-icon: #0270d2;
+		--chip-success: var(--success);
+		--chip-success-fg: var(--button-text);
+		--chip-success-bg: var(--success-bg);
+		--chip-warning: var(--warning);
+		--chip-warning-fg: var(--button-text);
+		--chip-warning-bg: var(--warning-bg);
+		--chip-warning-icon: #c47d00;
+		--chip-danger: var(--error);
+		--chip-danger-fg: var(--button-text);
+		--chip-danger-bg: var(--error-bg);
+		--chip-neutral: var(--muted);
+		--chip-neutral-fg: var(--button-text);
+		--chip-neutral-bg: #e8edf2;
+		--chip-accent: #6d28d9;
+		--chip-accent-fg: var(--button-text);
+		--chip-accent-bg: #f3edff;
 	}
 	:root[data-theme="dark"] {
 		color-scheme: dark;
@@ -131,22 +163,15 @@
 		--success-bg: #193d34;
 		--warning: #ffd88a;
 		--warning-bg: #493b20;
-		/* Chip colors — dark mode, WCAG AA. */
-		--color-chip-info: #84c4ff;
-		--color-chip-info-fg: #101c28;
-		--color-chip-info-bg: #203c54;
-		--color-chip-success: #91dcb9;
-		--color-chip-success-fg: #101c28;
-		--color-chip-success-bg: #193d34;
-		--color-chip-warning: #ffd88a;
-		--color-chip-warning-fg: #101c28;
-		--color-chip-warning-bg: #493b20;
-		--color-chip-danger: #ffb4bd;
-		--color-chip-danger-fg: #101c28;
-		--color-chip-danger-bg: #492b35;
-		--color-chip-neutral: #b9c9d8;
-		--color-chip-neutral-fg: #101c28;
-		--color-chip-neutral-bg: #2a3d4e;
+		--overlay: rgb(0 0 0 / 0.58);
+		--workspace-page: #14181f;
+		--workspace-surface: #1d232c;
+		--workspace-border: #3f4754;
+		--chip-info-icon: #84c4ff;
+		--chip-warning-icon: #ffbf47;
+		--chip-neutral-bg: #2a3d4e;
+		--chip-accent: #d0b3ff;
+		--chip-accent-bg: #36264f;
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-theme="light"]) {
@@ -171,22 +196,15 @@
 			--success-bg: #193d34;
 			--warning: #ffd88a;
 			--warning-bg: #493b20;
-			/* Chip colors — dark mode, WCAG AA. */
-			--color-chip-info: #84c4ff;
-			--color-chip-info-fg: #101c28;
-			--color-chip-info-bg: #203c54;
-			--color-chip-success: #91dcb9;
-			--color-chip-success-fg: #101c28;
-			--color-chip-success-bg: #193d34;
-			--color-chip-warning: #ffd88a;
-			--color-chip-warning-fg: #101c28;
-			--color-chip-warning-bg: #493b20;
-			--color-chip-danger: #ffb4bd;
-			--color-chip-danger-fg: #101c28;
-			--color-chip-danger-bg: #492b35;
-			--color-chip-neutral: #b9c9d8;
-			--color-chip-neutral-fg: #101c28;
-			--color-chip-neutral-bg: #2a3d4e;
+			--overlay: rgb(0 0 0 / 0.58);
+			--workspace-page: #14181f;
+			--workspace-surface: #1d232c;
+			--workspace-border: #3f4754;
+			--chip-info-icon: #84c4ff;
+			--chip-warning-icon: #ffbf47;
+			--chip-neutral-bg: #2a3d4e;
+			--chip-accent: #d0b3ff;
+			--chip-accent-bg: #36264f;
 		}
 	}
 	* {
@@ -264,5 +282,114 @@
 		* {
 			scroll-behavior: auto;
 		}
+	}
+
+	/* Maintenance Page Animations */
+	@keyframes spin-slow {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@keyframes spin-reverse {
+		from {
+			transform: rotate(360deg);
+		}
+		to {
+			transform: rotate(0deg);
+		}
+	}
+
+	@keyframes wave {
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+		25% {
+			transform: rotate(-15deg);
+		}
+		75% {
+			transform: rotate(15deg);
+		}
+	}
+
+	@keyframes float {
+		0%,
+		100% {
+			transform: translateY(0px);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+
+	@keyframes sparkle {
+		0%,
+		100% {
+			opacity: 0.3;
+			transform: scale(0.8);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.2);
+		}
+	}
+
+	@keyframes progress {
+		0% {
+			width: 0;
+		}
+		50% {
+			width: 140px;
+		}
+		100% {
+			width: 200px;
+		}
+	}
+
+	.animate-spin-slow {
+		animation: spin-slow 8s linear infinite;
+		transform-origin: center;
+	}
+
+	.animate-spin-reverse {
+		animation: spin-reverse 6s linear infinite;
+		transform-origin: center;
+	}
+
+	.animate-wave {
+		animation: wave 2s ease-in-out infinite;
+		transform-origin: -10px 25px;
+	}
+
+	.animate-wave-delayed {
+		animation: wave 2s ease-in-out infinite;
+		animation-delay: 0.5s;
+		transform-origin: 8px 22px;
+	}
+
+	.animate-float {
+		animation: float 3s ease-in-out infinite;
+	}
+
+	.animate-float-delayed {
+		animation: float 3s ease-in-out infinite;
+		animation-delay: 1.5s;
+	}
+
+	.animate-sparkle {
+		animation: sparkle 2s ease-in-out infinite;
+	}
+
+	.animate-sparkle-delayed {
+		animation: sparkle 2s ease-in-out infinite;
+		animation-delay: 1s;
+	}
+
+	.animate-progress {
+		animation: progress 3s ease-in-out infinite;
 	}
 }

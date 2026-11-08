@@ -3,8 +3,19 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { useCommerceGuard } from "../../orders/components/unsaved";
-import { action, control, panel } from "../../orders/components/controls";
+import {
+	action as buyerAction,
+	control as buyerControl,
+	panel as buyerPanel,
+} from "../../orders/components/controls";
+import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
+import {
+	salesAction,
+	salesControl,
+	salesPanel,
+} from "../../sales/components/seller-sales-ui";
 import { fulfilmentCopy } from "../copy";
+import { aftercareCopy } from "../../aftercare/copy";
 import { fulfilment } from "../api";
 import { actualTime, moneyUnits } from "../validation";
 import { buildAction, type Mode } from "../draft";
@@ -36,7 +47,7 @@ export function DeliveryActionForm({
 	locked: boolean;
 	uploaded: { id: string; purpose: string } | null;
 	review: (review: Reviewed, opener: HTMLElement | null) => void;
-	upload: (file: File, purpose: "claim" | "correction") => void;
+	upload: (file: File, purpose: "claim" | "correction" | "refund") => void;
 	onDirty: (dirty: boolean) => void;
 	onDenied: () => void;
 }) {
@@ -47,6 +58,7 @@ export function DeliveryActionForm({
 		partial: "partial",
 		charge: "prepare",
 		claim: "claim",
+		refund: "refund",
 		correction: "claim",
 		withdraw: "claim",
 		tracking: "tracking",
@@ -54,6 +66,12 @@ export function DeliveryActionForm({
 		dispatch: "dispatch",
 	};
 	const t = fulfilmentCopy[locale],
+		r = aftercareCopy[locale],
+		s = sellerSalesCopy[locale],
+		isSeller = context === "seller",
+		action = isSeller ? salesAction : buyerAction,
+		control = isSeller ? salesControl : buyerControl,
+		panel = isSeller ? salesPanel : buyerPanel,
 		prefix = useId(),
 		c = row.capabilities,
 		preDispatch = !["dispatched", "delivered"].includes(row.stage);
@@ -82,6 +100,8 @@ export function DeliveryActionForm({
 		modes.push(["correction", t.correctionDelivery]);
 	if (c.claim && row.claims.some((claim) => claim.can_withdraw))
 		modes.push(["withdraw", t.withdrawClaim]);
+	if (context === "seller" && c.refund && row.refund_providers.length > 0)
+		modes.push(["refund", r.deliveryRefund]);
 	if (c.tracking && !preDispatch) modes.push(["tracking", t.recordTracking]);
 	if (c.deliver && row.stage === "dispatched")
 		modes.push(["deliver", t.deliver]);
@@ -135,7 +155,12 @@ export function DeliveryActionForm({
 		onDirty(dirty);
 	}, [dirty, onDirty]);
 	useEffect(() => {
-		if (uploaded && uploaded.id !== seenUpload.current) {
+		if (
+			uploaded &&
+			uploaded.id !== seenUpload.current &&
+			uploaded.purpose === mode &&
+			(mode === "refund" ? context === "seller" && c.refund : c.claim)
+		) {
 			seenUpload.current = uploaded.id;
 			setImages((old) =>
 				old.includes(uploaded.id) ? old : [...old, uploaded.id].slice(0, 3),
@@ -143,7 +168,7 @@ export function DeliveryActionForm({
 			setFile(null);
 			setDirty(true);
 		}
-	}, [uploaded]);
+	}, [uploaded, mode, context, c.refund, c.claim]);
 	function reload() {
 		setBase({
 			version: row.version,
@@ -277,17 +302,35 @@ export function DeliveryActionForm({
 	}
 	const available = modes.some(([value]) => value === mode);
 	if (!modes.length && !dirty) return null;
-	const money = ["charge", "claim", "correction"].includes(mode),
-		timed = ["claim", "correction", "tracking", "deliver"].includes(mode),
-		financial = ["claim", "correction"].includes(mode);
+	const money = ["charge", "claim", "correction", "refund"].includes(mode),
+		timed = ["claim", "correction", "tracking", "deliver", "refund"].includes(
+			mode,
+		),
+		financial = ["claim", "correction", "refund"].includes(mode),
+		timeLabel =
+			mode === "refund"
+				? r.sentAt
+				: mode === "tracking" || mode === "deliver"
+					? t.occurredAt
+					: t.paidAt;
+	const refundProvider = row.refund_providers.find(
+			(item) => item.id === provider,
+		),
+		refundAmount = moneyUnits(amount),
+		refundBound = refundProvider
+			? moneyUnits(refundProvider.refundable, true)
+			: null;
 	return (
 		<section className={panel}>
 			<h2 className="text-xl font-bold" tabIndex={-1} data-fulfilment-actions>
-				{t.exact}
+				{isSeller ? s.actions : t.exact}
 			</h2>
+			{isSeller && <p className="text-sm text-muted">{t.exact}</p>}
 			{guard.feedback}
 			{!available && <p role="status">{t.actionChanged}</p>}
-			<label>
+			<label
+				className={isSeller ? "block min-w-0 max-w-2xl space-y-2" : undefined}
+			>
 				{t.exact}
 				<select
 					aria-label={t.exact}
@@ -317,7 +360,19 @@ export function DeliveryActionForm({
 				className="space-y-4"
 				noValidate
 			>
-				<fieldset disabled={locked || busy || !available} className="space-y-4">
+				<fieldset
+					disabled={locked || busy || !available}
+					className={
+						isSeller
+							? "min-w-0 space-y-4 rounded-xl border border-border p-4 sm:p-5 [&_label]:block [&_label]:space-y-2 [&_label:has(input[type=checkbox])]:flex"
+							: "space-y-4"
+					}
+				>
+					{isSeller && (
+						<legend className="px-2 text-sm font-semibold">
+							{modes.find(([value]) => value === mode)?.[1] ?? t.exact}
+						</legend>
+					)}
 					{mode === "recipient" && (
 						<>
 							<label htmlFor={`${prefix}-name`}>{t.recipientName}</label>
@@ -487,6 +542,42 @@ export function DeliveryActionForm({
 							</select>
 						</label>
 					)}
+					{mode === "refund" && (
+						<>
+							<label>
+								{t.provider}
+								<select
+									className={control}
+									value={provider}
+									onChange={(event) => {
+										const next = event.target.value;
+										guard.choose(() => {
+											discard("refund");
+											setProvider(next);
+											setDirty(true);
+										});
+									}}
+								>
+									<option value="">—</option>
+									{row.refund_providers.map((item) => (
+										<option key={item.id} value={item.id}>
+											{item.name} · {item.id} · {r.limit}: {item.refundable}{" "}
+											{row.currency}
+										</option>
+									))}
+								</select>
+							</label>
+							{refundProvider && (
+								<p>
+									{r.limit}:{" "}
+									<bdi>
+										{refundProvider.refundable} {row.currency}
+									</bdi>
+								</p>
+							)}
+							<p>{r.deliveryNote}</p>
+						</>
+					)}
 					{money && (
 						<label>
 							{t.amount} (<bdi>{row.currency}</bdi>)
@@ -498,26 +589,25 @@ export function DeliveryActionForm({
 								maxLength={25}
 								onChange={(event) => setAmount(event.target.value)}
 								aria-invalid={
-									invalid && moneyUnits(amount, mode !== "claim") === null
+									invalid &&
+									(mode === "refund"
+										? refundAmount === null ||
+											refundBound === null ||
+											refundAmount > refundBound
+										: moneyUnits(amount, mode !== "claim") === null)
 								}
 							/>
 						</label>
 					)}
 					{timed && (
 						<label>
-							{mode === "tracking" || mode === "deliver"
-								? t.occurredAt
-								: t.paidAt}
+							{timeLabel}
 							<input
 								className={control}
 								dir="ltr"
 								type="datetime-local"
 								step="1"
-								aria-label={
-									mode === "tracking" || mode === "deliver"
-										? t.occurredAt
-										: t.paidAt
-								}
+								aria-label={timeLabel}
 								value={at}
 								onChange={(event) => setAt(event.target.value)}
 								aria-invalid={invalid && !actualTime(at)}
@@ -525,9 +615,9 @@ export function DeliveryActionForm({
 							<span className="text-sm text-muted">{t.inputTimezone}</span>
 						</label>
 					)}
-					{mode === "tracking" && (
+					{(mode === "tracking" || mode === "refund") && (
 						<label>
-							{t.tracking}
+							{mode === "refund" ? r.reference : t.tracking}
 							<input
 								className={control}
 								value={reference}
@@ -548,10 +638,11 @@ export function DeliveryActionForm({
 									onChange={(event) => setDescription(event.target.value)}
 								/>
 							</label>
-							<p>{t.claimNote}</p>
+							{mode !== "refund" && <p>{t.claimNote}</p>}
 							<label>
 								{t.evidence}
 								<input
+									className={isSeller ? salesControl : undefined}
 									type="file"
 									accept="image/jpeg,image/png,image/webp"
 									disabled={images.length >= 3}
@@ -574,7 +665,14 @@ export function DeliveryActionForm({
 										setInvalid(true);
 										return;
 									}
-									upload(file, mode === "correction" ? "correction" : "claim");
+									upload(
+										file,
+										mode === "refund"
+											? "refund"
+											: mode === "correction"
+												? "correction"
+												: "claim",
+									);
 								}}
 							>
 								{t.uploads}
@@ -599,7 +697,7 @@ export function DeliveryActionForm({
 							</div>
 						</>
 					)}
-					{mode !== "arrange" && mode !== "claim" && (
+					{mode !== "arrange" && mode !== "claim" && mode !== "refund" && (
 						<label>
 							{t.reason}
 							<textarea

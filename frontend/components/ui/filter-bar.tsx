@@ -4,7 +4,7 @@ import { Button } from "./button";
 export function FilterBar({
 	children,
 	onSubmit,
-	applyLabel = "Apply filters",
+	applyLabel,
 	className = "",
 	...props
 }: ComponentProps<"form"> & {
@@ -20,10 +20,14 @@ export function FilterBar({
 			}}
 			{...props}
 		>
-			<div className="flex flex-1 flex-wrap items-end gap-3">{children}</div>
-			<Button type="submit" className="mt-0">
-				{applyLabel}
-			</Button>
+			<div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+				{children}
+			</div>
+			{applyLabel && (
+				<Button type="submit" className="mt-0">
+					{applyLabel}
+				</Button>
+			)}
 		</form>
 	);
 }

@@ -151,6 +151,23 @@ class Shortage(ImmutableRecord):
     recovery_of = models.ForeignKey("self", null=True, on_delete=models.PROTECT)
 
 
+class AllocationReduction(ImmutableRecord):
+    """Partial release of a still-held allocation; the original lines stay frozen."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    allocation = models.ForeignKey(Allocation, on_delete=models.PROTECT, related_name="reductions")
+    operation = models.ForeignKey(Operation, on_delete=models.PROTECT, related_name="reductions")
+    bucket = models.ForeignKey(Bucket, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(quantity__gt=0), name="inventory_reduction_positive"),
+            models.UniqueConstraint(fields=["operation", "bucket"], name="inventory_reduction_operation_bucket"),
+        ]
+        indexes = [models.Index(fields=["allocation", "bucket"], name="inventory_reduction_bucket")]
+
+
 class Recovery(ImmutableRecord):
     shortage = models.OneToOneField(Shortage, primary_key=True, on_delete=models.PROTECT)
     operation = models.OneToOneField(Operation, on_delete=models.PROTECT)

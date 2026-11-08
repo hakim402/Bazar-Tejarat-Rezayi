@@ -1,7 +1,7 @@
 import { NegotiationWorkspace } from "../../../../../../../../features/negotiations/components/workspace";
-import { AccountShell } from "../../../../../../../../components/layout/account-shell";
 import { negotiationCopy } from "../../../../../../../../features/negotiations/copy";
 import type { Locale } from "../../../../../../../../lib/i18n/locales";
+import { BuyerFrame } from "../../../components/buyer-ui";
 export function NegotiationContent({
 	locale,
 	id,
@@ -10,13 +10,8 @@ export function NegotiationContent({
 	id?: string;
 }) {
 	return (
-		<AccountShell
-			locale={locale}
-			context="buyer"
-			title={negotiationCopy[locale].title}
-			privateScreen
-		>
+		<BuyerFrame>
 			<NegotiationWorkspace locale={locale} context="buyer" id={id} />
-		</AccountShell>
+		</BuyerFrame>
 	);
 }

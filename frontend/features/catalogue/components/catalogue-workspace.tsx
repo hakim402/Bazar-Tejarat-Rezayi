@@ -1,7 +1,30 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "../../../components/ui/button";
+import { SectionCard } from "../../../components/ui/section-card";
+import {
+	StatusBadge,
+	statusVariant,
+} from "../../../components/ui/status-badge";
+import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
+import { languageNames, locales } from "../../../lib/i18n/locales";
+import { AccountError } from "../../../lib/api/private-client";
+import {
+	accountSession,
+	ACCOUNT_SESSION_CHANGED,
+} from "../../identity/api/accounts";
+import {
+	inventoryRequest,
+	type StockProfiles,
+} from "../../inventory/api/inventory";
+import {
+	ProductsPage,
+	productHref,
+	productLink,
+	useProductGuard,
+} from "./seller-products-ui";
 import { catalogueCopy, catalogueStatuses } from "../../../lib/i18n/catalogue";
 import type { Locale } from "../../../lib/i18n/locales";
 import { catalogueRequest as api } from "../api/catalogue";
@@ -19,13 +42,11 @@ import {
 	Feedback,
 	failure,
 } from "./catalogue-fields";
-import type { ValidationIssue } from "../../../lib/api/private-client";
-import { useUnsavedNavigation } from "../../../components/layout/navigation-guard";
 import { CatalogueOverview } from "./catalogue-overview";
 import { ProductEditor } from "./product-editor";
 import { ProductRevisionPreview } from "./product-revision-preview";
 import { LivePrices } from "./live-prices";
-import { TaxonomyEditor } from "./taxonomy-editor";
+const filterStates = ["draft", "submitted", "rejected", "withdrawn", "live"];
 function blank(locale: Locale): ProductBody {
 	return {
 		title: "",
@@ -55,145 +76,301 @@ export function CatalogueWorkspace({
 	locale,
 	context,
 	id,
+	identity,
 }: {
 	locale: Locale;
 	context: "seller";
 	id?: string;
+	identity: string;
 }) {
-	const t = catalogueCopy[locale];
+	const t = catalogueCopy[locale],
+		copy = sellerProductsCopy[locale];
+	const router = useRouter(),
+		query = useSearchParams(),
+		seller = query.get("seller");
+	const state = filterStates.includes(query.get("state") ?? "")
+		? (query.get("state") ?? "")
+		: "";
+	const rawPage = query.get("page") ?? "1";
+	const page =
+		/^\d+$/.test(rawPage) && Number(rawPage) >= 1 && Number(rawPage) <= 10000
+			? Number(rawPage)
+			: 1;
+	const [filter, setFilter] = useState(state);
 	const [list, setList] = useState<ProductList | null>(null),
 		[item, setItem] = useState<ProductDetail | null>(null),
 		[taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
 	const [body, setBody] = useState<ProductBody | null>(null),
 		[baseline, setBaseline] = useState(""),
-		[selected, setSelected] = useState<Revision | null>(null),
-		[savedPreview, setSavedPreview] = useState<Revision | null>(null);
-	const [feedback, setFeedback] = useState<{
-			message: string;
-			issues: ValidationIssue[];
-		} | null>(null),
+		[selected, setSelected] = useState<Revision | null>(null);
+	const [feedback, setFeedback] = useState<ReturnType<typeof failure> | null>(
+			null,
+		),
 		[busy, setBusy] = useState(false),
 		[success, setSuccess] = useState(false),
+		[blocked, setBlocked] = useState(false);
+	const [epoch, setEpoch] = useState(0),
+		[priceDirty, setPriceDirty] = useState(false),
+		[stockAccess, setStockAccess] = useState(false),
 		[reason, setReason] = useState("");
-	const [pending, setPending] = useState<(() => void) | null>(null),
-		[epoch, setEpoch] = useState(0),
-		[priceDirty, setPriceDirty] = useState(false);
-	const [state, setState] = useState(""),
-		[page, setPage] = useState(1);
+	const generation = useRef(0),
+		write = useRef<symbol | null>(null),
+		removeDialog = useRef<HTMLDialogElement>(null),
+		removeFocus = useRef<HTMLElement | null>(null);
 	const sourceDirty = !!body && JSON.stringify(body) !== baseline;
-	const dirty = sourceDirty || priceDirty;
-	const navigationFocus = useRef<HTMLElement | null>(null);
-
-	const setPrice = useCallback((v: boolean) => setPriceDirty(v), []);
+	const guard = useProductGuard(locale, sourceDirty || priceDirty || !!reason);
+	const resetGuard = guard.reset;
+	const setPrice = useCallback((value: boolean) => setPriceDirty(value), []);
+	const clear = useCallback(() => {
+		setList(null);
+		setItem(null);
+		setBody(null);
+		setTaxonomy(null);
+		setSelected(null);
+		setBaseline("");
+		setPriceDirty(false);
+		setReason("");
+		setStockAccess(false);
+		setSuccess(false);
+		resetGuard();
+		removeDialog.current?.close();
+	}, [resetGuard]);
 	const install = useCallback(
 		(value: ProductDetail, revisionId?: string | null) => {
-			setItem(value);
 			const revision =
-				value.revisions.find((r) => r.id === revisionId) ??
+				value.revisions.find((row) => row.id === revisionId) ??
 				value.revisions[0] ??
 				null;
 			const next = revision?.body ?? blank(locale);
+			setItem(value);
 			setSelected(revision);
 			setBody(next);
 			setBaseline(JSON.stringify(next));
-
 			setPriceDirty(false);
-			setEpoch((v) => v + 1);
+			setReason("");
+			setEpoch((value) => value + 1);
 		},
 		[locale],
 	);
+	const deny = useCallback(
+		(error: unknown) => {
+			++generation.current;
+			clear();
+			setBlocked(true);
+			setBusy(false);
+			setFeedback(failure(error, locale));
+		},
+		[clear, locale],
+	);
+	useEffect(() => {
+		setFilter(state);
+	}, [state]);
 	useEffect(() => {
 		let current = true;
-		setFeedback(null);
-		void Promise.all([
-			api<Taxonomy>(context, "taxonomy/"),
-			id
-				? api<ProductDetail>(context, `products/${id}/`)
-				: api<ProductList>(context, `products/?state=${state}&page=${page}`),
-		])
-			.then(([tax, result]) => {
-				if (!current) return;
-				setTaxonomy(tax);
-				if (id) install(result as ProductDetail);
-				else setList(result as ProductList);
-			})
-			.catch((error) => {
-				if (current) setFeedback(failure(error, locale));
-			});
+		const load = () => {
+			const mine = ++generation.current;
+			clear();
+			setFeedback(null);
+			setBusy(false);
+			const task = id
+				? Promise.all([
+						api<Taxonomy>(context, "taxonomy/"),
+						api<ProductDetail>(context, `products/${id}/`),
+					])
+				: api<ProductList>(context, `products/?state=${state}&page=${page}`);
+			void task
+				.then((value) => {
+					if (!current || mine !== generation.current) return;
+					if (Array.isArray(value)) {
+						setTaxonomy(value[0]);
+						install(value[1]);
+						void inventoryRequest<StockProfiles>("seller/profiles/")
+							.then((profiles) => {
+								if (current && mine === generation.current)
+									setStockAccess(
+										!!profiles.profiles.find(
+											(profile) => profile.id === value[1].seller,
+										)?.capabilities.read,
+									);
+							})
+							.catch(() => {
+								if (current && mine === generation.current)
+									setStockAccess(false);
+							});
+					} else setList(value);
+				})
+				.catch((error) => {
+					if (current && mine === generation.current)
+						setFeedback(failure(error, locale));
+				});
+		};
+		load();
+		window.addEventListener(ACCOUNT_SESSION_CHANGED, load);
 		return () => {
 			current = false;
+			++generation.current;
+			window.removeEventListener(ACCOUNT_SESSION_CHANGED, load);
 		};
-	}, [context, id, state, page, locale, install]);
-	function guarded(fn: () => void) {
-		if (dirty) {
-			navigationFocus.current = document.activeElement as HTMLElement;
-			setPending(() => fn);
-		} else fn();
-	}
-	useUnsavedNavigation(dirty, guarded);
+	}, [context, id, state, page, locale, clear, install]);
+	useEffect(() => {
+		const verify = async () => {
+			const mine = generation.current;
+			try {
+				const session = await accountSession("seller");
+				if (mine !== generation.current) return;
+				if (`${session.identity.id}:${session.accounts[0].id}` !== identity) {
+					deny(new AccountError(403));
+					return;
+				}
+				if (id) await api<ProductDetail>(context, `products/${id}/`);
+			} catch (error) {
+				if (
+					mine === generation.current &&
+					error instanceof AccountError &&
+					[401, 403, 404].includes(error.status ?? 0)
+				)
+					deny(error);
+			}
+		};
+		window.addEventListener("focus", verify);
+		return () => window.removeEventListener("focus", verify);
+	}, [context, id, identity, deny]);
 	async function run(
-		task: () => Promise<unknown>,
+		task: () => Promise<Operation>,
 		after?: (fresh: ProductDetail, result: Operation) => void,
 	) {
+		if (!item || busy || blocked || write.current) return false;
+		const owner = Symbol(),
+			mine = generation.current;
+		write.current = owner;
 		setBusy(true);
 		setFeedback(null);
 		setSuccess(false);
+		let acknowledged = false;
 		try {
-			const result = (await task()) as Operation;
-			if (item) {
-				const fresh = await api<ProductDetail>(context, `products/${item.id}/`);
-				setItem(fresh);
-				after?.(fresh, result);
+			const session = await accountSession("seller");
+			if (mine !== generation.current) return false;
+			if (`${session.identity.id}:${session.accounts[0].id}` !== identity) {
+				deny(new AccountError(403));
+				return false;
 			}
+			const result = await task();
+			acknowledged = true;
+			if (mine !== generation.current) return false;
+			const fresh = await api<ProductDetail>(context, `products/${item.id}/`);
+			if (mine !== generation.current) return false;
+			setItem(fresh);
+			after?.(fresh, result);
 			setSuccess(true);
 			return true;
 		} catch (error) {
-			setFeedback(failure(error, locale));
-			return false;
+			if (mine !== generation.current) return false;
+			if (
+				error instanceof AccountError &&
+				[401, 403, 404].includes(error.status ?? 0)
+			)
+				deny(error);
+			else {
+				setFeedback(
+					acknowledged
+						? { message: copy.acknowledged, issues: [] }
+						: failure(error, locale),
+				);
+				if (
+					acknowledged ||
+					!(error instanceof AccountError) ||
+					(error.status ?? 0) >= 500
+				)
+					setBlocked(true);
+			}
+			return acknowledged;
 		} finally {
-			setBusy(false);
+			if (write.current === owner) write.current = null;
+			if (mine === generation.current) setBusy(false);
 		}
 	}
 	async function refresh() {
-		if (!item) return;
+		if (!item || busy || write.current) return;
+		const mine = generation.current;
 		setBusy(true);
 		try {
-			install(
-				await api<ProductDetail>(context, `products/${item.id}/`),
-				selected?.id,
-			);
+			const session = await accountSession("seller");
+			if (mine !== generation.current) return;
+			if (`${session.identity.id}:${session.accounts[0].id}` !== identity) {
+				deny(new AccountError(403));
+				return;
+			}
+			const fresh = await api<ProductDetail>(context, `products/${item.id}/`);
+			if (mine !== generation.current) return;
+			install(fresh, selected?.id);
+			setBlocked(false);
 			setFeedback(null);
+			setSuccess(false);
 		} catch (error) {
-			setFeedback(failure(error, locale));
+			if (mine !== generation.current) return;
+			if (
+				error instanceof AccountError &&
+				[401, 403, 404].includes(error.status ?? 0)
+			)
+				deny(error);
+			else setFeedback(failure(error, locale));
 		} finally {
-			setBusy(false);
+			if (mine === generation.current) setBusy(false);
 		}
 	}
-	async function transition(action: string) {
-		if (!item || !selected || dirty) return;
-		await run(
+	async function transition(
+		action: "submit" | "withdraw" | "unpublish",
+		revision: string,
+	) {
+		if (!item || sourceDirty || priceDirty) return;
+		const accepted = await run(
 			() =>
-				api(context, `products/${item.id}/actions/`, {
+				api<Operation>(context, `products/${item.id}/actions/`, {
 					version: item.version,
-					revision: selected.id,
+					revision,
 					action,
-					reason,
+					reason: action === "unpublish" ? reason : "",
 				}),
 			(fresh) => {
-				const revision = fresh.revisions.find((r) => r.id === selected.id);
-				if (revision) setSelected(revision);
+				if (selected)
+					setSelected(
+						fresh.revisions.find((row) => row.id === selected.id) ?? selected,
+					);
+				setReason("");
 			},
 		);
+		if (accepted) removeDialog.current?.close();
 	}
-	const [seller, setSeller] = useState(""),
-		[currency, setCurrency] = useState("AFN"),
-		[mode, setMode] = useState("fixed");
+	const back = productHref(locale, "catalogue", seller, query);
 	return (
 		<CatalogueValidation.Provider
 			value={{ locale, issues: feedback?.issues ?? [] }}
 		>
-			<div className="min-w-0 space-y-6">
-				<h1 className="text-2xl">{t.title}</h1>
+			<ProductsPage
+				locale={locale}
+				title={id ? body?.title || copy.untitled : copy.title}
+				description={id ? item?.seller_name : copy.listHelp}
+				back={id ? back : undefined}
+				actions={
+					!id && list?.sellers.length ? (
+						<Link
+							className={`${productLink} border-primary! bg-primary! text-on-primary!`}
+							href={productHref(locale, "catalogue/new", seller, query)}
+						>
+							{copy.add}
+						</Link>
+					) : id && item?.published ? (
+						<Link
+							className={productLink}
+							href={`/${locale}/products/${item.id}`}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{copy.viewPublic}
+						</Link>
+					) : undefined
+				}
+			>
 				{feedback && <Feedback value={feedback} locale={locale} />}{" "}
 				{success && (
 					<p
@@ -203,385 +380,240 @@ export function CatalogueWorkspace({
 						{t.success}
 					</p>
 				)}
-				{pending && (
+				{guard.feedback}
+				{blocked && (
 					<div
-						role="alert"
-						tabIndex={-1}
-						ref={(node) => {
-							if (node && !node.contains(document.activeElement)) node.focus();
-						}}
-						className="rounded-card border border-warning bg-warning-surface p-4 space-y-3"
+						role="status"
+						className="rounded-xl bg-warning-surface p-4 text-warning"
 					>
-						<p>{t.dirty}</p>
-						<Button
-							onClick={() => {
-								const next = pending;
-								setFeedback(null);
-								setPending(null);
-
-								setPriceDirty(false);
-								setEpoch((e) => e + 1);
-								next();
-							}}
-						>
-							{t.confirm}
-						</Button>
-						<Button
-							variant="secondary"
-							onClick={() => {
-								setPending(null);
-								navigationFocus.current?.focus();
-							}}
-						>
-							{t.cancel}
-						</Button>
+						<p>{copy.reloadRequired}</p>
+						{item && (
+							<Button
+								variant="secondary"
+								disabled={busy}
+								onClick={() => guard.choose(() => void refresh())}
+							>
+								{t.reload}
+							</Button>
+						)}
 					</div>
 				)}
 				{!id && list && (
 					<>
-						<form
-							className="flex flex-wrap gap-4 items-end"
-							onSubmit={(e) => {
-								e.preventDefault();
-								const data = new FormData(e.currentTarget);
-								setState(String(data.get("state") ?? ""));
-								setPage(1);
-							}}
+						<section
+							className="rounded-2xl border border-border bg-surface p-5"
+							aria-label={t.filter}
 						>
-							<label htmlFor="catalogue-state">
-								{t.state}
-								<select
-									id="catalogue-state"
-									name="state"
-									defaultValue={state}
-									className="m-2 rounded-control border border-control bg-surface p-3"
-								>
-									<option value="">{t.all}</option>
-									{["draft", "submitted", "rejected", "withdrawn", "live"].map(
-										(s) => (
-											<option key={s} value={s}>
-												{catalogueStatuses[locale][s]}
-											</option>
-										),
-									)}
-								</select>
-							</label>
-							<Button type="submit">{t.filter}</Button>
-						</form>
-						<CatalogueOverview locale={locale} list={list} context={context} />
-						<div className="flex gap-4">
+							<form
+								onSubmit={(event) => {
+									event.preventDefault();
+									router.push(
+										productHref(locale, "catalogue", seller, query, {
+											state: filter,
+											page: "1",
+										}),
+									);
+								}}
+								className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-end"
+							>
+								<div className="min-w-0 sm:w-72">
+									<Control
+										path="state"
+										label={t.state}
+										value={filter}
+										options={[
+											{ value: "", label: t.all },
+											...filterStates.map((value) => ({
+												value,
+												label: catalogueStatuses[locale][value],
+											})),
+										]}
+										onChange={setFilter}
+									/>
+								</div>
+								<Button type="submit" variant="secondary" className="mt-0!">
+									{t.filter}
+								</Button>
+							</form>
+							<p className="mt-4 text-sm leading-relaxed text-muted">
+								{copy.filterHelp}
+							</p>
+						</section>
+						<CatalogueOverview
+							locale={locale}
+							list={list}
+							seller={seller}
+							filters={query}
+						/>
+						<nav
+							aria-label={copy.page}
+							className="flex flex-wrap items-center justify-between gap-3"
+						>
 							<Button
 								variant="secondary"
 								disabled={page === 1}
-								onClick={() => setPage((p) => p - 1)}
+								onClick={() =>
+									router.push(
+										productHref(locale, "catalogue", seller, query, {
+											page: String(page - 1),
+										}),
+									)
+								}
 							>
 								{t.back}
 							</Button>
-							<span>{page}</span>
+							<p className="text-sm text-muted">
+								{copy.page} <bdi>{page}</bdi>
+							</p>
 							<Button
 								variant="secondary"
-								disabled={page * 30 >= list.count}
-								onClick={() => setPage((p) => p + 1)}
+								disabled={page * 30 >= list.count || page >= 10000}
+								onClick={() =>
+									router.push(
+										productHref(locale, "catalogue", seller, query, {
+											page: String(page + 1),
+										}),
+									)
+								}
 							>
 								{t.next}
 							</Button>
-						</div>
-						{context === "seller" && (
-							<form
-								onSubmit={(e) => {
-									e.preventDefault();
-									void run(async () => {
-										const created = await api<Operation>(context, "products/", {
-											seller: seller || list.sellers[0]?.id,
-											currency,
-											pricing_mode: mode,
-										});
-										window.location.assign(
-											`/${locale}/account/seller/catalogue/${created.id}`,
-										);
-										return created;
-									});
-								}}
-								className="space-y-4 rounded-control border border-border p-4"
-							>
-								<h2 className="text-xl">{t.create}</h2>
-								<Control
-									path="seller"
-									label={t.seller}
-									value={seller || list.sellers[0]?.id || ""}
-									options={list.sellers.map((s) => ({
-										value: s.id,
-										label: s.name,
-									}))}
-									onChange={setSeller}
-								/>
-								<Control
-									path="currency"
-									label={t.currency}
-									value={currency}
-									options={["AFN", "USD"].map((c) => ({ value: c, label: c }))}
-									onChange={setCurrency}
-								/>
-								<Control
-									path="pricing_mode"
-									label={t.mode}
-									value={mode}
-									options={[
-										{ value: "fixed", label: t.fixed },
-										{ value: "negotiable", label: t.negotiable },
-									]}
-									onChange={setMode}
-								/>
-								<Button type="submit" disabled={busy || !list.sellers.length}>
-									{t.create}
-								</Button>
-							</form>
-						)}
-						{list.permissions.includes("manage_taxonomy") && taxonomy && (
-							<TaxonomyEditor
-								locale={locale}
-								taxonomy={taxonomy}
-								busy={busy}
-								onSave={async (path, data) => {
-									setBusy(true);
-									setFeedback(null);
-									try {
-										const fresh = await api<Taxonomy>(context, path, data);
-										setTaxonomy(fresh);
-										setSuccess(true);
-										return fresh;
-									} catch (error) {
-										setFeedback(failure(error, locale));
-										return null;
-									} finally {
-										setBusy(false);
-									}
-								}}
-							/>
-						)}
+						</nav>
 					</>
 				)}
 				{id && item && body && taxonomy && (
 					<>
-						<div className="flex flex-wrap gap-4">
-							<Link
-								href={`/${locale}/account/${context}/catalogue`}
-								onClick={(e) => {
-									if (dirty) {
-										e.preventDefault();
-										const href = e.currentTarget.href;
-										guarded(() => window.location.assign(href));
-									}
-								}}
-							>
-								{t.list}
-							</Link>
-							<Button
-								variant="secondary"
-								disabled={busy}
-								onClick={() => guarded(() => void refresh())}
-							>
-								{t.reload}
-							</Button>
-							{sourceDirty && (
-								<Button
-									variant="secondary"
-									onClick={() =>
-										guarded(() => {
-											if (selected) {
-												setBody(selected.body);
-												setBaseline(JSON.stringify(selected.body));
-											} else {
-												const next = blank(locale);
-												setBody(next);
-												setBaseline(JSON.stringify(next));
+						<section className="space-y-4 rounded-2xl border border-border bg-surface p-5">
+							<div className="flex flex-wrap items-center justify-between gap-4">
+								<div className="flex flex-wrap gap-4 text-sm">
+									<span>
+										{copy.savedVersion}:{" "}
+										<StatusBadge
+											variant={
+												selected ? statusVariant(selected.state) : "neutral"
 											}
-										})
-									}
+										>
+											{selected
+												? catalogueStatuses[locale][selected.state]
+												: copy.notSaved}{" "}
+											{selected && <bdi>#{selected.number}</bdi>}
+										</StatusBadge>
+									</span>
+									<span>
+										{copy.publicStatus}:{" "}
+										<StatusBadge
+											variant={item.published ? "success" : "neutral"}
+										>
+											{item.published ? copy.live : copy.notLive}
+										</StatusBadge>
+									</span>
+								</div>
+								<StatusBadge
+									variant={sourceDirty || priceDirty ? "warning" : "neutral"}
 								>
-									{t.discard}
-								</Button>
-							)}
-						</div>
-						<p>
-							{item.seller_name} · {item.currency} ·{" "}
-							{item.pricing_mode === "fixed" ? t.fixed : t.negotiable} ·{" "}
-							{t.revision} {item.version}
-						</p>
-						{item.published && (
-							<Link
-								className="text-action underline"
-								target="_blank"
-								rel="noopener noreferrer"
-								href={`/${locale}/catalogue-preview/${item.id}`}
-							>
-								{t.published}
-							</Link>
-						)}
-						{dirty && (
-							<p
-								role="status"
-								className="rounded-control bg-warning-surface p-3 text-warning"
-							>
-								{t.dirty}
+									{sourceDirty || priceDirty ? copy.unsaved : copy.unchanged}
+								</StatusBadge>
+							</div>
+							<p className="text-sm text-muted">
+								<bdi dir="ltr">{item.currency}</bdi> ·{" "}
+								{item.pricing_mode === "fixed" ? t.fixed : t.negotiable} ·{" "}
+								{copy.productVersion} <bdi>{item.version}</bdi>
 							</p>
-						)}
-						<Control
-							path="revision"
-							label={t.revision}
-							value={selected?.id ?? ""}
-							options={[
-								{ value: "", label: "—" },
-								...item.revisions.map((r) => ({
-									value: r.id,
-									label: `#${r.number} · ${catalogueStatuses[locale][r.state]} · ${r.body.locale}`,
-								})),
-							]}
-							onChange={(value) =>
-								guarded(() => {
-									const r = item.revisions.find((r) => r.id === value);
-									if (r) {
-										setSelected(r);
-										setBody(r.body);
-										setBaseline(JSON.stringify(r.body));
-										setEpoch((e) => e + 1);
-										setSavedPreview(null);
-									}
-								})
-							}
-						/>
-						{context === "seller" && (
-							<ProductEditor
-								locale={locale}
-								body={body}
-								item={item}
-								taxonomy={taxonomy}
-								busy={busy || priceDirty}
-								onChange={setBody}
-								onSave={() =>
-									void run(
-										() =>
-											api(context, `products/${item.id}/`, {
-												version: item.version,
-												body,
-											}),
-										(fresh, result) => install(fresh, result.revision),
-									)
-								}
-								onUpload={(file) => {
-									if (file.size > 8 * 1024 * 1024) {
-										setFeedback({
-											message: t.imageRule,
-											issues: [{ path: "file", code: "image_size" }],
-										});
-										return;
-									}
-									const data = new FormData();
-									data.set("version", String(item.version));
-									data.set("file", file);
-									void run(() =>
-										api(context, `products/${item.id}/images/`, data),
-									);
-								}}
-							/>
-						)}
-						<ProductRevisionPreview
+							<p className="text-sm leading-relaxed text-muted">
+								{copy.publicHelp}
+							</p>
+							<nav aria-label={copy.edit} className="flex flex-wrap gap-2">
+								{[
+									["product-details", copy.details],
+									["product-options", copy.options],
+									[
+										item.prices.length
+											? "product-prices-live"
+											: "product-prices-new",
+										copy.prices,
+									],
+									["product-photos", copy.photos],
+									["product-review", copy.review],
+								].map(([anchor, label]) => (
+									<a key={anchor} href={`#${anchor}`} className={productLink}>
+										{label}
+									</a>
+								))}
+							</nav>
+						</section>
+						<ProductEditor
 							locale={locale}
 							body={body}
 							item={item}
-							label={sourceDirty ? t.working : t.preview}
+							taxonomy={taxonomy}
+							busy={busy || priceDirty || blocked}
+							dirty={sourceDirty || !selected}
+							onReload={() => guard.choose(() => void refresh())}
+							onChange={setBody}
+							onSave={() =>
+								void run(
+									() =>
+										api<Operation>(context, `products/${item.id}/`, {
+											version: item.version,
+											body,
+										}),
+									(fresh, result) => install(fresh, result.revision),
+								)
+							}
+							onUpload={(file) => {
+								if (file.size > 8 * 1024 * 1024) {
+									setFeedback({
+										message: t.imageRule,
+										issues: [{ path: "file", code: "image_size" }],
+									});
+									return;
+								}
+								const data = new FormData();
+								data.set("version", String(item.version));
+								data.set("file", file);
+								void run(() =>
+									api<Operation>(context, `products/${item.id}/images/`, data),
+								);
+							}}
 						/>
-						{selected && (
-							<>
-								<Button
-									variant="secondary"
-									disabled={busy}
-									onClick={() =>
-										void run(
-											() => api<ProductDetail>(context, `products/${item.id}/`),
-											(fresh) =>
-												setSavedPreview(
-													fresh.revisions.find((r) => r.id === selected.id) ??
-														null,
-												),
-										)
-									}
-								>
-									{t.saved}
-								</Button>
-								{savedPreview && (
-									<ProductRevisionPreview
-										locale={locale}
-										body={savedPreview.body}
-										item={item}
-										label={`${t.saved} #${savedPreview.number} · ${catalogueStatuses[locale][savedPreview.state]}`}
-										revision={savedPreview.id}
-									/>
-								)}
-
-								<Control
-									path="reason"
-									label={t.reason}
-									value={reason}
-									onChange={setReason}
+						<details className="rounded-2xl border border-border bg-surface p-5">
+							<summary className="min-h-11 cursor-pointer text-base font-semibold">
+								{sourceDirty ? t.working : t.preview}
+							</summary>
+							<div className="mt-4">
+								<ProductRevisionPreview
+									sellerPreview
+									locale={locale}
+									body={body}
+									item={item}
+									label={sourceDirty ? t.working : t.preview}
 								/>
-								{selected.reason && (
-									<p className="bg-warning-surface p-3 text-warning">
-										{selected.reason}
-									</p>
-								)}
-								<div className="flex flex-wrap gap-3">
-									{["submit", "withdraw", "unpublish"].map((action) => (
-										<Button
-											key={action}
-											variant={action === "publish" ? "primary" : "secondary"}
-											disabled={
-												busy ||
-												dirty ||
-												(action === "submit" && selected.state !== "draft") ||
-												(["publish", "reject", "withdraw"].includes(action) &&
-													selected.state !== "submitted") ||
-												(action === "unpublish" &&
-													item.published !== selected.id) ||
-												false
-											}
-											onClick={() => void transition(action)}
-										>
-											{
-												t[
-													action as
-														| "submit"
-														| "withdraw"
-														| "unpublish"
-														| "publish"
-														| "reject"
-												]
-											}
-										</Button>
-									))}
-								</div>
-							</>
-						)}
-						{context === "seller" && (
+							</div>
+						</details>
+						{!!item.prices.length && (
 							<LivePrices
-								key={`${item.prices.map((p) => p.id).join("-")}-${epoch}`}
+								key={`${identity}-${epoch}`}
 								item={item}
 								locale={locale}
-								disabled={busy || sourceDirty}
+								disabled={busy || sourceDirty || blocked}
 								onDirty={setPrice}
 								onEdit={(path) =>
 									setFeedback((current) => {
 										if (!current) return current;
-										const group = path.slice(0, path.lastIndexOf("."));
-										const issues = current.issues.filter(
-											(issue) => issue.path !== path && issue.path !== group,
-										);
-										return issues.length ? { ...current, issues } : null;
+										const group = path.slice(0, path.lastIndexOf(".")),
+											issues = current.issues.filter(
+												(issue) => issue.path !== path && issue.path !== group,
+											);
+										return issues.length
+											? { ...current, issues }
+											: blocked
+												? current
+												: null;
 									})
 								}
 								onSave={(prices) =>
 									run(() =>
-										api(context, `products/${item.id}/prices/`, {
+										api<Operation>(context, `products/${item.id}/prices/`, {
 											version: item.version,
 											prices,
 										}),
@@ -589,10 +621,251 @@ export function CatalogueWorkspace({
 								}
 							/>
 						)}
+						{stockAccess && !!item.prices.length && (
+							<SectionCard
+								title={copy.manageStock}
+								description={copy.stockHelp}
+							>
+								<div className="flex flex-wrap gap-3">
+									{item.prices.map((variant) => (
+										<Link
+											key={variant.id}
+											className={productLink}
+											href={productHref(
+												locale,
+												`inventory/${variant.id}`,
+												item.seller,
+											)}
+										>
+											<bdi dir="ltr" className="wrap-anywhere">
+												{variant.sku}
+											</bdi>
+										</Link>
+									))}
+								</div>
+							</SectionCard>
+						)}
+						<SectionCard
+							id="product-review"
+							className="scroll-mt-28"
+							title={copy.review}
+							description={copy.reviewHelp}
+						>
+							<div className="space-y-5">
+								{selected ? (
+									<>
+										<Control
+											path="revision"
+											label={t.revision}
+											disabled={busy || blocked}
+											value={selected.id}
+											options={item.revisions.map((revision) => ({
+												value: revision.id,
+												label: `#${revision.number} · ${catalogueStatuses[locale][revision.state]} · ${languageNames[revision.body.locale]}`,
+											}))}
+											onChange={(revision) =>
+												guard.choose(() => {
+													install(item, revision);
+													setFeedback(null);
+												})
+											}
+										/>
+										<p className="text-sm text-muted">{copy.historyLimit}</p>
+										{selected.reason && (
+											<p className="rounded-xl bg-warning-surface p-4 text-sm text-warning wrap-anywhere">
+												{selected.reason}
+											</p>
+										)}
+										<details className="rounded-xl border border-border p-4">
+											<summary className="min-h-11 cursor-pointer text-base font-semibold">
+												{t.saved} <bdi>#{selected.number}</bdi>
+											</summary>
+											<p className="mt-2 text-sm text-muted">
+												{copy.savedHint}
+											</p>
+											<div className="mt-4">
+												<ProductRevisionPreview
+													key={selected.id}
+													sellerPreview
+													locale={locale}
+													body={selected.body}
+													item={item}
+													revision={selected.id}
+													label={`${t.saved} #${selected.number}`}
+												/>
+											</div>
+										</details>
+										<div className="flex flex-wrap gap-3">
+											<Button
+												disabled={
+													busy ||
+													blocked ||
+													sourceDirty ||
+													priceDirty ||
+													selected.state !== "draft" ||
+													item.revisions.some(
+														(revision) => revision.state === "submitted",
+													)
+												}
+												onClick={() => void transition("submit", selected.id)}
+											>
+												{t.submit}
+											</Button>
+											{selected.state === "submitted" && (
+												<Button
+													variant="secondary"
+													disabled={
+														busy || blocked || sourceDirty || priceDirty
+													}
+													onClick={() =>
+														void transition("withdraw", selected.id)
+													}
+												>
+													{t.withdraw}
+												</Button>
+											)}
+										</div>
+										<div className="space-y-3 border-t border-border pt-5">
+											<h3 className="text-base font-semibold">
+												{copy.languages}
+											</h3>
+											<p className="text-sm leading-relaxed text-muted">
+												{copy.languageHelp}
+											</p>
+											<dl className="grid gap-3 sm:grid-cols-2">
+												{locales.map((language) => {
+													const translation = item.translations.find(
+														(row) =>
+															row.locale === language &&
+															row.revision === selected.id,
+													);
+													const source = language === selected.body.locale;
+													return (
+														<div
+															key={language}
+															className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-page p-3"
+														>
+															<dt lang={language}>{languageNames[language]}</dt>
+															<dd className="m-0">
+																<StatusBadge
+																	variant={
+																		source
+																			? "info"
+																			: translation?.has_approved
+																				? "success"
+																				: translation
+																					? "warning"
+																					: "neutral"
+																	}
+																>
+																	{source
+																		? t.language
+																		: translation?.has_approved
+																			? copy.approved
+																			: translation
+																				? copy.awaiting
+																				: copy.noTranslation}
+																</StatusBadge>
+															</dd>
+														</div>
+													);
+												})}
+											</dl>
+										</div>
+									</>
+								) : (
+									<p className="text-base text-muted">{copy.noRevision}</p>
+								)}
+								{item.published && (
+									<div className="space-y-2 border-t border-border pt-5">
+										<h3 className="text-base font-semibold">
+											{copy.removePublic}
+										</h3>
+										<p className="text-sm leading-relaxed text-muted">
+											{copy.removeHelp}
+										</p>
+										<Button
+											variant="secondary"
+											className="text-danger!"
+											disabled={busy || blocked || sourceDirty || priceDirty}
+											onClick={() => {
+												removeFocus.current =
+													document.activeElement as HTMLElement;
+												removeDialog.current?.showModal();
+											}}
+										>
+											{copy.removePublic}
+										</Button>
+									</div>
+								)}
+							</div>
+						</SectionCard>
+						<dialog
+							ref={removeDialog}
+							aria-labelledby="product-remove-title"
+							aria-describedby="product-remove-help"
+							onCancel={(event) => {
+								event.preventDefault();
+								removeDialog.current?.close();
+								setReason("");
+								removeFocus.current?.focus();
+							}}
+							className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
+						>
+							<h2 id="product-remove-title" className="text-xl font-semibold">
+								{copy.removePublic}
+							</h2>
+							<p
+								id="product-remove-help"
+								className="my-4 text-base leading-relaxed text-muted"
+							>
+								{copy.removeHelp}
+							</p>
+							<Control
+								path="reason"
+								label={t.reason}
+								value={reason}
+								maxLength={1000}
+								required
+								textarea
+								disabled={busy}
+								onChange={setReason}
+							/>
+							{feedback && (
+								<p role="alert" className="mt-3 text-sm text-danger">
+									{feedback.message}
+								</p>
+							)}
+							<div className="mt-5 flex flex-col gap-3 sm:flex-row">
+								<Button
+									autoFocus
+									variant="secondary"
+									disabled={busy}
+									onClick={() => {
+										removeDialog.current?.close();
+										setReason("");
+										removeFocus.current?.focus();
+									}}
+								>
+									{copy.cancel}
+								</Button>
+								<Button
+									disabled={
+										busy || blocked || !reason.trim() || !item.published
+									}
+									onClick={() => {
+										if (item.published)
+											void transition("unpublish", item.published);
+									}}
+								>
+									{copy.confirmRemove}
+								</Button>
+							</div>
+						</dialog>
 					</>
 				)}
 				{!list && !item && !feedback && <p role="status">{t.loading}</p>}
-			</div>
+			</ProductsPage>
 		</CatalogueValidation.Provider>
 	);
 }

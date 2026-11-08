@@ -24,7 +24,12 @@ def identity_digest(account, order):
 def reminder_slot(order, *, now=None):
     now = now or timezone.now()
     due, generation = queries.deadline(order)
-    if order.payment_method != "advance" or not due or due > now or queries.confirmed(order) >= order.goods_total:
+    from apps.orders import aftercare
+
+    if (
+        order.payment_method != "advance" or not due or due > now or aftercare.cancelled(order)
+        or queries.confirmed(order) >= aftercare.accepted_total(order)
+    ):
         return None
     hours = OrderPolicy.objects.get(pk=1).reminder_hours
     slot = 0 if not hours else int((now - due).total_seconds() // (hours * 3600))
@@ -111,11 +116,18 @@ def system_case(order, state, case, active):
 @transaction.atomic
 def check_order(pk):
     order = SellerOrder.objects.select_related("seller").get(pk=pk)
+    from apps.orders import aftercare
+
     # Skip busy business work in cron instead of monopolizing the global runner.
     if not BusinessProfile.objects.select_for_update(skip_locked=True).filter(pk=order.seller_id).exists():
         return
     state = services.coordinator(order)
     now = timezone.now()
+    if aftercare.cancelled(order):
+        state.checked_at = now
+        state.next_check_at = now + timedelta(hours=24)
+        state.save(update_fields=["checked_at", "next_check_at"])
+        return
     slot = reminder_slot(order)
     for case in (
         ReviewCase.objects.select_for_update()
@@ -139,7 +151,7 @@ def check_order(pk):
         max(now + timedelta(seconds=60), min(due, now + timedelta(hours=24)))
         if due and not slot
         else now + timedelta(hours=24)
-        if queries.confirmed(order) >= order.goods_total
+        if queries.confirmed(order) >= aftercare.accepted_total(order)
         else now + timedelta(seconds=60)
     )
     state.save(update_fields=["checked_at", "next_check_at"])

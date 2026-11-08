@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Icon } from "../../../components/ui/icon";
 import { apiOrigin } from "../../../lib/api/client";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
+import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
 import { interfaceCopy } from "../../../lib/i18n/interface";
 import {
 	direction,
@@ -17,6 +18,7 @@ export function ProductRevisionPreview({
 	item,
 	label,
 	revision,
+	sellerPreview = false,
 }: {
 	locale: Locale;
 	body: ProductBody;
@@ -26,7 +28,9 @@ export function ProductRevisionPreview({
 	>;
 	label: string;
 	revision?: string;
+	sellerPreview?: boolean;
 }) {
+	const s = sellerProductsCopy[locale];
 	const t = catalogueCopy[locale],
 		ui = interfaceCopy[locale];
 	const [selected, setSelected] = useState(0),
@@ -42,7 +46,7 @@ export function ProductRevisionPreview({
 		unit = variant?.unit_labels?.[locale] ?? variant?.unit;
 	return (
 		<section
-			className="min-w-0 space-y-6 rounded-card border border-border bg-surface p-4 shadow-card desktop:p-6"
+			className={`min-w-0 space-y-6 rounded-card border border-border bg-surface p-4 shadow-card desktop:p-6 ${sellerPreview ? "@container" : ""}`}
 			aria-label={label}
 		>
 			<header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -53,7 +57,9 @@ export function ProductRevisionPreview({
 					</p>
 				)}
 			</header>
-			<div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
+			<div
+				className={`grid min-w-0 items-start gap-6 ${sellerPreview ? "@lg:grid-cols-2" : "lg:grid-cols-2"}`}
+			>
 				<section className="min-w-0 space-y-3" aria-label={ui.gallery}>
 					<div className="flex aspect-square items-center justify-center overflow-hidden rounded-card border border-border bg-page">
 						{current ? (
@@ -65,6 +71,13 @@ export function ProductRevisionPreview({
 								width={current.width}
 								height={current.height}
 							/>
+						) : sellerPreview ? (
+							<div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
+								<span className="flex size-14 items-center justify-center rounded-control bg-info text-action">
+									<Icon name="image" className="size-7" />
+								</span>
+								<p className="text-caption text-muted">{ui.noImage}</p>
+							</div>
 						) : (
 							<div className="space-y-3 p-6 text-center text-muted">
 								<Icon name="box" className="mx-auto size-12" />
@@ -115,22 +128,34 @@ export function ProductRevisionPreview({
 						<strong className="inline-block rounded-full bg-surface px-3 py-1 text-xs text-action">
 							{item.pricing_mode === "fixed" ? t.fixed : t.negotiable}
 						</strong>
-						{(["retail", "wholesale"] as const).map((k) => (
-							<div
-								key={k}
-								className="flex flex-wrap items-baseline justify-between gap-2"
-							>
-								<span className="text-sm text-muted">{t[k]}</span>
-								<span>
-									<bdi dir="ltr" className="font-identifier text-2xl font-bold">
-										{price?.[k] ?? "—"} {item.currency}
-									</bdi>{" "}
-									<span className="text-sm">
-										/ <bdi>{unit}</bdi>
-									</span>
-								</span>
-							</div>
-						))}
+						{(["retail", "wholesale"] as const).map((k) => {
+							const amount = price?.[k];
+							const hasPrice =
+								typeof amount === "string" && amount.trim() !== "";
+							return (
+								<div
+									key={k}
+									className="flex flex-wrap items-baseline justify-between gap-2"
+								>
+									<span className="text-sm text-muted">{t[k]}</span>
+									{sellerPreview && !hasPrice ? (
+										<span className="text-sm text-muted">{s.noPrice}</span>
+									) : (
+										<span>
+											<bdi
+												dir="ltr"
+												className="font-identifier text-2xl font-bold"
+											>
+												{amount ?? "—"} {item.currency}
+											</bdi>{" "}
+											<span className="text-sm">
+												/ <bdi>{unit}</bdi>
+											</span>
+										</span>
+									)}
+								</div>
+							);
+						})}
 						<p className="border-t border-border pt-3 text-sm">
 							{t.minimum}:{" "}
 							<bdi>
@@ -165,10 +190,19 @@ export function ProductRevisionPreview({
 						</div>
 					</div>
 					<p className="text-sm text-muted">{t.wholesaleRule}</p>
-					<p className="rounded-control bg-warning-surface p-3 text-sm text-warning">
-						{t.inventory}
-					</p>
-					<p className="text-sm text-muted">{t.noCommerce}</p>
+					{sellerPreview ? (
+						<div className="space-y-2 rounded-control bg-info p-3">
+							<p className="text-sm text-foreground">{s.previewOnly}</p>
+							<p className="text-caption text-muted">{s.previewHelp}</p>
+						</div>
+					) : (
+						<>
+							<p className="rounded-control bg-warning-surface p-3 text-sm text-warning">
+								{t.inventory}
+							</p>
+							<p className="text-sm text-muted">{t.noCommerce}</p>
+						</>
+					)}
 				</div>
 			</div>
 			<section className="space-y-4 border-t border-border pt-5">

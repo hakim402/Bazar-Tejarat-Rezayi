@@ -10,9 +10,9 @@ from functools import lru_cache
 from pathlib import Path
 
 
-@lru_cache(maxsize=3)
+@lru_cache(maxsize=4)
 def reference(version=1):
-    if version not in {1, 2, 3}:
+    if version not in {1, 2, 3, 4}:
         raise RuntimeError("Unsupported native contract version.")
     return json.loads(Path(__file__).with_name(f"contract_v{version}.json").read_text())
 
@@ -42,7 +42,7 @@ def contract(version=1):
 
 
 def active_reference():
-    return reference(3)
+    return reference(4)
 
 
 def guard_inventory(cursor):
@@ -122,8 +122,8 @@ def ready():
 
     try:
         if not (
-            MigrationRecorder(connection).migration_qs.filter(app="runtime", name="0007_fulfilment_v3").exists()
-            and Schema.objects.filter(pk=1, contract=contract(3)).exists()
+            MigrationRecorder(connection).migration_qs.filter(app="runtime", name="0009_aftercare_v4").exists()
+            and Schema.objects.filter(pk=1, contract=contract(4)).exists()
             and not Transfer.objects.exclude(state="complete").exists()
         ):
             return False
@@ -134,7 +134,7 @@ def ready():
         return False
 
 
-def verify(*, record=True, version=3):
+def verify(*, record=True, version=4):
     from apps.runtime.models import Schema
 
     if connection.vendor != "mysql":

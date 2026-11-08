@@ -10,12 +10,24 @@ import {
 	accessLost,
 } from "../../messaging/hooks";
 import { SessionEntry } from "../../orders/components/session-entry";
-import { action, control, panel } from "../../orders/components/controls";
+import { action, control } from "../../orders/components/controls";
 import { fulfilment, fulfilmentHref } from "../api";
 import { fulfilmentCopy } from "../copy";
 import type { Context, Summary } from "../types";
 import { DeliverySummary } from "./summary";
 import { DeliveryDetail } from "./detail";
+import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
+import {
+	SalesFrame,
+	SalesHeader,
+	SalesBusinessSelect,
+	SalesEmpty,
+	SalesPagination,
+	salesHref,
+	salesAction,
+	salesControl,
+	salesPanel,
+} from "../../sales/components/seller-sales-ui";
 export function FulfilmentWorkspace({
 	locale,
 	context,
@@ -141,6 +153,155 @@ function DeliveryList({
 		[context, seller, page, state, search, denied],
 	);
 	if (denied) return <p role="alert">{t.noAccess}</p>;
+	if (context === "seller") {
+		const s = sellerSalesCopy[locale],
+			filtered = Boolean(state || search),
+			listFilters = { page: String(page), state, q: search },
+			visibleProfiles =
+				seller && !profiles.some((profile) => profile.id === seller)
+					? [...profiles, { id: seller, name: seller }]
+					: profiles;
+		const href = (changes: Record<string, string> = {}) =>
+			salesHref(locale, "fulfilment", seller, undefined, undefined, {
+				...listFilters,
+				...changes,
+			});
+		return (
+			<SalesFrame seller>
+				<SalesHeader
+					locale={locale}
+					section="fulfilment"
+					seller={seller}
+					business={
+						<div className="space-y-3">
+							<SalesBusinessSelect
+								locale={locale}
+								value={seller}
+								profiles={visibleProfiles}
+								all
+								onChange={(value) =>
+									router.push(salesHref(locale, "fulfilment", value))
+								}
+							/>
+							{moreProfiles && (
+								<button
+									type="button"
+									className={salesAction}
+									disabled={profilePage >= 10000}
+									onClick={() => setProfilePage((value) => value + 1)}
+								>
+									{s.moreBusinesses}
+								</button>
+							)}
+						</div>
+					}
+				/>
+				<p className="text-sm leading-relaxed text-muted">{t.intro}</p>
+				<form
+					className={`${salesPanel} grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,15rem)]`}
+					onSubmit={(event) => {
+						event.preventDefault();
+						router.push(href({ page: "1", q: searchDraft.trim() }));
+					}}
+				>
+					<label className="min-w-0 space-y-2">
+						<span>{t.search}</span>
+						<input
+							type="search"
+							className={salesControl}
+							value={searchDraft}
+							maxLength={100}
+							onChange={(event) => setSearchDraft(event.target.value)}
+						/>
+					</label>
+					<label className="min-w-0 space-y-2">
+						<span>{t.filter}</span>
+						<select
+							className={salesControl}
+							value={state}
+							onChange={(event) =>
+								router.push(href({ page: "1", state: event.target.value }))
+							}
+						>
+							{[
+								["", t.all],
+								["not_dispatched", t.not_dispatched],
+								["dispatched", t.dispatched],
+								["delivered", t.delivered],
+								["blocked", t.blockers],
+							].map(([value, label]) => (
+								<option key={value} value={value}>
+									{label}
+								</option>
+							))}
+						</select>
+					</label>
+					<div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+						<button type="submit" className={salesAction}>
+							{t.search}
+						</button>
+						{(filtered || searchDraft) && (
+							<button
+								type="button"
+								className={salesAction}
+								onClick={() => {
+									setSearchDraft("");
+									router.push(href({ page: "1", state: "", q: "" }));
+								}}
+							>
+								{s.clear}
+							</button>
+						)}
+						{data && (
+							<p className="text-sm text-muted" role="status">
+								{s.results}:{" "}
+								<bdi className="font-semibold tabular-nums text-foreground">
+									{new Intl.NumberFormat(locale).format(data.count)}
+								</bdi>
+							</p>
+						)}
+					</div>
+				</form>
+				{error ? (
+					<p role="alert">{t.error}</p>
+				) : !data ? (
+					<p role="status">{t.loading}</p>
+				) : data.results.length ? (
+					<ul className="grid min-w-0 gap-4 desktop:grid-cols-2">
+						{data.results.map((row) => (
+							<li key={row.id} className="min-w-0 space-y-3">
+								<DeliverySummary {...{ locale, row }} seller compact />
+								<Link
+									className={salesAction}
+									prefetch={false}
+									href={salesHref(
+										locale,
+										"fulfilment",
+										row.seller,
+										row.id,
+										undefined,
+										listFilters,
+									)}
+								>
+									{s.view} · <bdi>{row.number}</bdi>
+								</Link>
+							</li>
+						))}
+					</ul>
+				) : (
+					<SalesEmpty locale={locale} filtered={filtered} />
+				)}
+				{data && (
+					<SalesPagination
+						locale={locale}
+						page={page}
+						count={data.count}
+						onPage={(value) => router.push(href({ page: String(value) }))}
+					/>
+				)}
+			</SalesFrame>
+		);
+	}
 	return (
 		<div className="min-w-0 space-y-5">
 			<h1 className="text-2xl font-bold">
@@ -178,47 +339,6 @@ function DeliveryList({
 					{t.search}
 				</button>
 			</form>
-			{context === "seller" && (
-				<div className={panel}>
-					<label>
-						{t.selectBusiness}
-						<select
-							className={control}
-							aria-label={t.selectBusiness}
-							value={seller}
-							onChange={(event) =>
-								router.push(
-									fulfilmentHref(
-										locale,
-										context,
-										undefined,
-										event.target.value,
-									),
-								)
-							}
-						>
-							<option value="">{t.allBusinesses}</option>
-							{profiles.map((profile) => (
-								<option key={profile.id} value={profile.id}>
-									{profile.name}
-								</option>
-							))}
-							{seller && !profiles.some((profile) => profile.id === seller) && (
-								<option value={seller}>{seller}</option>
-							)}
-						</select>
-					</label>
-					{moreProfiles && (
-						<button
-							type="button"
-							className={action}
-							onClick={() => setProfilePage((value) => value + 1)}
-						>
-							{t.next}
-						</button>
-					)}
-				</div>
-			)}
 			<label>
 				{t.filter}
 				<select
@@ -262,12 +382,7 @@ function DeliveryList({
 							<Link
 								className="block min-h-11 font-bold"
 								prefetch={false}
-								href={fulfilmentHref(
-									locale,
-									context,
-									row.id,
-									context === "seller" ? row.seller : undefined,
-								)}
+								href={fulfilmentHref(locale, context, row.id, undefined)}
 							>
 								<bdi>{row.number}</bdi>
 							</Link>

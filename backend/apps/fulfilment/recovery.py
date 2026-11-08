@@ -46,6 +46,15 @@ def validate_history():
     for completion in m.Completion.objects.select_related("delivery").iterator(chunk_size=100):
         if completion.delivery.order_id != completion.order_id or completion.event.action != "completed":
             raise TransferError("Restored initial completion provenance differs.")
+    for decision in m.DeliveryRefundDecision.objects.select_related("refund", "event").iterator(chunk_size=100):
+        expected = "case_approve" if decision.action == "confirmed" else "case_reject"
+        if decision.refund.order_id != decision.order_id or decision.event.action != expected:
+            raise TransferError("Restored delivery refund decision differs from its retained review event.")
+    for refund in m.DeliveryRefund.objects.select_related("order", "provider").iterator(chunk_size=100):
+        if queries.confirmed_refunds(refund.order, refund.provider) > queries.provider_receipts(
+            refund.order, refund.provider
+        ):
+            raise TransferError("Restored confirmed delivery refunds exceed confirmed provider receipts.")
 
 
 def validate_evidence(manifest):

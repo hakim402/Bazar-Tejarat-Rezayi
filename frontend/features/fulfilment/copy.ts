@@ -1,5 +1,5 @@
 import type { Locale } from "../../lib/i18n/locales";
-import { paymentCopy, paymentState } from "../payments/copy";
+import { paymentCopy, paymentState } from "../payments/copy.ts";
 const additions = {
 	en: {
 		actionChanged:

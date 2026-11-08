@@ -50,14 +50,14 @@ def uuid_statements(version=1):
             table, column = model._meta.db_table, original.column
             name = "uuid_" + hashlib.sha256((table + ":" + column).encode()).hexdigest()[:24]
             result.append(f"ALTER TABLE `{table}` ADD CONSTRAINT `{name}` CHECK (`{column}` IS NULL OR (CHAR_LENGTH(`{column}`)=32 AND `{column}` REGEXP BINARY '^[0-9a-f]{{32}}$'))")
-    if version==1:
-        from .schema import reference
-        approved=set(reference(1)["ddl"])
-        result=[statement for statement in result if statement in approved]
-    elif version==2:
-        from .schema import reference
-        approved=set(reference(2)["ddl"])
-        result=[statement for statement in result if statement in approved]
-    elif version!=3:
+    if version==4:
+        # The newest graph cannot see a later phase; v4 publication filters this
+        # list against the stored v3 history instead.
+        return result
+    if version not in {1,2,3}:
         raise RuntimeError("Unsupported UUID contract version.")
-    return result
+    # A historical publication reads its own reviewed contract, never the current
+    # models: a later phase must not add DDL to an earlier published graph.
+    from .schema import reference
+    approved=set(reference(version)["ddl"])
+    return [statement for statement in result if statement in approved]
