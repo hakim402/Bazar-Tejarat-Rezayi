@@ -108,3 +108,35 @@ class GoogleCompleteRequest(StrictSerializer):
     consent = serializers.BooleanField()
     intent = serializers.ChoiceField(choices=["individual"], default="individual")
     display_name = serializers.CharField(max_length=150)
+
+
+class ClosureRequest(StrictSerializer):
+    password = serializers.CharField(max_length=128, write_only=True, trim_whitespace=False)
+    confirm = serializers.BooleanField()
+
+    def validate_confirm(self, value):
+        if not value:
+            raise serializers.ValidationError("Confirmation is required.")
+        return value
+
+
+class ClosureStatus(serializers.Serializer):
+    context = serializers.ChoiceField(choices=["buyer", "seller"])
+    blockers = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=[
+                "open_orders",
+                "refunds_outstanding",
+                "pending_disputes",
+                "open_negotiations",
+                "open_payment_reviews",
+                "open_delivery_reviews",
+                "sole_company_owner",
+            ]
+        )
+    )
+
+
+class ClosureResult(serializers.Serializer):
+    closed = serializers.BooleanField()
+    context = serializers.ChoiceField(choices=["buyer", "seller"])

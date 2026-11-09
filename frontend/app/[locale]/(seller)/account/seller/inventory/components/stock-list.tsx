@@ -58,6 +58,7 @@ export function StockList({
 		"low",
 		"available",
 		"expired",
+		"expiring",
 		"held",
 	] as const;
 	const stateVariants = {
@@ -67,6 +68,7 @@ export function StockList({
 		low: "warning",
 		available: "success",
 		expired: "danger",
+		expiring: "warning",
 		held: "info",
 	} as const;
 	const state = params.get("state") ?? "";
@@ -178,7 +180,12 @@ export function StockList({
 	return (
 		<>
 			{screen === "overview" && (
-				<SellerOverview locale={locale} overview={overview} href={href} />
+				<SellerOverview
+					locale={locale}
+					seller={seller}
+					overview={overview}
+					href={href}
+				/>
 			)}
 			{screen === "inventory" && (
 				<>

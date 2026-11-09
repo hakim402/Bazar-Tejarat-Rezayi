@@ -51,10 +51,9 @@ from apps.orders.models import SellerOrder, OrderLine, CancellationRequest, Amen
 from apps.organizations import profiles
 from apps.organizations.models import BusinessProfile
 from apps.payments import services as goods, refunds, media as payment_media
-from apps.payments.models import Finance, RefundDue
+from apps.payments.models import RefundDue
 from apps.fulfilment import models as delivery, services as fulfilment, transitions
 from apps.verification import services as verification
-from apps.verification.models import ReviewCase
 from apps.messaging.management.commands.seed_messaging_examples import actor
 from apps.marketplace.management.commands.seed_marketplace_examples import image_file
 from apps.orders.management.commands.seed_commerce_examples import finance_version, aftercare_version

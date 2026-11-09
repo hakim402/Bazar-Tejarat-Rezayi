@@ -73,8 +73,14 @@ def revoke_browser(sender, request, **kwargs):
 
 
 @receiver(m2m_changed, sender=User.groups.through)
-def canonical_staff_groups(sender, instance, action, reverse, **kwargs):
-    if action.startswith("post_"):
-        AuditEvent.objects.create(subject=instance if not reverse else None,
-            context="staff", action="admin_groups_changed",
-            changed_fields=["groups"])
+def canonical_staff_groups(sender, instance, action, reverse, pk_set=None, **kwargs):
+    if not action.startswith("post_"):
+        return
+    if not reverse:
+        AuditEvent.objects.create(subject=instance, context="staff", action="admin_groups_changed",
+            changed_fields=["groups"], state={"action": action, "group_ids": sorted(str(pk) for pk in pk_set or ())})
+        return
+    # Group-side edits change several identities; record each affected subject.
+    for user_id in sorted(pk_set or ()):
+        AuditEvent.objects.create(subject_id=user_id, context="staff", action="admin_groups_changed",
+            changed_fields=["groups"], state={"action": action, "group_ids": [str(instance.pk)]})

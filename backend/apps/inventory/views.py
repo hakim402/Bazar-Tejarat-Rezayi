@@ -19,7 +19,7 @@ SEARCH = OpenApiParameter("q", str)
 OVERVIEW_FILTERS = SCOPE + [
     PAGE,
     SEARCH,
-    OpenApiParameter("state", str, enum=["unconfigured", "inactive", "zero", "low", "available", "expired", "held"]),
+    OpenApiParameter("state", str, enum=["unconfigured", "inactive", "zero", "low", "available", "expired", "expiring", "held"]),
     OpenApiParameter("sort", str, enum=["sku", "-sku", "available", "-available"]),
 ]
 HISTORY_FILTERS = SCOPE + [

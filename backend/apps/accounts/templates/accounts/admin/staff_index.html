@@ -1,0 +1,14 @@
+{% extends 'admin/index.html' %}
+{% block content %}
+<section class="ra:space-y-6" aria-labelledby="my-work-heading" data-testid="staff-my-work">
+  <div class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
+    <h2 id="my-work-heading" class="ra:text-base ra:font-bold">My work</h2>
+    <p class="ra:mt-1 ra:text-sm ra:text-muted">Open items in the queues your current roles allow. Counts exclude businesses you belong to.</p>
+    <table class="ra:mt-4 ra:w-full ra:text-sm">
+      <thead><tr class="ra:text-muted"><th class="ra:py-2 ra:text-start">Queue</th><th class="ra:py-2 ra:text-end">Open</th><th class="ra:py-2 ra:text-end">Assigned to me</th><th class="ra:py-2 ra:text-end">Unassigned</th></tr></thead>
+      <tbody>{% for row in my_work %}<tr class="ra:border-t ra:border-line"><td class="ra:py-2">{% if row.url %}<a class="ra:text-action" href="{{ row.url }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td><td class="ra:py-2 ra:text-end">{{ row.open }}</td><td class="ra:py-2 ra:text-end">{% if row.mine is None %}—{% else %}{{ row.mine }}{% endif %}</td><td class="ra:py-2 ra:text-end">{% if row.unassigned is None %}—{% else %}{{ row.unassigned }}{% endif %}</td></tr>{% empty %}<tr><td colspan="4" class="ra:py-3 ra:text-muted">No review queues are available to your current roles.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {{ block.super }}
+</section>
+{% endblock %}

@@ -8,6 +8,7 @@ from django.views.decorators.http import require_GET
 from rest_framework.exceptions import APIException, ValidationError
 
 from apps.accounts.services import get_grant
+from apps.catalogue.models import SourceRevision
 from apps.orders.models import SellerOrder
 
 from . import exports, queries
@@ -59,6 +60,7 @@ def report_urls(admin_site):
             "window": window,
             "report": queries.summary(orders, window, rights),
             "sellers": queries.platform_sellers(window),
+            "publication_pending": SourceRevision.objects.filter(state="submitted").count(),
             "kinds": EXPORT_KINDS,
         }
         return render(request, "reports/admin/commerce.html", context)

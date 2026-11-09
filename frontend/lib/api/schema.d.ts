@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/v1/auth/{context}/closure/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["accounts_closure_status"];
+        put?: never;
+        post: operations["accounts_closure_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/{context}/link/{target}/": {
         parameters: {
             query?: never;
@@ -3064,7 +3080,19 @@ export interface components {
             held: string;
             available: string;
             expired: boolean;
+            expiring: boolean;
         };
+        /**
+         * @description * `open_orders` - open_orders
+         *     * `refunds_outstanding` - refunds_outstanding
+         *     * `pending_disputes` - pending_disputes
+         *     * `open_negotiations` - open_negotiations
+         *     * `open_payment_reviews` - open_payment_reviews
+         *     * `open_delivery_reviews` - open_delivery_reviews
+         *     * `sole_company_owner` - sole_company_owner
+         * @enum {string}
+         */
+        BlockersEnum: "open_orders" | "refunds_outstanding" | "pending_disputes" | "open_negotiations" | "open_payment_reviews" | "open_delivery_reviews" | "sole_company_owner";
         Bootstrap: {
             default_locale: components["schemas"]["LocaleEnum"];
             supported_locales: components["schemas"]["LocaleEnum"][];
@@ -3400,6 +3428,18 @@ export interface components {
             evidence?: string[];
             /** Format: uuid */
             previous?: string;
+        };
+        ClosureRequestRequest: {
+            password: string;
+            confirm: boolean;
+        };
+        ClosureResult: {
+            closed: boolean;
+            context: components["schemas"]["PublicAccountContextEnum"];
+        };
+        ClosureStatus: {
+            context: components["schemas"]["PublicAccountContextEnum"];
+            blockers: components["schemas"]["BlockersEnum"][];
         };
         /**
          * @description * `conversation_exists` - conversation_exists
@@ -4951,6 +4991,7 @@ export interface components {
             held: string;
             available: string | null;
             expired: string;
+            expiring: string;
             state: string;
             capabilities: components["schemas"]["Capabilities"];
             batches?: components["schemas"]["Batch"][];
@@ -5345,6 +5386,12 @@ export interface components {
             payment_reviews?: number;
             delivery_reviews?: number;
             holds?: number;
+            stock_low?: number;
+            stock_zero?: number;
+            stock_expired?: number;
+            stock_expiring?: number;
+            publication_pending?: number;
+            publication_rejected?: number;
         };
         SellerSummary: {
             period: components["schemas"]["Period"];
@@ -5709,6 +5756,54 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    accounts_closure_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureStatus"];
+                };
+            };
+        };
+    };
+    accounts_closure_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClosureRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClosureRequestRequest"];
+                "multipart/form-data": components["schemas"]["ClosureRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosureResult"];
+                };
+            };
+        };
+    };
     auth_link_create: {
         parameters: {
             query?: never;
@@ -7275,7 +7370,7 @@ export interface operations {
                 q?: string;
                 seller: string;
                 sort?: "-available" | "-sku" | "available" | "sku";
-                state?: "available" | "expired" | "held" | "inactive" | "low" | "unconfigured" | "zero";
+                state?: "available" | "expired" | "expiring" | "held" | "inactive" | "low" | "unconfigured" | "zero";
             };
             header?: never;
             path?: never;

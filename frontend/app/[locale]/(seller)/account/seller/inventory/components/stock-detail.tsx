@@ -316,6 +316,11 @@ export function StockDetail({
 													{t.expired}
 												</StatusBadge>
 											)}
+											{record.expiring && !record.expired && (
+												<StatusBadge dot={false} variant="warning">
+													{t.expiring}
+												</StatusBadge>
+											)}
 										</div>
 										<p className="mt-2 text-sm text-muted wrap-anywhere">
 											{t.expires}: {expiry(record.expires_on)}

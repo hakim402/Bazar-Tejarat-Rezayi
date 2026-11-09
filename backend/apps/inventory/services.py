@@ -5,7 +5,7 @@ from apps.runtime.locks import row_options
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 from django.db import transaction
@@ -35,6 +35,17 @@ def clock(now=None):
 
 def expired(bucket, now=None):
     return bucket.batch_id is not None and bucket.batch.expires_on is not None and bucket.batch.expires_on < today(now)
+
+
+EXPIRING_DAYS = 30
+
+
+def expiring(bucket, now=None):
+    """Usable batch stock whose date-only expiry falls within the next 30 Kabul days."""
+    if bucket.batch_id is None or bucket.batch.expires_on is None or bucket.physical <= 0:
+        return False
+    first = today(now)
+    return first <= bucket.batch.expires_on <= first + timedelta(days=EXPIRING_DAYS)
 
 
 def active(variant):

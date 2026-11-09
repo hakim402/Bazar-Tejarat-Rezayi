@@ -457,11 +457,21 @@ class UnitAdmin(TaxonomyAdmin):
         )
 
 
+class RevisionAdmin(CatalogueRecordAdmin):
+    list_display = ["product", "number", "state", "category", "created_at", "workflow_link"]
+    list_filter = ["state"]
+    ordering = ["created_at"]
+    search_fields = ["product__seller__display_name", "product__variants__sku"]
+
+    def workflow_link(self, obj):
+        return format_html('<a href="{}">Review</a>', reverse("admin:catalogue_workflow", args=[obj.product_id]))
+
+
 owner_site.register(SaleUnit, UnitAdmin)
 owner_site.register(Product, ProductAdmin)
 owner_site.register(Category, CategoryAdmin)
+owner_site.register(SourceRevision, RevisionAdmin)
 for model in (
-    SourceRevision,
     Variant,
     PriceChange,
     Translation,

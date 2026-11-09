@@ -17,7 +17,8 @@ const en = {
 	noAccess: "You have no business with report access",
 	noAccessHint:
 		"Owners and members with orders, payments or delivery permission can read reports.",
-	invalidPeriod: "Choose a start date on or before the end date, at most 366 days.",
+	invalidPeriod:
+		"Choose a start date on or before the end date, at most 366 days.",
 	separate: "AFN and USD are shown separately and never converted.",
 	ordersTitle: "Accepted orders",
 	financeTitle: "Money recorded",
@@ -51,6 +52,11 @@ const en = {
 	exportFailed: "The file could not be downloaded. Try a shorter period.",
 	exportNote: "Downloads are recorded in the audit history.",
 	generated: "Updated",
+	last30: "Last 30 days",
+	openReports: "Open reports",
+	ordersEmpty: "No orders yet",
+	ordersEmptyHint: "Accepted orders for this business appear here.",
+	ordersFailed: "Recent orders could not be loaded.",
 	queues: {
 		awaiting_dispatch: "Awaiting dispatch",
 		cancellations: "Cancellation requests",
@@ -61,6 +67,12 @@ const en = {
 		delivery_reviews: "Delivery cases in review",
 		holds: "Dispatch holds",
 		in_transit: "On the way",
+		stock_low: "Low stock",
+		stock_zero: "Out of stock",
+		stock_expired: "Expired stock",
+		stock_expiring: "Expiring within 30 days",
+		publication_pending: "Products awaiting publication review",
+		publication_rejected: "Products returned for changes",
 	},
 };
 
@@ -83,7 +95,8 @@ const faAF: Copy = {
 	noAccess: "هیچ کسب‌وکاری با دسترسی گزارش ندارید",
 	noAccessHint:
 		"مالکان و اعضای دارای اجازهٔ سفارش، پرداخت یا تحویلی می‌توانند گزارش‌ها را ببینند.",
-	invalidPeriod: "تاریخ شروع باید پیش از تاریخ ختم یا برابر با آن باشد و دوره حداکثر ۳۶۶ روز.",
+	invalidPeriod:
+		"تاریخ شروع باید پیش از تاریخ ختم یا برابر با آن باشد و دوره حداکثر ۳۶۶ روز.",
 	separate: "افغانی و دالر جداگانه نشان داده می‌شوند و هیچ‌گاه تبدیل نمی‌شوند.",
 	ordersTitle: "سفارش‌های پذیرفته‌شده",
 	financeTitle: "پول ثبت‌شده",
@@ -117,6 +130,11 @@ const faAF: Copy = {
 	exportFailed: "فایل دانلود نشد. دورهٔ کوتاه‌تری انتخاب کنید.",
 	exportNote: "دانلودها در تاریخچهٔ بازرسی ثبت می‌شوند.",
 	generated: "به‌روزشده",
+	last30: "۳۰ روز گذشته",
+	openReports: "باز کردن گزارش‌ها",
+	ordersEmpty: "هنوز سفارشی نیست",
+	ordersEmptyHint: "سفارش‌های پذیرفته‌شدهٔ این کسب‌وکار اینجا دیده می‌شوند.",
+	ordersFailed: "سفارش‌های اخیر بارگیری نشد.",
 	queues: {
 		awaiting_dispatch: "در انتظار فرستادن",
 		cancellations: "درخواست‌های لغو",
@@ -127,6 +145,12 @@ const faAF: Copy = {
 		delivery_reviews: "قضایای تحویلی در بررسی",
 		holds: "توقف‌های فرستادن",
 		in_transit: "در راه",
+		stock_low: "موجودی کم",
+		stock_zero: "تمام‌شده",
+		stock_expired: "موجودی تاریخ‌گذشته",
+		stock_expiring: "تاریخ انقضا تا ۳۰ روز",
+		publication_pending: "محصولات در انتظار بررسی نشر",
+		publication_rejected: "محصولات برگشت‌داده‌شده برای اصلاح",
 	},
 };
 
@@ -147,7 +171,8 @@ const ps: Copy = {
 	noAccess: "تاسې د راپور لاسرسي سره کومه سوداګري نه لرئ",
 	noAccessHint:
 		"مالکان او هغه غړي چې د امر، تادیې یا سپارنې اجازه لري راپورونه لیدلی شي.",
-	invalidPeriod: "د پیل نېټه باید د پای نېټې څخه مخکې یا ورسره برابره وي، تر ۳۶۶ ورځو پورې.",
+	invalidPeriod:
+		"د پیل نېټه باید د پای نېټې څخه مخکې یا ورسره برابره وي، تر ۳۶۶ ورځو پورې.",
 	separate: "افغانۍ او ډالر جلا ښودل کېږي او هېڅکله نه بدلېږي.",
 	ordersTitle: "منل شوي امرونه",
 	financeTitle: "ثبت شوې پیسې",
@@ -181,6 +206,11 @@ const ps: Copy = {
 	exportFailed: "فایل ښکته نه شو. لنډه موده وټاکئ.",
 	exportNote: "ښکته کول د پلټنې په تاریخچه کې ثبتېږي.",
 	generated: "تازه شوی",
+	last30: "تېرې ۳۰ ورځې",
+	openReports: "راپورونه پرانیزئ",
+	ordersEmpty: "تر اوسه فرمایش نشته",
+	ordersEmptyHint: "د دې سوداګرۍ منل شوي فرمایشونه دلته ښکاري.",
+	ordersFailed: "وروستي فرمایشونه بار نه شول.",
 	queues: {
 		awaiting_dispatch: "د لېږلو په تمه",
 		cancellations: "د لغوې غوښتنې",
@@ -191,6 +221,12 @@ const ps: Copy = {
 		delivery_reviews: "د سپارنې قضیې په بیاکتنه کې",
 		holds: "د لېږلو درېدنې",
 		in_transit: "په لار کې",
+		stock_low: "لږ موجودي",
+		stock_zero: "خلاصه شوې موجودي",
+		stock_expired: "تېر نېټه موجودي",
+		stock_expiring: "په ۳۰ ورځو کې پای ته رسېږي",
+		publication_pending: "د خپرېدو د کتنې په تمه محصولات",
+		publication_rejected: "د سمون لپاره بېرته شوي محصولات",
 	},
 };
 
@@ -211,7 +247,8 @@ const ar: Copy = {
 	noAccess: "لا يوجد لديك نشاط تجاري بصلاحية التقارير",
 	noAccessHint:
 		"يمكن للمالكين والأعضاء الذين لديهم صلاحية الطلبات أو المدفوعات أو التسليم قراءة التقارير.",
-	invalidPeriod: "اختر تاريخ بداية قبل تاريخ النهاية أو مساويًا له، بحد أقصى 366 يومًا.",
+	invalidPeriod:
+		"اختر تاريخ بداية قبل تاريخ النهاية أو مساويًا له، بحد أقصى 366 يومًا.",
 	separate: "تُعرض الأفغاني والدولار بشكل منفصل ولا تُحوَّل أبدًا.",
 	ordersTitle: "الطلبات المقبولة",
 	financeTitle: "الأموال المسجلة",
@@ -245,6 +282,11 @@ const ar: Copy = {
 	exportFailed: "تعذر تنزيل الملف. اختر فترة أقصر.",
 	exportNote: "تُسجَّل عمليات التنزيل في سجل التدقيق.",
 	generated: "آخر تحديث",
+	last30: "آخر 30 يومًا",
+	openReports: "فتح التقارير",
+	ordersEmpty: "لا توجد طلبات بعد",
+	ordersEmptyHint: "تظهر هنا الطلبات المقبولة لهذا النشاط التجاري.",
+	ordersFailed: "تعذّر تحميل الطلبات الأخيرة.",
 	queues: {
 		awaiting_dispatch: "بانتظار الإرسال",
 		cancellations: "طلبات الإلغاء",
@@ -255,6 +297,12 @@ const ar: Copy = {
 		delivery_reviews: "حالات تسليم قيد المراجعة",
 		holds: "إيقافات الإرسال",
 		in_transit: "في الطريق",
+		stock_low: "مخزون منخفض",
+		stock_zero: "نفد المخزون",
+		stock_expired: "مخزون منتهي الصلاحية",
+		stock_expiring: "تنتهي صلاحيته خلال 30 يومًا",
+		publication_pending: "منتجات بانتظار مراجعة النشر",
+		publication_rejected: "منتجات أُعيدت للتعديل",
 	},
 };
 

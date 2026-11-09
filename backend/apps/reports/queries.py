@@ -6,8 +6,9 @@ sums per currency; AFN and USD are never combined or converted.
 
 from collections import defaultdict
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
@@ -214,9 +215,51 @@ def summary(orders, window, rights):
     }
 
 
+def bundles(account, profile):
+    if profile.kind == "individual":
+        return {"catalogue", "fulfilment"} if profile.account_id == account.pk else set()
+    membership = Membership.objects.filter(company=profile, account=account, active=True).first()
+    if membership is None:
+        return set()
+    return {"catalogue", "fulfilment"} if membership.is_owner else set(membership.bundles or [])
+
+
+def catalogue_queues(account, profile):
+    """Stock attention counts (catalogue or fulfilment) and publication backlog (catalogue only)."""
+    from apps.catalogue.models import Product, SourceRevision
+    from apps.inventory import queries as stock
+    from apps.inventory.services import clock
+
+    held = bundles(account, profile)
+    if not held & {"catalogue", "fulfilment"}:
+        return {}
+    write = "catalogue" in held
+    caps = {"read": True, "write": write}
+    now = clock()
+    rows = [stock.position_data(v, caps, now=now) for v in stock.variants(profile)]
+    if not write:
+        rows = [r for r in rows if r["eligible"]]
+    result = {
+        "stock_low": sum(
+            1 for r in rows if r["configured"] and r["eligible"] and r["threshold"] is not None
+            and Decimal(r["available"]) <= Decimal(r["threshold"])
+        ),
+        "stock_zero": sum(1 for r in rows if r["state"] == "zero"),
+        "stock_expired": sum(1 for r in rows if Decimal(r["expired"]) > 0),
+        "stock_expiring": sum(1 for r in rows if Decimal(r["expiring"]) > 0),
+    }
+    if write:
+        latest = SourceRevision.objects.filter(product_id=OuterRef("pk")).order_by("-number").values("state")[:1]
+        states = Product.objects.filter(seller=profile).annotate(latest=Subquery(latest))
+        result["publication_pending"] = states.filter(latest="submitted").count()
+        result["publication_rejected"] = states.filter(latest="rejected").count()
+    return result
+
+
 def seller_summary(account, seller, window):
     profile, rights = seller_scope(account, seller)
     result = summary(SellerOrder.objects.filter(seller=profile), window, rights)
+    result["queues"].update(catalogue_queues(account, profile))
     result["seller"] = {"id": profile.pk, "name": profile.display_name}
     return result
 

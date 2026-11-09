@@ -91,6 +91,12 @@ class SellerQueues(serializers.Serializer):
     payment_reviews = serializers.IntegerField(required=False)
     delivery_reviews = serializers.IntegerField(required=False)
     holds = serializers.IntegerField(required=False)
+    stock_low = serializers.IntegerField(required=False)
+    stock_zero = serializers.IntegerField(required=False)
+    stock_expired = serializers.IntegerField(required=False)
+    stock_expiring = serializers.IntegerField(required=False)
+    publication_pending = serializers.IntegerField(required=False)
+    publication_rejected = serializers.IntegerField(required=False)
 
 
 class BuyerQueues(serializers.Serializer):

@@ -9,7 +9,7 @@ from apps.verification.models import ReviewCase
 from apps.organizations.access import visible_profiles
 from . import access
 from .models import Bucket, Movement, Shortage
-from .services import expired, active, clock
+from .services import expired, expiring, active, clock
 
 
 def profiles(actor):
@@ -52,6 +52,7 @@ def position_data(variant, caps, *, detail=False, now=None):
     physical = sum((b.physical for b in buckets), Decimal(0))
     held = sum((b.held for b in buckets), Decimal(0))
     expired_quantity = sum((b.physical for b in buckets if expired(b, now)), Decimal(0))
+    expiring_quantity = sum((b.physical for b in buckets if expiring(b, now)), Decimal(0))
     eligible = active(variant)
     available = (
         sum((b.physical - b.held for b in buckets if not expired(b, now)), Decimal(0)) if eligible else Decimal(0)
@@ -89,6 +90,7 @@ def position_data(variant, caps, *, detail=False, now=None):
         "physical": format(physical, ".3f"),
         "held": format(held, ".3f"),
         "expired": format(expired_quantity, ".3f"),
+        "expiring": format(expiring_quantity, ".3f"),
         "available": format(available, ".3f") if position else None,
         "state": status,
         "capabilities": caps,
@@ -102,6 +104,7 @@ def position_data(variant, caps, *, detail=False, now=None):
                 "physical": format(b.physical, ".3f"),
                 "held": format(b.held, ".3f"),
                 "expired": expired(b, now),
+                "expiring": expiring(b, now),
                 "available": format(b.physical - b.held if eligible and not expired(b, now) else Decimal(0), ".3f"),
             }
             for b in buckets
@@ -118,7 +121,7 @@ def filters(params, allowed=None):
     if len(q) > 100 or any(ord(c) < 32 for c in q):
         fail("q")
     state, sort = params.get("state", ""), params.get("sort", "sku")
-    if state not in {"", "unconfigured", "inactive", "zero", "low", "available", "expired", "held"} or sort not in {
+    if state not in {"", "unconfigured", "inactive", "zero", "low", "available", "expired", "expiring", "held"} or sort not in {
         "sku",
         "-sku",
         "available",
@@ -149,7 +152,10 @@ def overview(actor, profile_id, params):
     # Fulfilment-only grants do not reveal private draft variants/descriptions.
     if not caps["write"]:
         rows = [r for r in rows if r["eligible"]]
-    counts = {"variants": len(rows), "unconfigured": 0, "zero": 0, "low": 0, "expired": 0, "held": 0, "inactive": 0}
+    counts = {
+        "variants": len(rows), "unconfigured": 0, "zero": 0, "low": 0, "expired": 0, "expiring": 0, "held": 0,
+        "inactive": 0,
+    }
     for row in rows:
         if row["state"] in {"unconfigured", "zero", "inactive"}:
             counts[row["state"]] += 1
@@ -161,8 +167,9 @@ def overview(actor, profile_id, params):
         ):
             counts["low"] += 1
         counts["expired"] += int(Decimal(row["expired"]) > 0)
+        counts["expiring"] += int(Decimal(row["expiring"]) > 0)
         counts["held"] += int(Decimal(row["held"]) > 0)
-    if state in {"expired", "held"}:
+    if state in {"expired", "expiring", "held"}:
         rows = [r for r in rows if Decimal(r[state]) > 0]
     elif state == "low":
         rows = [

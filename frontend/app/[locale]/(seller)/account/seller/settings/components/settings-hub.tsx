@@ -23,6 +23,7 @@ import {
 } from "../../../../../../../features/organizations/api/organizations";
 import { ProfileEditor } from "../../../../../../../features/organizations/components/profile-editor";
 import { EmailPreference } from "../../../../../../../features/notifications/components/email-preference";
+import { CloseAccount } from "../../../../../../../components/accounts/close-account";
 import {
 	SettingsSection,
 	settingsSecondary,
@@ -366,6 +367,7 @@ function Hub({ locale, seller }: { locale: Locale; seller: string | null }) {
 					<Icon name="arrow" className="size-4" />
 				</Link>
 			</SettingsSection>
+			<CloseAccount locale={locale} context="seller" />
 		</div>
 	);
 }

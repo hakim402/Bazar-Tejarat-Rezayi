@@ -38,6 +38,7 @@
         <li>Goods payment cases: {{ report.queues.payment_reviews }}</li>
         <li>Delivery cases: {{ report.queues.delivery_reviews }}</li>
         <li>Open holds: {{ report.queues.holds }}</li>
+        <li><a class="ra:text-action" href="{% url 'admin:catalogue_sourcerevision_changelist' %}?state__exact=submitted">Catalogue revisions awaiting publication review: {{ publication_pending }}</a></li>
       </ul>
     </article>
   </div>

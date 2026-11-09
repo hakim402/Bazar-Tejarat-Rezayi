@@ -15,6 +15,11 @@ import type { Locale } from "../../../../../../lib/i18n/locales";
 import { sellerShellCopy } from "../../../../../../lib/i18n/seller-shell";
 import { CatalogueCard } from "../inventory/components/catalogue-card";
 import { StockGlance } from "../inventory/components/stock-ui";
+import {
+	RecentOrders,
+	SalesSnapshot,
+	useSellerActivity,
+} from "./seller-activity";
 import { useSellerNavigation } from "./seller-navigation";
 
 const metricCardClassName =
@@ -23,16 +28,19 @@ const dashboardCardClassName = "h-full border-border!";
 
 export function SellerOverview({
 	locale,
+	seller,
 	overview,
 	href,
 }: {
 	locale: Locale;
+	seller: string;
 	overview: Pick<StockOverview, "counts" | "catalogue_count" | "capabilities">;
 	href: (route: string, changes?: Record<string, string>) => string;
 }) {
 	const t = inventoryCopy[locale];
 	const copy = sellerShellCopy[locale];
 	const destinations = useSellerNavigation();
+	const activity = useSellerActivity(seller, locale);
 	const canOpen = (route: string) =>
 		Boolean(destinations?.some((page) => page.route === route));
 	const canViewCatalogue = overview.capabilities.write && canOpen("catalogue");
@@ -145,11 +153,18 @@ export function SellerOverview({
 						) : undefined
 					}
 				>
-					<EmptyState
-						borderless
-						icon="trending-up"
-						title={copy.salesUnavailable}
-						description={copy.salesUnavailableHint}
+					<SalesSnapshot
+						locale={locale}
+						seller={seller}
+						activity={activity}
+						fallback={
+							<EmptyState
+								borderless
+								icon="trending-up"
+								title={copy.salesUnavailable}
+								description={copy.salesUnavailableHint}
+							/>
+						}
 					/>
 				</DashboardCard>
 				<DashboardCard
@@ -161,17 +176,24 @@ export function SellerOverview({
 						) : undefined
 					}
 				>
-					<RecentOrdersList
-						orders={[]}
+					<RecentOrders
 						locale={locale}
-						statusLabels={{
-							delivered: t.orderDelivered,
-							pending: t.orderPending,
-							shipped: t.orderShipped,
-							cancelled: t.orderCancelled,
-						}}
-						emptyTitle={copy.ordersUnavailable}
-						emptyDescription={copy.ordersUnavailableHint}
+						seller={seller}
+						activity={activity}
+						fallback={
+							<RecentOrdersList
+								orders={[]}
+								locale={locale}
+								statusLabels={{
+									delivered: t.orderDelivered,
+									pending: t.orderPending,
+									shipped: t.orderShipped,
+									cancelled: t.orderCancelled,
+								}}
+								emptyTitle={copy.ordersUnavailable}
+								emptyDescription={copy.ordersUnavailableHint}
+							/>
+						}
 					/>
 				</DashboardCard>
 			</div>

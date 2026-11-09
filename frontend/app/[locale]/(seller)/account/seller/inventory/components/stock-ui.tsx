@@ -132,6 +132,14 @@ export function StockGlance({
 			tone: "danger",
 		},
 		{
+			key: "expiring",
+			label: copy.glanceExpiring,
+			accessibleLabel: t.expiring,
+			state: "expiring",
+			icon: "clock",
+			tone: "warning",
+		},
+		{
 			key: "held",
 			label: copy.glanceHeld,
 			accessibleLabel: t.held,

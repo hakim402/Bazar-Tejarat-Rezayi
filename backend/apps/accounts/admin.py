@@ -83,9 +83,11 @@ class OwnerSite(UnfoldAdminSite):
         if is_owner(request):
             return super().index(request, extra_context)
         request.current_app = self.name
-        return TemplateResponse(request, "admin/index.html", {
+        from .admin_work import my_work
+        return TemplateResponse(request, "accounts/admin/staff_index.html", {
             **self.each_context(request), "title": ADMIN_COPY["staff_workspace"], "index": True,
-            "app_list": self.get_app_list(request), **(extra_context or {}),
+            "app_list": self.get_app_list(request), "my_work": my_work(self, request, admin_actor(request)),
+            **(extra_context or {}),
         })
 
     def each_context(self, request):
@@ -316,10 +318,34 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
                   context="owner", fields=["groups"])
 
 
+class AccountForm(forms.ModelForm):
+    status_reason = forms.CharField(
+        max_length=1000,
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        label="Status change reason",
+        help_text="Required when suspending, archiving or reopening. Recorded in the audit history.",
+    )
+
+    class Meta:
+        model = Account
+        fields = ["user", "context", "status", "intent", "review_status", "permission_groups"]
+
+    def clean(self):
+        data = super().clean()
+        if self.instance.pk and "status" in self.changed_data and not (data.get("status_reason") or "").strip():
+            self.add_error("status_reason", "Give a reason for this status change.")
+        return data
+
+
+STATUS_ACTIONS = {"suspended": "account_suspended", "archived": "account_archived", "active": "account_reopened"}
+
+
 class AccountAdmin(AdminDisplayMixin, ModelAdmin):
+    form = AccountForm
     list_display = ["id", "user", "context", "status", "intent", "review_status"]
     list_filter = ["context", "status"]
-    fields = ["user", "context", "status", "intent", "review_status", "permission_groups"]
+    fields = ["user", "context", "status", "status_reason", "intent", "review_status", "permission_groups"]
     filter_horizontal = []
     actions = []
     badge_fields = ("context", "status", "intent", "review_status")
@@ -356,7 +382,19 @@ class AccountAdmin(AdminDisplayMixin, ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             obj.context, obj.intent, obj.review_status = "staff", "individual", "not_requested"
+        previous = Account.objects.filter(pk=obj.pk).values_list("status", flat=True).first() if change else None
         super().save_model(request, obj, form, change)
+        if previous and previous != obj.status:
+            audit(
+                STATUS_ACTIONS[obj.status],
+                request=request,
+                user=obj.user,
+                account=obj,
+                context="owner",
+                fields=["status"],
+                reason=form.cleaned_data["status_reason"].strip(),
+                state={"status": {"before": previous, "after": obj.status}, "context": obj.context},
+            )
         audit(
             "owner_account_updated" if change else "owner_staff_provisioned",
             request=request,

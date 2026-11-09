@@ -5,6 +5,98 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/api/v1/auth/{context}/closure/": {
+            "get": {
+                "operationId": "accounts_closure_status",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClosureStatus"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "accounts_closure_close",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClosureRequestRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClosureRequestRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClosureRequestRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClosureResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/auth/{context}/link/{target}/": {
             "post": {
                 "operationId": "auth_link_create",
@@ -3205,6 +3297,7 @@
                             "enum": [
                                 "available",
                                 "expired",
+                                "expiring",
                                 "held",
                                 "inactive",
                                 "low",
@@ -10800,6 +10893,9 @@
                     },
                     "expired": {
                         "type": "boolean"
+                    },
+                    "expiring": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
@@ -10807,10 +10903,24 @@
                     "code",
                     "expired",
                     "expires_on",
+                    "expiring",
                     "held",
                     "id",
                     "physical"
                 ]
+            },
+            "BlockersEnum": {
+                "enum": [
+                    "open_orders",
+                    "refunds_outstanding",
+                    "pending_disputes",
+                    "open_negotiations",
+                    "open_payment_reviews",
+                    "open_delivery_reviews",
+                    "sole_company_owner"
+                ],
+                "type": "string",
+                "description": "* `open_orders` - open_orders\n* `refunds_outstanding` - refunds_outstanding\n* `pending_disputes` - pending_disputes\n* `open_negotiations` - open_negotiations\n* `open_payment_reviews` - open_payment_reviews\n* `open_delivery_reviews` - open_delivery_reviews\n* `sole_company_owner` - sole_company_owner"
             },
             "Bootstrap": {
                 "type": "object",
@@ -12000,6 +12110,57 @@
                     "description",
                     "paid_at",
                     "version"
+                ]
+            },
+            "ClosureRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "password": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "maxLength": 128
+                    },
+                    "confirm": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "confirm",
+                    "password"
+                ]
+            },
+            "ClosureResult": {
+                "type": "object",
+                "properties": {
+                    "closed": {
+                        "type": "boolean"
+                    },
+                    "context": {
+                        "$ref": "#/components/schemas/PublicAccountContextEnum"
+                    }
+                },
+                "required": [
+                    "closed",
+                    "context"
+                ]
+            },
+            "ClosureStatus": {
+                "type": "object",
+                "properties": {
+                    "context": {
+                        "$ref": "#/components/schemas/PublicAccountContextEnum"
+                    },
+                    "blockers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BlockersEnum"
+                        }
+                    }
+                },
+                "required": [
+                    "blockers",
+                    "context"
                 ]
             },
             "CodeEnum": {
@@ -16790,6 +16951,9 @@
                     "expired": {
                         "type": "string"
                     },
+                    "expiring": {
+                        "type": "string"
+                    },
                     "state": {
                         "type": "string"
                     },
@@ -16815,6 +16979,7 @@
                     "configured",
                     "eligible",
                     "expired",
+                    "expiring",
                     "expiry_required",
                     "held",
                     "id",
@@ -18257,6 +18422,24 @@
                         "type": "integer"
                     },
                     "holds": {
+                        "type": "integer"
+                    },
+                    "stock_low": {
+                        "type": "integer"
+                    },
+                    "stock_zero": {
+                        "type": "integer"
+                    },
+                    "stock_expired": {
+                        "type": "integer"
+                    },
+                    "stock_expiring": {
+                        "type": "integer"
+                    },
+                    "publication_pending": {
+                        "type": "integer"
+                    },
+                    "publication_rejected": {
                         "type": "integer"
                     }
                 }

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { EmailPreference } from "../../features/notifications/components/email-preference";
+import { CloseAccount } from "./close-account";
 import type { Locale } from "../../lib/i18n/locales";
 import { accountSettingsCopy } from "../../lib/i18n/account-settings";
 import { organizationCopy, label } from "../../lib/i18n/organizations";
@@ -104,6 +105,7 @@ export function AccountSettings({
 					</>
 				)}
 			</section>
+			<CloseAccount locale={locale} context={context} />
 		</div>
 	);
 }

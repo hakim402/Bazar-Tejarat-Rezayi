@@ -66,6 +66,7 @@ class Batch(s.Serializer):
     held = s.CharField()
     available = s.CharField()
     expired = s.BooleanField()
+    expiring = s.BooleanField()
 
 
 class Movement(s.Serializer):
@@ -105,6 +106,7 @@ class Position(s.Serializer):
     held = s.CharField()
     available = s.CharField(allow_null=True)
     expired = s.CharField()
+    expiring = s.CharField()
     state = s.CharField()
     capabilities = Capabilities()
     batches = Batch(many=True, required=False)

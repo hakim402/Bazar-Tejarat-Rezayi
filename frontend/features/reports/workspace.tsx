@@ -40,8 +40,18 @@ const queueRoutes: Record<Context, Partial<Record<QueueKey, string>>> = {
 		payment_reviews: "payments",
 		delivery_reviews: "fulfilment",
 		holds: "fulfilment",
+		stock_low: "inventory",
+		stock_zero: "inventory",
+		stock_expired: "inventory",
+		stock_expiring: "inventory",
+		publication_pending: "catalogue",
+		publication_rejected: "catalogue",
 	},
-	buyer: { cancellations: "cancellations", disputes: "disputes", in_transit: "deliveries" },
+	buyer: {
+		cancellations: "cancellations",
+		disputes: "disputes",
+		in_transit: "deliveries",
+	},
 };
 
 const queueIcons: Record<QueueKey, IconName> = {
@@ -54,6 +64,19 @@ const queueIcons: Record<QueueKey, IconName> = {
 	delivery_reviews: "truck",
 	holds: "alert-triangle",
 	in_transit: "truck",
+	stock_low: "warehouse",
+	stock_zero: "warehouse",
+	stock_expired: "alert-triangle",
+	stock_expiring: "clock",
+	publication_pending: "eye",
+	publication_rejected: "return",
+};
+
+const stockStates: Partial<Record<QueueKey, string>> = {
+	stock_low: "low",
+	stock_zero: "zero",
+	stock_expired: "expired",
+	stock_expiring: "expiring",
 };
 
 function Amount({ value, currency }: { value: string; currency: string }) {
@@ -64,7 +87,13 @@ function Amount({ value, currency }: { value: string; currency: string }) {
 	);
 }
 
-function Figure({ label, children }: { label: string; children: React.ReactNode }) {
+function Figure({
+	label,
+	children,
+}: {
+	label: string;
+	children: React.ReactNode;
+}) {
 	return (
 		<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border py-2 first:border-t-0">
 			<dt className="text-sm text-muted">{label}</dt>
@@ -73,18 +102,30 @@ function Figure({ label, children }: { label: string; children: React.ReactNode 
 	);
 }
 
-export function ReportsWorkspace({ locale, context }: { locale: Locale; context: Context }) {
+export function ReportsWorkspace({
+	locale,
+	context,
+}: {
+	locale: Locale;
+	context: Context;
+}) {
 	const t = reportCopy[locale];
 	const query = useSearchParams();
 	const router = useRouter();
-	const [profiles, setProfiles] = useState<ReportProfile[] | null>(context === "buyer" ? [] : null);
+	const [profiles, setProfiles] = useState<ReportProfile[] | null>(
+		context === "buyer" ? [] : null,
+	);
 	const [seller, setSeller] = useState(query.get("seller") ?? "");
 	const [draft, setDraft] = useState<Period>({});
 	const [period, setPeriod] = useState<Period>({});
 	const [data, setData] = useState<Summary | null>(null);
-	const [state, setState] = useState<"loading" | "ready" | "failed" | "invalid">("loading");
+	const [state, setState] = useState<
+		"loading" | "ready" | "failed" | "invalid"
+	>("loading");
 	const [kind, setKind] = useState<ExportKind>("orders");
-	const [exporting, setExporting] = useState<"idle" | "busy" | "failed">("idle");
+	const [exporting, setExporting] = useState<"idle" | "busy" | "failed">(
+		"idle",
+	);
 
 	useEffect(() => {
 		if (context !== "seller") return;
@@ -94,7 +135,9 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 				if (!live) return;
 				setProfiles(result.results);
 				setSeller((current) =>
-					result.results.some((item) => item.id === current) ? current : (result.results[0]?.id ?? ""),
+					result.results.some((item) => item.id === current)
+						? current
+						: (result.results[0]?.id ?? ""),
 				);
 			})
 			.catch(() => live && setState("failed"));
@@ -106,7 +149,10 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 	const load = useCallback(() => {
 		if (context === "seller" && !seller) return;
 		setState("loading");
-		const request = context === "seller" ? sellerSummary(seller, period) : buyerSummary(period);
+		const request =
+			context === "seller"
+				? sellerSummary(seller, period)
+				: buyerSummary(period);
 		let live = true;
 		request
 			.then((result) => {
@@ -116,7 +162,12 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 				setState("ready");
 			})
 			.catch((error) => {
-				if (live) setState(error instanceof AccountError && error.status === 400 ? "invalid" : "failed");
+				if (live)
+					setState(
+						error instanceof AccountError && error.status === 400
+							? "invalid"
+							: "failed",
+					);
 			});
 		return () => {
 			live = false;
@@ -142,21 +193,37 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 	const download = async () => {
 		setExporting("busy");
 		try {
-			await downloadExport(seller, kind, data ? { start: data.period.start, end: data.period.end } : period);
+			await downloadExport(
+				seller,
+				kind,
+				data ? { start: data.period.start, end: data.period.end } : period,
+			);
 			setExporting("idle");
 		} catch {
 			setExporting("failed");
 		}
 	};
 
-	const href = (route: string) =>
-		context === "seller" ? sellerHref(locale, route, seller) : `/${locale}/account/buyer/${route}`;
+	const href = (route: string, key?: QueueKey) =>
+		context === "seller"
+			? sellerHref(
+					locale,
+					route,
+					seller,
+					undefined,
+					key && stockStates[key] ? { state: stockStates[key] } : {},
+				)
+			: `/${locale}/account/buyer/${route}`;
 
 	if (context === "seller" && profiles?.length === 0)
 		return (
 			<div className="space-y-6">
 				<PageHeader title={t.sellerTitle} description={t.sellerDescription} />
-				<EmptyState icon="trending-up" title={t.noAccess} description={t.noAccessHint} />
+				<EmptyState
+					icon="trending-up"
+					title={t.noAccess}
+					description={t.noAccessHint}
+				/>
 			</div>
 		);
 
@@ -170,7 +237,9 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 		<div className="space-y-6">
 			<PageHeader
 				title={context === "seller" ? t.sellerTitle : t.buyerTitle}
-				description={context === "seller" ? t.sellerDescription : t.buyerDescription}
+				description={
+					context === "seller" ? t.sellerDescription : t.buyerDescription
+				}
 				actions={
 					context === "seller" && data ? (
 						<div className="flex flex-wrap items-end gap-2">
@@ -178,15 +247,29 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 								<Select
 									name="report-kind"
 									value={kind}
-									onChange={(event) => setKind(event.target.value as ExportKind)}
+									onChange={(event) =>
+										setKind(event.target.value as ExportKind)
+									}
 									className="min-h-10! py-1.5! text-sm"
 								>
-									{data.sections.orders && <option value="orders">{t.exportOrders}</option>}
-									{data.sections.finance && <option value="payments">{t.exportPayments}</option>}
-									{data.sections.finance && <option value="refunds">{t.exportRefunds}</option>}
+									{data.sections.orders && (
+										<option value="orders">{t.exportOrders}</option>
+									)}
+									{data.sections.finance && (
+										<option value="payments">{t.exportPayments}</option>
+									)}
+									{data.sections.finance && (
+										<option value="refunds">{t.exportRefunds}</option>
+									)}
 								</Select>
 							</Field>
-							<Button variant="compact" compact className="mt-0!" disabled={!canExport || exporting === "busy"} onClick={download}>
+							<Button
+								variant="compact"
+								compact
+								className="mt-0!"
+								disabled={!canExport || exporting === "busy"}
+								onClick={download}
+							>
 								{exporting === "busy" ? t.exporting : t.export}
 							</Button>
 						</div>
@@ -222,7 +305,12 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 						name="report-start"
 						dir="ltr"
 						value={draft.start ?? ""}
-						onChange={(event) => setDraft((value) => ({ ...value, start: event.target.value || undefined }))}
+						onChange={(event) =>
+							setDraft((value) => ({
+								...value,
+								start: event.target.value || undefined,
+							}))
+						}
 					/>
 				</Field>
 				<Field name="report-end" compact label={t.to}>
@@ -232,7 +320,12 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 						name="report-end"
 						dir="ltr"
 						value={draft.end ?? ""}
-						onChange={(event) => setDraft((value) => ({ ...value, end: event.target.value || undefined }))}
+						onChange={(event) =>
+							setDraft((value) => ({
+								...value,
+								end: event.target.value || undefined,
+							}))
+						}
 					/>
 				</Field>
 				<Button type="submit" variant="compact" compact className="mt-0!">
@@ -251,7 +344,11 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 				</div>
 			)}
 			{state === "loading" && !data && (
-				<div className="grid gap-4 sm:grid-cols-3" role="status" aria-label={t.loading}>
+				<div
+					className="grid gap-4 sm:grid-cols-3"
+					role="status"
+					aria-label={t.loading}
+				>
 					<StatCardSkeleton />
 					<StatCardSkeleton />
 					<StatCardSkeleton />
@@ -259,12 +356,32 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 			)}
 
 			{data && (
-				<div className={`space-y-6 ${state === "loading" ? "opacity-60" : ""}`} aria-busy={state === "loading"}>
+				<div
+					className={`space-y-6 ${state === "loading" ? "opacity-60" : ""}`}
+					aria-busy={state === "loading"}
+				>
 					{data.logistics && (
 						<div className="grid gap-4 sm:grid-cols-3">
-							<StatCard icon="truck" label={t.dispatched} value={data.logistics.dispatched} locale={locale} />
-							<StatCard icon="box" chip="accent" label={t.delivered} value={data.logistics.delivered} locale={locale} />
-							<StatCard icon="check-circle" chip="success" label={t.completed} value={data.logistics.completed} locale={locale} />
+							<StatCard
+								icon="truck"
+								label={t.dispatched}
+								value={data.logistics.dispatched}
+								locale={locale}
+							/>
+							<StatCard
+								icon="box"
+								chip="accent"
+								label={t.delivered}
+								value={data.logistics.delivered}
+								locale={locale}
+							/>
+							<StatCard
+								icon="check-circle"
+								chip="success"
+								label={t.completed}
+								value={data.logistics.completed}
+								locale={locale}
+							/>
 						</div>
 					)}
 
@@ -277,14 +394,26 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 									<div className="space-y-4">
 										{data.orders.map((row) => (
 											<dl key={row.currency}>
-												<p className="mb-1 font-bold text-foreground">{row.currency}</p>
-												<Figure label={t.accepted}>{number.format(row.accepted)}</Figure>
-												<Figure label={t.cancelled}>{number.format(row.cancelled)}</Figure>
+												<p className="mb-1 font-bold text-foreground">
+													{row.currency}
+												</p>
+												<Figure label={t.accepted}>
+													{number.format(row.accepted)}
+												</Figure>
+												<Figure label={t.cancelled}>
+													{number.format(row.cancelled)}
+												</Figure>
 												<Figure label={t.goodsTotal}>
-													<Amount value={row.goods_total} currency={row.currency} />
+													<Amount
+														value={row.goods_total}
+														currency={row.currency}
+													/>
 												</Figure>
 												<Figure label={t.acceptedTotal}>
-													<Amount value={row.accepted_total} currency={row.currency} />
+													<Amount
+														value={row.accepted_total}
+														currency={row.currency}
+													/>
 												</Figure>
 											</dl>
 										))}
@@ -300,25 +429,63 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 									<div className="space-y-4">
 										{data.finance.map((row) => (
 											<dl key={row.currency}>
-												<p className="mb-1 font-bold text-foreground">{row.currency}</p>
-												<Figure label={context === "seller" ? t.goodsReceived : t.buyerPaid}>
-													<Amount value={row.goods_received} currency={row.currency} />
+												<p className="mb-1 font-bold text-foreground">
+													{row.currency}
+												</p>
+												<Figure
+													label={
+														context === "seller" ? t.goodsReceived : t.buyerPaid
+													}
+												>
+													<Amount
+														value={row.goods_received}
+														currency={row.currency}
+													/>
 												</Figure>
-												<Figure label={t.receipts}>{number.format(row.goods_receipts)}</Figure>
-												<Figure label={context === "seller" ? t.goodsRefunded : t.buyerRefunded}>
-													<Amount value={row.goods_refunded} currency={row.currency} />
+												<Figure label={t.receipts}>
+													{number.format(row.goods_receipts)}
+												</Figure>
+												<Figure
+													label={
+														context === "seller"
+															? t.goodsRefunded
+															: t.buyerRefunded
+													}
+												>
+													<Amount
+														value={row.goods_refunded}
+														currency={row.currency}
+													/>
 												</Figure>
 												<Figure label={t.goodsNet}>
-													<Amount value={row.goods_net} currency={row.currency} />
+													<Amount
+														value={row.goods_net}
+														currency={row.currency}
+													/>
 												</Figure>
 												<Figure label={t.refundDue}>
-													<Amount value={row.refund_due_created} currency={row.currency} />
+													<Amount
+														value={row.refund_due_created}
+														currency={row.currency}
+													/>
 												</Figure>
-												<Figure label={context === "seller" ? t.deliveryReceived : t.buyerDelivery}>
-													<Amount value={row.delivery_received} currency={row.currency} />
+												<Figure
+													label={
+														context === "seller"
+															? t.deliveryReceived
+															: t.buyerDelivery
+													}
+												>
+													<Amount
+														value={row.delivery_received}
+														currency={row.currency}
+													/>
 												</Figure>
 												<Figure label={t.deliveryRefunded}>
-													<Amount value={row.delivery_refunded} currency={row.currency} />
+													<Amount
+														value={row.delivery_refunded}
+														currency={row.currency}
+													/>
 												</Figure>
 											</dl>
 										))}
@@ -331,7 +498,12 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 					{Object.keys(data.queues).length > 0 && (
 						<DashboardCard title={t.queuesTitle} description={t.queuesHint}>
 							<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-								{(Object.entries(data.queues) as [QueueKey, number | undefined][]).map(([key, value]) =>
+								{(
+									Object.entries(data.queues) as [
+										QueueKey,
+										number | undefined,
+									][]
+								).map(([key, value]) =>
 									value === undefined ? null : (
 										<StatCard
 											key={key}
@@ -340,7 +512,11 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 											label={t.queues[key]}
 											value={value}
 											locale={locale}
-											href={queueRoutes[context][key] ? href(queueRoutes[context][key]) : undefined}
+											href={
+												queueRoutes[context][key]
+													? href(queueRoutes[context][key], key)
+													: undefined
+											}
 										/>
 									),
 								)}
@@ -351,9 +527,10 @@ export function ReportsWorkspace({ locale, context }: { locale: Locale; context:
 					<p className="text-caption text-muted">
 						{t.generated}{" "}
 						<bdi>
-							{new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
-								new Date(data.generated_at),
-							)}
+							{new Intl.DateTimeFormat(locale, {
+								dateStyle: "medium",
+								timeStyle: "short",
+							}).format(new Date(data.generated_at))}
 						</bdi>
 						{context === "seller" ? ` · ${t.exportNote}` : ""}
 					</p>

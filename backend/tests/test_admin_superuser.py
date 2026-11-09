@@ -156,13 +156,14 @@ class SuperAdminTests(TransactionTestCase):
         # The admin middleware forces English; assert the same default-English contract here.
         with translation.override('en'):
             groups = navigation(request)
-            self.assertEqual(str(groups[-1]['title']), 'Site Settings')
-            active = [str(item['title']) for group in groups for item in group['items'] if item['active']]
+            # Each non-overview group is one titled parent item whose children are the links.
+            self.assertEqual(str(groups[-1]['items'][0]['title']), 'Site Settings')
+            leaves = [child for group in groups for item in group['items'] for child in item.get('items', [item])]
+            active = [str(item['title']) for item in leaves if item['active']]
             self.assertEqual(active, ['Seller accounts'])
-        for group in groups:
-            for item in group['items']:
-                resolve(item['link'].split('?')[0])
-                self.assertIn(self.client.get(item['link']).status_code, [200, 302], item['link'])
+        for item in leaves:
+            resolve(item['link'].split('?')[0])
+            self.assertIn(self.client.get(item['link']).status_code, [200, 302], item['link'])
 
     @override_settings(OWNER_MFA_REQUIRED=True)
     def test_canonical_root_mfa_true_and_reenable_continuity(self):
@@ -258,7 +259,11 @@ class SuperAdminTests(TransactionTestCase):
             'payments.refunddue', 'payments.refundseal', 'payments.refundreport', 'payments.refunddecision',
             'inventory.allocationreduction',
         }
-        expected = legacy | communication | commerce | negotiation | runtime | payments | fulfilment | aftercare
+        disputes = {
+            'orders.disputerequest', 'orders.disputeresponse', 'orders.disputedecision',
+            'orders.review', 'orders.reviewdecision',
+        }
+        expected = legacy | communication | commerce | negotiation | runtime | payments | fulfilment | aftercare | disputes
         self.assertEqual(expected, {model._meta.label_lower for model in owner_site._registry})
         for label in expected:
             app, model = label.split('.')

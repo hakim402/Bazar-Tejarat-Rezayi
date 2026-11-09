@@ -55,7 +55,7 @@ class TooManyRequests(APIException):
     default_code = "rate_limited"
 
 
-def audit(action, *, request=None, user=None, account=None, context="system", fields=()):
+def audit(action, *, request=None, user=None, account=None, context="system", fields=(), reason="", state=None):
     actor = getattr(request, "user", None)
     if account is None and user is not None and context in {"buyer", "seller", "staff"}:
         account = Account.objects.filter(user=user, context=context).first()
@@ -67,6 +67,8 @@ def audit(action, *, request=None, user=None, account=None, context="system", fi
         action=action,
         request_id=getattr(request, "request_id", None),
         changed_fields=list(fields),
+        reason=reason,
+        state=state or {},
     )
 
 

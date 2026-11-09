@@ -193,6 +193,19 @@ class PasswordView(AuthView):
         return Response({"status": "password_updated"})
 
 
+class ClosureView(AuthView):
+    @extend_schema(operation_id="accounts_closure_status", responses=c.ClosureStatus)
+    def get(self, request, context):
+        from .closure import closure_status
+        return Response(closure_status(request, context))
+
+    @extend_schema(operation_id="accounts_closure_close", request=c.ClosureRequest, responses=c.ClosureResult)
+    def post(self, request, context):
+        from .closure import close_account
+        data = self.data(c.ClosureRequest)
+        return Response(close_account(request, context, data["password"]))
+
+
 class LogoutView(AuthView):
     @extend_schema(request=c.Empty, responses=c.AuthResult)
     def post(self, request, context):

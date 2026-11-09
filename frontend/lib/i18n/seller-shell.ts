@@ -41,6 +41,7 @@ type SellerShellCopy = {
 	glanceZero: string;
 	glanceLow: string;
 	glanceExpired: string;
+	glanceExpiring: string;
 	glanceHeld: string;
 };
 
@@ -59,6 +60,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceZero: "تمام‌شده",
 		glanceLow: "کم",
 		glanceExpired: "تاریخ‌گذشته",
+		glanceExpiring: "رو به انقضا",
 		glanceHeld: "رزروشده",
 		settingsSecurity: "تنظیمات و امنیت",
 		workspace: "پنل فروشنده",
@@ -107,6 +109,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceZero: "Out of stock",
 		glanceLow: "Low",
 		glanceExpired: "Expired",
+		glanceExpiring: "Expiring soon",
 		glanceHeld: "Held",
 		settingsSecurity: "Settings & security",
 		workspace: "Seller workspace",
@@ -154,6 +157,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceZero: "خلاص شوي",
 		glanceLow: "کم",
 		glanceExpired: "نېټه تېره",
+		glanceExpiring: "ژر پای ته رسېږي",
 		glanceHeld: "ساتل شوي",
 		settingsSecurity: "تنظیمات او امنیت",
 		workspace: "د پلورونکي کاري ځای",
@@ -202,6 +206,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceZero: "نفد المخزون",
 		glanceLow: "منخفض",
 		glanceExpired: "منتهي",
+		glanceExpiring: "قريب الانتهاء",
 		glanceHeld: "محجوز",
 		settingsSecurity: "الإعدادات والأمان",
 		workspace: "مساحة البائع",

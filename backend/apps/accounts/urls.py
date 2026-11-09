@@ -18,6 +18,7 @@ urlpatterns = [
     re_path(r"^(?P<context>buyer|seller)/session/$", views.SessionView.as_view(), name="session"),
     re_path(r"^(?P<context>buyer|seller)/profile/$", views.ProfileView.as_view(), name="profile"),
     re_path(r"^(?P<context>buyer|seller)/password/$", views.PasswordView.as_view(), name="password"),
+    re_path(r"^(?P<context>buyer|seller)/closure/$", views.ClosureView.as_view(), name="closure"),
     re_path(r"^(?P<context>buyer|seller)/logout/$", views.LogoutView.as_view(), name="logout"),
     re_path(r"^(?P<context>buyer|seller)/link/(?P<target>buyer|seller)/$", views.LinkView.as_view(), name="link"),
 ]
