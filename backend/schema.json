@@ -9905,6 +9905,198 @@
                 }
             }
         },
+        "/api/v1/reports/buyer/summary/": {
+            "get": {
+                "operationId": "reports_buyer_summary",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "end",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "start",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BuyerSummary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/reports/seller/export/": {
+            "get": {
+                "operationId": "reports_seller_export",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "end",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "kind",
+                        "schema": {
+                            "enum": [
+                                "orders",
+                                "payments",
+                                "refunds"
+                            ],
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "description": "* `orders` - orders\n* `payments` - payments\n* `refunds` - refunds",
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "start",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/reports/seller/profiles/": {
+            "get": {
+                "operationId": "reports_seller_profiles",
+                "tags": [
+                    "reports"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReportProfiles"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/reports/seller/summary/": {
+            "get": {
+                "operationId": "reports_seller_summary",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "end",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "start",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SellerSummary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/site/public/{locale}/": {
             "get": {
                 "operationId": "site_settings",
@@ -10660,6 +10852,74 @@
                 ],
                 "type": "string",
                 "description": "* `individual` - individual\n* `company` - company\n* `business` - business"
+            },
+            "BuyerQueues": {
+                "type": "object",
+                "properties": {
+                    "cancellations": {
+                        "type": "integer"
+                    },
+                    "disputes": {
+                        "type": "integer"
+                    },
+                    "in_transit": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "cancellations",
+                    "disputes",
+                    "in_transit"
+                ]
+            },
+            "BuyerSummary": {
+                "type": "object",
+                "properties": {
+                    "period": {
+                        "$ref": "#/components/schemas/Period"
+                    },
+                    "sections": {
+                        "$ref": "#/components/schemas/Sections"
+                    },
+                    "orders": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OrderFigure"
+                        },
+                        "nullable": true
+                    },
+                    "finance": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FinanceFigure"
+                        },
+                        "nullable": true
+                    },
+                    "logistics": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/LogisticsFigure"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "generated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "queues": {
+                        "$ref": "#/components/schemas/BuyerQueues"
+                    }
+                },
+                "required": [
+                    "finance",
+                    "generated_at",
+                    "logistics",
+                    "orders",
+                    "period",
+                    "queues",
+                    "sections"
+                ]
             },
             "CancellationCommandRequest": {
                 "type": "object",
@@ -13612,6 +13872,45 @@
                     "version"
                 ]
             },
+            "FinanceFigure": {
+                "type": "object",
+                "properties": {
+                    "currency": {
+                        "type": "string"
+                    },
+                    "goods_received": {
+                        "type": "string"
+                    },
+                    "goods_receipts": {
+                        "type": "integer"
+                    },
+                    "goods_refunded": {
+                        "type": "string"
+                    },
+                    "goods_net": {
+                        "type": "string"
+                    },
+                    "refund_due_created": {
+                        "type": "string"
+                    },
+                    "delivery_received": {
+                        "type": "string"
+                    },
+                    "delivery_refunded": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "currency",
+                    "delivery_received",
+                    "delivery_refunded",
+                    "goods_net",
+                    "goods_receipts",
+                    "goods_received",
+                    "goods_refunded",
+                    "refund_due_created"
+                ]
+            },
             "FulfilmentClaimCommandRequest": {
                 "type": "object",
                 "properties": {
@@ -14690,6 +14989,25 @@
                 ],
                 "type": "string",
                 "description": "* `fa-AF` - fa-AF\n* `en` - en\n* `ps` - ps\n* `ar` - ar"
+            },
+            "LogisticsFigure": {
+                "type": "object",
+                "properties": {
+                    "dispatched": {
+                        "type": "integer"
+                    },
+                    "delivered": {
+                        "type": "integer"
+                    },
+                    "completed": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "completed",
+                    "delivered",
+                    "dispatched"
+                ]
             },
             "MailRequestRequest": {
                 "type": "object",
@@ -15831,6 +16149,33 @@
                     "status"
                 ]
             },
+            "OrderFigure": {
+                "type": "object",
+                "properties": {
+                    "currency": {
+                        "type": "string"
+                    },
+                    "accepted": {
+                        "type": "integer"
+                    },
+                    "cancelled": {
+                        "type": "integer"
+                    },
+                    "goods_total": {
+                        "type": "string"
+                    },
+                    "accepted_total": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "accepted",
+                    "accepted_total",
+                    "cancelled",
+                    "currency",
+                    "goods_total"
+                ]
+            },
             "OrderPage": {
                 "type": "object",
                 "properties": {
@@ -16302,6 +16647,23 @@
                 "required": [
                     "command_id",
                     "file"
+                ]
+            },
+            "Period": {
+                "type": "object",
+                "properties": {
+                    "start": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "end": {
+                        "type": "string",
+                        "format": "date"
+                    }
+                },
+                "required": [
+                    "end",
+                    "start"
                 ]
             },
             "PlanCommandRequest": {
@@ -17412,6 +17774,44 @@
                     "results"
                 ]
             },
+            "ReportProfile": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "sections": {
+                        "$ref": "#/components/schemas/Sections"
+                    }
+                },
+                "required": [
+                    "id",
+                    "kind",
+                    "name",
+                    "sections"
+                ]
+            },
+            "ReportProfiles": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReportProfile"
+                        }
+                    }
+                },
+                "required": [
+                    "results"
+                ]
+            },
             "ReportResult": {
                 "type": "object",
                 "properties": {
@@ -17773,6 +18173,25 @@
                     "title"
                 ]
             },
+            "Sections": {
+                "type": "object",
+                "properties": {
+                    "orders": {
+                        "type": "boolean"
+                    },
+                    "finance": {
+                        "type": "boolean"
+                    },
+                    "logistics": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "finance",
+                    "logistics",
+                    "orders"
+                ]
+            },
             "SelectionRequest": {
                 "type": "object",
                 "properties": {
@@ -17795,6 +18214,104 @@
                 "required": [
                     "quantity",
                     "variant"
+                ]
+            },
+            "Seller": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ]
+            },
+            "SellerQueues": {
+                "type": "object",
+                "properties": {
+                    "awaiting_dispatch": {
+                        "type": "integer"
+                    },
+                    "cancellations": {
+                        "type": "integer"
+                    },
+                    "amendments": {
+                        "type": "integer"
+                    },
+                    "disputes": {
+                        "type": "integer"
+                    },
+                    "reviews_pending": {
+                        "type": "integer"
+                    },
+                    "payment_reviews": {
+                        "type": "integer"
+                    },
+                    "delivery_reviews": {
+                        "type": "integer"
+                    },
+                    "holds": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "SellerSummary": {
+                "type": "object",
+                "properties": {
+                    "period": {
+                        "$ref": "#/components/schemas/Period"
+                    },
+                    "sections": {
+                        "$ref": "#/components/schemas/Sections"
+                    },
+                    "orders": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OrderFigure"
+                        },
+                        "nullable": true
+                    },
+                    "finance": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FinanceFigure"
+                        },
+                        "nullable": true
+                    },
+                    "logistics": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/LogisticsFigure"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "generated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "seller": {
+                        "$ref": "#/components/schemas/Seller"
+                    },
+                    "queues": {
+                        "$ref": "#/components/schemas/SellerQueues"
+                    }
+                },
+                "required": [
+                    "finance",
+                    "generated_at",
+                    "logistics",
+                    "orders",
+                    "period",
+                    "queues",
+                    "sections",
+                    "seller"
                 ]
             },
             "Sent": {

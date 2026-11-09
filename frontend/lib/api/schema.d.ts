@@ -2788,6 +2788,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/buyer/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_buyer_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/seller/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_seller_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/seller/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_seller_profiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/seller/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_seller_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site/public/{locale}/": {
         parameters: {
             query?: never;
@@ -3016,6 +3080,21 @@ export interface components {
          * @enum {string}
          */
         BusinessProfileKindEnum: "individual" | "company" | "business";
+        BuyerQueues: {
+            cancellations: number;
+            disputes: number;
+            in_transit: number;
+        };
+        BuyerSummary: {
+            period: components["schemas"]["Period"];
+            sections: components["schemas"]["Sections"];
+            orders: components["schemas"]["OrderFigure"][] | null;
+            finance: components["schemas"]["FinanceFigure"][] | null;
+            logistics: components["schemas"]["LogisticsFigure"] | null;
+            /** Format: date-time */
+            generated_at: string;
+            queues: components["schemas"]["BuyerQueues"];
+        };
         CancellationCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -4035,6 +4114,16 @@ export interface components {
             lines: components["schemas"]["FinalLineRequest"][];
             choice: components["schemas"]["ChoiceRequest"];
         };
+        FinanceFigure: {
+            currency: string;
+            goods_received: string;
+            goods_receipts: number;
+            goods_refunded: string;
+            goods_net: string;
+            refund_due_created: string;
+            delivery_received: string;
+            delivery_refunded: string;
+        };
         FulfilmentClaimCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -4331,6 +4420,11 @@ export interface components {
          * @enum {string}
          */
         LocaleEnum: "fa-AF" | "en" | "ps" | "ar";
+        LogisticsFigure: {
+            dispatched: number;
+            delivered: number;
+            completed: number;
+        };
         MailRequestRequest: {
             /** Format: email */
             email: string;
@@ -4656,6 +4750,13 @@ export interface components {
         OperationResult: {
             status: string;
         };
+        OrderFigure: {
+            currency: string;
+            accepted: number;
+            cancelled: number;
+            goods_total: string;
+            accepted_total: string;
+        };
         OrderPage: {
             results: components["schemas"]["OrderRow"][];
             count: number;
@@ -4804,6 +4905,12 @@ export interface components {
             command_id: string;
             /** Format: binary */
             file: string;
+        };
+        Period: {
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
         };
         PlanCommandRequest: {
             /** Format: uuid */
@@ -5102,6 +5209,16 @@ export interface components {
         ReportPage: {
             results: components["schemas"]["ReportResult"][];
         };
+        ReportProfile: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: string;
+            sections: components["schemas"]["Sections"];
+        };
+        ReportProfiles: {
+            results: components["schemas"]["ReportProfile"][];
+        };
         ReportResult: {
             /** Format: uuid */
             id: string;
@@ -5202,12 +5319,43 @@ export interface components {
             description: string;
             image: components["schemas"]["Media"] | null;
         };
+        Sections: {
+            orders: boolean;
+            finance: boolean;
+            logistics: boolean;
+        };
         SelectionRequest: {
             /** Format: uuid */
             variant: string;
             /** Format: uuid */
             batch?: string | null;
             quantity: string;
+        };
+        Seller: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        SellerQueues: {
+            awaiting_dispatch?: number;
+            cancellations?: number;
+            amendments?: number;
+            disputes?: number;
+            reviews_pending?: number;
+            payment_reviews?: number;
+            delivery_reviews?: number;
+            holds?: number;
+        };
+        SellerSummary: {
+            period: components["schemas"]["Period"];
+            sections: components["schemas"]["Sections"];
+            orders: components["schemas"]["OrderFigure"][] | null;
+            finance: components["schemas"]["FinanceFigure"][] | null;
+            logistics: components["schemas"]["LogisticsFigure"] | null;
+            /** Format: date-time */
+            generated_at: string;
+            seller: components["schemas"]["Seller"];
+            queues: components["schemas"]["SellerQueues"];
         };
         Sent: {
             /** Format: uuid */
@@ -10398,6 +10546,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentOutcome"];
+                };
+            };
+        };
+    };
+    reports_buyer_summary: {
+        parameters: {
+            query?: {
+                end?: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuyerSummary"];
+                };
+            };
+        };
+    };
+    reports_seller_export: {
+        parameters: {
+            query: {
+                end?: string;
+                /**
+                 * @description * `orders` - orders
+                 *     * `payments` - payments
+                 *     * `refunds` - refunds
+                 */
+                kind: "orders" | "payments" | "refunds";
+                seller: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    reports_seller_profiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportProfiles"];
+                };
+            };
+        };
+    };
+    reports_seller_summary: {
+        parameters: {
+            query: {
+                end?: string;
+                seller: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerSummary"];
                 };
             };
         };

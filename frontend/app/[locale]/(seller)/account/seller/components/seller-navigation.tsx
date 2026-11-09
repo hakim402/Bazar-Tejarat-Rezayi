@@ -2,6 +2,7 @@
 import { fulfilment } from "../../../../../../features/fulfilment/api";
 import { fulfilmentCopy } from "../../../../../../features/fulfilment/copy";
 import { paymentCopy } from "../../../../../../features/payments/copy";
+import { reportCopy } from "../../../../../../features/reports/copy";
 import { aftercareCopy } from "../../../../../../features/aftercare/copy";
 import { negotiationCopy } from "../../../../../../features/negotiations/copy";
 import Link from "next/link";
@@ -339,6 +340,12 @@ export function SellerNavigation({
 					paymentCopy[locale].title,
 					"wallet",
 					!!orderCaps?.invoices,
+				],
+				[
+					"reports",
+					reportCopy[locale].sellerTitle,
+					"trending-up",
+					!!(orderCaps?.orders || orderCaps?.invoices || delivery),
 				],
 			],
 		},

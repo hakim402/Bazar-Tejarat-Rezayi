@@ -93,12 +93,13 @@ class OwnerSite(UnfoldAdminSite):
 
     def get_urls(self):
         from apps.site.admin import settings_urls
+        from apps.reports.admin_views import report_urls
         from .admin_security import factor_reset, own_profile
         from .admin_locale import set_language
         return [path("factor-reset/", self.admin_view(lambda request: factor_reset(self, request)),
                      name="factor_reset"), path("profile/", self.admin_view(lambda request: own_profile(self, request)),
                      name="own_profile"), path("language/", set_language, name="admin_set_language"),
-                *settings_urls(self), *super().get_urls()]
+                *settings_urls(self), *report_urls(self), *super().get_urls()]
 
     def has_permission(self, request):
         try:

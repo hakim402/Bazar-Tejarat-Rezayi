@@ -121,6 +121,6 @@ export function sellerAccountRoute(parts: string[] = []): boolean {
 		);
 	return (
 		parts.length === 1 &&
-		["profile", "password", "link", "settings"].includes(parts[0])
+		["profile", "password", "link", "settings", "reports"].includes(parts[0])
 	);
 }

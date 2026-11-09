@@ -169,6 +169,7 @@ export async function proxy(request: NextRequest) {
 				commerceRoute(parts.slice(3))) ||
 				communicationRoute(parts.slice(3)) ||
 				(ordinary && parts.length <= 4) ||
+				(screen === "reports" && parts.length === 4) ||
 				(business && parts.length <= 5 && (!id || uuidPattern.test(id))));
 
 	const privateRoute =

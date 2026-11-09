@@ -54,7 +54,11 @@ def navigation(request):
         return badges.get(model) or None
 
     groups = [
-        ("overview", "Overview", [{"title": _("Overview"), "icon": "space_dashboard", "link": reverse("admin:index")}]),
+        ("overview", "Overview", [
+            {"title": _("Overview"), "icon": "space_dashboard", "link": reverse("admin:index")},
+            *([{"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")}]
+              if root else []),
+        ]),
         (
             "commerce",
             "Orders & Invoices",

@@ -1,6 +1,7 @@
 "use client";
 import { fulfilmentCopy } from "../../../../../../features/fulfilment/copy";
 import { paymentCopy } from "../../../../../../features/payments/copy";
+import { reportCopy } from "../../../../../../features/reports/copy";
 import { aftercareCopy } from "../../../../../../features/aftercare/copy";
 import { negotiationCopy } from "../../../../../../features/negotiations/copy";
 import Link from "next/link";
@@ -216,6 +217,7 @@ export function BuyerNavigation({
 				["payments", paymentCopy[locale].title, "wallet"],
 				["invoices", commerceCopy[locale].invoices, "receipt"],
 				["negotiations", negotiationCopy[locale].title, "handshake"],
+				["reports", reportCopy[locale].buyerTitle, "trending-up"],
 			],
 		},
 		{

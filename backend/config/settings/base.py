@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "apps.orders.apps.OrdersConfig",
     "apps.payments.apps.PaymentsConfig",
     "apps.fulfilment.apps.FulfilmentConfig",
+    "apps.reports.apps.ReportsConfig",
     "django_otp",
     "django.contrib.admin",
     "django.contrib.auth",
