@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
 	validDecrease, lineAmount, amendedTotal, withinBound, exactDue,
-	validReason, validEvidence,
+	validReason, validEvidence, validReview, safeText,
 } from "../features/aftercare/validation.ts";
 import type { Line } from "../features/aftercare/types";
 
@@ -78,4 +78,19 @@ test("aftercare evidence accepts three bounded private raster images only", () =
 	assert.equal(validEvidence({ type: "image/png", size: 0 }, 0), false);
 	assert.equal(validEvidence({ type: "image/png", size: 5 * 1024 * 1024 + 1 }, 0), false);
 	assert.equal(validEvidence({ type: "image/png", size: 1 }, 3), false);
+});
+test("Phase 15 reviews accept only integer 1–5 and bounded nonempty safe text", () => {
+	for (const rating of ["1", "2", "3", "4", "5"]) assert.equal(validReview(rating, "Seller experience"), true);
+	for (const rating of ["", "0", "6", "2.5", "01", "1e0", "NaN", "۵"]) assert.equal(validReview(rating, "Seller experience"), false);
+	assert.equal(validReview("4", "x".repeat(2000)), true);
+	assert.equal(validReview("4", " abc "), true);
+	for (const text of ["", "   ", "x", "xy", " x ", " xy ", "x".repeat(2001), "Unsafe\u2066text"]) assert.equal(validReview("4", text), false);
+});
+test("Phase 15 safe text preserves native scripts/newlines but bans unsafe controls and bidi overrides", () => {
+	for (const text of ["دیدگاه آزمایشی", "نظر • تجربه", "نظر\nتجربه", "رأي بالعربية", "Seller experience"]) assert.equal(safeText(text), true);
+	for (const code of [0, 8, 11, 12, 31, 0x202a, 0x202e, 0x2066, 0x2069]) {
+		const text = `Unsafe${String.fromCharCode(code)}reason`;
+		assert.equal(safeText(text), false);
+		assert.equal(validReason(text), false);
+	}
 });

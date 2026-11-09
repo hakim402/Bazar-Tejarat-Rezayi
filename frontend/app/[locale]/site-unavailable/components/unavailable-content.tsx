@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "../../../../components/brand/brand-logo";
-import { direction, type Locale } from "../../../../lib/i18n/locales";
+import { direction, isLocale, type Locale } from "../../../../lib/i18n/locales";
 
 interface MaintenanceProps {
 	locale: Locale;
@@ -33,6 +33,7 @@ function AnimatedCharacters({ locale }: { locale: Locale }) {
 				viewBox="0 0 400 300"
 				className="w-full"
 				style={{ direction: "ltr" }}
+				aria-hidden="true"
 			>
 				<defs>
 					<linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -187,7 +188,9 @@ export function UnavailableContent({
 		setMounted(true);
 	}, []);
 
-	const contentLocale = notice?.enabled ? notice.content_locale : locale;
+	const contentLocale = notice?.enabled && isLocale(notice.content_locale)
+		? notice.content_locale
+		: locale;
 	const title = notice?.enabled ? notice.title : maintenanceTitle;
 	const text = notice?.enabled ? notice.text : unavailableText;
 

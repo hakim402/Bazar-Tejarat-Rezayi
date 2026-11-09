@@ -215,3 +215,38 @@ def report(actor, message_id, data):
         data,
         {"id": str(result.pk), "status": result.status, "version": result.version},
     )
+
+
+@transaction.atomic
+def report_target(actor, kind, target_id, data):
+    account = actor.account
+    preliminary = get_object_or_404(access.target_scope(actor, kind), pk=target_id)
+    business_id = preliminary.profile_id if kind == "store" else preliminary.seller_id
+    access.lock_actor(actor, business_id)
+    # Re-resolve participant scope after the profile/identity/grant locks so a
+    # revoked membership or unpublished target cannot report through stale authority.
+    get_object_or_404(access.target_scope(actor, kind), pk=target_id)
+    action = f"report:{kind}:{target_id}"
+    old = replay(account, action, data["command_id"], data)
+    if old:
+        return old
+    # The per-command seal alone cannot serialize distinct command keys for the
+    # same reporter+target; this mutex coalesces deliberate duplicates into one
+    # open case instead of multiplying rows.
+    token = int.from_bytes(hashlib.sha256(f"{account.pk}:{action}".encode()).digest()[:8], "big", signed=True)
+    durable_lock(token)
+    result = Report.objects.filter(reporter=account, status="open", **{kind + "_id": target_id}).first()
+    if result is None:
+        result = Report.objects.create(
+            reporter=account, category=data["category"], reason=data["reason"], **{kind + "_id": target_id}
+        )
+        from .models import CaseEvent
+
+        CaseEvent.objects.create(report=result, actor=actor.user, action="reported", reason=data["reason"], version=1)
+    return outcome(
+        account,
+        action,
+        data["command_id"],
+        data,
+        {"id": str(result.pk), "status": result.status, "version": result.version},
+    )

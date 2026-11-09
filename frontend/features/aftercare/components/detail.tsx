@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
+import { AccountError } from "../../../lib/api/private-client";
+import { ReportForm } from "../../messaging/components/report";
 import { useOnlineState } from "../../messaging/hooks";
 import {
 	action as defaultAction,
@@ -19,7 +21,7 @@ import {
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import { useCommerceGuard } from "../../orders/components/unsaved";
 import { uuidPattern } from "../../../lib/routes/account-routes";
-import { aftercareHref } from "../api";
+import { aftercareHref, disputeHref } from "../api";
 import { aftercareCopy } from "../copy";
 import { availableModes, isStale, modeDomain } from "../draft";
 import type { Context, Domain, Reviewed } from "../types";
@@ -38,6 +40,8 @@ export function AftercareDetail({
 	locale,
 	context,
 	orderId,
+	disputeId,
+	embedded = false,
 	seller,
 	scope,
 	attempt,
@@ -46,6 +50,8 @@ export function AftercareDetail({
 	locale: Locale;
 	context: Context;
 	orderId: string;
+	disputeId?: string;
+	embedded?: boolean;
 	seller: string;
 	scope: string;
 	attempt: string | null;
@@ -69,10 +75,11 @@ export function AftercareDetail({
 	} | null>(null);
 	const [awaiting, setAwaiting] = useState(false),
 		[saved, setSaved] = useState(false);
+	const [resolvedOrderId, setResolvedOrderId] = useState(orderId);
 	const command = useAftercareCommand({
 		scope,
 		context,
-		orderId,
+		orderId: resolvedOrderId,
 		attempt,
 		attemptDomain,
 		onApplied: (intent, result) => {
@@ -104,8 +111,12 @@ export function AftercareDetail({
 			source.deny();
 		},
 	});
-	const source = useAftercareData(context, orderId, command.locked);
-	const guard = useCommerceGuard(locale, dirty || !!review || command.locked);
+	const source = useAftercareData(context, orderId, command.locked, disputeId);
+	useLayoutEffect(() => {
+		if (source.data) setResolvedOrderId(source.data.order.id);
+	}, [source.data]);
+	const [reportDirty, setReportDirty] = useState(false);
+	const guard = useCommerceGuard(locale, dirty || reportDirty || !!review || command.locked);
 	// The navigation guard may outlive a form. Keep its deferred private draft
 	// callback here so revocation can erase it instead of retaining the old form.
 	const choice = useRef<(() => void) | null>(null);
@@ -144,9 +155,11 @@ export function AftercareDetail({
 						(key) => optional.capabilities[key] === true,
 					);
 		const previous = authority.current;
-		// Successful summary-only responses can revoke authority too. Versions,
-		// changed targets and stale reviews alone must never erase a draft.
+		// Orders capabilities express action eligibility, not read authority. Losing
+		// one marks the review stale; only denial redacts orders drafts. Optional
+		// financial/evidence capability losses still redact their private packets.
 		const downgraded =
+			retainedDomain !== "orders" &&
 			previous?.domain === retainedDomain &&
 			capabilities != null &&
 			previous.capabilities.some((key) => !capabilities.includes(key));
@@ -159,6 +172,7 @@ export function AftercareDetail({
 			setReview(null);
 			setUploaded(null);
 			setDirty(false);
+			if (source.denied) setReportDirty(false);
 			setAwaiting(false);
 			setFormEpoch((value) => value + 1);
 			redact(); // Keep the opaque key/domain and uncertain-attempt lock.
@@ -170,7 +184,7 @@ export function AftercareDetail({
 				capabilities: capabilities ? [...capabilities] : [],
 				denied: revoked,
 			};
-	}, [source.data, retainedDomain, revoked, redact]);
+	}, [source.data, source.denied, retainedDomain, revoked, redact]);
 	if (source.denied) return <p role="alert">{t.noAccess}</p>;
 	const data = source.data;
 	const blocked = command.locked || awaiting || source.error || !online;
@@ -181,8 +195,8 @@ export function AftercareDetail({
 			domain === "orders" ||
 			!availableModes(data).some(
 				(mode) =>
-					["report", "delivery_refund"].includes(mode) &&
-					modeDomain(mode) === domain,
+					["report", "delivery_refund", "dispute_open"].includes(mode) &&
+					(mode === "dispute_open" ? "payments" : modeDomain(mode)) === domain,
 			)
 		)
 			return;
@@ -200,7 +214,7 @@ export function AftercareDetail({
 		await command.send({
 			key,
 			domain,
-			path: `orders/${orderId}/uploads/`,
+			path: `orders/${data.order.id}/uploads/`,
 			body,
 			upload: true,
 		});
@@ -214,7 +228,7 @@ export function AftercareDetail({
 						: "min-w-0 space-y-5"
 				}
 			>
-				{isSeller ? (
+				{embedded ? <h2 className="text-xl font-bold">{t.title}</h2> : isSeller ? (
 					<SalesHeader
 						locale={locale}
 						section="aftercare"
@@ -240,7 +254,7 @@ export function AftercareDetail({
 				) : (
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						<h1 className="text-2xl font-bold">
-							{t.title}
+							{disputeId ? t.disputes : t.title}
 							{data && (
 								<>
 									{" "}
@@ -436,6 +450,11 @@ export function AftercareDetail({
 							}}
 						/>
 						<OrderHistory {...{ locale, row: data.order, seller: isSeller }} />
+						<ReportForm key={`${scope}:report`} locale={locale} context={context} id={data.order.id} target="order" onDirty={setReportDirty} onDenied={(error) => { if (error instanceof AccountError && error.status === 401) source.deny(); }} />
+						<nav className="flex flex-wrap gap-3" aria-label={t.disputes}>
+							<Link className={action} prefetch={false} href={disputeHref(locale, context, undefined, data.order.seller)}>{t.disputes}</Link>
+							{disputeId && <Link className={action} prefetch={false} href={aftercareHref(locale, context, data.order.id, data.order.seller)}>{t.openWorkspace}</Link>}
+						</nav>
 						{review && (
 							<AftercareReview
 								{...{

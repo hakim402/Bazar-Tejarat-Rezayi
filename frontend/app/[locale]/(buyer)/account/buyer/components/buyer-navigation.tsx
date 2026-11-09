@@ -204,6 +204,7 @@ export function BuyerNavigation({
 				["orders", commerceCopy[locale].orders, "shopping-bag"],
 				["deliveries", fulfilmentCopy[locale].buyerTitle, "truck"],
 				["cancellations", aftercareCopy[locale].buyerTitle, "return"],
+				["disputes", aftercareCopy[locale].disputes, "shield"],
 			],
 		},
 		{

@@ -31,8 +31,15 @@ export function exactDue(amount: string, due: string) {
 	const value = moneyUnits(amount);
 	return value !== null && value === moneyUnits(due);
 }
+export function safeText(value: string) {
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: reject unsafe control characters in user text.
+	return !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202a-\u202e\u2066-\u2069]/u.test(value);
+}
 export function validReason(value: string) {
-	return value.trim().length >= 3 && value.length <= 1000;
+	return value.trim().length >= 3 && value.length <= 1000 && safeText(value);
+}
+export function validReview(rating: string, text: string) {
+	return /^[1-5]$/.test(rating) && text.trim().length >= 3 && text.length <= 2000 && safeText(text);
 }
 export function validEvidence(file: Pick<File, "size" | "type">, count: number) {
 	return count < 3 && file.size > 0 && file.size <= 5 * 1024 * 1024 && ["image/jpeg", "image/png", "image/webp"].includes(file.type);

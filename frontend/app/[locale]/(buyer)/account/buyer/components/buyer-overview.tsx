@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { direction, type Locale } from "../../../../../../lib/i18n/locales";
 import { buyerOverviewCopy } from "../../../../../../lib/i18n/buyer-overview";
-import { buyerShellCopy } from "../../../../../../lib/i18n/buyer-shell";
 import { authHref } from "../../../../../../lib/routes/auth-routes";
 import { Icon } from "../../../../../../components/ui/icon";
 import { StatCard } from "../../../../../../components/ui/stat-card";
@@ -71,7 +70,6 @@ function noticeHref(locale: Locale, row: Notice) {
 
 export function BuyerOverview({ locale }: { locale: Locale }) {
 	const t = buyerOverviewCopy[locale];
-	const shell = buyerShellCopy[locale];
 	const { session } = useBuyerAccount();
 	const [orders, setOrders] = useState<Page<Order> | null>(null);
 	const [ordersError, setOrdersError] = useState(false);

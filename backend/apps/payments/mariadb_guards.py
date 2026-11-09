@@ -572,3 +572,130 @@ def refund_statements():
     )
     result.append(trigger("payments_refunddecision", "INSERT", body))
     return result
+
+
+def dispute_decider_excluded(order, user, due):
+    """CR-120: the staff member who ordered a dispute refund cannot confirm it."""
+    return f"""NOT EXISTS(SELECT 1 FROM orders_disputedecision dd JOIN orders_disputerequest dr
+        ON dr.id=dd.dispute_id WHERE dr.order_id={order} AND dd.actor_id={user}
+        AND (SELECT cause FROM payments_refunddue WHERE id={due})='dispute')"""
+
+
+def dispute_refund_statements():
+    """v5 delta over the reviewed v4 refund graph: the dispute cause, its private
+    evidence target, and the independent confirmer who may not be the decider."""
+    from apps.fulfilment.mariadb_guards import _derive
+
+    source = {
+        statement.split("`")[1]: statement
+        for statement in refund_statements()
+        if statement.startswith("CREATE TRIGGER")
+    }
+    result = []
+
+    from apps.orders.mariadb_guards import (
+        _aftercare_permission, _delivered, _not_cancelled, dispute_event_unpublished,
+        dispute_independent, dispute_refund_match, dispute_refund_pending,
+    )
+
+    pending = dispute_refund_pending("NEW.order_id", "NEW.actor_id", "NEW.account_id", "NEW.context")
+    event = _derive(
+        source["payments_event_insert_guard"],
+        "OR (NEW.context='system' AND NEW.actor_id IS NULL",
+        f"OR (NEW.action='refund_due_created' AND ({pending})) OR (NEW.context='system' AND NEW.actor_id IS NULL",
+    )
+    result.append(event)
+
+    dispute_source = f"""EXISTS(SELECT 1 FROM payments_event payment_event
+        JOIN payments_finance finance ON finance.order_id=payment_event.order_id
+        WHERE payment_event.id=NEW.event_id AND payment_event.order_id=NEW.order_id
+        AND payment_event.action='refund_due_created' AND payment_event.version=finance.version
+        AND ({dispute_refund_pending('NEW.order_id', 'payment_event.actor_id', 'payment_event.account_id', 'payment_event.context')}))
+        AND NOT EXISTS(SELECT 1 FROM payments_refunddue prior WHERE prior.event_id=NEW.event_id)"""
+    due = source["payments_refunddue_insert_guard"]
+    due = _derive(
+        due,
+        "(NEW.cause='excess' AND (",
+        "(NEW.cause='dispute' AND NOT (" + dispute_source + ")) OR (NEW.cause='excess' AND (",
+    )
+    due = _derive(due, "NEW.cause NOT IN ('cancellation','amendment','excess')", "NEW.cause NOT IN ('cancellation','amendment','excess','dispute')")
+    due = _derive(
+        due,
+        "(NEW.cause IN ('cancellation','amendment') AND e.context IN ('staff','owner'))",
+        "(NEW.cause IN ('cancellation','amendment','dispute') AND e.context IN ('staff','owner'))",
+    )
+    result.append(due)
+
+    # Only the dispute successor requires the completed decision/request witness;
+    # the retained v4 seal conditions for all earlier causes are unchanged.
+    seal = source["payments_refundseal_insert_guard"]
+    complete = f"""EXISTS(SELECT 1 FROM payments_refunddue due
+        JOIN orders_disputedecision decision ON decision.refund_due_id=due.id
+        JOIN orders_disputerequest request ON request.id=decision.dispute_id
+        JOIN orders_aftercareevent decision_event ON decision_event.id=decision.event_id
+        JOIN orders_aftercare head ON head.order_id=decision_event.order_id
+        WHERE due.id=NEW.due_id AND request.order_id=due.order_id
+        AND request.state='refund_ordered' AND decision.action='refund_ordered'
+        AND request.assigned_to_id=decision.actor_id AND ({dispute_refund_match('due', 'decision')})
+        AND ({_aftercare_permission('decision.actor_id', repr('decide_dispute'))})
+        AND ({_aftercare_permission('decision.actor_id', repr('read_dispute'))})
+        AND ({dispute_independent('due.order_id', 'decision.actor_id')})
+        AND ({_delivered('due.order_id')}) AND ({_not_cancelled('due.order_id')})
+        AND ((decision.context='owner' AND decision.account_id IS NULL AND EXISTS(SELECT 1 FROM accounts_user root
+            WHERE root.id=decision.actor_id AND root.is_superuser))
+            OR (decision.context='staff' AND EXISTS(SELECT 1 FROM accounts_account staff
+                WHERE staff.id=decision.account_id AND staff.user_id=decision.actor_id AND staff.context='staff' AND staff.status='active')))
+        AND EXISTS(SELECT 1 FROM orders_sellerorder original JOIN accounts_account buyer ON buyer.id=original.buyer_id
+            JOIN accounts_user buyer_user ON buyer_user.id=buyer.user_id WHERE original.id=due.order_id
+            AND request.requester_account_id=buyer.id AND buyer.status='active' AND buyer_user.is_active AND buyer_user.email_verified)
+        AND decision_event.order_id=request.order_id AND decision_event.action='dispute_decided'
+        AND decision_event.version=head.version AND decision_event.actor_id=decision.actor_id
+        AND (decision_event.account_id <=> decision.account_id) AND decision_event.context=decision.context
+        AND ({dispute_event_unpublished('decision_event', 'due.order_id')})
+        AND NOT EXISTS(SELECT 1 FROM notifications_event notice WHERE notice.payment_event_id=due.event_id))"""
+    seal = _derive(seal, "parent_id IS NULL OR NOT EXISTS(",
+                   f"parent_id IS NULL OR ((SELECT cause FROM payments_refunddue WHERE id=NEW.due_id)='dispute' AND NOT ({complete})) OR NOT EXISTS(")
+    result.append(seal)
+
+    binding = source["payments_evidencebinding_insert_guard"]
+    report_branch = (
+        "OR (NEW.report_id IS NOT NULL AND EXISTS(SELECT 1 FROM payments_refundreport r JOIN payments_refunddue d ON d.id=r.due_id "
+        "WHERE r.id=NEW.report_id AND d.order_id=e.order_id AND r.actor_id=e.creator_id AND NOT EXISTS(SELECT 1 FROM payments_refunddecision x WHERE x.report_id=r.id)) "
+        "AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.report_id=NEW.report_id)<3)"
+    )
+    dispute_branch = (
+        "OR (NEW.dispute_id IS NOT NULL AND EXISTS(SELECT 1 FROM orders_disputerequest p "
+        "JOIN orders_aftercareevent opening ON opening.id=p.event_id "
+        "JOIN orders_sellerorder original ON original.id=p.order_id "
+        "WHERE p.id=NEW.dispute_id AND p.order_id=e.order_id AND p.requester_account_id=e.creator_id "
+        "AND p.requester_account_id=original.buyer_id AND p.state='pending' "
+        "AND opening.order_id=p.order_id AND opening.action='dispute_opened' "
+        "AND opening.account_id=p.requester_account_id AND opening.context='buyer' "
+        f"AND ({dispute_event_unpublished('opening', 'p.order_id')})) "
+        "AND (SELECT COUNT(*) FROM payments_evidencebinding b WHERE b.dispute_id=NEW.dispute_id)<3)"
+    )
+    binding = _derive(binding, report_branch, report_branch + "\n        " + dispute_branch)
+    binding = _derive(
+        binding,
+        "DECLARE parent_id CHAR(32); SELECT id INTO parent_id FROM payments_evidence",
+        "DECLARE dispute_id CHAR(32); DECLARE parent_id CHAR(32); "
+        "IF NEW.dispute_id IS NOT NULL THEN SELECT id INTO dispute_id FROM orders_disputerequest "
+        "WHERE id=NEW.dispute_id FOR UPDATE; END IF; SELECT id INTO parent_id FROM payments_evidence",
+    )
+    binding = binding.removesuffix(" END") + " " + reject(
+        "NEW.dispute_id IS NOT NULL AND (dispute_id IS NULL OR NEW.claim_id IS NOT NULL "
+        "OR NEW.receipt_id IS NOT NULL OR NEW.correction_id IS NOT NULL OR NEW.report_id IS NOT NULL "
+        "OR EXISTS(SELECT 1 FROM payments_evidencebinding prior WHERE prior.evidence_id=NEW.evidence_id))"
+    ) + " END"
+    result.append(binding)
+
+    order_expr = "(SELECT order_id FROM payments_refunddue WHERE id=parent_id)"
+    old_independent = independent(order_expr, "NEW.actor_id")
+    result.append(
+        _derive(
+            source["payments_refunddecision_insert_guard"],
+            old_independent,
+            "(" + old_independent + " AND " + dispute_decider_excluded(order_expr, "NEW.actor_id", "parent_id") + ")",
+        )
+    )
+    return result

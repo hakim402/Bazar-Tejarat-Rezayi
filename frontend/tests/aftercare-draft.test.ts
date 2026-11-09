@@ -4,6 +4,7 @@ import {
 	emptyDraft, availableModes, buildAction, isStale, modeDomain, modeLabel, versionOf,
 } from "../features/aftercare/draft.ts";
 import { aftercareCopy } from "../features/aftercare/copy.ts";
+import { retainAftercare, pendingAftercare, settleAftercare, recoveryPath, recoveryState } from "../features/aftercare/api.ts";
 import type { Mode, RequestRow, Workspace } from "../features/aftercare/types";
 
 const id = "00000000-0000-4000-8000-000000000001";
@@ -43,6 +44,19 @@ function workspace(): Workspace {
 const reason = () => ({ ...emptyDraft(), reason: "  Reviewed synthetic reason  " });
 const report = () => ({ ...emptyDraft(), target: "due", amount: "5.00", at, reference: " REF-14 ", description: " Actual synthetic refund ", images: ["image"] });
 const modes: Mode[] = ["cancel", "cancel_withdraw", "amend", "amend_withdraw", "excess", "report", "refund_withdraw", "delivery_refund"];
+const disputeId = "00000000-0000-4000-8000-000000000015";
+const reviewId = "00000000-0000-4000-8000-000000000016";
+function phase15(): Workspace {
+	const data = workspace();
+	data.order.capabilities = ["dispute_open", "review_submit"];
+	data.order.cancellations = [];
+	data.order.amendments = [];
+	data.order.disputes = [{ id: disputeId, order: id, number: data.order.number, invoice: id, currency: "AFN", state: "pending", can_withdraw: true, can_respond: true, evidence: [key], requester: key, reason: "Original dispute facts", assigned: true, version: 2, created_at: at, response: null, decision: null }];
+	data.order.review = { id: reviewId, order: id, rating: 4, text: "Original private review", language: "fa-AF", state: "pending", version: 2, created_at: at, decisions: [], can_withdraw: true };
+	data.payment = null;
+	data.delivery = null;
+	return data;
+}
 
 test("aftercare drafts have independent arrays and no inherited private facts", () => {
 	const first = emptyDraft(), next = emptyDraft();
@@ -183,4 +197,113 @@ test("aftercare locale changes labels but not reviewed command currency or facts
 		assert.equal(review.currency, canonical.currency);
 		assert.equal(modeLabel(locale, "report"), aftercareCopy[locale].report);
 	}
+});
+
+test("Phase 15 modes fail closed without explicit capabilities and exact row flags", () => {
+	const data = phase15();
+	assert.deepEqual(availableModes(data), ["dispute_open", "dispute_withdraw", "dispute_respond", "review_submit", "review_withdraw"]);
+	data.order.capabilities = [];
+	assert.ok(data.order.disputes && data.order.review);
+	data.order.disputes[0].can_withdraw = false;
+	delete data.order.disputes[0].can_respond;
+	delete data.order.review.can_withdraw;
+	assert.deepEqual(availableModes(data), []);
+	assert.equal(buildAction("en", data, "review_submit", { ...emptyDraft(), rating: "5", text: "Seller experience" }, key), null);
+});
+test("Phase 15 opening binds the ORDER id and exact frozen reason, not the dispute id", () => {
+	const data = phase15(), draft = reason();
+	const packet = buildAction("en", data, "dispute_open", draft, key);
+	assert.ok(packet);
+	assert.equal(packet.intent.path, `orders/${id}/disputes/`);
+	assert.deepEqual(packet.intent.body, { command_id: key, version: 3, reason: draft.reason.trim(), evidence: [] });
+	draft.reason = "Later edit";
+	assert.equal((packet.intent.body as Record<string, unknown>).reason, "Reviewed synthetic reason");
+	assert.equal(Object.isFrozen(packet.intent.body), true);
+	assert.equal(modeDomain("dispute_open"), "orders");
+});
+test("Phase 15 dispute evidence requires returned upload authority, UUIDs and distinct bounded attachments", () => {
+	const data = phase15();
+	assert.equal(buildAction("en", data, "dispute_open", { ...reason(), images: [key] }, key), null);
+	data.payment = workspace().payment;
+	const packet = buildAction("en", data, "dispute_open", { ...reason(), images: [key] }, key);
+	assert.ok(packet);
+	assert.deepEqual(packet.images, [key]);
+	for (const images of [["not-a-uuid"], [key, key], [key, id, disputeId, reviewId]])
+		assert.equal(buildAction("en", data, "dispute_open", { ...reason(), images }, key), null);
+	assert.ok(data.payment);
+	data.payment.capabilities.evidence = false;
+	assert.equal(isStale(packet, data), true);
+});
+test("Phase 15 withdrawal and seller response bind the eligible selected DISPUTE and orders head", () => {
+	for (const mode of ["dispute_withdraw", "dispute_respond"] as const) {
+		const data = phase15(), draft = { ...reason(), target: disputeId, text: "  Exact seller response  " };
+		const packet = buildAction("en", data, mode, draft, key);
+		assert.ok(packet);
+		assert.equal(packet.intent.path, `disputes/${disputeId}/${mode === "dispute_withdraw" ? "withdraw" : "respond"}/`);
+		assert.deepEqual(packet.intent.body, mode === "dispute_withdraw" ? { command_id: key, version: 3, dispute: disputeId, reason: draft.reason.trim() } : { command_id: key, version: 3, dispute: disputeId, text: "Exact seller response" });
+		assert.deepEqual(packet.images, [key]);
+		assert.equal(buildAction("en", data, mode, { ...draft, target: id }, key), null);
+		assert.ok(data.order.disputes);
+		data.order.disputes[0].id = reviewId;
+		assert.equal(isStale(packet, data), true);
+	}
+});
+test("Phase 15 seller response rejects short, oversized and control-character facts", () => {
+	for (const text of [" x ", "x".repeat(2001), "Unsafe\u202etext", "Unsafe\u0000text"])
+		assert.equal(buildAction("en", phase15(), "dispute_respond", { ...emptyDraft(), target: disputeId, text }, key), null);
+});
+test("Phase 15 review packet includes integer rating and current language, never unrelated reason or evidence", () => {
+	for (const locale of ["fa-AF", "ps", "ar", "en"] as const) {
+		const draft = { ...reason(), rating: "5", text: "  Exact seller experience  ", images: [key] };
+		const packet = buildAction(locale, phase15(), "review_submit", draft, key);
+		assert.ok(packet);
+		assert.equal(packet.intent.path, `orders/${id}/reviews/`);
+		assert.deepEqual(packet.intent.body, { command_id: key, version: 3, rating: 5, text: "Exact seller experience", language: locale });
+		assert.deepEqual(packet.images, []);
+		assert.equal(versionOf(phase15(), "review_submit"), 3);
+	}
+});
+test("Phase 15 review withdrawal targets the original REVIEW and never infers permission from pending state", () => {
+	const data = phase15(), packet = buildAction("en", data, "review_withdraw", reason(), key);
+	assert.ok(packet);
+	assert.equal(packet.intent.path, `reviews/${reviewId}/withdraw/`);
+	assert.deepEqual(packet.intent.body, { command_id: key, version: 3, reason: reason().reason.trim() });
+	assert.equal(packet.fields[aftercareCopy.en.reviewText], "Original private review");
+	assert.ok(data.order.review);
+	data.order.review.can_withdraw = false;
+	assert.equal(isStale(packet, data), true);
+	assert.equal(buildAction("en", data, "review_withdraw", reason(), key), null);
+});
+test("Phase 15 eligibility and version changes mark a frozen review stale without rewriting its private facts", () => {
+	const data = phase15(), packet = buildAction("en", data, "review_submit", { ...emptyDraft(), rating: "4", text: "Retained seller experience" }, key);
+	assert.ok(packet);
+	data.order.capabilities = data.order.capabilities.filter((value) => value !== "review_submit");
+	data.order.version++;
+	assert.equal(isStale(packet, data), true);
+	assert.equal((packet.intent.body as Record<string, unknown>).text, "Retained seller experience");
+	assert.equal((packet.intent.body as Record<string, unknown>).version, 3);
+});
+test("Phase 15 uncertain attempts retain one exact packet per scope and reconcile only the ORDER domain", () => {
+	const packet = buildAction("en", phase15(), "dispute_open", reason(), key);
+	assert.ok(packet);
+	const scope = `synthetic:${id}:buyer`;
+	try {
+		const retained = retainAftercare(scope, packet.intent);
+		const later = { ...packet.intent, key: reviewId, body: { command_id: reviewId, reason: "Not reviewed" } };
+		assert.equal(retainAftercare(scope, later), retained);
+		assert.deepEqual(pendingAftercare(scope), packet.intent);
+		assert.equal(pendingAftercare(`${scope}:seller`), undefined);
+		assert.equal(recoveryPath("orders", id, key), `orders/${id}/aftercare-commands/${key}/reconcile/`);
+		assert.equal(recoveryPath("payments", id, key), `orders/${id}/commands/${key}/reconcile/`);
+		assert.equal(recoveryState({ state: "unknown" }), "unknown");
+		assert.equal(recoveryState({ state: "absent_fenced" }), "absent");
+		assert.equal(recoveryState({ state: "committed" }), "applied");
+	} finally { settleAftercare(scope); }
+	assert.equal(pendingAftercare(scope), undefined);
+});
+test("Phase 15 malformed command keys and target UUIDs never build mutations", () => {
+	assert.equal(buildAction("en", phase15(), "dispute_open", reason(), "invalid"), null);
+	const data = phase15();
+	data.order.id = "invalid";
+	assert.equal(buildAction("en", data, "review_submit", { ...emptyDraft(), rating: "3", text: "Seller experience" }, key), null);
 });

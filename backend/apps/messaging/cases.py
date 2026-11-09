@@ -3,15 +3,20 @@
 from apps.runtime.locks import row_options
 
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
 from apps.accounts.admin_access import permission_codes
 from apps.accounts.models import Account
-from apps.organizations.models import Membership
+from apps.organizations.models import BusinessProfile, Membership
 from . import access
-from .models import Report, CaseEvent, CaseAccess, Attachment, PERMISSIONS
+from .models import Report, CaseEvent, CaseAccess, Attachment, Conversation, PERMISSIONS
 from .services import CommandConflict
 from .queries import message_row
+
+# Every target path is hydrated before the business lock so resolution never
+# lazy-loads authority outside the serialized profile -> identity -> grant order.
+TARGET_RELATED = ("message__conversation", "product__seller", "store__profile", "order__seller", "order__buyer")
 
 
 def rights(actor):
@@ -25,13 +30,50 @@ def rights(actor):
     )
 
 
+def participants(report):
+    """Counterpart business plus optional buyer Account for exactly one target."""
+    kind = report.target_kind
+    if kind == "message":
+        item = report.message.conversation
+        return item.seller, item.buyer
+    if kind == "product":
+        return report.product.seller, None
+    if kind == "store":
+        return report.store.profile, None
+    return report.order.seller, report.order.buyer
+
+
+def order_conversation(order):
+    # CR-49: an order case discloses only an existing buyer<->seller thread for one
+    # of the order's products. Checkout without an enquiry grants no conversation.
+    item = (
+        Conversation.objects.filter(
+            buyer_id=order.buyer_id,
+            seller_id=order.seller_id,
+            product_id__in=order.lines.values("variant__product_id"),
+        )
+        .order_by("-updated_at", "pk")
+        .first()
+    )
+    if item is None:
+        raise NotFound()
+    return item
+
+
 def independent(report, user):
-    item = report.message.conversation
+    business, buyer = participants(report)
+    buyer_profiles = (
+        BusinessProfile.objects.filter(account_id=buyer.pk).values("pk")
+        if buyer is not None
+        else BusinessProfile.objects.none().values("pk")
+    )
     if (
         report.reporter.user_id == user.pk
-        or item.buyer.user_id == user.pk
-        or item.seller.account.user_id == user.pk
-        or Membership.objects.filter(company_id=item.seller_id, account__user=user).exists()
+        or business.account.user_id == user.pk
+        or (buyer is not None and buyer.user_id == user.pk)
+        or Membership.objects.filter(
+            Q(company_id=business.pk) | Q(company_id__in=buyer_profiles), account__user=user
+        ).exists()
     ):
         raise PermissionDenied("Another independent reviewer must handle this case.")
 
@@ -43,11 +85,23 @@ def queryset(actor):
         return qs.none()
     if actor.context == "owner":
         return qs
+    qs = qs.exclude(reporter__user=actor.user)
+    # Message and order targets carry a buyer counterpart; product/store do not.
+    # Current AND historical memberships are excluded (no active=True filter), so
+    # lists and independent() decisions agree for every target kind.
     qs = (
-        qs.exclude(reporter__user=actor.user)
-        .exclude(message__conversation__buyer__user=actor.user)
+        qs.exclude(message__conversation__buyer__user=actor.user)
+        .exclude(message__conversation__buyer__business_profiles__memberships__account__user=actor.user)
         .exclude(message__conversation__seller__account__user=actor.user)
         .exclude(message__conversation__seller__memberships__account__user=actor.user)
+        .exclude(order__buyer__user=actor.user)
+        .exclude(order__buyer__business_profiles__memberships__account__user=actor.user)
+        .exclude(order__seller__account__user=actor.user)
+        .exclude(order__seller__memberships__account__user=actor.user)
+        .exclude(product__seller__account__user=actor.user)
+        .exclude(product__seller__memberships__account__user=actor.user)
+        .exclude(store__profile__account__user=actor.user)
+        .exclude(store__profile__memberships__account__user=actor.user)
     )
     if "assign_message_case" not in permissions:
         qs = qs.filter(assigned_to=actor.account)
@@ -66,8 +120,13 @@ def require_read(actor, report):
 
 
 def reviewers(report):
-    item = report.message.conversation
-    conflicts = Membership.objects.filter(company=item.seller).values("account__user_id")
+    business, buyer = participants(report)
+    conflict = Q(company=business)
+    excluded = [report.reporter.user_id, business.account.user_id]
+    if buyer is not None:
+        conflict |= Q(company__account_id=buyer.pk)
+        excluded.append(buyer.user_id)
+    conflicts = Membership.objects.filter(conflict).values("account__user_id")
     return (
         Account.objects.filter(
             context="staff",
@@ -79,15 +138,16 @@ def reviewers(report):
             user__groups__permissions__codename="read_message_case",
         )
         .exclude(user_id__in=conflicts)
-        .exclude(user_id__in=[report.reporter.user_id, item.buyer.user_id, item.seller.account.user_id])
+        .exclude(user_id__in=excluded)
         .distinct()
     )
 
 
 @transaction.atomic
 def transition(actor, pk, *, version, action, reason, assigned_to=None):
-    preliminary = get_object_or_404(queryset(actor).select_related("message__conversation"), pk=pk)
-    access.lock_actor(actor, preliminary.message.conversation.seller_id)
+    preliminary = get_object_or_404(queryset(actor).select_related(*TARGET_RELATED), pk=pk)
+    business, _ = participants(preliminary)
+    access.lock_actor(actor, business.pk)
     report = get_object_or_404(
         Report.objects.filter(pk__in=queryset(actor).values("pk")).select_for_update(**row_options()), pk=pk
     )
@@ -128,8 +188,9 @@ def transition(actor, pk, *, version, action, reason, assigned_to=None):
 
 @transaction.atomic
 def inspect(actor, pk, *, before=None):
-    preliminary = get_object_or_404(queryset(actor).select_related("message__conversation"), pk=pk)
-    access.lock_actor(actor, preliminary.message.conversation.seller_id)
+    preliminary = get_object_or_404(queryset(actor).select_related(*TARGET_RELATED), pk=pk)
+    business, _ = participants(preliminary)
+    access.lock_actor(actor, business.pk)
     report = get_object_or_404(
         Report.objects.filter(pk__in=queryset(actor).values("pk"))
         .select_for_update(**row_options())
@@ -137,7 +198,16 @@ def inspect(actor, pk, *, before=None):
         pk=pk,
     )
     require_read(actor, report)
-    item = report.message.conversation
+    kind = report.target_kind
+    if kind == "message":
+        item = report.message.conversation
+        reported = message_row(report.message)
+    elif kind == "order":
+        item = order_conversation(report.order)
+        reported = None
+    else:
+        # Product/store reports grant no conversation access.
+        raise NotFound()
     rows = item.messages.all()
     if before:
         rows = rows.filter(sequence__lt=before)
@@ -153,7 +223,7 @@ def inspect(actor, pk, *, before=None):
         "report": report,
         "snapshot": item.snapshot,
         "reason": report.reason,
-        "reported_message": message_row(report.message),
+        "reported_message": reported,
         "messages": [message_row(row) for row in rows],
         "has_more": has_more,
         "oldest": rows[0].sequence if rows else None,
@@ -162,8 +232,9 @@ def inspect(actor, pk, *, before=None):
 
 @transaction.atomic
 def attachment(actor, report_id, pk):
-    preliminary = get_object_or_404(queryset(actor).select_related("message__conversation"), pk=report_id)
-    access.lock_actor(actor, preliminary.message.conversation.seller_id)
+    preliminary = get_object_or_404(queryset(actor).select_related(*TARGET_RELATED), pk=report_id)
+    business, _ = participants(preliminary)
+    access.lock_actor(actor, business.pk)
     report = get_object_or_404(
         Report.objects.filter(pk__in=queryset(actor).values("pk"))
         .select_for_update(**row_options())
@@ -171,7 +242,14 @@ def attachment(actor, report_id, pk):
         pk=report_id,
     )
     require_read(actor, report)
-    item = get_object_or_404(Attachment, pk=pk, conversation_id=report.message.conversation_id, message__isnull=False)
+    kind = report.target_kind
+    if kind == "message":
+        conversation_id = report.message.conversation_id
+    elif kind == "order":
+        conversation_id = order_conversation(report.order).pk
+    else:
+        raise NotFound()
+    item = get_object_or_404(Attachment, pk=pk, conversation_id=conversation_id, message__isnull=False)
     CaseAccess.objects.create(
         report=report,
         conversation_id=item.conversation_id,

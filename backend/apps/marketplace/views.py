@@ -34,6 +34,12 @@ def media_response(item):
 
 
 class MarketplacePublic(PublicView):
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        # Crawlers must not index API projections or their scoped errors; pages are rendered by the gateway.
+        response["X-Robots-Tag"] = "noindex"
+        return response
+
     def handle_exception(self, exc):
         if isinstance(exc, (OperationalError, OSError)):
             log_failure(self.request, exc, operation="marketplace_dependency", dependency="database_or_storage")
@@ -96,6 +102,20 @@ class StoreProducts(MarketplacePublic):
     @extend_schema(operation_id="marketplace_store_products", responses=c.MarketplaceProducts, auth=[])
     def get(self, request, locale, pk):
         return Response(c.MarketplaceProducts(queries.PublicGate(locale).products_page(v.query(request.query_params), seller_id=pk)).data)
+
+
+class StoreReviews(MarketplacePublic):
+    @extend_schema(operation_id="marketplace_store_reviews", responses=c.MarketplaceReviews, auth=[])
+    def get(self, request, locale, pk):
+        page = v.query(request.query_params, page_only=True)["page"]
+        return Response(c.MarketplaceReviews(queries.PublicGate(locale).store_reviews(pk, page)).data)
+
+
+class StoreReviewSummary(MarketplacePublic):
+    @extend_schema(operation_id="marketplace_store_review_summary", responses=c.MarketplaceReviewSummary, auth=[])
+    def get(self, request, locale, pk):
+        no_parameters(request)
+        return Response(c.MarketplaceReviewSummary(queries.PublicGate(locale).store_review_summary(pk)).data)
 
 
 class PublicMedia(MarketplacePublic):

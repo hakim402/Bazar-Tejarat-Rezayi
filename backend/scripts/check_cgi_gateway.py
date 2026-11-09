@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -23,6 +24,106 @@ from apps.runtime.gateway import render
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
         return None
+
+
+def dispute_participants(run, request, signin):
+    code = """import django;django.setup()
+import json
+from apps.accounts.models import User
+from apps.orders.management.commands.seed_dispute_examples import delivered_order
+from apps.messaging.management.commands.seed_messaging_examples import actor
+seller=actor(User.objects.get(email='phase12-owner@example.test'),'seller')
+print(json.dumps({'dispute_order':str(delivered_order(seller,paid=True).pk),'review_order':str(delivered_order(seller,paid=True).pk)}))
+"""
+    _, raw = run.python("-c", code, name="cgi-dispute-owned-orders")
+    items = json.loads(raw)
+    token = signin("buyer", "phase12-buyer@example.test")
+
+    def post(path, body, csrf):
+        return request(path, data=json.dumps(body).encode(), headers={
+            "Content-Type": "application/json", "X-CSRFToken": csrf, "Origin": "https://web.example.test",
+        })
+
+    order = items["dispute_order"]
+    base = f"/api/v1/orders/buyer/aftercare/{order}/"
+    status, _, raw = request(base)
+    assert status == 200
+    current = json.loads(raw)
+    packet = {"command_id": str(uuid.uuid4()), "version": current["version"],
+              "reason": "Actual synthetic delivered order dispute through CGI", "evidence": []}
+    path = f"/api/v1/orders/buyer/orders/{order}/disputes/"
+    assert request(path, data=json.dumps(packet).encode(), headers={"Content-Type": "application/json"})[0] == 403
+    status, _, raw = post(path, packet, token)
+    assert status == 201
+    result = json.loads(raw)
+    dispute = result["outcome"]["dispute"]
+    assert result["current"]["disputes"][0]["state"] == "pending"
+    status, _, raw = post(path, packet, token)
+    assert status == 201 and json.loads(raw)["outcome"] == result["outcome"]
+    assert request("/api/v1/orders/buyer/disputes/")[0] == 200
+    status, _, raw = request(f"/api/v1/orders/buyer/disputes/{dispute}/")
+    assert status == 200 and json.loads(raw)["order_detail"]["id"] == order
+    token = signin("seller", "phase12-owner@example.test")
+    status, _, raw = request(f"/api/v1/orders/seller/disputes/{dispute}/")
+    assert status == 200
+    current = json.loads(raw)
+    assert current["can_respond"]
+    response = {"command_id": str(uuid.uuid4()), "version": current["order_detail"]["version"],
+                "dispute": dispute, "text": "Retained actual seller response through CGI"}
+    assert post(f"/api/v1/orders/seller/disputes/{dispute}/respond/", response, token)[0] == 200
+    token = signin("buyer", "phase12-buyer@example.test")
+    review_order = items["review_order"]
+    current = json.loads(request(f"/api/v1/orders/buyer/aftercare/{review_order}/")[2])
+    review = {"command_id": str(uuid.uuid4()), "version": current["version"],
+              "rating": 4, "text": "نظر آزمایشی از راه CGI", "language": "fa-AF"}
+    status, _, raw = post(f"/api/v1/orders/buyer/orders/{review_order}/reviews/", review, token)
+    assert status == 201 and json.loads(raw)["current"]["review"]["state"] == "pending"
+    assign = """import django;django.setup()
+import sys,uuid
+from apps.accounts.models import User
+from apps.messaging.management.commands.seed_messaging_examples import actor
+from apps.orders import disputes
+from apps.orders.models import Aftercare,DisputeRequest
+row=DisputeRequest.objects.get(pk=sys.argv[1]);root=actor(User.objects.get(email='phase09-root@example.test'),'owner');target=User.objects.get(email='phase03-owner@example.test')
+disputes.decide(root,row.pk,{'command_id':uuid.uuid4(),'version':Aftercare.objects.get(order=row.order).version,'dispute_version':row.version,'action':'assign','assigned_to':target.pk,'reason':'Independent actual CGI dispute reviewer assignment'})
+"""
+    run.python("-c", assign, dispute, name="cgi-dispute-independent-assignment")
+    token = signin("buyer", "phase03-buyer@example.test")
+    assert request(base)[0] == 404
+    assert request(f"/api/v1/orders/buyer/disputes/{dispute}/")[0] == 404
+    return {"dispute": dispute, "review": review_order, "order": order}
+
+
+def dispute_native_review(run, request, records):
+    for family, pk, endpoint, action in (
+        ("disputerequest", records["dispute"], "review", "resolve"),
+        ("review", records["review"], "moderate", "approve"),
+    ):
+        path = f"/admin/orders/{family}/{pk}/{endpoint}/"
+        status, headers, raw = request(path)
+        assert status == 200 and "no-store" in headers["Cache-Control"]
+        body = {}
+        for name in ("csrfmiddlewaretoken", "command_id", "version", "case_version", "packet"):
+            value = re.search(rb'name="' + name.encode() + rb'"[^>]*value="([^"<>]+)"', raw)
+            assert value is not None
+            body[name] = value[1].decode()
+        body.update(action=action, reason="Independent actual guarded native CGI decision")
+        form = urllib.parse.urlencode(body).encode()
+        assert request(path, data=form, headers={
+            "Content-Type": "application/x-www-form-urlencoded", "Origin": "https://evil.example.test",
+        })[0] == 403
+        assert request(path, data=form, headers={
+            "Content-Type": "application/x-www-form-urlencoded", "Origin": "https://api.example.test",
+        })[0] in (302, 303)
+    code = """import django;django.setup()
+import sys
+from apps.orders.models import DisputeRequest,Review
+from apps.fulfilment.models import BlockerClosure,Completion
+row=DisputeRequest.objects.get(pk=sys.argv[1]);assert row.state=='resolved_non_monetary';assert BlockerClosure.objects.filter(blocker=row.blocker).count()==1;assert Completion.objects.filter(order=row.order).count()==1
+assert Review.objects.get(pk=sys.argv[2]).state=='approved'
+print('Dispute hold closed once, completion retained, review independently approved through CGI.')
+"""
+    run.python("-c", code, records["dispute"], records["review"], name="cgi-dispute-native-outcomes")
 
 
 def check(run):
@@ -282,8 +383,7 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
         assert request("/api/v1/auth/seller/session/")[0] == 403
         payment_checked = False
         delivery_case = None
-        if run.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
-            import uuid
+        if run.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
             import io
             from PIL import Image
 
@@ -395,10 +495,13 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
             csrf = signin_payment("buyer", "phase03-buyer@example.test")
             assert request(path)[0] == 404
             payment_checked = True
-        if run.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
+        if run.phase in {"phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
             from scripts.cgi_fulfilment import participants
 
             delivery_case = participants(run, request, signin_payment)
+        dispute_records = None
+        if run.phase == "phase-15-disputes":
+            dispute_records = dispute_participants(run, request, signin_payment)
         status, _, html = request("/admin/login/")
         token = re.search(rb'name="csrfmiddlewaretoken" value="([A-Za-z0-9]+)"', html)[1].decode()
         form = urllib.parse.urlencode(
@@ -420,6 +523,8 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
             from scripts.cgi_fulfilment import native_review
 
             native_review(run, request, delivery_case)
+        if dispute_records is not None:
+            dispute_native_review(run, request, dispute_records)
         assert request("/__gateway__/stream/")[2] == "Synthetic private streaming bytes — دری".encode()
         status, _, body = request("/__gateway__/fail/")
         assert status == 500 and b"SYNTHETIC_NEVER_PUBLIC" not in body and b"Traceback" not in body
@@ -436,6 +541,7 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
                     "payment_multipart_csrf_private_bytes_exact_confirmation": payment_checked,
                     "fulfilment_dispatch_private_files_independent_native_receipt_completion": delivery_case
                     is not None,
+                    "dispute_open_response_replay_scope_native_resolution_review_moderation": dispute_records is not None,
                     "multiple_cookie_headers": True,
                     "streaming_and_private_path_denial": True,
                     "parent_frontend_isolation": True,

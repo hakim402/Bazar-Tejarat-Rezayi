@@ -73,8 +73,9 @@ export function AftercareActionForm({
 	const available = modes.includes(mode),
 		domain = modeDomain(mode);
 	const financial = mode === "report" || mode === "delivery_refund";
+	const evidenceDomain = mode === "dispute_open" ? "payments" : domain;
 	const canUpload =
-		domain === "payments"
+		evidenceDomain === "payments"
 			? !!data.payment?.capabilities.evidence
 			: domain === "fulfilment" && !!data.delivery?.capabilities.refund;
 	const stale =
@@ -88,7 +89,7 @@ export function AftercareActionForm({
 		if (
 			!uploaded ||
 			uploaded.id === seenUpload.current ||
-			uploaded.domain !== domain
+			uploaded.domain !== evidenceDomain
 		)
 			return;
 		seenUpload.current = uploaded.id;
@@ -99,7 +100,7 @@ export function AftercareActionForm({
 		setFile(null);
 		if (fileInput.current) fileInput.current.value = "";
 		onDirty(true);
-	}, [uploaded, domain, onDirty]);
+	}, [uploaded, evidenceDomain, onDirty]);
 	function patch(value: Partial<Draft>) {
 		setDraft((old) => ({ ...old, ...value }));
 		setInvalid(false);
@@ -133,7 +134,7 @@ export function AftercareActionForm({
 	function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (locked || !available || stale) return;
-		const packet = buildAction(locale, base, mode, draft, crypto.randomUUID());
+		const packet = buildAction(locale, mode === "dispute_open" ? { ...base, payment: data.payment } : base, mode, draft, crypto.randomUUID());
 		if (!packet || file) {
 			setInvalid(true);
 			return;
@@ -147,7 +148,9 @@ export function AftercareActionForm({
 		);
 	}
 	const targets =
-		mode === "cancel_withdraw"
+		mode === "dispute_withdraw" || mode === "dispute_respond"
+			? (data.order.disputes ?? []).filter((row) => mode === "dispute_withdraw" ? row.can_withdraw : row.can_respond === true).map((row) => ({ id: row.id, label: `${row.id} · ${row.reason}` }))
+			: mode === "cancel_withdraw"
 			? data.order.cancellations
 					.filter((row) => row.can_withdraw)
 					.map((row) => ({ id: row.id, label: `${row.id} · ${row.reason}` }))
@@ -189,6 +192,8 @@ export function AftercareActionForm({
 	if (
 		!modes.length &&
 		!available &&
+		!draft.rating &&
+		!draft.text &&
 		!draft.reason &&
 		!draft.target &&
 		!draft.amount &&
@@ -351,8 +356,25 @@ export function AftercareActionForm({
 							{t.before}: <bdi>{due.previous}</bdi>
 						</p>
 					)}
-					{financial ? (
+					{mode.startsWith("dispute_") && <p>{t.disputeNote}</p>}
+					{mode.startsWith("review_") && <p>{t.reviewNote}</p>}
+					{mode === "review_submit" && (
+						<label className={labelClass}>
+							{t.reviewRating}
+							<select className={control} value={draft.rating} onChange={(event) => patch({ rating: event.target.value })}>
+								<option value="">—</option>
+								{[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}/5</option>)}
+							</select>
+						</label>
+					)}
+					{mode === "review_submit" || mode === "dispute_respond" ? (
+						<label className={labelClass}>
+							{mode === "review_submit" ? t.reviewText : t.disputeResponse}
+							<textarea className={control} dir="auto" maxLength={2000} rows={4} value={draft.text} onChange={(event) => patch({ text: event.target.value })} />
+						</label>
+					) : financial || mode === "dispute_open" ? (
 						<>
+							{financial ? <>
 							<p>{mode === "report" ? t.refundNote : t.deliveryNote}</p>
 							{isSeller ? (
 								<div className="grid min-w-0 gap-4 sm:grid-cols-2">
@@ -425,6 +447,7 @@ export function AftercareActionForm({
 									}
 								/>
 							</label>
+							</> : <label className={labelClass}>{t.disputeReason}<textarea className={control} dir="auto" minLength={3} maxLength={1000} rows={4} value={draft.reason} onChange={(event) => patch({ reason: event.target.value })} /></label>}
 							{canUpload && (
 								<label className={labelClass}>
 									{t.evidence}
@@ -457,7 +480,7 @@ export function AftercareActionForm({
 										setInvalid(true);
 										return;
 									}
-									upload(file, domain);
+									upload(file, evidenceDomain);
 								}}
 							>
 								{t.uploads}
@@ -480,7 +503,7 @@ export function AftercareActionForm({
 								{draft.images.map((id) => (
 									<div key={id} className="space-y-2">
 										{canUpload && (
-											<AftercareEvidence {...{ id, locale, context, domain }} />
+											<AftercareEvidence {...{ id, locale, context, domain: evidenceDomain }} />
 										)}
 										<button
 											type="button"
@@ -506,6 +529,7 @@ export function AftercareActionForm({
 							{t.reason}
 							<textarea
 								className={control}
+								dir="auto"
 								minLength={3}
 								maxLength={1000}
 								rows={isSeller ? 4 : undefined}

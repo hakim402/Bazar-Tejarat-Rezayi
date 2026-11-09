@@ -313,16 +313,18 @@ class EvidenceBinding(models.Model):
     receipt = models.ForeignKey(Receipt, null=True, on_delete=PROTECT, related_name="evidence_bindings")
     correction = models.ForeignKey(Correction, null=True, on_delete=PROTECT, related_name="evidence_bindings")
     report = models.ForeignKey("RefundReport", null=True, on_delete=PROTECT, related_name="evidence_bindings")
+    dispute = models.ForeignKey("orders.DisputeRequest", null=True, on_delete=PROTECT, related_name="evidence_bindings")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.CheckConstraint(
                 condition=(
-                    Q(claim__isnull=False, receipt__isnull=True, correction__isnull=True, report__isnull=True)
-                    | Q(claim__isnull=True, receipt__isnull=False, correction__isnull=True, report__isnull=True)
-                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=False, report__isnull=True)
-                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=True, report__isnull=False)
+                    Q(claim__isnull=False, receipt__isnull=True, correction__isnull=True, report__isnull=True, dispute__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=False, correction__isnull=True, report__isnull=True, dispute__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=False, report__isnull=True, dispute__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=True, report__isnull=False, dispute__isnull=True)
+                    | Q(claim__isnull=True, receipt__isnull=True, correction__isnull=True, report__isnull=True, dispute__isnull=False)
                 ),
                 name="payments_evidence_target",
             )
@@ -389,12 +391,15 @@ class Reminder(models.Model):
         constraints = [models.UniqueConstraint(fields=["order", "generation", "slot"], name="payments_reminder_slot")]
 
 
+REFUND_CAUSES = ["cancellation", "amendment", "excess", "dispute"]
+
+
 class RefundDue(models.Model):
     """Seller-issued refund obligation. Creation is sealed; approval is never execution."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey("orders.SellerOrder", on_delete=PROTECT, related_name="refund_dues")
-    cause = models.CharField(max_length=12, choices=[("cancellation", "Cancellation"), ("amendment", "Amendment"), ("excess", "Excess")])
+    cause = models.CharField(max_length=12, choices=[(cause, cause.capitalize()) for cause in REFUND_CAUSES])
     amount = models.DecimalField(max_digits=24, decimal_places=2)
     currency = models.CharField(max_length=3)
     event = models.OneToOneField(Event, on_delete=PROTECT)
@@ -407,7 +412,7 @@ class RefundDue(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=Q(amount__gt=0, currency__in=["AFN", "USD"], cause__in=["cancellation", "amendment", "excess"]),
+                condition=Q(amount__gt=0, currency__in=["AFN", "USD"], cause__in=REFUND_CAUSES),
                 name="payments_refund_due_values",
             )
         ]

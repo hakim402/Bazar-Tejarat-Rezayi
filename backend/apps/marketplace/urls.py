@@ -10,6 +10,8 @@ urlpatterns = [
     path("public/<str:locale>/stores/", v.Stores.as_view()),
     path("public/<str:locale>/stores/<uuid:pk>/", v.Store.as_view()),
     path("public/<str:locale>/stores/<uuid:pk>/products/", v.StoreProducts.as_view()),
+    path("public/<str:locale>/stores/<uuid:pk>/reviews/", v.StoreReviews.as_view()),
+    path("public/<str:locale>/stores/<uuid:pk>/reviews/summary/", v.StoreReviewSummary.as_view()),
     path("public/<str:locale>/sitemap/", v.Sitemap.as_view()),
     path("public/store-media/<uuid:pk>/", v.PublicMedia.as_view()),
     path("seller/stores/", v.SellerProfiles.as_view()),

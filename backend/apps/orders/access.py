@@ -155,3 +155,49 @@ def amendment_scope(actor):
     if "assign_aftercare" not in aftercare_rights(actor):
         qs = qs.filter(assigned_to=actor.user)
     return qs.distinct()
+
+
+def dispute_scope(actor):
+    from .models import DisputeRequest
+
+    if actor.context == "owner":
+        return DisputeRequest.objects.all()
+    if actor.context != "staff" or "read_dispute" not in aftercare_rights(actor):
+        return DisputeRequest.objects.none()
+    qs = (
+        DisputeRequest.objects.exclude(order__buyer__user=actor.user)
+        .exclude(order__seller__account__user=actor.user)
+        .exclude(order__seller__memberships__account__user=actor.user)
+        .exclude(order__buyer__business_profiles__memberships__account__user=actor.user)
+        .exclude(order__goods_receipts__actor__user=actor.user)
+        .exclude(order__payment_plans__actor__user=actor.user)
+        .exclude(order__amendments__actor__user=actor.user)
+        .exclude(requester_account__user=actor.user)
+        .exclude(response__actor__user=actor.user)
+        .exclude(evidence_bindings__evidence__creator__user=actor.user)
+    )
+    if "assign_dispute" not in aftercare_rights(actor):
+        qs = qs.filter(assigned_to=actor.user)
+    return qs.distinct()
+
+
+def review_scope(actor):
+    """Moderation queue. Seller-side actors for the business cannot moderate its
+    reviews, including root (CR-77); reviews carry no assignee."""
+    from .models import Review
+
+    if actor.context == "owner":
+        return Review.objects.all()
+    if actor.context != "staff" or "read_review" not in aftercare_rights(actor):
+        return Review.objects.none()
+    return (
+        Review.objects.exclude(order__buyer__user=actor.user)
+        .exclude(order__seller__account__user=actor.user)
+        .exclude(order__seller__memberships__account__user=actor.user)
+        .exclude(order__buyer__business_profiles__memberships__account__user=actor.user)
+        .exclude(order__goods_receipts__actor__user=actor.user)
+        .exclude(order__payment_plans__actor__user=actor.user)
+        .exclude(order__amendments__actor__user=actor.user)
+        .exclude(buyer__user=actor.user)
+        .distinct()
+    )

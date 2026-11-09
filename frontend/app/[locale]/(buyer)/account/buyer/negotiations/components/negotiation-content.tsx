@@ -1,5 +1,4 @@
 import { NegotiationWorkspace } from "../../../../../../../features/negotiations/components/workspace";
-import { negotiationCopy } from "../../../../../../../features/negotiations/copy";
 import type { Locale } from "../../../../../../../lib/i18n/locales";
 import { BuyerFrame } from "../../components/buyer-ui";
 export function NegotiationContent({

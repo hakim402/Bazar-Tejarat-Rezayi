@@ -276,6 +276,12 @@ AFTERCARE_PERMISSIONS = [
     ("assign_aftercare", "Assign independent aftercare reviewers and open case cancellations"),
     ("decide_cancellation", "Decide independent order cancellations"),
     ("decide_amendment", "Decide independent order amendments"),
+    ("read_dispute", "Inspect assigned post-delivery disputes"),
+    ("assign_dispute", "Assign independent dispute reviewers"),
+    ("decide_dispute", "Decide independent post-delivery disputes"),
+    ("read_dispute_evidence", "Read private dispute evidence"),
+    ("read_review", "Inspect the buyer review moderation queue"),
+    ("moderate_review", "Moderate buyer reviews of completed orders"),
 ]
 
 
@@ -457,3 +463,113 @@ class InvoiceAdjustment(models.Model):
             ),
         ]
         indexes = [models.Index(fields=["invoice", "-created_at", "id"], name="orders_adjustment_history")]
+
+
+DISPUTE_OUTCOMES = ["dismissed", "resolved_non_monetary", "refund_ordered"]
+
+
+class DisputeRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(SellerOrder, on_delete=models.PROTECT, related_name="disputes")
+    state = models.CharField(
+        max_length=21,
+        default="pending",
+        choices=[("pending", "Pending"), ("withdrawn", "Withdrawn")]
+        + [(outcome, outcome.replace("_", " ").capitalize()) for outcome in DISPUTE_OUTCOMES],
+    )
+    requester_account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+")
+    reason = models.CharField(max_length=1000)
+    blocker = models.ForeignKey("fulfilment.Blocker", null=True, on_delete=models.PROTECT, related_name="+")
+    assigned_to = models.ForeignKey("accounts.User", null=True, on_delete=models.PROTECT, related_name="dispute_assignments")
+    version = models.PositiveBigIntegerField(default=1)
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT, related_name="dispute")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # One open dispute per order is trigger-enforced natively; MariaDB has no
+            # partial unique index. Sequential disputes after closure stay retained.
+            models.UniqueConstraint(fields=["order"], condition=Q(state="pending"), name="orders_one_open_dispute"),
+            models.CheckConstraint(
+                condition=Q(state__in=["pending", "withdrawn"] + DISPUTE_OUTCOMES),
+                name="orders_dispute_state",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["assigned_to", "state"], name="orders_dispute_queue"),
+            models.Index(fields=["order", "-created_at", "id"], name="orders_dispute_history"),
+        ]
+
+
+class DisputeResponse(models.Model):
+    dispute = models.OneToOneField(DisputeRequest, primary_key=True, on_delete=models.PROTECT, related_name="response")
+    actor = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+")
+    text = models.CharField(max_length=2000)
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT, related_name="dispute_response")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class DisputeDecision(models.Model):
+    dispute = models.OneToOneField(DisputeRequest, primary_key=True, on_delete=models.PROTECT, related_name="decision")
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
+    context = models.CharField(max_length=8)
+    action = models.CharField(max_length=21, choices=[(outcome, outcome.replace("_", " ").capitalize()) for outcome in DISPUTE_OUTCOMES])
+    amount = models.DecimalField(max_digits=24, decimal_places=2, null=True)
+    refund_due = models.ForeignKey("payments.RefundDue", null=True, on_delete=models.PROTECT, related_name="dispute_decision")
+    reason = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(action="refund_ordered", amount__isnull=False, amount__gt=0, refund_due__isnull=False)
+                    | Q(action__in=["dismissed", "resolved_non_monetary"], amount__isnull=True, refund_due__isnull=True)
+                ),
+                name="orders_dispute_decision_values",
+            )
+        ]
+
+
+class Review(models.Model):
+    order = models.OneToOneField(SellerOrder, primary_key=True, on_delete=models.PROTECT, related_name="review")
+    buyer = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+")
+    rating = models.PositiveSmallIntegerField()
+    text = models.CharField(max_length=2000)
+    language = models.CharField(max_length=8)
+    state = models.CharField(
+        max_length=9,
+        default="pending",
+        choices=[("pending", "Pending"), ("withdrawn", "Withdrawn"), ("approved", "Approved"), ("rejected", "Rejected")],
+    )
+    version = models.PositiveBigIntegerField(default=1)
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT, related_name="review")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(rating__gte=1, rating__lte=5, state__in=["pending", "withdrawn", "approved", "rejected"]),
+                name="orders_review_values",
+            )
+        ]
+        indexes = [models.Index(fields=["state", "-created_at", "order"], name="orders_review_queue")]
+
+
+class ReviewDecision(models.Model):
+    """Append-only moderation history: an approved review may later be withdrawn."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    review = models.ForeignKey(Review, on_delete=models.PROTECT, related_name="decisions")
+    event = models.OneToOneField(AftercareEvent, on_delete=models.PROTECT)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", null=True, on_delete=models.PROTECT)
+    context = models.CharField(max_length=8)
+    action = models.CharField(max_length=9, choices=[("approved", "Approved"), ("rejected", "Rejected"), ("withdrawn", "Withdrawn")])
+    reason = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["review", "-created_at", "id"], name="orders_review_history")]

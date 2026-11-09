@@ -33,15 +33,15 @@ REPLACED = {
 }
 
 
-def begin(apps, editor):
+def begin(apps, editor, *, version=4, marker=UPGRADING):
     if editor.connection.vendor != "mysql":
         return
     State = apps.get_model("runtime", "Schema")
     row = State.objects.using(editor.connection.alias).get(pk=1)
-    if row.contract == UPGRADING:
+    if row.contract == marker:
         return
-    schema.verify(record=False, version=3)
-    State.objects.using(editor.connection.alias).filter(pk=1).update(contract=UPGRADING, verified_at=timezone.now())
+    schema.verify(record=False, version=version - 1)
+    State.objects.using(editor.connection.alias).filter(pk=1).update(contract=marker, verified_at=timezone.now())
 
 
 def additions():
@@ -69,22 +69,23 @@ def additions():
     return delta
 
 
-def apply_guards(cursor, *, expected=None):
-    original = schema.reference(3)["triggers"]
+def apply_guards(cursor, *, expected=None, version=4, replaced=REPLACED, delta=None):
+    original = schema.reference(version - 1)["triggers"]
+    statements = additions() if delta is None else delta
     actual = schema.guard_inventory(cursor)
     for name, digest in original.items():
         if name == PROBE:
             continue
         allowed = {digest}
-        if name in REPLACED:
+        if name in replaced:
             # A reviewed replacement can be absent after DROP, or already be
-            # the exact v4 body after CREATE; neither permits an unknown body.
+            # the exact target body after CREATE; neither permits an unknown body.
             allowed.add(None)
             if expected:
                 allowed.add(expected["triggers"][name])
         if actual.get(name) not in allowed:
-            raise RuntimeError("An existing v3/v4 guard differs; upgrade refused.")
-    for statement in additions():
+            raise RuntimeError(f"An existing v{version - 1}/v{version} guard differs; upgrade refused.")
+    for statement in statements:
         match = re.match(r"CREATE TRIGGER `([^`]+)`", statement)
         if not match:
             cursor.execute(schema.resumable_statement(statement))
@@ -94,8 +95,8 @@ def apply_guards(cursor, *, expected=None):
         if name in actual:
             if expected and actual[name] == expected["triggers"].get(name):
                 continue
-            if name not in REPLACED or actual[name] != original.get(name):
-                raise RuntimeError("Unexpected native v4 guard; no object overwritten.")
+            if name not in replaced or actual[name] != original.get(name):
+                raise RuntimeError(f"Unexpected native v{version} guard; no object overwritten.")
             cursor.execute(f"DROP TRIGGER `{name}`")
         try:
             cursor.execute(statement)
@@ -103,21 +104,21 @@ def apply_guards(cursor, *, expected=None):
             raise RuntimeError("Native guard construction failed: " + name) from error
 
 
-def publish(apps, editor):
+def publish(apps, editor, *, version=4, marker=UPGRADING, replaced=REPLACED, delta=None):
     if editor.connection.vendor != "mysql":
         return
     State = apps.get_model("runtime", "Schema")
     row = State.objects.using(editor.connection.alias).get(pk=1)
-    expected = schema.reference(4)
-    if row.contract == schema.contract(4):
-        schema.verify(record=False, version=4)
+    expected = schema.reference(version)
+    if row.contract == schema.contract(version):
+        schema.verify(record=False, version=version)
         return
-    if row.contract != UPGRADING:
-        raise RuntimeError("Explicit v3-to-v4 upgrade marker is required.")
+    if row.contract != marker:
+        raise RuntimeError(f"Explicit v{version - 1}-to-v{version} upgrade marker is required.")
     with editor.connection.cursor() as cursor:
-        apply_guards(cursor, expected=expected)
+        apply_guards(cursor, expected=expected, version=version, replaced=replaced, delta=delta)
         actual = schema.guard_inventory(cursor)
-        if actual.get(PROBE) not in {None, schema.reference(3)["triggers"][PROBE], expected["triggers"][PROBE]}:
+        if actual.get(PROBE) not in {None, schema.reference(version - 1)["triggers"][PROBE], expected["triggers"][PROBE]}:
             raise RuntimeError("Unexpected native metadata probe.")
         if actual.get(PROBE) != expected["triggers"][PROBE]:
             cursor.execute(f"DROP TRIGGER IF EXISTS `{PROBE}`")
@@ -141,9 +142,9 @@ def publish(apps, editor):
                 if observed["triggers"].get(name) != expected["triggers"].get(name)
             ]
             raise RuntimeError(
-                "Incomplete/unknown native v4 DDL remains unready: " + json.dumps(differences, sort_keys=True)
+                f"Incomplete/unknown native v{version} DDL remains unready: " + json.dumps(differences, sort_keys=True)
             )
     State.objects.using(editor.connection.alias).filter(pk=1).update(
-        contract=schema.contract(4), guards=observed, verified_at=timezone.now()
+        contract=schema.contract(version), guards=observed, verified_at=timezone.now()
     )
-    schema.verify(record=False, version=4)
+    schema.verify(record=False, version=version)

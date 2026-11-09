@@ -3808,6 +3808,84 @@
                 }
             }
         },
+        "/api/v1/marketplace/public/{locale}/stores/{id}/reviews/": {
+            "get": {
+                "operationId": "marketplace_store_reviews",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketplaceReviews"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/marketplace/public/{locale}/stores/{id}/reviews/summary/": {
+            "get": {
+                "operationId": "marketplace_store_review_summary",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketplaceReviewSummary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/marketplace/public/store-media/{id}/": {
             "get": {
                 "operationId": "marketplace_public_store_media",
@@ -4634,6 +4712,179 @@
                 }
             }
         },
+        "/api/v1/messaging/{context}/reports/": {
+            "get": {
+                "operationId": "messaging_own_reports",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    }
+                ],
+                "tags": [
+                    "messaging"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OwnReportPage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/messaging/{context}/reports/{kind}/{id}/": {
+            "get": {
+                "operationId": "messaging_target_reports",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "kind",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "messaging"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReportPage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "messaging_target_report",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "kind",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "messaging"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TargetReportCommandRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TargetReportCommandRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TargetReportCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReportResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/messaging/buyer/enquiries/": {
             "post": {
                 "operationId": "messaging_create_enquiry",
@@ -5427,6 +5678,139 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/disputes/": {
+            "get": {
+                "operationId": "disputes_list",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DisputePage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/disputes/{id}/": {
+            "get": {
+                "operationId": "disputes_detail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DisputeDetail"
                                 }
                             }
                         },
@@ -6393,6 +6777,118 @@
                 }
             }
         },
+        "/api/v1/orders/{context}/orders/{id}/disputes/": {
+            "post": {
+                "operationId": "disputes_submit",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DisputeOpenCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/{context}/orders/{id}/reviews/": {
+            "post": {
+                "operationId": "reviews_submit",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReviewSubmitCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/buyer/checkouts/": {
             "get": {
                 "operationId": "orders_submissions",
@@ -6618,6 +7114,53 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Submission"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/buyer/disputes/{id}/withdraw/": {
+            "post": {
+                "operationId": "disputes_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DisputeWithdrawCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
                                 }
                             }
                         },
@@ -6964,6 +7507,59 @@
                 }
             }
         },
+        "/api/v1/orders/buyer/orders/{id}/review/": {
+            "get": {
+                "operationId": "reviews_status",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "locale",
+                        "schema": {
+                            "enum": [
+                                "fa-AF",
+                                "ps",
+                                "ar",
+                                "en"
+                            ],
+                            "type": "string",
+                            "default": "fa-AF",
+                            "minLength": 1
+                        },
+                        "description": "* `fa-AF` - fa-AF\n* `ps` - ps\n* `ar` - ar\n* `en` - en"
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReviewStatus"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/buyer/review/": {
             "post": {
                 "operationId": "orders_review",
@@ -6992,6 +7588,53 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ReviewResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/buyer/reviews/{id}/withdraw/": {
+            "post": {
+                "operationId": "reviews_withdraw",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReviewWithdrawCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
                                 }
                             }
                         },
@@ -7135,6 +7778,53 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/TermsResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/seller/disputes/{id}/respond/": {
+            "post": {
+                "operationId": "disputes_respond",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DisputeResponseCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AftercareOutcome"
                                 }
                             }
                         },
@@ -9595,6 +10285,13 @@
                     "adjustments": {
                         "type": "array",
                         "items": {}
+                    },
+                    "disputes": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "review": {
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -9606,6 +10303,7 @@
                     "cancellations",
                     "capabilities",
                     "currency",
+                    "disputes",
                     "effective_lines",
                     "goods_total",
                     "id",
@@ -9613,6 +10311,7 @@
                     "number",
                     "payment",
                     "payment_method",
+                    "review",
                     "seller",
                     "seller_name",
                     "version"
@@ -12286,6 +12985,353 @@
                     "variant"
                 ]
             },
+            "DisputeDecisionRow": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "refund_due": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "action",
+                    "amount",
+                    "created_at",
+                    "reason",
+                    "refund_due"
+                ]
+            },
+            "DisputeDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "order": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "can_withdraw": {
+                        "type": "boolean"
+                    },
+                    "can_respond": {
+                        "type": "boolean"
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    },
+                    "requester": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "assigned": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "response": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DisputeResponseRow"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "decision": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DisputeDecisionRow"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "order_detail": {
+                        "$ref": "#/components/schemas/AftercareDetail"
+                    }
+                },
+                "required": [
+                    "assigned",
+                    "can_respond",
+                    "can_withdraw",
+                    "created_at",
+                    "currency",
+                    "decision",
+                    "evidence",
+                    "id",
+                    "invoice",
+                    "number",
+                    "order",
+                    "order_detail",
+                    "reason",
+                    "requester",
+                    "response",
+                    "state",
+                    "version"
+                ]
+            },
+            "DisputeOpenCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "reason",
+                    "version"
+                ]
+            },
+            "DisputePage": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DisputeRow"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "DisputeResponseCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "dispute": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "text": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "dispute",
+                    "text",
+                    "version"
+                ]
+            },
+            "DisputeResponseRow": {
+                "type": "object",
+                "properties": {
+                    "actor": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "text": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "actor",
+                    "created_at",
+                    "text"
+                ]
+            },
+            "DisputeRow": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "order": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "can_withdraw": {
+                        "type": "boolean"
+                    },
+                    "can_respond": {
+                        "type": "boolean"
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "maxItems": 3
+                    },
+                    "requester": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "assigned": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "response": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DisputeResponseRow"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "decision": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DisputeDecisionRow"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "assigned",
+                    "can_respond",
+                    "can_withdraw",
+                    "created_at",
+                    "currency",
+                    "decision",
+                    "evidence",
+                    "id",
+                    "invoice",
+                    "number",
+                    "order",
+                    "reason",
+                    "requester",
+                    "response",
+                    "state",
+                    "version"
+                ]
+            },
+            "DisputeWithdrawCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "dispute": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "dispute",
+                    "reason",
+                    "version"
+                ]
+            },
             "EmailPreference": {
                 "type": "object",
                 "properties": {
@@ -13915,6 +14961,80 @@
                     "results"
                 ]
             },
+            "MarketplaceReview": {
+                "type": "object",
+                "properties": {
+                    "reviewer": {
+                        "$ref": "#/components/schemas/ReviewerEnum"
+                    },
+                    "rating": {
+                        "type": "integer",
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "text": {
+                        "type": "string"
+                    },
+                    "language": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "language",
+                    "rating",
+                    "reviewer",
+                    "text"
+                ]
+            },
+            "MarketplaceReviewSummary": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer"
+                    },
+                    "average": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "average",
+                    "count"
+                ]
+            },
+            "MarketplaceReviews": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "facets": {},
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MarketplaceReview"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "facets",
+                    "page",
+                    "page_size",
+                    "results"
+                ]
+            },
             "MarketplaceSitemap": {
                 "type": "object",
                 "properties": {
@@ -14621,6 +15741,21 @@
                         "format": "uuid",
                         "nullable": true
                     },
+                    "product": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "store": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "report": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
                     "seller": {
                         "type": "string",
                         "format": "uuid"
@@ -14645,8 +15780,11 @@
                     "negotiation",
                     "order",
                     "payment",
+                    "product",
                     "read",
-                    "seller"
+                    "report",
+                    "seller",
+                    "store"
                 ]
             },
             "NoticeRowKindEnum": {
@@ -14932,6 +16070,61 @@
                     "page_size",
                     "recent",
                     "results"
+                ]
+            },
+            "OwnReportPage": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OwnReportResult"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "OwnReportResult": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "target_kind": {
+                        "$ref": "#/components/schemas/TargetKindEnum"
+                    },
+                    "target": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "id",
+                    "status",
+                    "target",
+                    "target_kind",
+                    "version"
                 ]
             },
             "Page": {
@@ -16172,15 +17365,16 @@
                     "password"
                 ]
             },
-            "ReportCommandCategoryEnum": {
+            "ReportCategoryEnum": {
                 "enum": [
                     "abuse",
+                    "fraud",
                     "spam",
                     "privacy",
                     "other"
                 ],
                 "type": "string",
-                "description": "* `abuse` - abuse\n* `spam` - spam\n* `privacy` - privacy\n* `other` - other"
+                "description": "* `abuse` - abuse\n* `fraud` - fraud\n* `spam` - spam\n* `privacy` - privacy\n* `other` - other"
             },
             "ReportCommandRequest": {
                 "type": "object",
@@ -16190,7 +17384,7 @@
                         "format": "uuid"
                     },
                     "category": {
-                        "$ref": "#/components/schemas/ReportCommandCategoryEnum"
+                        "$ref": "#/components/schemas/ReportCategoryEnum"
                     },
                     "reason": {
                         "type": "string",
@@ -16436,6 +17630,120 @@
                     "binding",
                     "results"
                 ]
+            },
+            "ReviewStatus": {
+                "type": "object",
+                "properties": {
+                    "can_withdraw": {
+                        "type": "boolean"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "order": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "rating": {
+                        "type": "integer"
+                    },
+                    "text": {
+                        "type": "string"
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "decisions": {
+                        "type": "array",
+                        "items": {}
+                    }
+                },
+                "required": [
+                    "can_withdraw",
+                    "created_at",
+                    "decisions",
+                    "id",
+                    "language",
+                    "order",
+                    "rating",
+                    "state",
+                    "text",
+                    "version"
+                ]
+            },
+            "ReviewSubmitCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "rating": {
+                        "type": "integer",
+                        "maximum": 5,
+                        "minimum": 1
+                    },
+                    "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                    },
+                    "language": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "language",
+                    "rating",
+                    "text",
+                    "version"
+                ]
+            },
+            "ReviewWithdrawCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "command_id",
+                    "reason",
+                    "version"
+                ]
+            },
+            "ReviewerEnum": {
+                "enum": [
+                    "buyer"
+                ],
+                "type": "string",
+                "description": "* `buyer` - buyer"
             },
             "SEO": {
                 "type": "object",
@@ -17191,6 +18499,38 @@
                     "seller",
                     "seller_name",
                     "version"
+                ]
+            },
+            "TargetKindEnum": {
+                "enum": [
+                    "message",
+                    "product",
+                    "store",
+                    "order"
+                ],
+                "type": "string",
+                "description": "* `message` - message\n* `product` - product\n* `store` - store\n* `order` - order"
+            },
+            "TargetReportCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "category": {
+                        "$ref": "#/components/schemas/ReportCategoryEnum"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "category",
+                    "command_id",
+                    "reason"
                 ]
             },
             "TeamData": {

@@ -76,7 +76,7 @@ export function safeReturn(
 				["fulfilment", "aftercare"].includes(parts[3]) ||
 				(["messages", "notifications"].includes(parts[3]) &&
 					!communicationRoute(parts.slice(3))) ||
-				(["checkout", "checkouts", "orders", "invoices", "payments", "deliveries", "cancellations"].includes(parts[3]) &&
+				(["checkout", "checkouts", "orders", "invoices", "payments", "deliveries", "cancellations", "disputes"].includes(parts[3]) &&
 					!commerceRoute(parts.slice(3)))
 			) return fallback;
 		}

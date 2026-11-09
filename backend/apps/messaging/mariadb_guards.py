@@ -1,6 +1,13 @@
 from apps.runtime.mariadb.ddl import reject, same, trigger
 
 
+def _derive(statement, old, new, count=1):
+    """Exact-substring guard extension; fail loudly on generator drift."""
+    if statement.count(old) != count:
+        raise RuntimeError("The retained messaging guard no longer contains its reviewed clause.")
+    return statement.replace(old, new)
+
+
 def statements():
     result = []
     scope = reject("NOT EXISTS(SELECT 1 FROM accounts_account a WHERE a.id=NEW.buyer_id AND a.context='buyer') OR NOT EXISTS(SELECT 1 FROM catalogue_product p WHERE p.id=NEW.product_id AND p.seller_id=NEW.seller_id)")
@@ -26,3 +33,17 @@ def statements():
     result.append(trigger("messaging_report", "UPDATE", reject(f"NOT ({same('id message_id reporter_id category reason created_at')}) OR NEW.version<>OLD.version+1 OR NEW.status NOT IN ('open','resolved')")))
     result.append(trigger("messaging_readstate", "UPDATE", reject(f"NOT ({same('id conversation_id account_id')}) OR NEW.last_read<OLD.last_read OR NEW.latest_incoming<OLD.latest_incoming OR NEW.episode<OLD.episode OR NEW.episode>OLD.episode+1")))
     return result
+
+
+def dispute_statements():
+    """v5 delta: the Report model gained product/store/order target FKs.
+    The UPDATE guard extends the immutable field list; the CHECK constraint
+    already covers all four branches at v4."""
+    source = {s.split("`", 2)[1]: s for s in statements() if s.startswith("CREATE TRIGGER")}
+    return [
+        _derive(
+            source["messaging_report_update_guard"],
+            same("id message_id reporter_id category reason created_at"),
+            same("id message_id product_id store_id order_id reporter_id category reason created_at"),
+        ),
+    ]

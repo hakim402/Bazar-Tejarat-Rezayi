@@ -6,6 +6,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from apps.accounts.models import Account, User, BrowserAuthority, ContextGrant
 from apps.organizations.models import BusinessProfile, Membership
 from apps.marketplace.access import eligible_profiles
+from apps.marketplace.models import Store
 from apps.catalogue.models import Product
 from .models import Conversation
 
@@ -133,6 +134,22 @@ def not_self(profile, account):
         from rest_framework.exceptions import ValidationError
 
         raise ValidationError({"product": ["self_enquiry"]})
+
+
+def target_scope(actor, kind):
+    """Participant scope for report targets. Orders reuse the buyer/current
+    authorized-seller-member order scope; product/store targets are the public
+    buyer-visible set, so inaccessible targets 404 without distinguishing why."""
+    if kind == "order":
+        from apps.orders.access import scope as order_scope
+
+        return order_scope(actor)
+    if actor.context != "buyer":
+        raise PermissionDenied()
+    eligible = eligible_profiles().values("pk")
+    if kind == "product":
+        return Product.objects.filter(published__isnull=False, seller_id__in=eligible)
+    return Store.objects.filter(pk__in=eligible)
 
 
 def participant_attachment(actor, pk):

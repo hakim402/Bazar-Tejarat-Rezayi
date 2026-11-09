@@ -1,6 +1,49 @@
 export type Context = "buyer" | "seller";
 export type Domain = "orders" | "payments" | "fulfilment";
-export type Mode = "cancel" | "cancel_withdraw" | "amend" | "amend_withdraw" | "excess" | "report" | "refund_withdraw" | "delivery_refund";
+export type Mode = "cancel" | "cancel_withdraw" | "amend" | "amend_withdraw" | "excess" | "report" | "refund_withdraw" | "delivery_refund" | "dispute_open" | "dispute_withdraw" | "dispute_respond" | "review_submit" | "review_withdraw";
+export type DisputeResponse = {
+	actor: string;
+	text: string;
+	created_at: string;
+};
+export type DisputeDecision = {
+	action: string;
+	amount: string | null;
+	refund_due: string | null;
+	reason: string;
+	created_at: string;
+};
+export type DisputeRow = {
+	id: string;
+	order: string;
+	number: string;
+	invoice: string;
+	currency: string;
+	state: string;
+	can_withdraw: boolean;
+	can_respond: boolean;
+	evidence: string[];
+	requester: string;
+	reason: string;
+	assigned: boolean;
+	version: number;
+	created_at: string;
+	response: DisputeResponse | null;
+	decision: DisputeDecision | null;
+};
+export type DisputeDetail = DisputeRow & { order_detail: Detail };
+export type ReviewRow = {
+	can_withdraw: boolean;
+	id: string;
+	order: string;
+	rating: number;
+	text: string;
+	language: string;
+	state: string;
+	version: number;
+	created_at: string;
+	decisions: { action: string; reason: string; created_at: string }[];
+};
 export type Line = {
 	line: string;
 	variant: string;
@@ -70,6 +113,8 @@ export type Detail = {
 	cancellations: RequestRow[];
 	amendments: Amendment[];
 	adjustments: Adjustment[];
+	disputes?: DisputeRow[];
+	review?: ReviewRow | null;
 };
 export type RefundDue = {
 	id: string;

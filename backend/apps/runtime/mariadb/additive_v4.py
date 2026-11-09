@@ -11,18 +11,18 @@ from . import schema
 from .additive import split, column, current
 
 
-def definitions():
-    return json.loads(Path(__file__).with_name("restore_v4.json").read_text())["tables"]
+def definitions(version=4):
+    return json.loads(Path(__file__).with_name(f"restore_v{version}.json").read_text())["tables"]
 
 
-def create_tables(editor, prefix, skip=()):
+def create_tables(editor, prefix, skip=(), version=4, label="Phase 14"):
     if editor.connection.vendor != "mysql":
-        raise RuntimeError("Phase 14 native construction requires MariaDB.")
+        raise RuntimeError(f"{label} native construction requires MariaDB.")
     # Tables that already exist and gain columns here are built by the additive
     # operations that precede them; their foreign keys would otherwise point at
     # tables this same migration has not created yet.
     expected = {
-        name: ddl for name, ddl in definitions().items() if name.startswith(prefix) and name not in skip
+        name: ddl for name, ddl in definitions(version).items() if name.startswith(prefix) and name not in skip
     }
     with editor.connection.cursor() as cursor:
         existing = set(editor.connection.introspection.table_names(cursor))
@@ -31,7 +31,7 @@ def create_tables(editor, prefix, skip=()):
             if name not in existing:
                 cursor.execute(bare)
             elif split(current(cursor, name))[0] != bare:
-                raise RuntimeError("An existing Phase 14 table differs; no object replaced.")
+                raise RuntimeError(f"An existing {label} table differs; no object replaced.")
         for name, ddl in expected.items():
             known = editor.connection.introspection.get_constraints(cursor, name)
             for clause in split(ddl)[1]:
@@ -39,7 +39,7 @@ def create_tables(editor, prefix, skip=()):
                 if not known.get(key, {}).get("foreign_key"):
                     cursor.execute("ALTER TABLE `" + name + "` ADD " + clause)
             if current(cursor, name) != ddl:
-                raise RuntimeError("Phase 14 table construction is incomplete or differs.")
+                raise RuntimeError(f"{label} table construction is incomplete or differs.")
 
 
 def aftercare_tables(apps, editor):
@@ -76,30 +76,31 @@ def reference_clause(version, table, name):
 
 
 class AddField(migrations.AddField):
+    version = 4
+    label = "aftercare"
+    # A NOT NULL boolean is populated with its literal default first, then the
+    # database default is removed.
+    defaults = {("notifications_preference", "aftercare_email"): "1"}
+
     def database_forwards(self, app_label, editor, from_state, to_state):
         model = to_state.apps.get_model(app_label, self.model_name)
         name = model._meta.get_field(self.name).column
         table = model._meta.db_table
-        expected = definitions()[table]
+        expected = definitions(self.version)[table]
         with editor.connection.cursor() as cursor:
             found = column(current(cursor, table), name)
             target = column(expected, name)
+            default = self.defaults.get((table, name))
             if found is None:
-                # A NOT NULL boolean is populated with its literal default
-                # first, then the database default is removed.
-                defaults = {("notifications_preference", "aftercare_email"): "1"}
-                default = defaults.get((table, name))
                 if default is not None and "NOT NULL" in target:
                     cursor.execute("ALTER TABLE `" + table + "` ADD COLUMN " + target + " DEFAULT " + default)
                     cursor.execute("ALTER TABLE `" + table + "` ALTER COLUMN `" + name + "` DROP DEFAULT")
                 else:
                     cursor.execute("ALTER TABLE `" + table + "` ADD COLUMN " + target)
             elif found != target:
-                defaults = {("notifications_preference", "aftercare_email"): "1"}
-                default = defaults.get((table, name))
                 # Resume the exact reviewed add-with-default intermediate.
                 if default is None or found != target + " DEFAULT " + default:
-                    raise RuntimeError("Unknown additive aftercare column; no object replaced.")
+                    raise RuntimeError(f"Unknown additive {self.label} column; no object replaced.")
                 cursor.execute("ALTER TABLE `" + table + "` ALTER COLUMN `" + name + "` DROP DEFAULT")
             # A OneToOne column must acquire its reviewed unique index before
             # its FK; otherwise MariaDB invents a nonunique FK support index.
@@ -111,7 +112,7 @@ class AddField(migrations.AddField):
                     if key not in known:
                         cursor.execute("ALTER TABLE `" + table + "` ADD " + clause)
                     elif not known[key].get("unique") or known[key].get("columns") != [name]:
-                        raise RuntimeError("Unknown additive aftercare identity index.")
+                        raise RuntimeError(f"Unknown additive {self.label} identity index.")
             known = editor.connection.introspection.get_constraints(cursor, table)
             for clause in split(expected)[1]:
                 key = clause.split("`", 2)[1]
@@ -120,23 +121,29 @@ class AddField(migrations.AddField):
 
 
 class RemoveConstraint(migrations.RemoveConstraint):
+    version = 4
+    label = "aftercare"
+
     def database_forwards(self, app_label, editor, from_state, to_state):
         table = from_state.apps.get_model(app_label, self.model_name)._meta.db_table
         with editor.connection.cursor() as cursor:
             found = check_clause(cursor, table, self.name)
-        if found is None or found == reference_clause(4, table, self.name):
+        if found is None or found == reference_clause(self.version, table, self.name):
             return
-        if found != reference_clause(3, table, self.name):
-            raise RuntimeError("Unknown predecessor aftercare constraint; removal refused.")
+        if found != reference_clause(self.version - 1, table, self.name):
+            raise RuntimeError(f"Unknown predecessor {self.label} constraint; removal refused.")
         return super().database_forwards(app_label, editor, from_state, to_state)
 
 
 class AddConstraint(migrations.AddConstraint):
+    version = 4
+    label = "aftercare"
+
     def database_forwards(self, app_label, editor, from_state, to_state):
         table = to_state.apps.get_model(app_label, self.model_name)._meta.db_table
         with editor.connection.cursor() as cursor:
             found = check_clause(cursor, table, self.constraint.name)
         if found is None:
             return super().database_forwards(app_label, editor, from_state, to_state)
-        if found != reference_clause(4, table, self.constraint.name):
-            raise RuntimeError("Unknown successor aftercare constraint; publication refused.")
+        if found != reference_clause(self.version, table, self.constraint.name):
+            raise RuntimeError(f"Unknown successor {self.label} constraint; publication refused.")

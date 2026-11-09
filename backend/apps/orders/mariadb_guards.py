@@ -248,7 +248,7 @@ def decision_guard(kind):
     return trigger(f"orders_{kind}decision", "INSERT", body)
 
 
-def aftercare_statements():
+def aftercare_statements(version=4):
     from apps.payments.mariadb_guards import accepted
 
     result = []
@@ -267,12 +267,22 @@ def aftercare_statements():
     )
     owner = "EXISTS(SELECT 1 FROM accounts_user u WHERE u.id=NEW.actor_id AND u.is_superuser AND u.is_staff AND u.is_active AND u.email_verified)"
     staff = _aftercare_permission("NEW.actor_id", "'read_aftercare'")
+    buyer_actions = "'cancellation_requested','cancellation_withdrawn'"
+    seller_actions = "'cancellation_requested','cancellation_withdrawn','amendment_proposed','amendment_withdrawn'"
+    staff_actions = "'cancellation_assigned','cancellation_opened','cancellation_approved','cancellation_rejected','amendment_assigned','amendment_approved','amendment_rejected'"
+    if version >= 5:
+        # Dispute and review queues are scoped by their own read codenames; the
+        # action-specific decide permission is enforced by the decision guards.
+        staff = f"({staff} OR {_aftercare_permission('NEW.actor_id', repr('read_dispute'))} OR {_aftercare_permission('NEW.actor_id', repr('read_review'))})"
+        buyer_actions += ",'dispute_opened','dispute_withdrawn','review_submitted','review_withdrawn'"
+        seller_actions += ",'dispute_response'"
+        staff_actions += ",'dispute_assigned','dispute_decided','review_decided'"
     body = "DECLARE current_version BIGINT; SELECT version INTO current_version FROM orders_aftercare WHERE order_id=NEW.order_id FOR UPDATE; "
     body += reject(f"current_version IS NULL OR NEW.version<>current_version+1 OR NOT ({accepted('NEW.order_id')})")
     body += reject(
-        f"""NOT ((NEW.context='buyer' AND ({_participant()}) AND ({_buyer_order('NEW.order_id', 'NEW.account_id', 'NEW.actor_id')}) AND NEW.action IN ('cancellation_requested','cancellation_withdrawn'))
-        OR (NEW.context='seller' AND ({_participant()}) AND ({_seller_orders('NEW.order_id', 'NEW.account_id')}) AND NEW.action IN ('cancellation_requested','cancellation_withdrawn','amendment_proposed','amendment_withdrawn'))
-        OR (NEW.context IN ('owner','staff') AND (NEW.context='owner' AND ({owner}) OR NEW.context='staff' AND ({staff})) AND NEW.action IN ('cancellation_assigned','cancellation_opened','cancellation_approved','cancellation_rejected','amendment_assigned','amendment_approved','amendment_rejected')))"""
+        f"""NOT ((NEW.context='buyer' AND ({_participant()}) AND ({_buyer_order('NEW.order_id', 'NEW.account_id', 'NEW.actor_id')}) AND NEW.action IN ({buyer_actions}))
+        OR (NEW.context='seller' AND ({_participant()}) AND ({_seller_orders('NEW.order_id', 'NEW.account_id')}) AND NEW.action IN ({seller_actions}))
+        OR (NEW.context IN ('owner','staff') AND (NEW.context='owner' AND ({owner}) OR NEW.context='staff' AND ({staff})) AND NEW.action IN ({staff_actions})))"""
     )
     result.append(trigger("orders_aftercareevent", "INSERT", body))
     result.append(
@@ -285,7 +295,23 @@ def aftercare_statements():
             suffix="identity_guard",
         )
     )
-    command_action = "CASE NEW.action WHEN 'request' THEN 'cancellation_requested' WHEN 'withdraw' THEN 'cancellation_withdrawn' WHEN 'propose' THEN 'amendment_proposed' WHEN 'amendment_withdraw' THEN 'amendment_withdrawn' WHEN 'cancellation_assign' THEN 'cancellation_assigned' WHEN 'cancellation_open' THEN 'cancellation_opened' WHEN 'cancellation_approve' THEN 'cancellation_approved' WHEN 'cancellation_reject' THEN 'cancellation_rejected' WHEN 'amendment_assign' THEN 'amendment_assigned' WHEN 'amendment_approve' THEN 'amendment_approved' WHEN 'amendment_reject' THEN 'amendment_rejected' ELSE NEW.action END"
+    disputes_map = ""
+    if version >= 5:
+        disputes_map = (
+            " WHEN 'dispute_open' THEN 'dispute_opened'"
+            " WHEN 'dispute_withdraw' THEN 'dispute_withdrawn'"
+            " WHEN 'dispute_respond' THEN 'dispute_response'"
+            " WHEN 'dispute_assign' THEN 'dispute_assigned'"
+            " WHEN 'dispute_dismiss' THEN 'dispute_decided'"
+            " WHEN 'dispute_resolve' THEN 'dispute_decided'"
+            " WHEN 'dispute_refund' THEN 'dispute_decided'"
+            " WHEN 'review_submit' THEN 'review_submitted'"
+            " WHEN 'review_withdraw' THEN 'review_withdrawn'"
+            " WHEN 'review_moderate_approve' THEN 'review_decided'"
+            " WHEN 'review_moderate_reject' THEN 'review_decided'"
+            " WHEN 'review_moderate_withdraw' THEN 'review_decided'"
+        )
+    command_action = "CASE NEW.action WHEN 'request' THEN 'cancellation_requested' WHEN 'withdraw' THEN 'cancellation_withdrawn' WHEN 'propose' THEN 'amendment_proposed' WHEN 'amendment_withdraw' THEN 'amendment_withdrawn' WHEN 'cancellation_assign' THEN 'cancellation_assigned' WHEN 'cancellation_open' THEN 'cancellation_opened' WHEN 'cancellation_approve' THEN 'cancellation_approved' WHEN 'cancellation_reject' THEN 'cancellation_rejected' WHEN 'amendment_assign' THEN 'amendment_assigned' WHEN 'amendment_approve' THEN 'amendment_approved' WHEN 'amendment_reject' THEN 'amendment_rejected'" + disputes_map + " ELSE NEW.action END"
     result.append(
         trigger(
             "orders_aftercarecommand",
@@ -375,4 +401,246 @@ def aftercare_statements():
     body += "IF NEW.cause='amendment' THEN " + adjustment_snapshot_guard("after_lines") + "END IF; "
     result.append(trigger("orders_invoiceadjustment", "INSERT", body))
     result += [decision_guard("cancellation"), decision_guard("amendment")]
+    return result
+
+
+def _delivered(order):
+    return f"""EXISTS(SELECT 1 FROM fulfilment_delivery d JOIN fulfilment_shipment s ON s.id=d.shipment_id
+        JOIN fulfilment_publication p ON p.event_id=d.event_id WHERE s.order_id={order})"""
+
+
+def _not_cancelled(order):
+    return f"""NOT EXISTS(SELECT 1 FROM orders_cancellationrequest c JOIN orders_cancellationdecision d
+        ON d.request_id=c.id WHERE c.order_id={order} AND d.action='approved')"""
+
+
+def dispute_independent(order, user):
+    """A dispute response or evidence author cannot decide that dispute."""
+    return f"""({aftercare_independent(order, user)})
+        AND NOT EXISTS(SELECT 1 FROM orders_disputeresponse r JOIN orders_disputerequest d ON d.id=r.dispute_id
+            JOIN accounts_account a ON a.id=r.actor_id WHERE d.order_id={order} AND a.user_id={user})
+        AND NOT EXISTS(SELECT 1 FROM payments_evidencebinding b JOIN orders_disputerequest d ON d.id=b.dispute_id
+            JOIN payments_evidence e ON e.id=b.evidence_id JOIN accounts_account a ON a.id=e.creator_id
+            WHERE d.order_id={order} AND a.user_id={user})"""
+
+
+def dispute_event_unpublished(event, order):
+    """Commands publish the aftercare head; notices must not precede construction."""
+    return f"""NOT EXISTS(SELECT 1 FROM orders_aftercarecommand command
+        WHERE command.order_id={order} AND command.action<>'absence_fence'
+        AND CAST(JSON_UNQUOTE(JSON_EXTRACT(command.result,'$.version')) AS UNSIGNED)>={event}.version)
+        AND NOT EXISTS(SELECT 1 FROM notifications_event notice WHERE notice.aftercare_event_id={event}.id)"""
+
+
+def dispute_refund_pending(order, actor, account, context):
+    """The unique pending request witnesses a due before its decision can exist."""
+    return f"""EXISTS(SELECT 1 FROM orders_disputerequest request
+        JOIN orders_aftercareevent decision_event ON decision_event.order_id=request.order_id
+        JOIN orders_aftercare head ON head.order_id=decision_event.order_id
+        JOIN orders_sellerorder original ON original.id=request.order_id
+        JOIN accounts_account buyer ON buyer.id=request.requester_account_id
+        JOIN accounts_user buyer_user ON buyer_user.id=buyer.user_id
+        WHERE request.order_id={order} AND request.state='pending' AND request.assigned_to_id={actor}
+        AND request.requester_account_id=original.buyer_id AND buyer.context='buyer' AND buyer.status='active'
+        AND buyer_user.is_active AND buyer_user.email_verified
+        AND decision_event.action='dispute_decided' AND decision_event.version=head.version
+        AND decision_event.actor_id={actor} AND (decision_event.account_id <=> {account})
+        AND decision_event.context={context}
+        AND (({context}='owner' AND {account} IS NULL AND EXISTS(SELECT 1 FROM accounts_user root
+            WHERE root.id={actor} AND root.is_superuser))
+            OR ({context}='staff' AND EXISTS(SELECT 1 FROM accounts_account staff
+                WHERE staff.id={account} AND staff.user_id={actor} AND staff.context='staff' AND staff.status='active')))
+        AND ({_aftercare_permission(actor, repr('decide_dispute'))})
+        AND ({_aftercare_permission(actor, repr('read_dispute'))})
+        AND ({dispute_independent(order, actor)})
+        AND ({_delivered(order)}) AND ({_not_cancelled(order)})
+        AND ({dispute_event_unpublished('decision_event', order)})
+        AND NOT EXISTS(SELECT 1 FROM orders_disputedecision decided
+            WHERE decided.dispute_id=request.id OR decided.event_id=decision_event.id)
+        AND NOT EXISTS(SELECT 1 FROM payments_refunddue prior
+            WHERE prior.order_id={order} AND prior.cause='dispute'
+            AND NOT EXISTS(SELECT 1 FROM payments_refundseal seal WHERE seal.due_id=prior.id)))"""
+
+
+def dispute_refund_match(due, decision):
+    """Exact current finance event, not equality between unrelated ledger UUIDs."""
+    return f"""{due}.cause='dispute' AND {due}.amount={decision}.amount
+        AND {due}.order_id=(SELECT order_id FROM orders_disputerequest WHERE id={decision}.dispute_id)
+        AND {due}.currency=(SELECT currency FROM orders_sellerorder WHERE id={due}.order_id)
+        AND EXISTS(SELECT 1 FROM payments_event payment_event JOIN payments_finance finance
+            ON finance.order_id=payment_event.order_id WHERE payment_event.id={due}.event_id
+            AND payment_event.order_id={due}.order_id AND payment_event.action='refund_due_created'
+            AND payment_event.version=finance.version AND payment_event.actor_id={decision}.actor_id
+            AND (payment_event.account_id <=> {decision}.account_id) AND payment_event.context={decision}.context)"""
+
+
+def dispute_statements():
+    """v5 delta: post-delivery disputes and moderated buyer reviews.
+
+    Disputes attach to the existing aftercare head and reuse the existing
+    fulfilment dispute hold; a decision closes that hold and may order a bounded
+    refund due whose amount bound is enforced by the payments guards."""
+    result = []
+    for table in ("disputeresponse", "disputedecision", "reviewdecision"):
+        result += retained("orders_" + table)
+
+    buyer_account = (
+        "EXISTS(SELECT 1 FROM accounts_account a JOIN accounts_user u ON u.id=a.user_id "
+        "WHERE a.id=NEW.requester_account_id AND a.context='buyer' AND a.status='active' "
+        "AND u.is_active AND u.email_verified)"
+    )
+    body = "DECLARE order_buyer CHAR(32); SELECT buyer_id INTO order_buyer FROM orders_sellerorder WHERE id=NEW.order_id FOR UPDATE; "
+    body += reject(
+        f"""order_buyer IS NULL OR NEW.version<>1 OR NEW.assigned_to_id IS NOT NULL OR NEW.blocker_id IS NOT NULL
+        OR NEW.state<>'pending' OR CHAR_LENGTH(TRIM(NEW.reason)) NOT BETWEEN 3 AND 1000
+        OR NEW.requester_account_id<>order_buyer OR NOT ({buyer_account})
+        OR NOT ({_delivered('NEW.order_id')}) OR NOT ({_not_cancelled('NEW.order_id')})
+        OR EXISTS(SELECT 1 FROM orders_disputerequest p WHERE p.order_id=NEW.order_id AND p.state='pending')
+        OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+            WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.action='dispute_opened'
+            AND e.context='buyer' AND e.account_id=NEW.requester_account_id AND e.version=s.version)"""
+    )
+    result.append(trigger("orders_disputerequest", "INSERT", body))
+
+    identity = "id order_id requester_account_id reason event_id created_at"
+    witnessed = f"""EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+        WHERE e.order_id=NEW.order_id AND e.version=s.version
+        AND ((e.action='dispute_assigned' AND NEW.state=OLD.state AND NOT (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND ({_aftercare_permission('e.actor_id', repr('assign_dispute'))})
+            AND (NEW.assigned_to_id IS NULL OR (({_aftercare_permission('NEW.assigned_to_id', repr('decide_dispute'))})
+                AND ({_aftercare_permission('NEW.assigned_to_id', repr('read_dispute'))})
+                AND ({dispute_independent('NEW.order_id', 'NEW.assigned_to_id')}))))
+        OR (e.action='dispute_response' AND NEW.state='pending' AND OLD.state='pending'
+            AND (NEW.assigned_to_id <=> OLD.assigned_to_id) AND e.context='seller'
+            AND ({_seller_orders('NEW.order_id', 'e.account_id')})
+            AND EXISTS(SELECT 1 FROM orders_disputeresponse r WHERE r.dispute_id=NEW.id AND r.event_id=e.id))
+        OR (e.action='dispute_withdrawn' AND OLD.state='pending' AND NEW.state='withdrawn'
+            AND (NEW.assigned_to_id <=> OLD.assigned_to_id) AND e.context='buyer' AND e.account_id=OLD.requester_account_id)
+        OR (e.action='dispute_decided' AND OLD.state='pending'
+            AND NEW.state IN ('dismissed','resolved_non_monetary','refund_ordered')
+            AND (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND EXISTS(SELECT 1 FROM orders_disputedecision d WHERE d.dispute_id=NEW.id AND d.event_id=e.id AND d.action=NEW.state))))"""
+    witness = f"""(NEW.version=OLD.version AND NEW.state=OLD.state AND (NEW.assigned_to_id <=> OLD.assigned_to_id) AND (NEW.blocker_id <=> OLD.blocker_id))
+        OR (NEW.version=OLD.version AND NEW.state=OLD.state AND (NEW.assigned_to_id <=> OLD.assigned_to_id)
+            AND OLD.blocker_id IS NULL AND NEW.blocker_id IS NOT NULL
+            AND OLD.state='pending' AND EXISTS(SELECT 1 FROM fulfilment_blocker b
+                JOIN fulfilment_event hold_event ON hold_event.id=b.event_id
+                JOIN fulfilment_state delivery_head ON delivery_head.order_id=b.order_id
+                JOIN orders_aftercareevent opening ON opening.id=OLD.event_id
+                JOIN orders_aftercare head ON head.order_id=opening.order_id
+                WHERE b.id=NEW.blocker_id AND b.order_id=NEW.order_id AND b.kind='dispute'
+                AND hold_event.action='dispute_hold' AND hold_event.version=delivery_head.version
+                AND hold_event.actor_id=opening.actor_id AND hold_event.account_id=opening.account_id
+                AND hold_event.context=opening.context AND opening.version=head.version
+                AND ({dispute_event_unpublished('opening', 'NEW.order_id')})))
+        OR (NEW.version=OLD.version+1 AND (NEW.blocker_id <=> OLD.blocker_id) AND OLD.state='pending' AND ({witnessed}))"""
+    result += [
+        trigger("orders_disputerequest", "DELETE", reject()),
+        trigger("orders_disputerequest", "UPDATE", reject(f"NOT ({same(identity)}) OR NOT ({witness})")),
+    ]
+
+    body = "DECLARE target_state VARCHAR(21); SELECT state INTO target_state FROM orders_disputerequest WHERE id=NEW.dispute_id FOR UPDATE; "
+    body += reject(
+        f"""target_state IS NULL OR target_state<>'pending' OR CHAR_LENGTH(TRIM(NEW.text)) NOT BETWEEN 3 AND 2000
+        OR NOT ({_seller_orders('(SELECT order_id FROM orders_disputerequest WHERE id=NEW.dispute_id)', 'NEW.actor_id')})
+        OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+            WHERE e.id=NEW.event_id AND e.order_id=(SELECT order_id FROM orders_disputerequest WHERE id=NEW.dispute_id)
+            AND e.action='dispute_response' AND e.context='seller' AND e.account_id=NEW.actor_id AND e.version=s.version)"""
+    )
+    result.append(trigger("orders_disputeresponse", "INSERT", body))
+
+    body = (
+        "DECLARE target_order CHAR(32); DECLARE target_state VARCHAR(21); DECLARE reviewer CHAR(32); "
+        "SELECT order_id,state,assigned_to_id INTO target_order,target_state,reviewer "
+        "FROM orders_disputerequest WHERE id=NEW.dispute_id FOR UPDATE; "
+    )
+    identity = (
+        "((NEW.context='owner' AND NEW.account_id IS NULL AND EXISTS(SELECT 1 FROM accounts_user u "
+        "WHERE u.id=NEW.actor_id AND u.is_superuser)) OR (NEW.context='staff' AND ("
+        + _participant()
+        + ")))"
+    )
+    body += reject(
+        f"""target_order IS NULL OR target_state<>'pending' OR reviewer IS NULL OR reviewer<>NEW.actor_id
+        OR NEW.action NOT IN ('dismissed','resolved_non_monetary','refund_ordered')
+        OR CHAR_LENGTH(TRIM(NEW.reason)) NOT BETWEEN 3 AND 1000
+        OR NOT ({identity}) OR NOT ({_aftercare_permission('NEW.actor_id', repr('decide_dispute'))})
+        OR NOT ({_aftercare_permission('NEW.actor_id', repr('read_dispute'))})
+        OR NOT ({dispute_independent('target_order', 'NEW.actor_id')})
+        OR NOT ({_delivered('target_order')}) OR NOT ({_not_cancelled('target_order')})
+        OR (NEW.action='refund_ordered' AND (NEW.amount IS NULL OR NEW.amount<=0 OR NEW.refund_due_id IS NULL
+            OR NOT EXISTS(SELECT 1 FROM payments_refunddue d WHERE d.id=NEW.refund_due_id
+                AND ({dispute_refund_match('d', 'NEW')})
+                AND NOT EXISTS(SELECT 1 FROM payments_refundseal seal WHERE seal.due_id=d.id)
+                AND NOT EXISTS(SELECT 1 FROM orders_disputedecision prior WHERE prior.refund_due_id=d.id))))
+        OR (NEW.action<>'refund_ordered' AND (NEW.amount IS NOT NULL OR NEW.refund_due_id IS NOT NULL))
+        OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+            WHERE e.id=NEW.event_id AND e.order_id=target_order AND e.version=s.version AND e.action='dispute_decided'
+            AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context
+            AND ({dispute_event_unpublished('e', 'target_order')}))
+        OR EXISTS(SELECT 1 FROM orders_disputedecision prior
+            WHERE prior.dispute_id=NEW.dispute_id OR prior.event_id=NEW.event_id)"""
+    )
+    result.append(trigger("orders_disputedecision", "INSERT", body))
+
+    body = "DECLARE order_buyer CHAR(32); SELECT buyer_id INTO order_buyer FROM orders_sellerorder WHERE id=NEW.order_id FOR UPDATE; "
+    body += reject(
+        f"""order_buyer IS NULL OR NEW.version<>1 OR NEW.state<>'pending' OR NEW.buyer_id<>order_buyer
+        OR NEW.rating NOT BETWEEN 1 AND 5 OR CHAR_LENGTH(TRIM(NEW.text)) NOT BETWEEN 3 AND 2000
+        OR NEW.language NOT IN ('fa-AF','en','ps','ar')
+        OR NOT EXISTS(SELECT 1 FROM fulfilment_completion c WHERE c.order_id=NEW.order_id)
+        OR NOT ({_not_cancelled('NEW.order_id')})
+        OR EXISTS(SELECT 1 FROM orders_review r WHERE r.order_id=NEW.order_id)
+        OR NOT EXISTS(SELECT 1 FROM accounts_account a JOIN accounts_user u ON u.id=a.user_id
+            WHERE a.id=NEW.buyer_id AND a.context='buyer' AND a.status='active' AND u.is_active AND u.email_verified)
+        OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+            WHERE e.id=NEW.event_id AND e.order_id=NEW.order_id AND e.action='review_submitted'
+            AND e.context='buyer' AND e.account_id=NEW.buyer_id AND e.version=s.version)"""
+    )
+    result.append(trigger("orders_review", "INSERT", body))
+
+    def moderation(actor, context, order):
+        return f"""({context} IN ('owner','staff') AND ({_aftercare_permission(actor, repr('moderate_review'))})
+        AND ({_aftercare_permission(actor, repr('read_review'))})
+        AND ({aftercare_independent(order, actor)}))"""
+
+    witnessed = f"""EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+        WHERE e.order_id=NEW.order_id AND e.version=s.version
+        AND ((e.action='review_withdrawn' AND OLD.state='pending' AND NEW.state='withdrawn'
+            AND e.context='buyer' AND e.account_id=OLD.buyer_id
+            AND EXISTS(SELECT 1 FROM orders_reviewdecision d WHERE d.review_id=NEW.order_id
+                AND d.event_id=e.id AND d.action='withdrawn' AND d.context='buyer'))
+        OR (e.action='review_decided' AND NEW.state IN ('approved','rejected','withdrawn')
+            AND ((NEW.state IN ('approved','rejected') AND OLD.state='pending')
+                OR (NEW.state='withdrawn' AND OLD.state IN ('pending','approved')))
+            AND ({moderation('e.actor_id', 'e.context', 'NEW.order_id')})
+            AND EXISTS(SELECT 1 FROM orders_reviewdecision d WHERE d.review_id=NEW.order_id
+                AND d.event_id=e.id AND d.action=NEW.state))))"""
+    result += [
+        trigger("orders_review", "DELETE", reject()),
+        trigger(
+            "orders_review",
+            "UPDATE",
+            reject(
+                f"NOT ({same('order_id buyer_id rating text language event_id created_at')}) OR NOT ("
+                f"(NEW.version=OLD.version AND NEW.state=OLD.state) OR (NEW.version=OLD.version+1 AND ({witnessed})))"
+            ),
+        ),
+    ]
+
+    body = "DECLARE review_state VARCHAR(9); DECLARE review_buyer CHAR(32); DECLARE review_order CHAR(32); SELECT state,buyer_id,order_id INTO review_state,review_buyer,review_order FROM orders_review WHERE order_id=NEW.review_id FOR UPDATE; "
+    body += reject(
+        f"""review_state IS NULL OR CHAR_LENGTH(TRIM(NEW.reason)) NOT BETWEEN 3 AND 1000
+        OR NEW.action NOT IN ('approved','rejected','withdrawn')
+        OR ((NEW.context='buyer' AND (NEW.action<>'withdrawn' OR review_state<>'pending' OR review_buyer<>NEW.account_id))
+            OR (NEW.context NOT IN ('buyer','owner','staff'))
+            OR (NEW.context IN ('owner','staff') AND (NOT ({moderation('NEW.actor_id', 'NEW.context', 'review_order')})
+                OR ((NEW.action IN ('approved','rejected') AND review_state<>'pending')
+                    OR (NEW.action='withdrawn' AND review_state NOT IN ('pending','approved'))))))
+        OR NOT EXISTS(SELECT 1 FROM orders_aftercareevent e JOIN orders_aftercare s ON s.order_id=e.order_id
+            WHERE e.id=NEW.event_id AND e.order_id=review_order AND e.version=s.version
+            AND e.action=IF(NEW.context='buyer','review_withdrawn','review_decided')
+            AND e.actor_id=NEW.actor_id AND (e.account_id <=> NEW.account_id) AND e.context=NEW.context)"""
+    )
+    result.append(trigger("orders_reviewdecision", "INSERT", body))
     return result

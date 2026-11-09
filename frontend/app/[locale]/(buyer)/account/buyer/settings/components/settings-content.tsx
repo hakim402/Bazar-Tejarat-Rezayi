@@ -1,6 +1,5 @@
 import type { Locale } from "../../../../../../../lib/i18n/locales";
 import { AccountSettings } from "../../../../../../../components/accounts/account-settings";
-import { accountSettingsCopy } from "../../../../../../../lib/i18n/account-settings";
 import { BuyerFrame } from "../../components/buyer-ui";
 export function PageContent({ locale }: { locale: Locale }) {
 	return (

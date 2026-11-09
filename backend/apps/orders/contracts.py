@@ -1,5 +1,6 @@
 from rest_framework import serializers as s
 from apps.messaging.contracts import Strict, safe_text
+from apps.payments.contracts import Money
 from .validation import COUNTRIES, city
 
 
@@ -218,6 +219,8 @@ class AftercareDetail(s.Serializer):
     cancellations = s.ListField(child=s.JSONField())
     amendments = s.ListField(child=s.JSONField())
     adjustments = s.ListField(child=s.JSONField())
+    disputes = s.ListField(child=s.JSONField())
+    review = s.JSONField(allow_null=True)
 
 
 class CancellationDetail(s.Serializer):
@@ -240,3 +243,139 @@ class CancellationDetail(s.Serializer):
     decision = s.CharField(allow_null=True)
     decision_reason = s.CharField(allow_blank=True)
     order_detail = AftercareDetail()
+
+
+class DisputeOpenCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    reason = s.CharField(min_length=3, max_length=1000)
+    evidence = s.ListField(child=s.UUIDField(), max_length=3, default=list)
+
+    def validate_reason(self, value):
+        return safe_text(value)
+
+
+class DisputeWithdrawCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    dispute = s.UUIDField()
+    reason = s.CharField(min_length=3, max_length=1000)
+
+    def validate_reason(self, value):
+        return safe_text(value)
+
+
+class DisputeResponseCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    dispute = s.UUIDField()
+    text = s.CharField(min_length=3, max_length=2000)
+
+    def validate_text(self, value):
+        return safe_text(value)
+
+
+class DisputeDecisionCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    dispute_version = s.IntegerField(min_value=0)
+    action = s.ChoiceField(choices=["assign", "dismiss", "resolve", "refund"])
+    reason = s.CharField(min_length=3, max_length=1000)
+    assigned_to = s.UUIDField(required=False)
+    amount = Money(required=False)
+
+    def validate_reason(self, value):
+        return safe_text(value)
+
+
+class ReviewSubmitCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    rating = s.IntegerField(min_value=1, max_value=5)
+    text = s.CharField(max_length=2000)
+    language = s.ChoiceField(choices=["fa-AF", "en", "ps", "ar"])
+
+    def validate_text(self, value):
+        return safe_text(value)
+
+
+class ReviewWithdrawCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    reason = s.CharField(min_length=3, max_length=1000)
+
+    def validate_reason(self, value):
+        return safe_text(value)
+
+
+class ReviewModerationCommand(Strict):
+    command_id = s.UUIDField()
+    version = s.IntegerField(min_value=0)
+    review_version = s.IntegerField(min_value=0)
+    action = s.ChoiceField(choices=["approve", "reject", "withdraw"])
+    reason = s.CharField(min_length=3, max_length=1000)
+
+    def validate_reason(self, value):
+        return safe_text(value)
+
+
+class DisputeResponseRow(s.Serializer):
+    actor = s.UUIDField()
+    text = s.CharField()
+    created_at = s.DateTimeField()
+
+
+class DisputeDecisionRow(s.Serializer):
+    action = s.CharField()
+    amount = s.CharField(allow_null=True)
+    refund_due = s.UUIDField(allow_null=True)
+    reason = s.CharField()
+    created_at = s.DateTimeField()
+
+
+class DisputeRow(s.Serializer):
+    id = s.UUIDField()
+    order = s.UUIDField()
+    number = s.CharField()
+    invoice = s.UUIDField()
+    currency = s.CharField()
+    state = s.CharField()
+    can_withdraw = s.BooleanField()
+    can_respond = s.BooleanField()
+    evidence = s.ListField(child=s.UUIDField(), max_length=3)
+    requester = s.UUIDField()
+    reason = s.CharField()
+    assigned = s.BooleanField()
+    version = s.IntegerField()
+    created_at = s.DateTimeField()
+    response = DisputeResponseRow(allow_null=True)
+    decision = DisputeDecisionRow(allow_null=True)
+
+
+class DisputeDetail(DisputeRow):
+    order_detail = AftercareDetail()
+
+
+class DisputePage(s.Serializer):
+    results = s.ListField(child=DisputeRow())
+    page = s.IntegerField()
+    count = s.IntegerField()
+
+
+class ReviewStatus(s.Serializer):
+    can_withdraw = s.BooleanField()
+    id = s.UUIDField()
+    order = s.UUIDField()
+    rating = s.IntegerField()
+    text = s.CharField()
+    language = s.CharField()
+    state = s.CharField()
+    version = s.IntegerField()
+    created_at = s.DateTimeField()
+    decisions = s.ListField(child=s.JSONField())
+
+
+class ReviewPage(s.Serializer):
+    results = s.ListField(child=ReviewStatus())
+    page = s.IntegerField()
+    count = s.IntegerField()

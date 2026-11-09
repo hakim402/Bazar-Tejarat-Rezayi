@@ -1,6 +1,5 @@
 import type { Locale } from "../../../../../../../../lib/i18n/locales";
 import { CommunicationWorkspace } from "../../../../../../../../features/messaging/components/workspace";
-import { communicationCopy } from "../../../../../../../../features/messaging/copy";
 import { BuyerFrame } from "../../../components/buyer-ui";
 export function PageContent({
 	locale,

@@ -242,6 +242,7 @@ SPECTACULAR_SETTINGS = {
         "CompanyBundleEnum": "apps.organizations.models.BUNDLES",
         "BusinessProfileKindEnum": ["individual", "company", "business"],
         "PublicAccountContextEnum": ["buyer", "seller"],
+        "ReportCategoryEnum": ["abuse", "fraud", "spam", "privacy", "other"],
     },
     "COMPONENT_SPLIT_REQUEST": True,
 }

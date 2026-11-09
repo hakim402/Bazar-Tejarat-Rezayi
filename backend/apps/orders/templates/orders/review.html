@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% load i18n tz %}
+{% block content %}
+<div class="rz-owner ra:space-y-6 ra:min-w-0">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{% translate "Buyer review moderation" %}</h1>
+<p>{% translate "Invoice" %}: <bdi>{{ record.order.invoice.number }}</bdi> · {{ record.get_state_display }} · {% blocktranslate with version=record.version %}Version {{ version }}{% endblocktranslate %}</p>
+<p>{% translate "Reviews rate the whole seller experience for one completed order. Only approved eligible reviews enter the public average and count; reports never affect ratings." %}</p>
+<dl><dt>{% translate "Rating" %}</dt><dd><bdi>{{ record.rating }} / 5</bdi></dd><dt>{% translate "Submitted language" %}</dt><dd><bdi>{{ record.language }}</bdi></dd></dl>
+<p lang="{{ record.language }}" dir="auto">{{ record.text }}</p>
+<p>{% translate "Submitted text and language are retained verbatim. Withdrawal removes an approved review from the public projection without deleting its history." %}</p>
+{% if not independent %}<p role="status">{% translate "A buyer, seller or historical participant conflict prevents moderation, including root." %}</p>{% endif %}
+</section>
+{% if decisions %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Retained moderation history" %}</h2>
+{% for decision in decisions %}<article class="ra:border ra:border-line ra:rounded-control ra:p-3"><p>{{ decision.get_action_display }} · {% timezone "Asia/Kabul" %}{{ decision.created_at }}{% endtimezone %} · {% translate "Kabul" %}</p><p dir="auto">{{ decision.reason }}</p></article>{% endfor %}
+</section>{% endif %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Guarded moderation" %}</h2>
+<p>{% translate "This form is bound to the displayed review version and aftercare version. If it becomes stale, your inputs remain; reload and review before a new decision." %}</p>
+<form method="post" class="ra:space-y-3">{% csrf_token %}{{ form.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2">{% translate "Record guarded decision" %}</button></form>
+</section>
+</div>
+{% endblock %}

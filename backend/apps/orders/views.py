@@ -365,3 +365,148 @@ class AftercareSettle(OrderView):
         from . import cancellations
 
         return Response(c.Settled(cancellations.settle(actor, pk, key)).data)
+
+
+# --- Disputes ---------------------------------------------------------------
+
+
+class DisputeList(OrderView):
+    @extend_schema(operation_id="disputes_list", parameters=[c.Query], responses=c.DisputePage)
+    def get(self, request, context):
+        actor = self.actor(context)
+        data = query(request, c.Query)
+        if data.get("seller") and actor.context != "seller":
+            raise PermissionDenied()
+        from . import aftercare_queries
+
+        page_data = aftercare_queries.dispute_list(actor, page=data["page"], seller=data.get("seller"))
+        return Response(c.DisputePage(page_data).data)
+
+
+class DisputeDetail(OrderView):
+    @extend_schema(operation_id="disputes_detail", parameters=[c.DocumentQuery], responses=c.DisputeDetail)
+    def get(self, request, context, pk):
+        actor = self.actor(context)
+        query(request, c.DocumentQuery)
+        from . import aftercare_queries
+
+        return Response(c.DisputeDetail(aftercare_queries.dispute_detail(actor, pk)).data)
+
+
+class SubmitDispute(OrderView):
+    @extend_schema(
+        operation_id="disputes_submit", request=c.DisputeOpenCommand, responses=c.AftercareOutcome
+    )
+    def post(self, request, context, pk):
+        actor = self.actor(context)
+        query(request)
+        throttle(actor, "dispute_open", pk, limit=20)
+        from . import aftercare_queries, disputes
+
+        result = disputes.mutate(actor, pk, "dispute_open", self.data(c.DisputeOpenCommand))
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": result, "current": aftercare_queries.aftercare_detail(actor, pk)}
+            ).data,
+            status=201,
+        )
+
+
+class WithdrawDispute(OrderView):
+    @extend_schema(
+        operation_id="disputes_withdraw", request=c.DisputeWithdrawCommand, responses=c.AftercareOutcome
+    )
+    def post(self, request, pk):
+        actor = self.actor("buyer")
+        query(request)
+        throttle(actor, "dispute_withdraw", pk, limit=20)
+        from . import aftercare_queries, disputes
+        from .models import DisputeRequest
+
+        row = get_object_or_404(DisputeRequest.objects.filter(order__buyer=actor.account), pk=pk)
+        data = self.data(c.DisputeWithdrawCommand)
+        if data["dispute"] != row.pk:
+            raise ValidationError({"dispute": ["The packet must match the requested resource."]})
+        result = disputes.mutate(actor, row.order_id, "dispute_withdraw", data)
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": result, "current": aftercare_queries.aftercare_detail(actor, row.order_id)}
+            ).data
+        )
+
+
+class RespondDispute(OrderView):
+    @extend_schema(
+        operation_id="disputes_respond", request=c.DisputeResponseCommand, responses=c.AftercareOutcome
+    )
+    def post(self, request, pk):
+        actor = self.actor("seller")
+        query(request)
+        throttle(actor, "dispute_respond", pk, limit=20)
+        from . import aftercare_queries, disputes
+        from .models import DisputeRequest
+
+        row = get_object_or_404(DisputeRequest.objects.filter(order__in=disputes.order_scope(actor)), pk=pk)
+        data = self.data(c.DisputeResponseCommand)
+        if data["dispute"] != row.pk:
+            raise ValidationError({"dispute": ["The packet must match the requested resource."]})
+        result = disputes.mutate(actor, row.order_id, "dispute_respond", data)
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": result, "current": aftercare_queries.aftercare_detail(actor, row.order_id)}
+            ).data
+        )
+
+
+# --- Reviews ----------------------------------------------------------------
+
+
+class SubmitReview(OrderView):
+    @extend_schema(
+        operation_id="reviews_submit", request=c.ReviewSubmitCommand, responses=c.AftercareOutcome
+    )
+    def post(self, request, context, pk):
+        actor = self.actor(context)
+        query(request)
+        throttle(actor, "review_submit", pk, limit=20)
+        from . import aftercare_queries, reviews
+
+        result = reviews.mutate(actor, pk, "review_submit", self.data(c.ReviewSubmitCommand))
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": result, "current": aftercare_queries.aftercare_detail(actor, pk)}
+            ).data,
+            status=201,
+        )
+
+
+class WithdrawReview(OrderView):
+    @extend_schema(
+        operation_id="reviews_withdraw", request=c.ReviewWithdrawCommand, responses=c.AftercareOutcome
+    )
+    def post(self, request, pk):
+        actor = self.actor("buyer")
+        query(request)
+        throttle(actor, "review_withdraw", pk, limit=20)
+        from . import aftercare_queries, reviews
+        from .models import Review
+
+        review = get_object_or_404(Review.objects.filter(order__buyer=actor.account), pk=pk)
+        result = reviews.mutate(actor, review.order_id, "review_withdraw", self.data(c.ReviewWithdrawCommand))
+        return Response(
+            c.AftercareOutcome(
+                {"outcome": result, "current": aftercare_queries.aftercare_detail(actor, review.order_id)}
+            ).data
+        )
+
+
+class ReviewStatusView(OrderView):
+    @extend_schema(operation_id="reviews_status", parameters=[c.DocumentQuery], responses=c.ReviewStatus)
+    def get(self, request, pk):
+        actor = self.actor("buyer")
+        query(request, c.DocumentQuery)
+        from . import aftercare_queries
+
+        return Response(
+            c.ReviewStatus(aftercare_queries.review_status(actor, pk), allow_null=True).data
+        )

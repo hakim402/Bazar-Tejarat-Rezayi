@@ -37,6 +37,16 @@ urlpatterns = [
     path("<marketplace:context>/orders/<uuid:pk>/cancellations/", v.SubmitCancellation.as_view()),
     path("<marketplace:context>/aftercare/", v.AftercareList.as_view()),
     path("<marketplace:context>/aftercare/<uuid:pk>/", v.AftercareDetail.as_view()),
+    # Disputes
+    path("<marketplace:context>/disputes/", v.DisputeList.as_view()),
+    path("<marketplace:context>/disputes/<uuid:pk>/", v.DisputeDetail.as_view()),
+    path("<marketplace:context>/orders/<uuid:pk>/disputes/", v.SubmitDispute.as_view()),
+    path("buyer/disputes/<uuid:pk>/withdraw/", v.WithdrawDispute.as_view()),
+    path("seller/disputes/<uuid:pk>/respond/", v.RespondDispute.as_view()),
+    # Reviews
+    path("<marketplace:context>/orders/<uuid:pk>/reviews/", v.SubmitReview.as_view()),
+    path("buyer/reviews/<uuid:pk>/withdraw/", v.WithdrawReview.as_view()),
+    path("buyer/orders/<uuid:pk>/review/", v.ReviewStatusView.as_view()),
     path("seller/orders/<uuid:pk>/amendments/", v.ProposeAmendment.as_view()),
     path("seller/amendments/<uuid:pk>/withdraw/", v.WithdrawAmendment.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/aftercare-commands/<uuid:key>/", v.AftercareCommand.as_view()),

@@ -1,6 +1,7 @@
 """Seller-issued goods refund dues, reports and independent staff decisions.
 
-A due is sealed at creation and bounded by confirmed received money. A
+A due is bounded by confirmed received money and sealed at creation, except
+that a dispute due is sealed by its caller after the final decision. A
 confirmed report reduces the remaining refund due only; it never reduces
 confirmed received, edits a sealed receipt or moves platform money."""
 
@@ -33,11 +34,13 @@ def refunded_total(order):
 
 
 def create_due(order, state, actor, cause, amount, reason):
-    """Seal one bounded refund due inside the caller's ordered transaction.
+    """Create one bounded due; dispute callers finish its witness before sealing.
 
     Total dues stay within confirmed received so confirmed refunds can never
     exceed what the seller actually confirmed, whatever earlier dues exist."""
-    if cause not in {"cancellation", "amendment", "excess"}:
+    from .models import REFUND_CAUSES
+
+    if cause not in REFUND_CAUSES:
         v.fail("cause")
     confirmed = queries.confirmed(order)
     bounded = min(amount, confirmed - due_total(order))
@@ -45,10 +48,14 @@ def create_due(order, state, actor, cause, amount, reason):
         return None
     event = services.emit(order, state, "refund_due_created", actor)
     due = RefundDue.objects.create(order=order, cause=cause, amount=bounded, currency=order.currency, event=event)
-    RefundSeal.objects.create(due=due)
-    from apps.notifications.aftercare_events import publish
+    # The dispute decision refers to this due, so its complete cross-ledger
+    # witness must exist before sealing or publishing it. Other causes retain
+    # their original construction order.
+    if cause != "dispute":
+        RefundSeal.objects.create(due=due)
+        from apps.notifications.aftercare_events import publish
 
-    publish(order, payment_event=event, sender_user=actor.user if actor else None)
+        publish(order, payment_event=event, sender_user=actor.user if actor else None)
     return due
 
 
@@ -58,12 +65,26 @@ def independent(order, user):
         raise PermissionDenied("An independent reviewer is required.")
 
 
+def dispute_confirmer_allowed(due, user):
+    """CR-120: a dispute-ordered due is confirmed by a different staff member."""
+    from apps.orders.models import DisputeDecision
+
+    if due.cause == "dispute" and DisputeDecision.objects.filter(
+        dispute__order_id=due.order_id, actor=user
+    ).exists():
+        raise PermissionDenied("A different independent reviewer must confirm this dispute refund.")
+
+
 def reviewers(due):
+    def eligible(user):
+        independent(due.order, user)
+        dispute_confirmer_allowed(due, user)
+
     return eligible_reviewers(
         "payments",
         "read_payments",
         "decide_goods_refund",
-        lambda user: independent(due.order, user),
+        eligible,
         active_staff_account=True,
     )
 
@@ -82,6 +103,7 @@ def refund_scope(actor):
         .exclude(order__payment_plans__actor__user=actor.user)
         .exclude(order__amendments__actor__user=actor.user)
         .exclude(reports__actor__user=actor.user)
+        .exclude(cause="dispute", order__disputes__decision__actor=actor.user)
     )
     if "assign_aftercare" not in aftercare_rights(actor):
         qs = qs.filter(assigned_to=actor.user)
@@ -105,6 +127,7 @@ def require_due(actor, due, *, decide=False):
         if due.assigned_to_id != actor.user.pk:
             raise PermissionDenied("Assign an independent eligible reviewer first.")
         independent(due.order, actor.user)
+        dispute_confirmer_allowed(due, actor.user)
 
 
 def _due(actor, order, state, data):

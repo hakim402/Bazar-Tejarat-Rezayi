@@ -1036,6 +1036,66 @@ msgstr "عنوان پیام"
 msgid "Message reports"
 msgstr "گزارش‌های پیام‌ها"
 
+msgid "Content & order reports"
+msgstr "گزارش‌های محتوا و سفارش‌ها"
+
+msgid "Order disputes"
+msgstr "اختلاف‌های سفارش"
+
+msgid "Buyer reviews"
+msgstr "نظرهای خریداران"
+
+msgid "Order dispute review"
+msgstr "بررسی اختلاف سفارش"
+
+msgid "Buyer review moderation"
+msgstr "بررسی نظر خریدار"
+
+msgid "Dispute details"
+msgstr "جزئیات اختلاف"
+
+msgid "Retained seller response"
+msgstr "پاسخ ثبت‌شدهٔ فروشنده"
+
+msgid "Current maximum ordered refund"
+msgstr "بیشترین مبلغ مجاز بازپرداخت فعلی"
+
+msgid "Ordered refund due, not execution"
+msgstr "تعهد بازپرداخت، نه پرداخت انجام‌شده"
+
+msgid "Private buyer evidence"
+msgstr "اسناد خصوصی خریدار"
+
+msgid "Retained moderation history"
+msgstr "تاریخچهٔ ثبت‌شدهٔ بررسی"
+
+msgid "Guarded moderation"
+msgstr "بررسی با کنترل صلاحیت"
+
+msgid "Submitted language"
+msgstr "زبان نظر ثبت‌شده"
+
+msgid "Dispute"
+msgstr "اختلاف"
+
+msgid "Guarded review"
+msgstr "بررسی با کنترل صلاحیت"
+
+msgid "Dismiss"
+msgstr "رد اختلاف"
+
+msgid "Resolve without money"
+msgstr "حل اختلاف بدون پرداخت پول"
+
+msgid "Order bounded seller refund"
+msgstr "ثبت تعهد بازپرداخت مجاز فروشنده"
+
+msgid "Ordered refund amount"
+msgstr "مبلغ تعهد بازپرداخت"
+
+msgid "Only an independent exact assignee may decide. A refund order creates a due, not execution."
+msgstr "تنها بررسی‌کنندهٔ مستقل و تعیین‌شده می‌تواند تصمیم بگیرد. تصمیم بازپرداخت، تعهد ایجاد می‌کند و به معنای پرداخت نیست."
+
 msgid "Messaging"
 msgstr "پیام‌رسانی"
 

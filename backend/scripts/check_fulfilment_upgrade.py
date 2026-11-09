@@ -42,7 +42,7 @@ def baseline_source(run, revision=BASELINE, directory="phase12-source"):
     return target
 
 
-def compare_snapshot(run, snapshot, env, *, version, tag, invoice_advance=0, exact=False):
+def compare_snapshot(run, snapshot, env, *, version, tag, invoice_advance=0, exact=False, require_ready=True):
     code = """import django;django.setup()
 import json,sys
 from pathlib import Path
@@ -51,7 +51,7 @@ from config.testing import assert_owned_database
 from apps.runtime import transfer as t
 from apps.runtime.mariadb import schema
 assert_owned_database(connection)
-schema.verify(record=False,version=int(sys.argv[2]));assert schema.ready()
+schema.verify(record=False,version=int(sys.argv[2]));assert schema.ready()==(sys.argv[5]=='ready')
 root=Path(sys.argv[1]);manifest=json.loads((root/'manifest.json').read_text());checked=0
 for table,record in manifest['tables'].items():
  fields=record['columns'];names=[f['name'] for f in fields];key=names.index(record['primary'])
@@ -67,7 +67,7 @@ for table,record in manifest['tables'].items():
 # Native publication metadata intentionally changes during upgrade (and the
 # restore integrity probe refreshes verification time); verify() above checks it.
 # Retain every other archived original control row, including migration IDs/times.
-if int(sys.argv[2])==4:
+if int(sys.argv[2])>=4:
  kinds=t.field_kinds()
  for table,record in manifest['control_archive'].items():
   if table=='runtime_schema':continue
@@ -84,11 +84,11 @@ print('Every original application row and exact invoice sequence preserved:',che
 """
     run.python(
         "-c", code, str(snapshot), str(version), str(invoice_advance), "exact" if exact else "original",
-        name=tag, env=env,
+        "ready" if require_ready else "unready", name=tag, env=env,
     )
 
 
-def seed_delivery_history(run, env, *, cwd=None):
+def seed_delivery_history(run, env, *, cwd=None, tag="fulfilment-populated-private-history"):
     from scripts.run_tests import BACKEND, PYTHON
 
     scenario = """import django;django.setup()
@@ -113,7 +113,7 @@ assert m.Completion.objects.filter(order=order).count()==1
 print('Populated private recipient, shipment, native stock proof, delivery money/evidence and completion created.')
 """
     run.command(
-        [str(PYTHON), "-c", scenario], "fulfilment-populated-private-history",
+        [str(PYTHON), "-c", scenario], tag,
         cwd=cwd or BACKEND, env={**env, "BROWSER_TEST_RUNTIME": "true"},
     )
 
@@ -361,7 +361,9 @@ print('Partial guards remain unready; unknown guard refused without replacement,
     )
 
 
-def seed_aftercare_history(run, env):
+def seed_aftercare_history(run, env, *, cwd=None):
+    from scripts.run_tests import BACKEND, PYTHON
+
     scenario = """import django;django.setup()
 import uuid
 from datetime import timedelta
@@ -433,8 +435,9 @@ def seed():
  print('Actual cancellation, amendment, stock releases, invoice adjustments and independently confirmed goods/delivery refunds with bound private evidence created.')
 seed()
 """
-    run.python(
-        "-c", scenario, name="aftercare-populated-private-history", env={**env, "BROWSER_TEST_RUNTIME": "true"},
+    run.command(
+        [str(PYTHON), "-c", scenario], "aftercare-populated-private-history",
+        cwd=cwd or BACKEND, env={**env, "BROWSER_TEST_RUNTIME": "true"},
     )
 
 

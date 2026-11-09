@@ -1156,6 +1156,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/marketplace/public/{locale}/stores/{id}/reviews/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["marketplace_store_reviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/public/{locale}/stores/{id}/reviews/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["marketplace_store_review_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/marketplace/public/store-media/{id}/": {
         parameters: {
             query?: never;
@@ -1358,6 +1390,38 @@ export interface paths {
         get: operations["messaging_reports"];
         put?: never;
         post: operations["messaging_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messaging/{context}/reports/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["messaging_own_reports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messaging/{context}/reports/{kind}/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["messaging_target_reports"];
+        put?: never;
+        post: operations["messaging_target_report"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1572,6 +1636,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{context}/disputes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["disputes_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/disputes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["disputes_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{context}/invoices/": {
         parameters: {
             query?: never;
@@ -1780,6 +1876,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{context}/orders/{id}/disputes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disputes_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{context}/orders/{id}/reviews/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reviews_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/buyer/checkouts/": {
         parameters: {
             query?: never;
@@ -1838,6 +1966,22 @@ export interface paths {
         get: operations["orders_by_command"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/buyer/disputes/{id}/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disputes_withdraw"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1972,6 +2116,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/buyer/orders/{id}/review/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reviews_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/buyer/review/": {
         parameters: {
             query?: never;
@@ -1982,6 +2142,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["orders_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/buyer/reviews/{id}/withdraw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reviews_withdraw"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2014,6 +2190,22 @@ export interface paths {
         get: operations["orders_terms"];
         put: operations["orders_terms_save"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/seller/disputes/{id}/respond/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disputes_respond"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2703,6 +2895,8 @@ export interface components {
             cancellations: unknown[];
             amendments: unknown[];
             adjustments: unknown[];
+            disputes: unknown[];
+            review: unknown;
         };
         AftercareOutcome: {
             outcome: unknown;
@@ -3664,6 +3858,97 @@ export interface components {
                 [key: string]: string;
             };
         };
+        DisputeDecisionRow: {
+            action: string;
+            amount: string | null;
+            /** Format: uuid */
+            refund_due: string | null;
+            reason: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        DisputeDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            order: string;
+            number: string;
+            /** Format: uuid */
+            invoice: string;
+            currency: string;
+            state: string;
+            can_withdraw: boolean;
+            can_respond: boolean;
+            evidence: string[];
+            /** Format: uuid */
+            requester: string;
+            reason: string;
+            assigned: boolean;
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            response: components["schemas"]["DisputeResponseRow"] | null;
+            decision: components["schemas"]["DisputeDecisionRow"] | null;
+            order_detail: components["schemas"]["AftercareDetail"];
+        };
+        DisputeOpenCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            reason: string;
+            evidence?: string[];
+        };
+        DisputePage: {
+            results: components["schemas"]["DisputeRow"][];
+            page: number;
+            count: number;
+        };
+        DisputeResponseCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            /** Format: uuid */
+            dispute: string;
+            text: string;
+        };
+        DisputeResponseRow: {
+            /** Format: uuid */
+            actor: string;
+            text: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        DisputeRow: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            order: string;
+            number: string;
+            /** Format: uuid */
+            invoice: string;
+            currency: string;
+            state: string;
+            can_withdraw: boolean;
+            can_respond: boolean;
+            evidence: string[];
+            /** Format: uuid */
+            requester: string;
+            reason: string;
+            assigned: boolean;
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            response: components["schemas"]["DisputeResponseRow"] | null;
+            decision: components["schemas"]["DisputeDecisionRow"] | null;
+        };
+        DisputeWithdrawCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            /** Format: uuid */
+            dispute: string;
+            reason: string;
+        };
         EmailPreference: {
             aftercare_email: boolean;
             payment_email: boolean;
@@ -4117,6 +4402,25 @@ export interface components {
             results: components["schemas"]["MarketplaceProduct"][];
             category?: components["schemas"]["MarketplaceCategory"];
         };
+        MarketplaceReview: {
+            reviewer: components["schemas"]["ReviewerEnum"];
+            rating: number;
+            text: string;
+            language: components["schemas"]["LocaleEnum"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        MarketplaceReviewSummary: {
+            count: number;
+            average: string | null;
+        };
+        MarketplaceReviews: {
+            count: number;
+            page: number;
+            page_size: number;
+            facets: unknown;
+            results: components["schemas"]["MarketplaceReview"][];
+        };
         MarketplaceSitemap: {
             categories: string[];
             products: string[];
@@ -4321,6 +4625,12 @@ export interface components {
             /** Format: uuid */
             invoice: string | null;
             /** Format: uuid */
+            product: string | null;
+            /** Format: uuid */
+            store: string | null;
+            /** Format: uuid */
+            report: string | null;
+            /** Format: uuid */
             seller: string;
             read: boolean;
             /** Format: date-time */
@@ -4415,6 +4725,22 @@ export interface components {
             catalogue_count: number;
             capabilities: components["schemas"]["Capabilities"];
             recent: components["schemas"]["Movement"][];
+        };
+        OwnReportPage: {
+            results: components["schemas"]["OwnReportResult"][];
+            page: number;
+            count: number;
+        };
+        OwnReportResult: {
+            /** Format: uuid */
+            id: string;
+            status: string;
+            version: number;
+            /** Format: date-time */
+            created_at?: string;
+            target_kind: components["schemas"]["TargetKindEnum"];
+            /** Format: uuid */
+            target: string;
         };
         Page: {
             count: number;
@@ -4760,16 +5086,17 @@ export interface components {
         };
         /**
          * @description * `abuse` - abuse
+         *     * `fraud` - fraud
          *     * `spam` - spam
          *     * `privacy` - privacy
          *     * `other` - other
          * @enum {string}
          */
-        ReportCommandCategoryEnum: "abuse" | "spam" | "privacy" | "other";
+        ReportCategoryEnum: "abuse" | "fraud" | "spam" | "privacy" | "other";
         ReportCommandRequest: {
             /** Format: uuid */
             command_id: string;
-            category: components["schemas"]["ReportCommandCategoryEnum"];
+            category: components["schemas"]["ReportCategoryEnum"];
             reason: string;
         };
         ReportPage: {
@@ -4835,6 +5162,40 @@ export interface components {
             results: unknown[];
             binding: boolean;
         };
+        ReviewStatus: {
+            can_withdraw: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            order: string;
+            rating: number;
+            text: string;
+            language: string;
+            state: string;
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            decisions: unknown[];
+        };
+        ReviewSubmitCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            rating: number;
+            text: string;
+            language: components["schemas"]["LocaleEnum"];
+        };
+        ReviewWithdrawCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            version: number;
+            reason: string;
+        };
+        /**
+         * @description * `buyer` - buyer
+         * @enum {string}
+         */
+        ReviewerEnum: "buyer";
         SEO: {
             page: components["schemas"]["PageEnum"];
             title: string;
@@ -5056,6 +5417,20 @@ export interface components {
             capabilities: {
                 [key: string]: boolean;
             };
+        };
+        /**
+         * @description * `message` - message
+         *     * `product` - product
+         *     * `store` - store
+         *     * `order` - order
+         * @enum {string}
+         */
+        TargetKindEnum: "message" | "product" | "store" | "order";
+        TargetReportCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
+            category: components["schemas"]["ReportCategoryEnum"];
+            reason: string;
         };
         TeamData: {
             members: components["schemas"]["MemberData"][];
@@ -7092,6 +7467,50 @@ export interface operations {
             };
         };
     };
+    marketplace_store_reviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplaceReviews"];
+                };
+            };
+        };
+    };
+    marketplace_store_review_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplaceReviewSummary"];
+                };
+            };
+        };
+    };
     marketplace_public_store_media: {
         parameters: {
             query?: never;
@@ -7482,6 +7901,81 @@ export interface operations {
             };
         };
     };
+    messaging_own_reports: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnReportPage"];
+                };
+            };
+        };
+    };
+    messaging_target_reports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPage"];
+                };
+            };
+        };
+    };
+    messaging_target_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetReportCommandRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TargetReportCommandRequest"];
+                "multipart/form-data": components["schemas"]["TargetReportCommandRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResult"];
+                };
+            };
+        };
+    };
     messaging_create_enquiry: {
         parameters: {
             query?: never;
@@ -7851,6 +8345,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AftercareOutcome"];
+                };
+            };
+        };
+    };
+    disputes_list: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+                page?: number;
+                seller?: string;
+            };
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputePage"];
+                };
+            };
+        };
+    };
+    disputes_detail: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+            };
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisputeDetail"];
                 };
             };
         };
@@ -8256,6 +8811,58 @@ export interface operations {
             };
         };
     };
+    disputes_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeOpenCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
+                };
+            };
+        };
+    };
+    reviews_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSubmitCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
+                };
+            };
+        };
+    };
     orders_submissions: {
         parameters: {
             query?: {
@@ -8383,6 +8990,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Submission"];
+                };
+            };
+        };
+    };
+    disputes_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeWithdrawCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
                 };
             };
         };
@@ -8587,6 +9219,35 @@ export interface operations {
             };
         };
     };
+    reviews_status: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `fa-AF` - fa-AF
+                 *     * `ps` - ps
+                 *     * `ar` - ar
+                 *     * `en` - en
+                 */
+                locale?: "fa-AF" | "ps" | "ar" | "en";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewStatus"];
+                };
+            };
+        };
+    };
     orders_review: {
         parameters: {
             query?: never;
@@ -8606,6 +9267,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewResult"];
+                };
+            };
+        };
+    };
+    reviews_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewWithdrawCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
                 };
             };
         };
@@ -8683,6 +9369,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TermsResult"];
+                };
+            };
+        };
+    };
+    disputes_respond: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeResponseCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AftercareOutcome"];
                 };
             };
         };

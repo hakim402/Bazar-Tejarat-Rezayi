@@ -50,7 +50,16 @@ class ReadCommand(Strict):
 
 class ReportCommand(Strict):
     command_id = s.UUIDField()
-    category = s.ChoiceField(choices=["abuse", "spam", "privacy", "other"])
+    category = s.ChoiceField(choices=["abuse", "fraud", "spam", "privacy", "other"])
+    reason = s.CharField(min_length=3, max_length=1000)
+
+    def validate_reason(self, value):
+        return safe_text(value)
+
+
+class TargetReportCommand(Strict):
+    command_id = s.UUIDField()
+    category = s.ChoiceField(choices=["abuse", "fraud", "spam", "privacy", "other"])
     reason = s.CharField(min_length=3, max_length=1000)
 
     def validate_reason(self, value):
@@ -148,6 +157,25 @@ class ReportResult(s.Serializer):
 
 class ReportPage(s.Serializer):
     results = ReportResult(many=True)
+
+
+class ReportPageQuery(Strict):
+    page = s.IntegerField(min_value=1, max_value=10000, default=1)
+
+
+class OwnReportResult(s.Serializer):
+    id = s.UUIDField()
+    status = s.CharField()
+    version = s.IntegerField()
+    created_at = s.DateTimeField(required=False)
+    target_kind = s.ChoiceField(choices=["message", "product", "store", "order"])
+    target = s.UUIDField()
+
+
+class OwnReportPage(s.Serializer):
+    results = OwnReportResult(many=True)
+    page = s.IntegerField()
+    count = s.IntegerField()
 
 
 class ReadResult(s.Serializer):

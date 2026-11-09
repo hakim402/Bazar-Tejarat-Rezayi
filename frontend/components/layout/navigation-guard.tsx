@@ -11,7 +11,7 @@ import {
 type Guard = (action: () => void) => void;
 const Context = createContext({
 	navigate: (action: () => void) => action(),
-	register: (_guard: Guard | null) => {},
+	register: (_owner: symbol, _guard: Guard | null) => {},
 });
 export function NavigationGuard({
 	children,
@@ -20,23 +20,31 @@ export function NavigationGuard({
 	children: ReactNode;
 	guardHistory?: boolean;
 }) {
-	const guard = useRef<Guard | null>(null),
+	const guard = useRef(new Map<symbol, Guard>()),
 		leaving = useRef(false);
-	const register = useCallback((value: Guard | null) => {
-		guard.current = value;
+	const register = useCallback((owner: symbol, value: Guard | null) => {
+		if (value) guard.current.set(owner, value);
+		else guard.current.delete(owner);
 		leaving.current = false;
 	}, []);
 	const navigate = useCallback((action: () => void) => {
-		const confirmed = () => {
-			leaving.current = true;
-			action();
-		};
-		if (guard.current) guard.current(confirmed);
-		else confirmed();
+		const owners = [...guard.current.keys()];
+		function confirm(index: number) {
+			const owner = owners[index];
+			if (owner === undefined) {
+				leaving.current = true;
+				action();
+				return;
+			}
+			const current = guard.current.get(owner);
+			if (current) current(() => confirm(index + 1));
+			else confirm(index + 1);
+		}
+		confirm(0);
 	}, []);
 	useEffect(() => {
 		const unload = (event: BeforeUnloadEvent) => {
-			if (guard.current && !leaving.current) event.preventDefault();
+			if (guard.current.size > 0 && !leaving.current) event.preventDefault();
 		};
 		window.addEventListener("beforeunload", unload);
 		return () => window.removeEventListener("beforeunload", unload);
@@ -47,7 +55,7 @@ export function NavigationGuard({
 			.navigation;
 		const traversal = (event: Event) => {
 			if (
-				!guard.current ||
+				!guard.current.size ||
 				!event.cancelable ||
 				!("navigationType" in event) ||
 				event.navigationType !== "traverse" ||
@@ -77,7 +85,7 @@ export function NavigationGuard({
 				className="contents"
 				onClickCapture={(event) => {
 					if (
-						!guard.current ||
+						!guard.current.size ||
 						event.defaultPrevented ||
 						event.button !== 0 ||
 						event.metaKey ||
@@ -116,8 +124,10 @@ export function useNavigation() {
 }
 export function useUnsavedNavigation(dirty: boolean, guard: Guard) {
 	const { register } = useContext(Context);
+	const owner = useRef(Symbol("unsaved-form"));
 	useEffect(() => {
-		register(dirty ? guard : null);
-		return () => register(null);
+		const token = owner.current;
+		register(token, dirty ? guard : null);
+		return () => register(token, null);
 	}, [dirty, guard, register]);
 }

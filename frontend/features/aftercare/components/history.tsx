@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { disputeHref } from "../api";
 import type { ReactNode } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { localTimestamp } from "../../messaging/api";
@@ -99,6 +101,27 @@ export function OrderHistory({
 				<h2 className="text-xl font-bold">{sellerSalesCopy[locale].history}</h2>
 			)}
 			<p className="text-sm text-muted">{t.recentHistory}</p>
+			<HistoryGroup title={t.disputes} seller={seller}>
+				<p>{t.disputeNote}</p>
+				{row.disputes?.length ? row.disputes.map((item) => <article key={item.id} className="min-w-0 space-y-3 border-t border-border pt-3">
+					<Link prefetch={false} className="inline-flex min-h-11 items-center font-semibold text-action" href={disputeHref(locale, seller ? "seller" : "buyer", item.id, row.seller)}><bdi>{item.id}</bdi></Link>
+					<p>{aftercareState(locale, item.state)} · <bdi>{localTimestamp(item.created_at, locale)}</bdi></p>
+					<p>{item.assigned ? t.assigned : t.unassigned}</p>
+					<p dir="auto" className="whitespace-pre-wrap break-words">{item.reason}</p>
+					<div className="flex flex-wrap gap-3">{item.evidence?.map((id) => <AftercareEvidence key={id} locale={locale} context={seller ? "seller" : "buyer"} domain="orders" id={id} />)}</div>
+					{item.response && <div className="space-y-2 border-s-2 border-border ps-3"><h3 className="font-semibold">{t.disputeResponse}</h3><p dir="auto" className="whitespace-pre-wrap break-words">{item.response.text}</p><bdi>{localTimestamp(item.response.created_at, locale)}</bdi></div>}
+					{item.decision && <div className="space-y-2 border-s-2 border-border ps-3"><h3 className="font-semibold">{t.disputeAction}: {aftercareState(locale, item.decision.action)}</h3><p dir="auto" className="whitespace-pre-wrap break-words">{item.decision.reason}</p>{item.decision.amount && <p><bdi>{item.decision.amount} {row.currency}</bdi></p>}{item.decision.refund_due && <p>{t.refundDue}: <bdi>{item.decision.refund_due}</bdi></p>}<bdi>{localTimestamp(item.decision.created_at, locale)}</bdi></div>}
+				</article>) : <p>{t.disputeEmpty}</p>}
+			</HistoryGroup>
+			<HistoryGroup title={t.reviews} seller={seller}>
+				<p>{t.reviewNote}</p>
+				{row.review ? <article className="min-w-0 space-y-3">
+					<p>{aftercareState(locale, `review_${row.review.state}`)} · <bdi>{row.review.rating}/5</bdi></p>
+					<p lang={row.review.language} dir="auto" className="whitespace-pre-wrap break-words">{row.review.text}</p>
+					<p><bdi>{row.review.language}</bdi> · <bdi>{localTimestamp(row.review.created_at, locale)}</bdi></p>
+					{row.review.decisions.map((decision) => <div key={`${decision.created_at}:${decision.action}`} className="space-y-2 border-s-2 border-border ps-3"><p>{aftercareState(locale, decision.action)}</p><p dir="auto" className="whitespace-pre-wrap break-words">{decision.reason}</p><bdi>{localTimestamp(decision.created_at, locale)}</bdi></div>)}
+				</article> : <p>{t.reviewEmpty}</p>}
+			</HistoryGroup>
 			<HistoryGroup title={t.cancellations} seller={seller}>
 				{row.cancellations.length ? (
 					row.cancellations.map((item) => (

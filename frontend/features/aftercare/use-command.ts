@@ -2,6 +2,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { AccountError } from "../../lib/api/private-client";
 import { aftercare, aftercareDomain, aftercareReference, pendingAftercare, recoveryPath, recoveryState, retainAftercare, settleAftercare } from "./api";
+import { uuidPattern } from "../../lib/routes/account-routes";
 import type { Context, Domain, Intent, Recovery } from "./types";
 
 type Props = {
@@ -101,7 +102,7 @@ export function useAftercareCommand(props: Props) {
 	}
 	async function reconcile() {
 		const packet = pendingAftercare(scope), key = packet?.key ?? keyRef.current;
-		if (!live.current || !key || controller.current) return;
+		if (!live.current || !key || controller.current || !uuidPattern.test(orderId)) return;
 		const domain = aftercareDomain(packet?.domain ?? domainRef.current);
 		// Legacy/domainless references stay locked. Never probe another domain,
 		// infer absence from a denial, or replay a missing private packet.

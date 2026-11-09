@@ -11,6 +11,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from apps.catalogue.models import Category, LOCALES, Product, ProductImage, Translation, Variant
 from apps.inventory.models import Position, Bucket
 from apps.inventory.services import today
+from apps.orders import reviews
 from apps.organizations.access import manage_profile, visible_profiles
 from apps.organizations.profiles import effective_entitlement
 from apps.verification.models import ReviewCase
@@ -187,6 +188,22 @@ class PublicGate:
     def store(self, pk):
         gate = PublicGate(self.locale, profile_ids=[pk])
         return gate.store_rows([get_object_or_404(gate.profiles, pk=pk)])[0]
+
+    def review_profile(self, pk):
+        # A store's public identity is its seller profile UUID; scope eligibility before any
+        # review read so an unknown or ineligible store is the same anti-enumeration 404.
+        gate = PublicGate(self.locale, profile_ids=[pk])
+        return get_object_or_404(gate.profiles, pk=pk)
+
+    def store_reviews(self, pk, page):
+        # Approved text and submitted language stay verbatim: no translation, no re-screening.
+        base = reviews.eligible_reviews(self.review_profile(pk)).order_by("-created_at", "pk")
+        return {"results": [{"reviewer": "buyer", "rating": row.rating, "text": row.text, "language": row.language, "created_at": row.created_at}
+                for row in base[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]],
+            "count": base.count(), "page": page, "page_size": PAGE_SIZE, "facets": {}}
+
+    def store_review_summary(self, pk):
+        return reviews.aggregate(self.review_profile(pk))
 
     def stores_page(self, filters):
         base = self.profiles

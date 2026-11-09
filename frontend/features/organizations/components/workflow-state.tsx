@@ -123,7 +123,9 @@ export function useSellerWorkflow<T>(
 	const failure = useCallback(
 		(cause: unknown, reading = false) => {
 			const denied =
-				cause instanceof AccountError && [401, 403, 404].includes(cause.status);
+				cause instanceof AccountError &&
+				cause.status !== undefined &&
+				[401, 403, 404].includes(cause.status);
 			if (denied) {
 				latest.current = null;
 				setData(null);

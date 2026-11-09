@@ -48,3 +48,15 @@ export function recoveryState(value: Recovery) {
 	if (value.state === "rejected" || value.state === "absent_fenced") return "absent";
 	return "unknown";
 }
+export const disputePath = (order: string) => `orders/${order}/disputes/`;
+export const disputeWithdrawPath = (dispute: string) => `disputes/${dispute}/withdraw/`;
+export const disputeRespondPath = (dispute: string) => `disputes/${dispute}/respond/`;
+export const reviewPath = (order: string) => `orders/${order}/reviews/`;
+export const reviewWithdrawPath = (review: string) => `reviews/${review}/withdraw/`;
+export const reviewStatusPath = (order: string) => `orders/${order}/review/`;
+export function disputeHref(locale: string, context: Context, dispute?: string, seller?: string, page = 1) {
+	const query = new URLSearchParams();
+	if (context === "seller" && seller && uuidPattern.test(seller)) query.set("seller", seller);
+	if (page > 1) query.set("page", String(page));
+	return `/${locale}/account/${context}/disputes${dispute ? `/${dispute}` : ""}${query.size ? `?${query}` : ""}`;
+}

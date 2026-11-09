@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { authHref, modalScreens } from "../lib/routes/auth-routes.ts";
 import { safeReturn } from "../features/identity/api/accounts.ts";
 import { commerceRoute, sellerAccountRoute } from "../lib/routes/account-routes.ts";
+import { disputeHref } from "../features/aftercare/api.ts";
 
 test("aftercare route registry accepts order UUIDs and refuses extra command paths", () => {
 	const id = "00000000-0000-4000-8000-000000000014";
-	for (const route of ["cancellations", "aftercare"]) {
+	for (const route of ["cancellations", "aftercare", "disputes"]) {
 		assert.equal(commerceRoute([route]), true);
 		assert.equal(commerceRoute([route, id]), true);
 		for (const parts of [[route, "new"], [route, "invalid"], [route, id, "approve"], [route, id, "print"]])
@@ -31,6 +32,21 @@ test("aftercare safe returns reject cross-role and forged detail routes", () => 
 		const wrong = context === "buyer" ? "aftercare" : "cancellations";
 		for (const path of [`${route}/invalid`, `${route}/00000000-0000-4000-8000-000000000014/approve`, wrong])
 			assert.equal(safeReturn(`/en/account/${context}/${path}`, "en", context), `/en/account/${context}`);
+	}
+});
+test("Phase 15 dispute safe returns preserve exact role/UUID and reject forged commands", () => {
+	const id = "00000000-0000-4000-8000-000000000015";
+	for (const locale of ["fa-AF", "ps", "ar", "en"]) {
+		for (const context of ["buyer", "seller"] as const) {
+			assert.equal(sellerAccountRoute(["disputes", id]), true);
+			const href = disputeHref(locale, context, id, id);
+			assert.equal(safeReturn(href, locale, context), href);
+			assert.equal(disputeHref(locale, context, undefined, "invalid", 2), `/${locale}/account/${context}/disputes?page=2`);
+			for (const suffix of ["invalid", "new", `${id}/respond`, `${id}/withdraw`, `${id}/decide`])
+				assert.equal(safeReturn(`/${locale}/account/${context}/disputes/${suffix}`, locale, context), `/${locale}/account/${context}`);
+			const wrong = context === "buyer" ? "seller" : "buyer";
+			assert.equal(safeReturn(`/${locale}/account/${wrong}/disputes/${id}`, locale, context), `/${locale}/account/${context}`);
+		}
 	}
 });
 test("public auth URLs reopen one modal while privileged entry stays separate", () => {

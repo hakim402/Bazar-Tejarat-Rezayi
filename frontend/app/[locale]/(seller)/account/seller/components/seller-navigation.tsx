@@ -327,6 +327,7 @@ export function SellerNavigation({
 				],
 				["fulfilment", fulfilmentCopy[locale].sellerTitle, "truck", !!delivery],
 				["aftercare", aftercareCopy[locale].sellerTitle, "return"],
+				["disputes", aftercareCopy[locale].disputes, "shield", !!orderCaps?.orders],
 				[
 					"invoices",
 					commerceCopy[locale].invoices,
@@ -385,6 +386,7 @@ export function SellerNavigation({
 			"payments",
 			"fulfilment",
 			"aftercare",
+			"disputes",
 		].includes(route) &&
 			path.startsWith(`${sellerHref(locale, route)}/`) &&
 			!(

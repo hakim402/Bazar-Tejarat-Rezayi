@@ -109,10 +109,14 @@ class ReadState(models.Model):
 
 class Report(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    message = models.ForeignKey(Message, on_delete=models.PROTECT, related_name="reports")
+    message = models.ForeignKey(Message, null=True, blank=True, on_delete=models.PROTECT, related_name="reports")
+    product = models.ForeignKey("catalogue.Product", null=True, blank=True, on_delete=models.PROTECT, related_name="reports")
+    store = models.ForeignKey("marketplace.Store", null=True, blank=True, on_delete=models.PROTECT, related_name="reports")
+    order = models.ForeignKey("orders.SellerOrder", null=True, blank=True, on_delete=models.PROTECT, related_name="reports")
     reporter = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="message_reports")
     category = models.CharField(
-        max_length=16, choices=[("abuse", "Abuse"), ("spam", "Spam"), ("privacy", "Privacy"), ("other", "Other")]
+        max_length=16,
+        choices=[("abuse", "Abuse"), ("fraud", "Fraud"), ("spam", "Spam"), ("privacy", "Privacy"), ("other", "Other")],
     )
     reason = models.CharField(max_length=1000)
     status = models.CharField(max_length=10, default="open", choices=[("open", "Open"), ("resolved", "Resolved")])
@@ -125,6 +129,27 @@ class Report(models.Model):
     class Meta:
         permissions = [(p, p.replace("_", " ").capitalize()) for p in PERMISSIONS]
         indexes = [models.Index(fields=["assigned_to", "status", "-created_at"], name="messaging_assigned_cases")]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(message__isnull=False, product__isnull=True, store__isnull=True, order__isnull=True)
+                    | Q(message__isnull=True, product__isnull=False, store__isnull=True, order__isnull=True)
+                    | Q(message__isnull=True, product__isnull=True, store__isnull=False, order__isnull=True)
+                    | Q(message__isnull=True, product__isnull=True, store__isnull=True, order__isnull=False)
+                ),
+                name="messaging_report_target",
+            )
+        ]
+
+    @property
+    def target_kind(self):
+        if self.message_id is not None:
+            return "message"
+        if self.product_id is not None:
+            return "product"
+        if self.store_id is not None:
+            return "store"
+        return "order"
 
     def __str__(self):
         return str(self.pk)

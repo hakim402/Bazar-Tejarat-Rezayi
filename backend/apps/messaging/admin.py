@@ -2,6 +2,7 @@
 
 from django import forms
 from django.db import transaction
+from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -25,18 +26,55 @@ class CaseForm(forms.Form):
     )
 
 
+class TargetKindFilter(SimpleListFilter):
+    """Filter reports by their polymorphic target kind (property, not DB field)."""
+    title = "target kind"
+    parameter_name = "target_kind"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("message", "Message"),
+            ("product", "Product"),
+            ("store", "Store"),
+            ("order", "Order"),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value is None:
+            return queryset
+        if value == "message":
+            return queryset.filter(message__isnull=False)
+        if value == "product":
+            return queryset.filter(product__isnull=False)
+        if value == "store":
+            return queryset.filter(store__isnull=False)
+        if value == "order":
+            return queryset.filter(order__isnull=False)
+        return queryset
+
+
 class ReportAdmin(ReadOnlyAdmin):
-    fields = ["id", "category", "status", "version", "created_at", "case_workspace"]
-    list_display = ["id", "category", "status", "version", "created_at", "case_workspace"]
-    list_filter = ["status", "category"]
+    fields = ["id", "category", "status", "target_kind_display", "product", "store", "order", "version", "created_at", "case_workspace"]
+    list_display = ["id", "category", "status", "target_kind_display", "version", "created_at", "case_workspace"]
+    list_filter = ["status", "category", TargetKindFilter]
     search_fields = []
     ordering = ["-created_at", "pk"]
 
     def lookup_allowed(self, lookup, value, request=None):
-        return lookup in {"id", "id__exact", "status", "status__exact", "category", "category__exact"}
+        return lookup in {
+            "id", "id__exact",
+            "status", "status__exact",
+            "category", "category__exact",
+            "target_kind", "target_kind__exact",
+        }
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
+
+    def target_kind_display(self, obj):
+        return obj.target_kind
+    target_kind_display.short_description = "Target kind"
 
     def staff_view(self, request, obj=None):
         if not permits(request, "messaging", *PERMISSIONS):
@@ -100,6 +138,8 @@ class ReportAdmin(ReadOnlyAdmin):
                 raise PermissionDenied
             content = cases.inspect(actor, pk, before=int(before) if before else None)
             for message in [content["reported_message"], *content["messages"]]:
+                if message is None:
+                    continue
                 for image in message["images"]:
                     image["download"] = reverse("admin:messaging_report_image", args=[pk, image["id"]])
         return render(

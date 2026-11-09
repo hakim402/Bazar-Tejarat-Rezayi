@@ -109,6 +109,8 @@ class Notice(models.Model):
         "orders.SellerOrder", null=True, on_delete=models.PROTECT, related_name="aftercare_notices"
     )
     negotiation = models.ForeignKey("orders.Negotiation", null=True, on_delete=models.PROTECT)
+    product = models.ForeignKey("catalogue.Product", null=True, on_delete=models.PROTECT)
+    store = models.ForeignKey("marketplace.Store", null=True, on_delete=models.PROTECT)
     read_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -124,6 +126,8 @@ class Notice(models.Model):
                         negotiation__isnull=True,
                         payment_order__isnull=True,
                         aftercare_order__isnull=True,
+                        product__isnull=True,
+                        store__isnull=True,
                     )
                     | models.Q(
                         payment_order__isnull=False,
@@ -132,6 +136,8 @@ class Notice(models.Model):
                         negotiation__isnull=True,
                         fulfilment_order__isnull=True,
                         aftercare_order__isnull=True,
+                        product__isnull=True,
+                        store__isnull=True,
                     )
                     | models.Q(
                         aftercare_order__isnull=False,
@@ -140,6 +146,8 @@ class Notice(models.Model):
                         negotiation__isnull=True,
                         fulfilment_order__isnull=True,
                         payment_order__isnull=True,
+                        product__isnull=True,
+                        store__isnull=True,
                     )
                     | models.Q(
                         negotiation__isnull=True,
@@ -148,6 +156,8 @@ class Notice(models.Model):
                         fulfilment_order__isnull=True,
                         payment_order__isnull=True,
                         aftercare_order__isnull=True,
+                        product__isnull=True,
+                        store__isnull=True,
                     )
                     | models.Q(
                         negotiation__isnull=True,
@@ -156,6 +166,8 @@ class Notice(models.Model):
                         fulfilment_order__isnull=True,
                         payment_order__isnull=True,
                         aftercare_order__isnull=True,
+                        product__isnull=True,
+                        store__isnull=True,
                     )
                     | models.Q(
                         negotiation__isnull=False,
@@ -164,6 +176,28 @@ class Notice(models.Model):
                         fulfilment_order__isnull=True,
                         payment_order__isnull=True,
                         aftercare_order__isnull=True,
+                        product__isnull=True,
+                        store__isnull=True,
+                    )
+                    | models.Q(
+                        product__isnull=False,
+                        conversation__isnull=True,
+                        order__isnull=True,
+                        negotiation__isnull=True,
+                        fulfilment_order__isnull=True,
+                        payment_order__isnull=True,
+                        aftercare_order__isnull=True,
+                        store__isnull=True,
+                    )
+                    | models.Q(
+                        store__isnull=False,
+                        conversation__isnull=True,
+                        order__isnull=True,
+                        negotiation__isnull=True,
+                        fulfilment_order__isnull=True,
+                        payment_order__isnull=True,
+                        aftercare_order__isnull=True,
+                        product__isnull=True,
                     )
                 ),
                 name="notifications_typed_resource",
@@ -232,7 +266,8 @@ class AftercareEmail(models.Model):
     """Optional unread-aftercare email intent; no amounts or references are stored."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    order = models.ForeignKey("orders.SellerOrder", on_delete=models.PROTECT)
+    order = models.ForeignKey("orders.SellerOrder", null=True, on_delete=models.PROTECT)
+    report = models.ForeignKey("messaging.Report", null=True, on_delete=models.PROTECT)
     account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
     episode = models.UUIDField()
     identity_digest = models.CharField(max_length=64)
@@ -247,7 +282,15 @@ class AftercareEmail(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["order", "account", "episode"], name="notifications_aftercare_email")
+            models.UniqueConstraint(fields=["order", "account", "episode"], name="notifications_aftercare_email"),
+            models.UniqueConstraint(fields=["report", "account", "episode"], name="notifications_report_email"),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(order__isnull=False, report__isnull=True)
+                    | models.Q(order__isnull=True, report__isnull=False)
+                ),
+                name="notifications_email_target",
+            ),
         ]
         indexes = [models.Index(fields=["status", "due_at"], name="notifications_aftercare_due")]
 

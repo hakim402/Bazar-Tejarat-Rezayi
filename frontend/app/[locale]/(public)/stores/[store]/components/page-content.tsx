@@ -8,6 +8,8 @@ import {
 } from "../../../../../../features/marketplace/server";
 import type { PublicStore } from "../../../../../../features/marketplace/types";
 import { marketplaceCopy } from "../../../../../../features/marketplace/copy";
+import { NavigationGuard } from "../../../../../../components/layout/navigation-guard";
+import { TargetReport } from "../../../../../../features/messaging/components/report";
 import { StoreShell } from "./store-shell";
 export async function metadataFor(
 	locale: Locale,
@@ -40,7 +42,7 @@ export async function PageContent({
 }) {
 	const t = marketplaceCopy[locale];
 	return (
-		<StoreShell locale={locale} id={params.store}>
+		<NavigationGuard guardHistory><StoreShell locale={locale} id={params.store}>
 			<Discovery
 				locale={locale}
 				path={`/${locale}/stores/${params.store}`}
@@ -48,6 +50,7 @@ export async function PageContent({
 				search={search}
 				title={t.products}
 			/>
-		</StoreShell>
+			<TargetReport locale={locale} id={params.store} target="store" />
+		</StoreShell></NavigationGuard>
 	);
 }

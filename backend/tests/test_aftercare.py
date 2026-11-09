@@ -1645,7 +1645,7 @@ class AftercareApiTests(AftercareFixture, TestCase):
         self.assertEqual(
             set(rows), {"id", "version", "capabilities", "effective_lines", "number", "invoice", "currency",
                         "goods_total", "accepted_total", "payment_method", "seller", "seller_name", "buyer_name",
-                        "payment", "aftercare", "cancellations", "amendments", "adjustments"}
+                        "payment", "aftercare", "cancellations", "amendments", "adjustments", "review", "disputes"}
         )
         other = self.post(self.other_client, f"orders/buyer/aftercare/{order.pk}/", {}, method="get")
         self.assertEqual(other.status_code, 404)

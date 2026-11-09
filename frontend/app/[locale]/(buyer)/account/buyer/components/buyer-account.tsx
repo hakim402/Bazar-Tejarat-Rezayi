@@ -135,7 +135,7 @@ export function BuyerSidebarAccount({
 					aria-label={
 						session
 							? `${t.profile}${name ? `: ${name}` : ""}`
-							: authCopy[locale].login
+							: authCopy[locale].signin
 					}
 					title={collapsed ? name || t.profile : undefined}
 					className={`flex min-h-11 min-w-11 items-center gap-2 rounded-control text-foreground no-underline hover:bg-info ${collapsed ? "justify-center" : "min-w-0 flex-1"}`}
@@ -144,7 +144,7 @@ export function BuyerSidebarAccount({
 					{!collapsed && (
 						<span className="min-w-0 text-sm font-medium wrap-anywhere">
 							<bdi>
-								{session ? name || t.profile : authCopy[locale].login}
+								{session ? name || t.profile : authCopy[locale].signin}
 							</bdi>
 						</span>
 					)}
@@ -323,10 +323,10 @@ export function BuyerAccount({ locale }: { locale: Locale }) {
 				<Link
 					href={authHref(locale, "buyer-sign-in")}
 					className="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-control border border-border bg-surface px-2 text-foreground shadow-sm no-underline transition-colors hover:bg-info motion-reduce:transition-none"
-					aria-label={authCopy[locale].login}
+					aria-label={authCopy[locale].signin}
 				>
 					<Icon name="user-circle" className="size-9 text-muted" />
-					<span className="hidden sm:inline">{authCopy[locale].login}</span>
+					<span className="hidden sm:inline">{authCopy[locale].signin}</span>
 				</Link>
 			)}
 			{error && (

@@ -66,6 +66,14 @@ def upload(actor, pk, key, file):
 
 
 def permitted(actor, pk, *, case=None):
+    if actor.context in {"buyer", "seller"}:
+        from apps.orders.disputes import requesters
+
+        dispute_image = Evidence.objects.filter(
+            pk=pk, binding__dispute__isnull=False, order__in=requesters(actor)
+        ).first()
+        if dispute_image is not None:
+            return dispute_image
     item = get_object_or_404(Evidence.objects.filter(order__in=access.scope(actor)), pk=pk)
     order = item.order
     if actor.context in {"owner", "staff"}:
@@ -89,7 +97,14 @@ def permitted(actor, pk, *, case=None):
 @transaction.atomic
 def response(actor, pk, *, head=False, case=None):
     preliminary = permitted(actor, pk, case=case)
-    access.lock_order(actor, preliminary.order_id)
+    binding = getattr(preliminary, "binding", None)
+    if actor.context in {"buyer", "seller"} and binding is not None and binding.dispute_id:
+        from apps.orders.aftercare_commands import lock_order
+        from apps.orders.disputes import requesters
+
+        lock_order(actor, preliminary.order_id, requesters(actor))
+    else:
+        access.lock_order(actor, preliminary.order_id)
     item = permitted(actor, pk, case=case)
     if actor.context == "staff":
         current = get_object_or_404(access.case_scope(actor).select_for_update(), pk=case, order_id=item.order_id)

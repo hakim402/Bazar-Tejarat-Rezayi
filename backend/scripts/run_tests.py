@@ -95,12 +95,15 @@ class TestRun:
             "phase-12-payments",
             "phase-13-fulfilment",
             "phase-14-aftercare",
+            "phase-15-disputes",
         }:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "deterministic"
         self.evidence = (
             ROOT
             / (
-                "doc/progress/phase-14-aftercare/evidence/runs"
+                "doc/progress/phase-15-disputes/evidence/runs"
+                if work_package == "phase-15-disputes" or phase == "phase-15-disputes"
+                else "doc/progress/phase-14-aftercare/evidence/runs"
                 if work_package == "phase-14-aftercare" or phase == "phase-14-aftercare"
                 else "doc/progress/phase-13-fulfilment/evidence/runs"
                 if work_package == "phase-13-fulfilment"
@@ -111,7 +114,7 @@ class TestRun:
                 else "doc/progress/phase-11-negotiation/evidence/runs"
                 if phase == "phase-11-negotiation"
                 else "doc/progress/phase-10-commerce/evidence/runs"
-                if phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}
+                if phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
                 else "doc/progress/phase-09-messaging/evidence/runs"
                 if phase == "phase-09-messaging"
                 else "doc/progress/admin-superuser-and-phase08-fixes/evidence/runs"
@@ -126,6 +129,7 @@ class TestRun:
                     "phase-12-payments",
                     "phase-13-fulfilment",
                     "phase-14-aftercare",
+                    "phase-15-disputes",
                 }
                 else (
                     "doc/progress/staff-admin-transition/evidence/runs"
@@ -329,7 +333,7 @@ class TestRun:
                 name="cgi-owned-identities",
                 data=json.dumps({"password": self.password}),
             )
-            if self.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
+            if self.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
                 self.python(
                     "-m",
                     "scripts.prepare_browser_tests",
@@ -339,7 +343,7 @@ class TestRun:
             self.python(
                 "-m",
                 "scripts.check_fulfilment_worker"
-                if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+                if self.phase in {"phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
                 else "scripts.check_worker",
                 name="cgi-required-scheduler",
             )
@@ -354,8 +358,12 @@ class TestRun:
                 from scripts.check_cross_engine_transfer import check
             except ModuleNotFoundError:
                 from check_cross_engine_transfer import check
-            if self.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
-                if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
+            if self.phase in {"phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
+                if self.phase == "phase-15-disputes":
+                    from scripts.check_dispute_upgrade import owned_check
+
+                    owned_check(self)
+                elif self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
                     from scripts.check_fulfilment_upgrade import owned_check
 
                     owned_check(self)
@@ -365,6 +373,12 @@ class TestRun:
                     owned_check(self)
             check(self)
             return
+        if getattr(self, "capture_native_v5", False) and self.phase == "phase-15-disputes":
+            self.python("-m", "scripts.capture_native_v5", name="capture-native-v5")
+            self.generated_artifacts.extend([
+                "backend/apps/runtime/mariadb/contract_v5.json",
+                "backend/apps/runtime/mariadb/restore_v5.json",
+            ])
         if not self.frontend_only:
             self.python(
                 "manage.py", "test", *self.labels, "--settings=config.settings.test", "--noinput", name="backend-tests"
@@ -379,10 +393,12 @@ class TestRun:
         self.python("manage.py", "check", name="backend-check")
         self.python("manage.py", "makemigrations", "--check", "--dry-run", name="migration-consistency")
         self.python("-m", "pip", "check", name="backend-dependencies")
+        if getattr(self, "write_schema", False):
+            self.python("-m", "scripts.write_schema", name="write-schema")
+            self.generated_artifacts.append("backend/schema.json")
         self.python("-m", "scripts.check_schema", name="schema-consistency")
         if self.phase == "phase-11-negotiation" and self.env.get("REZAYI_TEST_DATABASE_ENGINE") != "mariadb":
             self.python("-m", "scripts.check_negotiation_upgrade", name="populated-phase10-upgrade")
-        # Replay all migrations on the separately owned browser database even in backend-only mode.
         self.python("manage.py", "migrate", "--noinput", name="fresh-migration-replay")
         self.python(
             "-c",
@@ -403,10 +419,10 @@ class TestRun:
         self.python(
             "-m",
             "scripts.check_fulfilment_worker"
-            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
             else "scripts.check_worker",
             name="production-budget-worker-execution"
-            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
             else "durable-worker-execution",
         )
         self.python("-m", "scripts.check_native_runtime", name="durable-scheduler-and-claims")
@@ -446,9 +462,10 @@ class TestRun:
             "PLAYWRIGHT_BROWSER_CHANNEL": "chromium",
             "IDENTITY_BROWSER_TESTS": "1",
             "FULFILMENT_BROWSER_TESTS": "1"
-            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}
+            if self.phase in {"phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
             else "0",
-            "AFTERCARE_BROWSER_TESTS": "1" if self.phase == "phase-14-aftercare" else "0",
+            "AFTERCARE_BROWSER_TESTS": "1" if self.phase in {"phase-14-aftercare", "phase-15-disputes"} else "0",
+            "DISPUTES_BROWSER_TESTS": "1" if self.phase == "phase-15-disputes" else "0",
             "ORGANIZATIONS_BROWSER_TESTS": "1"
             if self.phase
             in {
@@ -462,6 +479,7 @@ class TestRun:
                 "phase-12-payments",
                 "phase-13-fulfilment",
                 "phase-14-aftercare",
+                "phase-15-disputes",
             }
             else "0",
             "SITE_BROWSER_TESTS": "1",
@@ -478,10 +496,11 @@ class TestRun:
                 "phase-12-payments",
                 "phase-13-fulfilment",
                 "phase-14-aftercare",
+                "phase-15-disputes",
             }
             else "0",
             "COMMERCE_BROWSER_TESTS": "1"
-            if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}
+            if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
             else "0",
             "MESSAGING_BROWSER_TESTS": "1"
             if self.phase
@@ -492,6 +511,7 @@ class TestRun:
                 "phase-12-payments",
                 "phase-13-fulfilment",
                 "phase-14-aftercare",
+                "phase-15-disputes",
             }
             else "0",
             "MARKETPLACE_BROWSER_TESTS": "1"
@@ -504,6 +524,7 @@ class TestRun:
                 "phase-12-payments",
                 "phase-13-fulfilment",
                 "phase-14-aftercare",
+                "phase-15-disputes",
             }
             else "0",
             "INVENTORY_BROWSER_TESTS": "1"
@@ -517,6 +538,7 @@ class TestRun:
                 "phase-12-payments",
                 "phase-13-fulfilment",
                 "phase-14-aftercare",
+                "phase-15-disputes",
             }
             else "0",
             "REZAYI_TEST_PROJECT": self.project,
@@ -559,10 +581,11 @@ class TestRun:
             "phase-12-payments",
             "phase-13-fulfilment",
             "phase-14-aftercare",
+            "phase-15-disputes",
         }:
             self.python("-m", "scripts.check_messaging_worker", name="native-communication-dispatch")
         self.worker = self.start([str(PYTHON), "-m", "scripts.test_cron"], "browser-cron-clock")
-        if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
+        if self.phase in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
             self.python(
                 "-m",
                 "scripts.check_commerce_documents",
@@ -570,7 +593,7 @@ class TestRun:
                 str(self.evidence / "invoices"),
                 name="commerce-documents",
             )
-        if self.phase in {"phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}:
+        if self.phase in {"phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
             self.python(
                 "-m",
                 "scripts.check_negotiation_documents",
@@ -578,7 +601,7 @@ class TestRun:
                 str(self.evidence / "negotiation-documents"),
                 name="negotiation-documents",
             )
-        if self.phase in {"phase-13-fulfilment", "phase-14-aftercare"}:
+        if self.phase in {"phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}:
             self.python(
                 "-m",
                 "scripts.check_fulfilment_documents",
@@ -665,7 +688,7 @@ class TestRun:
                 (
                     "--global-timeout=5400000"
                     if self.phase
-                    in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare"}
+                    in {"phase-10-commerce", "phase-11-negotiation", "phase-12-payments", "phase-13-fulfilment", "phase-14-aftercare", "phase-15-disputes"}
                     else "--global-timeout=2700000"
                     if self.phase == "phase-09-messaging"
                     else "--global-timeout=1800000"
@@ -687,6 +710,7 @@ class TestRun:
             "phase-12-payments",
             "phase-13-fulfilment",
             "phase-14-aftercare",
+            "phase-15-disputes",
         }:
             self.python(
                 "-c",
@@ -703,6 +727,7 @@ class TestRun:
             "phase-12-payments",
             "phase-13-fulfilment",
             "phase-14-aftercare",
+            "phase-15-disputes",
         }:
             self.env["REZAYI_TEST_TRANSLATION_ADAPTER"] = "disabled"
             self.start_web()
@@ -886,6 +911,7 @@ class TestRun:
         source = self.source_manifest()
         (self.evidence / "source-manifest.json").write_text(json.dumps(source, indent=2) + "\n")
         status = "failed"
+        self.generated_artifacts = []
         try:
             self.prepare()
             if getattr(self, "cleanup_probe", None):
@@ -899,7 +925,15 @@ class TestRun:
         finally:
             try:
                 self.cleanup()
-                if self.source_manifest() != source:
+                observed = self.source_manifest()
+                if self.generated_artifacts:
+                    receipts = {
+                        name: {"before": source[name], "after": observed[name]}
+                        for name in self.generated_artifacts
+                    }
+                    source.update({name: observed[name] for name in self.generated_artifacts})
+                    (self.evidence / "generated-artifacts.json").write_text(json.dumps(receipts, indent=2) + "\n")
+                if observed != source:
                     raise TestFailure("Application source changed during verification; rerun the final source.")
                 for folder, expected in private.items():
                     if hashlib.sha256((ROOT / folder / ".env").read_bytes()).hexdigest() != expected:
@@ -981,6 +1015,7 @@ def main():
             "phase-12-payments",
             "phase-13-fulfilment",
             "phase-14-aftercare",
+            "phase-15-disputes",
         ],
         default="phase-03-identity",
     )
@@ -989,6 +1024,7 @@ def main():
         action="append",
         choices=[
             "aftercare.browser.ts",
+            "disputes.browser.ts",
             "fulfilment.browser.ts",
             "payments.browser.ts",
             "negotiations.browser.ts",
@@ -1026,6 +1062,7 @@ def main():
             "phase-12-payments",
             "phase-13-fulfilment",
             "phase-14-aftercare",
+            "phase-15-disputes",
         ],
         help="Scoped evidence location; does not change fixture or permission policy",
     )
@@ -1037,10 +1074,19 @@ def main():
     )
     parser.add_argument("--test-label", action="append", default=[])
     parser.add_argument("--tests-only", action="store_true", help="Focused labelled backend tests and lint only; no full-gate claim")
+    parser.add_argument("--capture-native-v5", action="store_true", help="One-time capture of reviewed contract_v5/restore_v5 from the disposable migrated MariaDB graph")
+    parser.add_argument("--write-schema", action="store_true", help="Regenerate the maintained backend/schema.json artifact from the current API before the consistency check")
     parser.add_argument(
         "--cleanup-probe", choices=["failure", "interrupt"], help="Provision then fail/interrupt to verify teardown"
     )
     args = parser.parse_args()
+    if args.capture_native_v5 and (
+        args.database != "mariadb" or args.phase != "phase-15-disputes"
+        or args.cgi_only or args.transfer_only or args.frontend_only
+    ):
+        parser.error("--capture-native-v5 requires the Phase 15 owned MariaDB backend scope")
+    if args.write_schema and args.tests_only:
+        parser.error("--write-schema is not part of the tests-only scope")
     if args.frontend_only and args.backend_only:
         parser.error("--frontend-only and --backend-only are mutually exclusive")
     if args.test_label and not args.backend_only:
@@ -1072,7 +1118,9 @@ def main():
 
         run_class = MariaDBRun
         args.work_package = args.work_package or (
-            "phase-14-aftercare"
+            "phase-15-disputes"
+            if args.phase == "phase-15-disputes"
+            else "phase-14-aftercare"
             if args.phase == "phase-14-aftercare"
             else "phase-13-fulfilment"
             if args.phase == "phase-13-fulfilment"
@@ -1087,6 +1135,8 @@ def main():
     run.frontend_only = args.frontend_only
     run.tests_only = args.tests_only
     run.cleanup_probe = args.cleanup_probe
+    run.capture_native_v5 = args.capture_native_v5
+    run.write_schema = args.write_schema
 
     def interrupted(signum, frame):
         raise KeyboardInterrupt

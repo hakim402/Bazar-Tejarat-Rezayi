@@ -1,7 +1,7 @@
 from drf_spectacular.utils import extend_schema, OpenApiTypes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, NotFound
 from apps.accounts.views import AuthView
 from apps.accounts.services import rate_limit, TooManyRequests
 from apps.organizations.access import Actor
@@ -167,3 +167,32 @@ class Reports(PrivateView):
         query(request)
         throttle(actor, "report", limit=10)
         return Response(c.ReportResult(services.report(actor, pk, self.data(c.ReportCommand))).data, status=201)
+
+
+class TargetReports(PrivateView):
+    @extend_schema(operation_id="messaging_target_reports", responses=c.ReportPage)
+    def get(self, request, context, kind, pk):
+        actor = self.actor(context)
+        query(request)
+        if kind not in {"product", "store", "order"}:
+            raise NotFound()
+        return Response(c.ReportPage(queries.target_reports(actor, kind, pk)).data)
+
+    @extend_schema(operation_id="messaging_target_report", request=c.TargetReportCommand, responses={201: c.ReportResult})
+    def post(self, request, context, kind, pk):
+        actor = self.actor(context)
+        query(request)
+        if kind not in {"product", "store", "order"}:
+            raise NotFound()
+        throttle(actor, "report", limit=10)
+        return Response(
+            c.ReportResult(services.report_target(actor, kind, pk, self.data(c.TargetReportCommand))).data, status=201
+        )
+
+
+class OwnReports(PrivateView):
+    @extend_schema(operation_id="messaging_own_reports", parameters=[c.ReportPageQuery], responses=c.OwnReportPage)
+    def get(self, request, context):
+        actor = self.actor(context)
+        data = query(request, c.ReportPageQuery)
+        return Response(c.OwnReportPage(queries.own_reports(actor, **data)).data)

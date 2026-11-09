@@ -766,3 +766,103 @@ def refund_statements():
     )
     result.append(trigger("fulfilment_deliveryrefunddecision", "INSERT", body))
     return result
+
+
+def _dispute_withdrawal(order, event, blocker, *, inserting=False):
+    from apps.orders.mariadb_guards import dispute_event_unpublished
+
+    actor_event = "NEW" if inserting else "withdrawal"
+    event_join = "" if inserting else f"JOIN fulfilment_event withdrawal ON withdrawal.id={event}"
+    return f"""EXISTS(SELECT 1 FROM orders_disputerequest request
+        JOIN orders_aftercareevent opening ON opening.id=request.event_id
+        JOIN orders_aftercareevent aftercare_event ON aftercare_event.order_id=request.order_id
+        JOIN orders_aftercare head ON head.order_id=aftercare_event.order_id
+        JOIN fulfilment_blocker hold ON hold.id=request.blocker_id
+        {event_join}
+        JOIN accounts_account buyer_account ON buyer_account.id=request.requester_account_id
+        WHERE request.order_id={order} AND request.blocker_id={blocker} AND request.state='withdrawn'
+        AND hold.order_id=request.order_id AND hold.kind='dispute'
+        AND opening.action='dispute_opened' AND opening.order_id=request.order_id
+        AND {actor_event}.order_id=request.order_id AND {actor_event}.action='dispute_withdrawn'
+        AND {actor_event}.context='buyer' AND {actor_event}.account_id=request.requester_account_id
+        AND {actor_event}.actor_id=buyer_account.user_id AND ({buyer(order, actor_event + '.account_id')})
+        AND aftercare_event.action='dispute_withdrawn' AND aftercare_event.version=head.version
+        AND aftercare_event.actor_id={actor_event}.actor_id AND aftercare_event.account_id={actor_event}.account_id
+        AND aftercare_event.context={actor_event}.context AND opening.version<aftercare_event.version
+        AND ({dispute_event_unpublished('aftercare_event', order)})
+        AND NOT EXISTS(SELECT 1 FROM orders_disputedecision decision WHERE decision.dispute_id=request.id)
+        AND NOT EXISTS(SELECT 1 FROM orders_disputerequest newer JOIN orders_aftercareevent newer_open
+            ON newer_open.id=newer.event_id WHERE newer.order_id=request.order_id AND newer_open.version>opening.version))"""
+
+
+def dispute_statements():
+    """Exact buyer dispute construction/withdrawal; ordinary staff clear is unchanged."""
+    from apps.orders.mariadb_guards import dispute_event_unpublished
+
+    source = {s.split("`", 2)[1]: s for s in statements() + refund_statements() if s.startswith("CREATE TRIGGER")}
+    buyer_actions = (
+        "AND NEW.action IN ('recipient_revised','delivery_claimed','claim_withdrawn',"
+        "'correction_proposed','delivered','cancellation_hold')"
+    )
+    event = _derive(source["fulfilment_event_insert_guard"], buyer_actions,
+                    buyer_actions[:-1] + ",'dispute_hold','dispute_withdrawn')")
+    event = event.removesuffix(" END") + " " + reject(f"""NEW.action='dispute_withdrawn'
+        AND NOT EXISTS(SELECT 1 FROM orders_disputerequest request WHERE request.order_id=NEW.order_id
+            AND ({_dispute_withdrawal('NEW.order_id', 'NEW.id', 'request.blocker_id', inserting=True)}))""") + " END"
+    hold_source = (
+        "e.action IN ('operational_hold','cancellation_hold') AND (e.action='operational_hold' "
+        "OR EXISTS(SELECT 1 FROM orders_cancellationrequest p WHERE p.order_id=NEW.order_id AND p.state='pending')) "
+        "AND e.version=s.version"
+    )
+    opening = f"""EXISTS(SELECT 1 FROM orders_disputerequest request
+        JOIN orders_aftercareevent opening ON opening.id=request.event_id
+        JOIN orders_aftercare head ON head.order_id=opening.order_id
+        WHERE request.order_id=NEW.order_id AND request.state='pending' AND request.blocker_id IS NULL
+        AND opening.order_id=request.order_id AND opening.action='dispute_opened' AND opening.version=head.version
+        AND opening.actor_id=e.actor_id AND opening.account_id=e.account_id AND opening.context=e.context
+        AND e.context='buyer' AND NEW.kind='dispute' AND ({dispute_event_unpublished('opening', 'NEW.order_id')}))"""
+    blocker = _derive(source["fulfilment_blocker_insert_source_guard"], hold_source,
+                      f"(({hold_source}) OR (e.action='dispute_hold' AND e.version=s.version AND ({opening})))")
+    closure_source = _derive(source["fulfilment_blockerclosure_insert_source_guard"], "'case_clear'",
+                             "'case_clear','dispute_withdrawn'")
+    closure = source["fulfilment_blockerclosure_insert_guard"].removesuffix(" END") + " " + reject(f"""
+        EXISTS(SELECT 1 FROM fulfilment_event e WHERE e.id=NEW.event_id AND e.action='dispute_withdrawn')
+        AND (NEW.disposition<>'withdrawn' OR NOT ({_dispute_withdrawal('NEW.order_id', 'NEW.event_id', 'NEW.blocker_id')})
+            OR NOT EXISTS(SELECT 1 FROM fulfilment_reviewcase k WHERE k.order_id=NEW.order_id
+                AND k.blocker_id=NEW.blocker_id AND k.kind='blocker' AND k.state='open')
+            OR EXISTS(SELECT 1 FROM fulfilment_blockerclosure prior WHERE prior.blocker_id=NEW.blocker_id))
+        """) + " " + reject("""EXISTS(SELECT 1 FROM orders_disputerequest request
+            JOIN fulfilment_event e ON e.id=NEW.event_id WHERE request.blocker_id=NEW.blocker_id
+            AND e.action='case_clear' AND (NEW.disposition<>'decided'
+                OR NOT EXISTS(SELECT 1 FROM orders_disputedecision decision
+                    JOIN orders_aftercareevent decision_event ON decision_event.id=decision.event_id
+                    JOIN orders_aftercare head ON head.order_id=decision_event.order_id
+                    WHERE decision.dispute_id=request.id AND request.state=decision.action
+                    AND request.order_id=NEW.order_id AND decision_event.order_id=NEW.order_id
+                    AND decision_event.version=head.version AND decision.actor_id=e.actor_id
+                    AND (decision.account_id <=> e.account_id) AND decision.context=e.context)))""") + " END"
+    case_source = _derive(source["fulfilment_caseevent_insert_source_guard"], "'case_resolve'",
+                          "'case_resolve','dispute_withdrawn'")
+    case_event = source["fulfilment_caseevent_insert_guard"]
+    withdrawal_case = f"""EXISTS(SELECT 1 FROM fulfilment_reviewcase k JOIN fulfilment_event e ON e.id=NEW.event_id
+        WHERE k.id=NEW.case_id AND k.order_id=NEW.order_id AND k.kind='blocker' AND k.state='open'
+        AND NEW.case_version=k.version+1 AND (NEW.assigned_to_id <=> k.assigned_to_id)
+        AND NEW.action='withdraw' AND ({_dispute_withdrawal('NEW.order_id', 'NEW.event_id', 'k.blocker_id')})
+        AND EXISTS(SELECT 1 FROM fulfilment_blockerclosure closure WHERE closure.blocker_id=k.blocker_id
+            AND closure.event_id=NEW.event_id AND closure.disposition='withdrawn'))"""
+    case_event = _derive(case_event, "NOT EXISTS(SELECT 1 FROM fulfilment_reviewcase k",
+                         f"NOT ({withdrawal_case}) AND NOT EXISTS(SELECT 1 FROM fulfilment_reviewcase k")
+    published_withdrawal = f"""e.action='dispute_withdrawn' AND EXISTS(SELECT 1 FROM fulfilment_caseevent ce
+        JOIN fulfilment_reviewcase k ON k.id=ce.case_id JOIN fulfilment_blockerclosure closure
+            ON closure.blocker_id=k.blocker_id AND closure.event_id=ce.event_id
+        WHERE ce.event_id=e.id AND ce.order_id=e.order_id AND ce.action='withdraw'
+        AND k.order_id=e.order_id AND k.kind='blocker' AND k.state='resolved' AND ce.case_version=k.version
+        AND (ce.assigned_to_id <=> k.assigned_to_id) AND closure.disposition='withdrawn'
+        AND ({_dispute_withdrawal('e.order_id', 'e.id', 'k.blocker_id')}))"""
+    publication = _derive(source["fulfilment_publication_insert_guard"],
+        "e.action='cancellation_hold' AND EXISTS(SELECT 1 FROM fulfilment_blocker f WHERE f.event_id=e.id AND f.order_id=e.order_id)",
+        "e.action='dispute_hold' AND EXISTS(SELECT 1 FROM fulfilment_blocker f JOIN orders_disputerequest request "
+        "ON request.blocker_id=f.id WHERE f.event_id=e.id AND f.order_id=e.order_id AND f.kind='dispute' "
+        "AND request.order_id=e.order_id AND request.state='pending') OR " + published_withdrawal +
+        " OR e.action='cancellation_hold' AND EXISTS(SELECT 1 FROM fulfilment_blocker f WHERE f.event_id=e.id AND f.order_id=e.order_id)")
+    return [event, blocker, closure_source, closure, case_source, case_event, publication]

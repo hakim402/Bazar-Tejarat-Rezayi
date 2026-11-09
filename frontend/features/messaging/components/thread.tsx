@@ -15,17 +15,15 @@ import {
 	type History,
 	type Message,
 	type Sent,
-	type ImageRef,
-	type ReportResult,
-} from "../api";
+	type ImageRef,} from "../api";
 import { communicationCopy } from "../copy";
 import { useVisiblePoll, accessLost } from "../hooks";
 import { clearDrafts, scopeKey } from "../drafts";
+import { ReportForm as MessageReport } from "./report";
 import { Composer } from "./composer";
-import { control, action, Failure } from "./controls";
+import { action, Failure } from "./controls";
 import {
 	messageAction,
-	messageControl,
 	messagePanel,
 	sellerMessagesHref,
 } from "./seller-messages-ui";
@@ -373,6 +371,13 @@ export function Thread({
 									context={context}
 									id={row.id}
 									locale={locale}
+									onDenied={(error) => {
+										clearDrafts();
+										setError(error);
+										setDetail(null);
+										setRows([]);
+										current.current = [];
+									}}
 								/>
 							</article>
 						))}
@@ -497,170 +502,5 @@ function ProtectedImage({
 				)}
 			</dialog>
 		</div>
-	);
-}
-function MessageReport({
-	context,
-	id,
-	locale,
-}: {
-	context: Context;
-	id: string;
-	locale: Locale;
-}) {
-	const t = communicationCopy[locale],
-		[reason, setReason] = useState(""),
-		[category, setCategory] = useState("other"),
-		[error, setError] = useState<unknown>(null),
-		[result, setResult] = useState<ReportResult | null>(null),
-		[busy, setBusy] = useState(false);
-	const pending = useRef<{
-			command_id: string;
-			category: string;
-			reason: string;
-		} | null>(null),
-		owner = useRef<object | null>(null),
-		live = useRef(true),
-		submitting = useRef(false);
-	useEffect(() => {
-		live.current = true;
-		return () => {
-			live.current = false;
-			owner.current = null;
-		};
-	}, []);
-	return (
-		<details
-			className={
-				context === "seller" ? "border-t border-border pt-1 text-sm" : "text-sm"
-			}
-			onToggle={(e) => {
-				if (!e.currentTarget.open || submitting.current) return;
-				const mine = {};
-				owner.current = mine;
-				void messaging<{ results: ReportResult[] }>(
-					context,
-					`messages/${id}/reports/`,
-				)
-					.then((value) => {
-						if (live.current && owner.current === mine)
-							setResult(value.results[0] ?? null);
-					})
-					.catch((e) => {
-						if (live.current && owner.current === mine) setError(e);
-					});
-			}}
-		>
-			<summary
-				className={
-					context === "seller"
-						? "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 font-semibold text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
-						: "inline-flex min-h-11 cursor-pointer items-center font-bold text-action"
-				}
-			>
-				{context === "seller" && <Icon name="shield" className="size-4" />}
-				{t.report}
-			</summary>
-			{result ? (
-				<p role="status">
-					{t.reportSaved} · {result.status === "open" ? t.open : t.resolved}
-				</p>
-			) : (
-				<form
-					className={
-						context === "seller"
-							? "space-y-4 rounded-xl border border-border bg-surface p-3"
-							: "space-y-3 py-3"
-					}
-					onSubmit={(e) => {
-						e.preventDefault();
-						if (submitting.current) return;
-						submitting.current = true;
-						const mine = {};
-						owner.current = mine;
-						setBusy(true);
-						setError(null);
-						const reconciling = pending.current !== null;
-						const packet = pending.current ?? {
-							command_id: crypto.randomUUID(),
-							category,
-							reason,
-						};
-						pending.current = packet;
-						void messaging<ReportResult>(
-							context,
-							`messages/${id}/reports/`,
-							packet,
-						)
-							.then((value) => {
-								if (live.current && owner.current === mine) {
-									setResult(value);
-									setReason("");
-									pending.current = null;
-								}
-							})
-							.catch((e) => {
-								if (live.current && owner.current === mine) {
-									setError(e);
-									if (
-										!reconciling &&
-										e instanceof AccountError &&
-										[400, 409, 429].includes(e.status ?? 0)
-									)
-										pending.current = null;
-								}
-							})
-							.finally(() => {
-								if (live.current && owner.current === mine) {
-									submitting.current = false;
-									setBusy(false);
-								}
-							});
-					}}
-				>
-					{context === "seller" && (
-						<p className="text-xs leading-relaxed text-muted">
-							{sellerMessagesCopy[locale].reportHelp}
-						</p>
-					)}
-					<label className="block space-y-2">
-						<span>{t.category}</span>
-						<select
-							value={category}
-							onChange={(e) => setCategory(e.target.value)}
-							className={context === "seller" ? messageControl : control}
-							disabled={busy || !!pending.current}
-						>
-							{(["abuse", "spam", "privacy", "other"] as const).map((value) => (
-								<option key={value} value={value}>
-									{value === "privacy" ? t.privacyCategory : t[value]}
-								</option>
-							))}
-						</select>
-					</label>
-					<label className="block space-y-2">
-						<span>{t.reason}</span>
-						<textarea
-							dir="auto"
-							required
-							minLength={3}
-							maxLength={1000}
-							value={reason}
-							onChange={(e) => setReason(e.target.value)}
-							className={context === "seller" ? messageControl : control}
-							disabled={busy || !!pending.current}
-						/>
-					</label>
-					<button
-						type="submit"
-						className={context === "seller" ? messageAction : action}
-						disabled={busy}
-					>
-						{busy ? t.sending : pending.current ? t.retry : t.submitReport}
-					</button>
-				</form>
-			)}
-			{!!error && <Failure locale={locale} error={error} />}
-		</details>
 	);
 }

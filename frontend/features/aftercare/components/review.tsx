@@ -12,7 +12,7 @@ export function AftercareReview({ locale, context, packet, data, busy, opener, c
 	opener: HTMLElement | null; close: () => void; confirm: () => void;
 }) {
 	const t = aftercareCopy[locale], stale = isStale(packet, data);
-	const evidenceAllowed = packet.intent.domain === "payments" ? data.payment?.capabilities.evidence : packet.intent.domain === "fulfilment" && data.delivery?.capabilities.refund;
+	const evidenceAllowed = packet.intent.domain === "payments" || packet.mode.startsWith("dispute_") ? data.payment?.capabilities.evidence : packet.intent.domain === "fulfilment" && data.delivery?.capabilities.refund;
 	const body = packet.intent.body instanceof FormData ? null : packet.intent.body;
 	return <Confirmation label={t.exact} close={close} returnFocus={opener}>
 		<h2 className="text-xl font-bold">{modeLabel(locale, packet.mode)}</h2>
@@ -32,8 +32,8 @@ export function AftercareReview({ locale, context, packet, data, busy, opener, c
 				<p>{t.total}: <bdi>{after.goods_amount} {packet.currency}</bdi></p>
 			</div>)}
 		</div>}
-		<div className="flex flex-wrap gap-3">{packet.images.filter((id) => evidenceAllowed || (packet.intent.domain === "fulfilment" && data.delivery?.delivery_refunds.some((refund) => refund.evidence.includes(id)))).map((id) => <AftercareEvidence key={id} {...{ id, context, locale, domain: packet.intent.domain }} />)}</div>
-		<p>{packet.mode === "delivery_refund" ? t.deliveryNote : ["excess", "report", "refund_withdraw"].includes(packet.mode) ? t.refundNote : ["amend", "amend_withdraw"].includes(packet.mode) ? t.rules : t.cancelNote}</p>
+		<div className="flex flex-wrap gap-3">{packet.images.filter((id) => evidenceAllowed || (packet.intent.domain === "orders" && data.order.disputes?.some((dispute) => dispute.id === body?.dispute && dispute.evidence?.includes(id))) || (packet.intent.domain === "fulfilment" && data.delivery?.delivery_refunds.some((refund) => refund.evidence.includes(id)))).map((id) => <AftercareEvidence key={id} {...{ id, context, locale, domain: packet.intent.domain }} />)}</div>
+		<p>{packet.mode.startsWith("dispute_") ? t.disputeNote : packet.mode.startsWith("review_") ? t.reviewNote : packet.mode === "delivery_refund" ? t.deliveryNote : ["excess", "report", "refund_withdraw"].includes(packet.mode) ? t.refundNote : ["amend", "amend_withdraw"].includes(packet.mode) ? t.rules : t.cancelNote}</p>
 		<div className="flex flex-wrap gap-3">
 			<button className={action} type="button" onClick={close}>{t.cancel}</button>
 			<button className={action} type="button" disabled={busy || stale} onClick={confirm}>{t.confirm}</button>

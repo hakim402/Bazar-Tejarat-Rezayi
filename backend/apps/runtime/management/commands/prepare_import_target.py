@@ -6,11 +6,11 @@ class Command(BaseCommand):
     help = "Initialize only a fresh MariaDB staging schema; no accounts, providers or web activation."
 
     def add_arguments(self, parser):
-        parser.add_argument("--schema-version", type=int, choices=[1, 2, 3, 4], default=1)
+        parser.add_argument("--schema-version", type=int, choices=[1, 2, 3, 4, 5], default=1)
 
     def handle(self, *args, **options):
         try:
-            if options["schema_version"] in {2, 3, 4}:
+            if options["schema_version"] in {2, 3, 4, 5}:
                 from django.db import connection
                 from apps.runtime.transfer import target_only
 

@@ -8,7 +8,7 @@ from django.db.models import Exists, F, OuterRef, Subquery, Sum
 from django.db.models import Case, When
 from django.db.models.functions import Coalesce
 
-from .models import Amendment, CancellationRequest, InvoiceAdjustment
+from .models import Amendment, CancellationRequest, DisputeRequest, InvoiceAdjustment, Review
 
 ZERO = Decimal("0.00")
 
@@ -65,6 +65,28 @@ def completed(order):
     from apps.fulfilment.models import Completion
 
     return Completion.objects.filter(order_id=order.pk).exists()
+
+
+def delivered(order):
+    """An actual confirmed delivery fact, independent of completion (CR-118)."""
+    from apps.fulfilment.models import Delivery
+
+    if hasattr(order, "aftercare_delivered"):
+        return order.aftercare_delivered
+    return Delivery.objects.filter(shipment__order_id=order.pk).exists()
+
+
+def pending_dispute(order):
+    if hasattr(order, "dispute_pending"):
+        return order.dispute_pending
+    return DisputeRequest.objects.filter(order_id=order.pk, state="pending").exists()
+
+
+def reviewed(order):
+    """One review row per order, retained even after withdrawal or rejection."""
+    if hasattr(order, "aftercare_reviewed"):
+        return order.aftercare_reviewed
+    return Review.objects.filter(order_id=order.pk).exists()
 
 
 def accepted_total(order):
@@ -136,6 +158,8 @@ def annotate(qs):
     """Accepted-total, cancellation and refund annotations for list/detail projections."""
     from django.db.models import DecimalField
 
+    from apps.fulfilment.models import Delivery
+
     money = DecimalField(max_digits=24, decimal_places=2)
     latest = (
         Amendment.objects.filter(order_id=OuterRef("pk"), state="approved")
@@ -149,6 +173,9 @@ def annotate(qs):
         aftercare_cancelled=cancelled,
         aftercare_pending=pending,
         amendment_pending=amendment_open,
+        aftercare_delivered=Exists(Delivery.objects.filter(shipment__order_id=OuterRef("pk"))),
+        dispute_pending=Exists(DisputeRequest.objects.filter(order_id=OuterRef("pk"), state="pending")),
+        aftercare_reviewed=Exists(Review.objects.filter(order_id=OuterRef("pk"))),
         accepted_total=Case(
             When(cancelled, then=ZERO),
             default=Coalesce(Subquery(latest, output_field=money), F("goods_total")),
@@ -163,6 +190,7 @@ def eligibility(order):
     already = cancelled(order)
     shipped = dispatched(order)
     finished = completed(order)
+    arrived = delivered(order)
     return {
         "cancel": not already and not shipped and not finished and not pending_cancellation(order),
         "amend": not already and not shipped and not finished and not pending_amendment(order),
@@ -171,6 +199,11 @@ def eligibility(order):
         "completed": finished,
         "pending_cancellation": pending_cancellation(order),
         "pending_amendment": pending_amendment(order),
+        "delivered": arrived,
+        "dispute": arrived and not already and not pending_dispute(order),
+        "pending_dispute": pending_dispute(order),
+        "review": finished and not reviewed(order),
+        "reviewed": reviewed(order),
     }
 
 

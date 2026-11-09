@@ -11,12 +11,14 @@
     <h2 class="text-lg font-semibold">{{ content.snapshot.title }}</h2>
     <p>{{ content.snapshot.seller }} · <bdi>{{ content.snapshot.currency }}</bdi></p>
     <h3 class="font-semibold">Participant report reason</h3><p class="whitespace-pre-wrap break-words" dir="auto">{{ content.reason }}</p>
+    {% if content.reported_message %}
     <h3 class="font-semibold">Reported message · #{{ content.reported_message.sequence }}</h3>
     <article class="border border-base-200 dark:border-base-800 rounded-default p-3 space-y-2">
       <p><strong dir="auto">{{ content.reported_message.author }}</strong> · <bdi>{{ content.reported_message.created_at|date:"Y-m-d H:i" }} Kabul</bdi></p>
       <p class="whitespace-pre-wrap break-words" dir="auto">{{ content.reported_message.body }}</p>
       {% for image in content.reported_message.images %}<a href="{{ image.download }}" rel="noreferrer">Protected reported image · {{ image.width }} × {{ image.height }}</a>{% endfor %}
     </article>
+    {% endif %}
     <h3 class="font-semibold">Conversation history</h3>
     {% if content.has_more %}<a href="?before={{ content.oldest }}">Earlier messages</a>{% endif %}
     {% for message in content.messages %}

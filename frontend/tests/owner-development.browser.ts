@@ -20,11 +20,11 @@ for (const locale of locales) {
 		await expect(page.locator(".private")).toHaveCount(0);
 		await page.locator("[name=email]").fill(email);
 		await page.locator("[name=password]").fill("incorrect");
-		await page.locator("form button").click();
+		await page.locator('form:has(input[name="stage"][value="password"]) button[type="submit"]').click();
 		await expect(page.getByRole("alert")).toBeVisible();
 		await page.locator("[name=email]").fill(email);
 		await page.locator("[name=password]").fill(fixturePassword);
-		await page.locator("form button").click();
+		await page.locator('form:has(input[name="stage"][value="password"]) button[type="submit"]').click();
 		await expect(page).toHaveURL(`${apiOrigin}/admin/`);
 		await expect(page.locator('a[href="/admin/accounts/user/"]:visible').first()).toBeVisible();
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

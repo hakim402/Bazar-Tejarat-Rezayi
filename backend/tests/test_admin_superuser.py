@@ -63,6 +63,25 @@ class SuperAdminTests(TransactionTestCase):
         self.root.groups.add(group)
         self.assertContains(self.client.get('/admin/accounts/user/?q=Bounded'), self.root.email)
 
+    def test_audit_resource_type_stores_the_longest_model_label(self):
+        # The native admin changelist traversal raised MySQL 1406 while resource_type was
+        # varchar(32); the longest current label is 35 characters.
+        longest = max((model._meta.label_lower for model in apps.get_models()), key=len)
+        width = AuditEvent._meta.get_field('resource_type').max_length
+        self.assertGreater(len(longest), 32, longest)
+        self.assertGreaterEqual(width, len(longest))
+        event = AuditEvent.objects.create(
+            actor=self.root,
+            context='owner',
+            action='audit_resource_type_width',
+            resource_type=longest,
+            reason='Longest current model label',
+        )
+        self.assertEqual(AuditEvent.objects.get(pk=event.pk).resource_type, longest)
+        app_label, model_name = longest.split('.')
+        url = reverse(f'admin:{app_label}_{model_name}_changelist')
+        self.assertIn(self.client.get(url).status_code, [200, 302], url)
+
     def test_native_entry_owner_flag_and_fresh_revocation(self):
         client = APIClient()
         client.force_login(self.root)

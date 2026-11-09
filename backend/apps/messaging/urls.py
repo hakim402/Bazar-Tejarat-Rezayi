@@ -12,4 +12,6 @@ urlpatterns = [
     path("<marketplace:context>/conversations/<uuid:pk>/uploads/", v.Upload.as_view()),
     path("<marketplace:context>/attachments/<uuid:pk>/", v.Attachment.as_view()),
     path("<marketplace:context>/messages/<uuid:pk>/reports/", v.Reports.as_view()),
+    path("<marketplace:context>/reports/", v.OwnReports.as_view()),
+    path("<marketplace:context>/reports/<str:kind>/<uuid:pk>/", v.TargetReports.as_view()),
 ]

@@ -402,6 +402,7 @@ function Reader({
 									pdf={() => void pdf(data)}
 								/>
 								<AftercareSection
+									interactive={mode === "orders"}
 									locale={locale}
 									context={context}
 									orderId={data.id}
@@ -537,6 +538,7 @@ function Reader({
 							pdf={() => void pdf(data)}
 						/>
 						<AftercareSection
+									interactive={mode === "orders"}
 							locale={locale}
 							context={context}
 							orderId={data.id}

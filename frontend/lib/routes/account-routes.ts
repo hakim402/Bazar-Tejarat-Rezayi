@@ -77,6 +77,7 @@ export function commerceRoute(parts: string[] = []): boolean {
 			"deliveries",
 			"cancellations",
 			"aftercare",
+			"disputes",
 		].includes(parts[0])
 	)
 		return (

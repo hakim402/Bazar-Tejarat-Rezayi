@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
 	languageNames,
@@ -30,6 +30,7 @@ export function Preferences({
 		path = usePathname(),
 		navigate = useNavigation();
 	const site = useSite();
+	const groupId = useId();
 	const [theme, setTheme] = useState<string>(site?.default_theme ?? "system");
 	useEffect(() => {
 		try {
@@ -142,25 +143,22 @@ export function Preferences({
 					{locales.map((code) => {
 						const active = code === locale;
 						return (
-							<button
+							<label
 								key={code}
-								type="button"
-								role="radio"
-								aria-checked={active}
 								lang={code}
 								dir={code === "en" ? "ltr" : "rtl"}
-								onClick={() => changeLocale(code)}
-								className={`relative flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition-all ${
+								className={`relative flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition-all focus-within:ring-2 focus-within:ring-action ${
 									active
 										? "bg-action text-on-primary shadow-sm"
 										: "border border-border/70 bg-surface text-foreground hover:border-action/30 hover:bg-info"
 								}`}
 							>
+								<input type="radio" name={`${groupId}-language`} value={code} checked={active} onChange={() => changeLocale(code)} className="absolute inset-0 size-full cursor-pointer opacity-0" />
 								{active && <Icon name="check" className="size-3.5" />}
 								<span className={active ? "" : "ms-1"}>
 									{languageNames[code]}
 								</span>
-							</button>
+							</label>
 						);
 					})}
 				</div>
@@ -178,21 +176,17 @@ export function Preferences({
 					{themeOptions.map(({ value, icon }) => {
 						const active = value === theme;
 						return (
-							<button
+							<label
 								key={value}
-								type="button"
-								role="radio"
-								aria-checked={active}
-								aria-label={t[value as "system" | "light" | "dark"]}
-								onClick={() => changeTheme(value)}
-								className={`relative flex size-10 items-center justify-center rounded-xl transition-all duration-300 ${
+								className={`relative flex size-10 cursor-pointer items-center justify-center rounded-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-action ${
 									active
 										? "bg-action text-on-primary shadow-sm"
 										: "text-muted hover:bg-info hover:text-foreground"
 								}`}
 							>
+								<input type="radio" name={`${groupId}-theme`} value={value} checked={active} aria-label={t[value as "system" | "light" | "dark"]} onChange={() => changeTheme(value)} className="absolute inset-0 size-full cursor-pointer opacity-0" />
 								<Icon name={icon} className="size-[1.1rem]" />
-							</button>
+							</label>
 						);
 					})}
 				</div>

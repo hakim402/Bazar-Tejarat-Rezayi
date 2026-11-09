@@ -1,5 +1,6 @@
 from rest_framework import serializers as s
 from apps.accounts.contracts import StrictSerializer
+from apps.foundation.contracts import LOCALES
 
 
 class MarketplaceAsset(s.Serializer):
@@ -108,6 +109,25 @@ class MarketplaceSitemap(s.Serializer):
     page = s.IntegerField()
     pages = s.IntegerField()
     page_size = s.IntegerField()
+
+
+class MarketplaceReview(s.Serializer):
+    # Public names come only from an approved snapshot and a buyer has none, so the row
+    # discloses the participant role only. The review PK is its order UUID: never expose it.
+    reviewer = s.ChoiceField(choices=["buyer"])
+    rating = s.IntegerField(min_value=1, max_value=5)
+    text = s.CharField()
+    language = s.ChoiceField(choices=LOCALES)
+    created_at = s.DateTimeField()
+
+
+class MarketplaceReviews(MarketplacePage):
+    results = MarketplaceReview(many=True)
+
+
+class MarketplaceReviewSummary(s.Serializer):
+    count = s.IntegerField()
+    average = s.CharField(allow_null=True)
 
 
 class StoreSave(StrictSerializer):

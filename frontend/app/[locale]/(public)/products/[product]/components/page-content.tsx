@@ -9,6 +9,8 @@ import {
 	type Search,
 } from "../../../../../../features/marketplace/server";
 import type { PublicProduct } from "../../../../../../features/marketplace/types";
+import { NavigationGuard } from "../../../../../../components/layout/navigation-guard";
+import { TargetReport } from "../../../../../../features/messaging/components/report";
 import { ProductDetail } from "../../../../../../features/marketplace/components/product-detail";
 import { marketplaceCopy } from "../../../../../../features/marketplace/copy";
 import { publicOrigin } from "../../../../../../features/pages/metadata";
@@ -67,7 +69,7 @@ export async function PageContent({
 			}
 		: null;
 	return (
-		<MarketplaceShell locale={locale}>
+		<NavigationGuard guardHistory><MarketplaceShell locale={locale}>
 			{p ? (
 				<>
 					<Breadcrumbs
@@ -78,6 +80,7 @@ export async function PageContent({
 						]}
 					/>
 					<ProductDetail key={p.id} product={p} locale={locale} />
+						<TargetReport locale={locale} id={p.id} target="product" />
 					<script type="application/ld+json">
 						{JSON.stringify(data).replaceAll("<", "\\u003c")}
 					</script>
@@ -85,6 +88,6 @@ export async function PageContent({
 			) : (
 				<Feedback locale={locale} status={result.status} />
 			)}
-		</MarketplaceShell>
+		</MarketplaceShell></NavigationGuard>
 	);
 }

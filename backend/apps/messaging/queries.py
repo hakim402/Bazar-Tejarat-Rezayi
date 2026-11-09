@@ -100,6 +100,38 @@ def reports(actor, message_id):
     }
 
 
+def target_reports(actor, kind, target_id):
+    get_object_or_404(access.target_scope(actor, kind), pk=target_id)
+    return {
+        "results": [
+            {"id": str(r.pk), "status": r.status, "version": r.version, "created_at": r.created_at}
+            for r in Report.objects.filter(reporter=actor.account, **{kind + "_id": target_id})
+            .order_by("-created_at")[:20]
+        ]
+    }
+
+
+def own_reports(actor, *, page=1):
+    qs = Report.objects.filter(reporter=actor.account).order_by("-created_at", "pk")
+    count = qs.count()
+    items = list(qs[(page - 1) * 20 : page * 20])
+    return {
+        "count": count,
+        "page": page,
+        "results": [
+            {
+                "id": str(r.pk),
+                "status": r.status,
+                "version": r.version,
+                "created_at": r.created_at,
+                "target_kind": r.target_kind,
+                "target": str(getattr(r, r.target_kind + "_id")),
+            }
+            for r in items
+        ],
+    }
+
+
 def profile_choices(actor, page=1):
     account = actor.account
     from rest_framework.exceptions import PermissionDenied

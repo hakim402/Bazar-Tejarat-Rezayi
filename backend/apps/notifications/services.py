@@ -67,11 +67,38 @@ def message_committed(item, message, sender):
     transaction.on_commit(enqueue_safely)
 
 
+@transaction.atomic
 def report_status(report):
-    event = Event.objects.create(kind="report_status", report=report, report_version=report.version)
-    item = report.message.conversation
-    if access.recipient_allowed(item, report.reporter):
-        Notice.objects.create(event=event, account=report.reporter, conversation=item)
+    from apps.messaging.models import Report
+    from . import aftercare_events
+    from .models import AftercareEmail
+
+    # The case transition holds the target profile and report lock. Re-read the
+    # retained target/identity rather than trusting a cached related reporter.
+    report = Report.objects.select_related(
+        "message__conversation__seller", "order__seller", "reporter__user"
+    ).get(pk=report.pk)
+    event, _ = Event.objects.get_or_create(
+        report=report, report_version=report.version, defaults={"kind": "report_status"}
+    )
+    account = aftercare_events.report_recipient(report, report.reporter_id)
+    if account is None:
+        return event
+    target = aftercare_events.report_notice_target(report)
+    notice, _ = Notice.objects.get_or_create(event=event, account=account, defaults=target)
+    preference = Preference.objects.filter(account=account).first()
+    if notice.read_at is None and (preference is None or preference.aftercare_email):
+        AftercareEmail.objects.get_or_create(
+            report=report,
+            account=account,
+            episode=event.pk,
+            defaults={
+                "identity_digest": aftercare_events.report_identity_digest(account, report),
+                "due_at": aftercare_events.email_due(account),
+            },
+        )
+        transaction.on_commit(aftercare_events.enqueue_safely)
+    return event
 
 
 def notice_scope(actor, seller=None):
@@ -117,7 +144,23 @@ def notice_scope(actor, seller=None):
         | Q(payment_order__in=payments)
         | Q(fulfilment_order__in=fulfilments)
         | Q(aftercare_order__in=orders)
+        | Q(product__in=_reporter_products(account))
+        | Q(store__in=_reporter_stores(account))
     ), messages
+
+
+def _reporter_products(account):
+    """Products the account has reported (open or resolved)."""
+    from apps.messaging.models import Report
+
+    return Report.objects.filter(reporter=account, product__isnull=False).values("product_id")
+
+
+def _reporter_stores(account):
+    """Stores the account has reported (open or resolved)."""
+    from apps.messaging.models import Report
+
+    return Report.objects.filter(reporter=account, store__isnull=False).values("store_id")
 
 
 def notices(actor, *, seller=None, page=1, unread=False):
@@ -136,6 +179,9 @@ def notices(actor, *, seller=None, page=1, unread=False):
         "event__payment_event",
         "aftercare_order",
         "event__aftercare_event",
+        "product",
+        "store",
+        "event__report",
     ).order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
     return {
         "count": qs.count(),
@@ -160,6 +206,9 @@ def notices(actor, *, seller=None, page=1, unread=False):
                 "conversation": str(x.conversation_id) if x.conversation_id else None,
                 "order": str(x.order_id) if x.order_id else None,
                 "invoice": str(x.order.invoice.pk) if x.order_id else None,
+                "product": str(x.product_id) if x.product_id else None,
+                "store": str(x.store_id) if x.store_id else None,
+                "report": str(x.event.report_id) if x.event.report_id else None,
                 "seller": str(
                     x.fulfilment_order.seller_id
                     if x.fulfilment_order_id
@@ -172,6 +221,12 @@ def notices(actor, *, seller=None, page=1, unread=False):
                     else x.order.seller_id
                     if x.order_id
                     else x.conversation.seller_id
+                    if x.conversation_id
+                    else x.product.seller_id
+                    if x.product_id
+                    else x.store.profile_id
+                    if x.store_id
+                    else None
                 ),
                 "read": x.read_at is not None,
                 "created_at": x.created_at,
@@ -195,7 +250,7 @@ def counts(actor, seller=None):
 def read_notice(actor, pk):
     qs, _ = notice_scope(actor)
     preliminary = get_object_or_404(
-        qs.select_related("conversation", "order", "negotiation", "payment_order", "fulfilment_order", "aftercare_order"),
+        qs.select_related("conversation", "order", "negotiation", "payment_order", "fulfilment_order", "aftercare_order", "product", "store"),
         pk=pk,
     )
     access.lock_actor(
@@ -210,7 +265,11 @@ def read_notice(actor, pk):
         if preliminary.negotiation_id
         else preliminary.order.seller_id
         if preliminary.order_id
-        else preliminary.conversation.seller_id,
+        else preliminary.conversation.seller_id
+        if preliminary.conversation_id
+        else preliminary.product.seller_id
+        if preliminary.product_id
+        else preliminary.store.profile_id,
     )
     qs, _ = notice_scope(actor)
     row = get_object_or_404(qs.select_for_update(), pk=pk)

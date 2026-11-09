@@ -35,13 +35,15 @@ def navigation(request):
     if root:
         from apps.catalogue.models import SourceRevision
         from apps.fulfilment.models import ReviewCase as DeliveryReviewCase
-        from apps.orders.models import Amendment, CancellationRequest
+        from apps.orders.models import Amendment, CancellationRequest, DisputeRequest, Review
         from apps.payments.models import ReviewCase as PaymentReviewCase
         from apps.verification.models import ReviewCase as VerificationCase
 
         badges = {
             "orders.cancellationrequest": CancellationRequest.objects.filter(state="pending").count(),
             "orders.amendment": Amendment.objects.filter(state="pending").count(),
+            "orders.disputerequest": DisputeRequest.objects.filter(state="pending").count(),
+            "orders.review": Review.objects.filter(state="pending").count(),
             "payments.reviewcase": PaymentReviewCase.objects.filter(state="open").count(),
             "fulfilment.reviewcase": DeliveryReviewCase.objects.filter(state="open").count(),
             "catalogue.sourcerevision": SourceRevision.objects.filter(state="submitted").count(),
@@ -97,6 +99,8 @@ def navigation(request):
                 entry("Cancellation requests", "cancel", "orders.cancellationrequest", badge=queue("orders.cancellationrequest")),
                 entry("Accepted amendments", "edit_note", "orders.amendment", badge=queue("orders.amendment")),
                 entry("Invoice adjustments", "receipt", "orders.invoiceadjustment"),
+                entry("Order disputes", "gavel", "orders.disputerequest", badge=queue("orders.disputerequest")),
+                entry("Buyer reviews", "rate_review", "orders.review", badge=queue("orders.review")),
             ],
         ),
         (
@@ -158,7 +162,7 @@ def navigation(request):
             "communication",
             "Communication",
             [
-                entry("Message reports", "forum", "messaging.report"),
+                entry("Content & order reports", "flag", "messaging.report"),
                 entry("Communication delivery", "mail", "notifications.outbox"),
             ],
         ),

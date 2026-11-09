@@ -1,11 +1,12 @@
 import type { Locale } from "../../lib/i18n/locales";
+import { uuidPattern } from "../../lib/routes/account-routes.ts";
 import { actualTime } from "../payments/validation.ts";
 import { localTimestamp } from "../messaging/api.ts";
 import { aftercareCopy } from "./copy.ts";
-import { amendedTotal, exactDue, lineAmount, validDecrease, validReason, withinBound } from "./validation.ts";
+import { amendedTotal, exactDue, lineAmount, validDecrease, validReason, validReview, safeText, withinBound } from "./validation.ts";
 import type { Domain, Line, Mode, Reviewed, Workspace } from "./types";
-export type Draft = { reason: string; target: string; amount: string; at: string; reference: string; description: string; images: string[]; lines: Line[] };
-export function emptyDraft(): Draft { return { reason: "", target: "", amount: "", at: "", reference: "", description: "", images: [], lines: [] }; }
+export type Draft = { rating: string; text: string; reason: string; target: string; amount: string; at: string; reference: string; description: string; images: string[]; lines: Line[] };
+export function emptyDraft(): Draft { return { rating: "", text: "", reason: "", target: "", amount: "", at: "", reference: "", description: "", images: [], lines: [] }; }
 export function availableModes(data: Workspace): Mode[] {
 	const { order, payment, delivery } = data, modes: Mode[] = [];
 	if (order.capabilities.includes("cancel")) modes.push("cancel");
@@ -16,17 +17,26 @@ export function availableModes(data: Workspace): Mode[] {
 	if (payment?.capabilities.refund && payment.refund_dues.some((row) => row.can_report)) modes.push("report");
 	if (payment?.refund_reports.some((row) => row.can_withdraw)) modes.push("refund_withdraw");
 	if (delivery?.capabilities.refund && delivery.refund_providers?.length) modes.push("delivery_refund");
+	if (order.capabilities.includes("dispute_open")) modes.push("dispute_open");
+	if (order.disputes?.some((row) => row.can_withdraw)) modes.push("dispute_withdraw");
+	if (order.disputes?.some((row) => row.can_respond === true)) modes.push("dispute_respond");
+	if (order.capabilities.includes("review_submit")) modes.push("review_submit");
+	if (order.review?.can_withdraw === true) modes.push("review_withdraw");
 	return modes;
 }
 export function modeDomain(mode: Mode): Domain { return mode === "delivery_refund" ? "fulfilment" : ["excess", "report", "refund_withdraw"].includes(mode) ? "payments" : "orders"; }
 export function modeLabel(locale: Locale, mode: Mode) {
 	const t = aftercareCopy[locale];
-	return { cancel: t.cancelOrder, cancel_withdraw: t.cancelWithdraw, amend: t.amend, amend_withdraw: t.amendWithdraw, excess: t.excess, report: t.report, refund_withdraw: t.refundWithdraw, delivery_refund: t.deliveryRefund }[mode];
+	return { cancel: t.cancelOrder, cancel_withdraw: t.cancelWithdraw, amend: t.amend, amend_withdraw: t.amendWithdraw, excess: t.excess, report: t.report, refund_withdraw: t.refundWithdraw, delivery_refund: t.deliveryRefund, dispute_open: t.disputeOpen, dispute_withdraw: t.disputeWithdraw, dispute_respond: t.disputeRespond, review_submit: t.reviewSubmit, review_withdraw: t.reviewWithdraw }[mode];
 }
 export function versionOf(data: Workspace, mode: Mode) { return modeDomain(mode) === "orders" ? data.order.version : modeDomain(mode) === "payments" ? data.payment?.version : data.delivery?.version; }
 export function isStale(review: Reviewed, data: Workspace) {
 	const body = review.intent.body;
 	if (!availableModes(data).includes(review.mode) || body instanceof FormData || body.version !== versionOf(data, review.mode) || (review.intent.domain === "fulfilment" && body.goods_version !== data.delivery?.goods_version)) return true;
+	if (review.mode === "dispute_open" && review.images.length && !data.payment?.capabilities.evidence) return true;
+	if (review.mode === "dispute_withdraw") return !data.order.disputes?.some((row) => row.id === body.dispute && row.can_withdraw);
+	if (review.mode === "dispute_respond") return !data.order.disputes?.some((row) => row.id === body.dispute && row.can_respond === true);
+	if (review.mode === "review_withdraw") return data.order.review?.id !== review.intent.path.split("/")[1] || data.order.review?.can_withdraw !== true;
 	if (review.mode === "cancel_withdraw") return !data.order.cancellations.some((row) => row.id === body.request && row.can_withdraw);
 	if (review.mode === "amend_withdraw") return !data.order.amendments.some((row) => row.id === body.amendment && row.can_withdraw);
 	if (review.mode === "refund_withdraw") return !data.payment?.refund_reports.some((row) => row.id === body.report && row.can_withdraw);
@@ -35,14 +45,46 @@ export function isStale(review: Reviewed, data: Workspace) {
 	return false;
 }
 export function buildAction(locale: Locale, base: Workspace, mode: Mode, draft: Draft, key: string): Reviewed | null {
-	if (!availableModes(base).includes(mode)) return null;
+	if (!availableModes(base).includes(mode) || !uuidPattern.test(key)) return null;
+	if ((mode.startsWith("dispute_") || mode.startsWith("review_")) && !uuidPattern.test(base.order.id)) return null;
 	const t = aftercareCopy[locale], { order, payment, delivery } = base, domain = modeDomain(mode), version = versionOf(base, mode);
 	if (version === undefined) return null;
 	const body: Record<string, unknown> = { command_id: key, version }, fields: Record<string, string> = {}, lines: Reviewed["lines"] = [];
 	let path = "", images = [...draft.images];
-	if (!["report", "delivery_refund"].includes(mode)) {
+	if (!["report", "delivery_refund", "dispute_respond", "review_submit"].includes(mode)) {
 		if (!validReason(draft.reason)) return null;
 		body.reason = draft.reason.trim(); fields[t.reason] = draft.reason.trim();
+	}
+	if (mode === "dispute_open") {
+		if (images.length > 3 || new Set(images).size !== images.length || images.some((id) => !uuidPattern.test(id)) || (images.length > 0 && !payment?.capabilities.evidence)) return null;
+		path = `orders/${order.id}/disputes/`;
+		body.evidence = [...images];
+	}
+	if (mode === "dispute_withdraw" || mode === "dispute_respond") {
+		const row = order.disputes?.find((row) => row.id === draft.target && (mode === "dispute_withdraw" ? row.can_withdraw : row.can_respond === true));
+		if (!row || !uuidPattern.test(row.id)) return null;
+		path = `disputes/${row.id}/${mode === "dispute_withdraw" ? "withdraw" : "respond"}/`;
+		body.dispute = row.id;
+		fields[t.target] = `${row.id} · ${row.reason}`;
+		images = [...(row.evidence ?? [])];
+		if (mode === "dispute_respond") {
+			if (draft.text.trim().length < 3 || draft.text.length > 2000 || !safeText(draft.text)) return null;
+			body.text = draft.text.trim(); fields[t.disputeResponse] = draft.text.trim();
+		}
+	}
+	if (mode === "review_submit") {
+		if (!validReview(draft.rating, draft.text)) return null;
+		path = `orders/${order.id}/reviews/`;
+		Object.assign(body, { rating: Number(draft.rating), text: draft.text.trim(), language: locale });
+		Object.assign(fields, { [t.reviewRating]: `${draft.rating}/5`, [t.reviewText]: draft.text.trim(), [t.reviewLanguage]: locale });
+		images = [];
+	}
+	if (mode === "review_withdraw") {
+		const row = order.review;
+		if (row?.can_withdraw !== true || !uuidPattern.test(row.id)) return null;
+		path = `reviews/${row.id}/withdraw/`;
+		Object.assign(fields, { [t.target]: row.id, [t.reviewRating]: `${row.rating}/5`, [t.reviewText]: row.text, [t.reviewLanguage]: row.language });
+		images = [];
 	}
 	if (mode === "cancel") path = `orders/${order.id}/cancellations/`;
 	if (mode === "cancel_withdraw" || mode === "amend_withdraw") {
@@ -107,6 +149,7 @@ export function buildAction(locale: Locale, base: Workspace, mode: Mode, draft: 
 		fields[t.sentAt] = localTimestamp(report.sent_at, locale);
 		images = [...report.evidence];
 	}
+	if (!path) return null;
 	return freezeReviewed({ mode, intent: { key, domain, path, body, upload: false }, number: order.number, currency: order.currency, fields, lines, images });
 }
 

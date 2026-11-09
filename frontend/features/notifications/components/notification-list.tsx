@@ -1,4 +1,6 @@
 "use client";
+import { OwnReports } from "../../messaging/components/report";
+import { reportTargetHref } from "../../messaging/api";
 import { fulfilmentHref } from "../../fulfilment/api";
 import { aftercareHref } from "../../aftercare/api";
 import { aftercareCopy } from "../../aftercare/copy";
@@ -101,6 +103,7 @@ export function NoticeList({
 	};
 	return (
 		<section className="space-y-4" aria-label={t.notifications}>
+			<OwnReports locale={locale} context={context} />
 			{error ? (
 				<Failure locale={locale} error={error} />
 			) : !data ? (
@@ -118,7 +121,9 @@ export function NoticeList({
 								prefetch={false}
 								className="inline-flex min-h-11 items-center gap-3 font-bold"
 								href={
-									row.kind === "aftercare"
+									row.kind === "report_status" && (row.product || row.store || row.order)
+										? reportTargetHref(locale, context, row.product ? "product" : row.store ? "store" : "order", row.product ?? row.store ?? row.order ?? "", row.seller)
+										: row.kind === "aftercare"
 										? aftercareHref(
 												locale,
 												context,
