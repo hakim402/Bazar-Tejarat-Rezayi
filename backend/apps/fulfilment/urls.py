@@ -20,6 +20,7 @@ urlpatterns = [
     path("<marketplace:context>/orders/<uuid:pk>/tracking/", v.Tracking.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/deliver/", v.Deliver.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/stock-options/", v.StockOptions.as_view()),
+    path("<marketplace:context>/orders/<uuid:pk>/lines/<uuid:line_id>/image/", v.LineImage.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/handover/", v.Handover.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/uploads/", v.Upload.as_view()),
     path("<marketplace:context>/orders/<uuid:pk>/commands/<uuid:key>/", v.Command.as_view()),

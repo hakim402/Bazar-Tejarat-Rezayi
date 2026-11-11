@@ -24,6 +24,7 @@ export function DeliveryHistory({
 	seller,
 	page,
 	returnParams,
+	embedded = false,
 }: {
 	locale: Locale;
 	context: Context;
@@ -31,6 +32,7 @@ export function DeliveryHistory({
 	seller: string;
 	page: number;
 	returnParams?: QueryReader;
+	embedded?: boolean;
 }) {
 	const t = fulfilmentCopy[locale],
 		r = aftercareCopy[locale],
@@ -63,7 +65,7 @@ export function DeliveryHistory({
 	};
 	return (
 		<>
-			{isSeller && <h2 className="text-lg font-semibold">{s.history}</h2>}
+			{isSeller && !embedded && <h2 className="text-lg font-semibold">{s.history}</h2>}
 			{row.proposals.length > 0 && (
 				<section className={panel}>
 					<h2 className="text-xl font-bold">{t.proposeCharge}</h2>

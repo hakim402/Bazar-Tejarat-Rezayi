@@ -125,6 +125,12 @@ const additions = {
 			"Current prerequisites are not satisfied. Review stock, recipient, charge and holds.",
 		settled: "Settled",
 		unsettled: "Unsettled",
+		required: "Required",
+		selected: "Selected",
+		reserved: "Reserved",
+		suggest: "Suggest a valid selection",
+		suggestionHint:
+			"Uses only the loaded batches. Review every line before confirming.",
 	},
 	"fa-AF": {
 		actionChanged:
@@ -250,6 +256,12 @@ const additions = {
 			"پیش‌شرط‌ها کامل نیست. موجودی، گیرنده، هزینه و توقف‌ها را بررسی کنید.",
 		settled: "تسویه‌شده",
 		unsettled: "تسویه‌نشده",
+		required: "لازم",
+		selected: "انتخاب‌شده",
+		reserved: "رزروشده",
+		suggest: "پیشنهاد انتخاب معتبر",
+		suggestionHint:
+			"فقط از دسته‌های بارگیری‌شده استفاده می‌کند. پیش از تأیید، هر ردیف را بازبینی کنید.",
 	},
 	ps: {
 		actionChanged:
@@ -372,6 +384,12 @@ const additions = {
 		notReady: "شرطونه بشپړ نه دي. موجودي، ترلاسه کوونکی، لګښت او خنډونه وګورئ.",
 		settled: "تصفیه شوی",
 		unsettled: "نه دی تصفیه شوی",
+		required: "اړین",
+		selected: "ټاکل شوی",
+		reserved: "ساتل شوی",
+		suggest: "یو معتبر انتخاب وړاندیز",
+		suggestionHint:
+			"یوازې بار شوي بستې کاروي. له تایید مخکې هره کرښه وڅېړئ.",
 	},
 	ar: {
 		actionChanged:
@@ -496,6 +514,12 @@ const additions = {
 		notReady: "الشروط غير مستوفاة. راجع المخزون والمستلم والرسوم والقيود.",
 		settled: "مسوى",
 		unsettled: "غير مسوى",
+		required: "المطلوب",
+		selected: "المحدد",
+		reserved: "المحجوز",
+		suggest: "اقتراح تحديد صالح",
+		suggestionHint:
+			"يستخدم فقط الدفعات المحمّلة. راجع كل سطر قبل التأكيد.",
 	},
 };
 export const fulfilmentCopy = Object.fromEntries(

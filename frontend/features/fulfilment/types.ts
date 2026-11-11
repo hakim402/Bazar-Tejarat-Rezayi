@@ -17,6 +17,7 @@ export type Summary = {
 	id: string;
 	seller: string;
 	number: string;
+	buyer: string;
 	invoice: string | null;
 	currency: string;
 	goods_total: string;
@@ -135,6 +136,9 @@ export type Detail = Summary & {
 		sku: string;
 		unit: string;
 		unit_labels: Record<string, string>;
+		titles: Record<string, string>;
+		source_locale: string;
+		image: string;
 	}[];
 	proposals: {
 		id: string;

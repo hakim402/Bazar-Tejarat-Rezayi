@@ -18,7 +18,8 @@ import { fulfilmentCopy } from "../copy";
 import { aftercareCopy } from "../../aftercare/copy";
 import { fulfilment } from "../api";
 import { actualTime, moneyUnits } from "../validation";
-import { buildAction, type Mode } from "../draft";
+import { buildAction, type Mode, type Draft } from "../draft";
+import { availableModes } from "../modes";
 import type {
 	Context,
 	Capability,
@@ -39,6 +40,10 @@ export function DeliveryActionForm({
 	review,
 	upload,
 	onDenied,
+	guided = false,
+	fixedMode,
+	initialDraft,
+	onDraftChange,
 }: {
 	locale: Locale;
 	context: Context;
@@ -48,6 +53,10 @@ export function DeliveryActionForm({
 	review: (review: Reviewed, opener: HTMLElement | null) => void;
 	upload: (file: File, purpose: "claim" | "correction" | "refund") => void;
 	onDenied: () => void;
+	guided?: boolean;
+	fixedMode?: Mode;
+	initialDraft?: Draft;
+	onDraftChange?: (draft: Draft) => void;
 }) {
 	const required: Record<Mode, Capability> = {
 		recipient: "recipient_edit",
@@ -72,61 +81,32 @@ export function DeliveryActionForm({
 		panel = isSeller ? salesPanel : buyerPanel,
 		prefix = useId(),
 		c = row.capabilities,
-		preDispatch = !["dispatched", "delivered"].includes(row.stage);
-	const modes: [Mode, string][] = [];
-	if (c.recipient_edit && preDispatch)
-		modes.push(["recipient", t.saveRecipient]);
-	if (c.prepare && preDispatch)
-		modes.push(
-			["arrange", t.saveArrangement],
-			["prepare", t.prepare],
-			["charge", t.proposeCharge],
-		);
-	if (
-		c.partial &&
-		preDispatch &&
-		row.payment_method === "advance" &&
-		row.goods_confirmed !== "0.00" &&
-		row.goods_remaining !== "0.00"
-	)
-		modes.push(["partial", t.partial]);
-	if (c.dispatch && preDispatch && row.preparation?.current)
-		modes.push(["dispatch", t.reviewDispatch]);
-	if (c.claim && row.charge_id && row.charge !== "0.00")
-		modes.push(["claim", t.claimDelivery]);
-	if (c.claim && row.receipts.some((receipt) => receipt.can_correct))
-		modes.push(["correction", t.correctionDelivery]);
-	if (c.claim && row.claims.some((claim) => claim.can_withdraw))
-		modes.push(["withdraw", t.withdrawClaim]);
-	if (context === "seller" && c.refund && row.refund_providers.length > 0)
-		modes.push(["refund", r.deliveryRefund]);
-	if (c.tracking && !preDispatch) modes.push(["tracking", t.recordTracking]);
-	if (c.deliver && row.stage === "dispatched")
-		modes.push(["deliver", t.deliver]);
-	const [mode, setMode] = useState<Mode>(() => modes[0]?.[0] ?? "recipient"),
-		[dirty, setDirty] = useState(false),
+		modes = availableModes(row, context, locale);
+	const [mode, setMode] = useState<Mode>(() => fixedMode ?? modes[0]?.[0] ?? "recipient"),
+		[dirty, setDirty] = useState(() => Boolean(initialDraft)),
 		[busy, setBusy] = useState(false),
 		[invalid, setInvalid] = useState(false),
 		[previewError, setPreviewError] = useState(false);
-	const [name, setName] = useState(row.recipient?.name ?? ""),
-		[phone, setPhone] = useState(row.recipient?.phone ?? ""),
-		[address, setAddress] = useState(row.recipient?.address ?? ""),
+	const [name, setName] = useState(initialDraft?.name ?? row.recipient?.name ?? ""),
+		[phone, setPhone] = useState(initialDraft?.phone ?? row.recipient?.phone ?? ""),
+		[address, setAddress] = useState(initialDraft?.address ?? row.recipient?.address ?? ""),
 		[instructions, setInstructions] = useState(
-			context === "buyer"
-				? (row.recipient?.instructions ?? "")
-				: (row.arrangement?.instructions ?? ""),
+			initialDraft?.instructions ??
+				(context === "buyer"
+					? (row.recipient?.instructions ?? "")
+					: (row.arrangement?.instructions ?? "")),
 		);
-	const [provider, setProvider] = useState(""),
-		[selfDelivery, setSelfDelivery] = useState(false),
-		[amount, setAmount] = useState(""),
-		[description, setDescription] = useState(""),
-		[reason, setReason] = useState(""),
-		[reference, setReference] = useState("");
-	const [at, setAt] = useState(""),
-		[target, setTarget] = useState(""),
-		[receipt, setReceipt] = useState<Receipt | undefined>(),
-		[lines, setLines] = useState<DisplayLine[]>([]),
-		[images, setImages] = useState<string[]>([]),
+	const [provider, setProvider] = useState(initialDraft?.provider ?? ""),
+		[selfDelivery, setSelfDelivery] = useState(initialDraft?.selfDelivery ?? false),
+		[amount, setAmount] = useState(initialDraft?.amount ?? ""),
+		[description, setDescription] = useState(initialDraft?.description ?? ""),
+		[reason, setReason] = useState(initialDraft?.reason ?? ""),
+		[reference, setReference] = useState(initialDraft?.reference ?? "");
+	const [at, setAt] = useState(initialDraft?.at ?? ""),
+		[target, setTarget] = useState(initialDraft?.target ?? ""),
+		[receipt, setReceipt] = useState<Receipt | undefined>(initialDraft?.receipt),
+		[lines, setLines] = useState<DisplayLine[]>(initialDraft?.lines ?? []),
+		[images, setImages] = useState<string[]>(initialDraft?.images ?? []),
 		[file, setFile] = useState<File | null>(null);
 	const [base, setBase] = useState(() => ({
 		version: row.version,
@@ -164,6 +144,44 @@ export function DeliveryActionForm({
 			setDirty(true);
 		}
 	}, [uploaded, mode, context, c.refund, c.claim]);
+	useEffect(() => {
+		if (!onDraftChange || !dirty) return;
+		onDraftChange({
+			name,
+			phone,
+			address,
+			instructions,
+			provider,
+			selfDelivery,
+			amount,
+			description,
+			reason,
+			reference,
+			at,
+			target,
+			receipt,
+			lines,
+			images,
+		});
+	}, [
+		onDraftChange,
+		dirty,
+		name,
+		phone,
+		address,
+		instructions,
+		provider,
+		selfDelivery,
+		amount,
+		description,
+		reason,
+		reference,
+		at,
+		target,
+		receipt,
+		lines,
+		images,
+	]);
 	function reload() {
 		setBase({
 			version: row.version,
@@ -315,59 +333,54 @@ export function DeliveryActionForm({
 		refundBound = refundProvider
 			? moneyUnits(refundProvider.refundable, true)
 			: null;
-	return (
-		<section className={panel}>
-			<h2 className="text-xl font-bold" tabIndex={-1} data-fulfilment-actions>
-				{isSeller ? s.actions : t.exact}
-			</h2>
-			{isSeller && <p className="text-sm text-muted">{t.exact}</p>}
-			{guard.feedback}
-			{!available && <p role="status">{t.actionChanged}</p>}
-			<label
-				className={isSeller ? "block min-w-0 max-w-2xl space-y-2" : undefined}
+	const selector = (
+		<label className={isSeller ? "block min-w-0 max-w-2xl space-y-2" : undefined}>
+			{t.exact}
+			<select
+				aria-label={t.exact}
+				className={control}
+				value={available ? mode : ""}
+				disabled={locked || busy}
+				onChange={(event) => {
+					const next = event.target.value as Mode;
+					guard.choose(() => discard(next));
+				}}
 			>
-				{t.exact}
-				<select
-					aria-label={t.exact}
-					className={control}
-					value={available ? mode : ""}
-					disabled={locked || busy}
-					onChange={(event) => {
-						const next = event.target.value as Mode;
-						guard.choose(() => discard(next));
-					}}
-				>
-					{!available && (
-						<option value="" disabled>
-							{t.exact}
-						</option>
-					)}
-					{modes.map(([value, label]) => (
-						<option key={value} value={value}>
-							{label}
-						</option>
-					))}
-				</select>
-			</label>
-			<form
-				onSubmit={submit}
-				onChange={() => setDirty(true)}
-				className="space-y-4"
-				noValidate
+				{!available && (
+					<option value="" disabled>
+						{t.exact}
+					</option>
+				)}
+				{modes.map(([value, label]) => (
+					<option key={value} value={value}>
+						{label}
+					</option>
+				))}
+			</select>
+		</label>
+	);
+	const form = (
+		<form
+			onSubmit={submit}
+			onChange={() => setDirty(true)}
+			className="space-y-4"
+			noValidate
+		>
+			<fieldset
+				disabled={locked || busy || !available}
+				className={
+					isSeller
+						? guided
+							? "min-w-0 space-y-4 [&_label]:block [&_label]:space-y-2 [&_label:has(input[type=checkbox])]:flex"
+							: "min-w-0 space-y-4 rounded-xl border border-border p-4 sm:p-5 [&_label]:block [&_label]:space-y-2 [&_label:has(input[type=checkbox])]:flex"
+						: "space-y-4"
+				}
 			>
-				<fieldset
-					disabled={locked || busy || !available}
-					className={
-						isSeller
-							? "min-w-0 space-y-4 rounded-xl border border-border p-4 sm:p-5 [&_label]:block [&_label]:space-y-2 [&_label:has(input[type=checkbox])]:flex"
-							: "space-y-4"
-					}
-				>
-					{isSeller && (
-						<legend className="px-2 text-sm font-semibold">
-							{modes.find(([value]) => value === mode)?.[1] ?? t.exact}
-						</legend>
-					)}
+				{isSeller && !guided && (
+					<legend className="px-2 text-sm font-semibold">
+						{modes.find(([value]) => value === mode)?.[1] ?? t.exact}
+					</legend>
+				)}
 					{mode === "recipient" && (
 						<>
 							<label htmlFor={`${prefix}-name`}>{t.recipientName}</label>
@@ -436,16 +449,22 @@ export function DeliveryActionForm({
 					) : null}
 					{mode === "prepare" && (
 						<>
-							<p>{t.stockNote}</p>
-							<ul>
-								{row.goods.map((g) => (
-									<li key={`${g.variant}:${g.tier}`}>
-										<bdi>
-											{g.sku} · {g.quantity} {g.unit_labels[locale] ?? g.unit}
-										</bdi>
-									</li>
-								))}
-							</ul>
+							{!guided ? (
+								<>
+									<p>{t.stockNote}</p>
+									<ul>
+										{row.goods.map((g) => (
+											<li key={`${g.variant}:${g.tier}`}>
+												<bdi>
+													{g.sku} · {g.quantity} {g.unit_labels[locale] ?? g.unit}
+												</bdi>
+											</li>
+										))}
+									</ul>
+								</>
+							) : row.payment_method === "cod" ? (
+								<p>{t.stockNote}</p>
+							) : null}
 							{row.payment_method === "cod" && (
 								<StockSelection
 									{...{
@@ -721,6 +740,25 @@ export function DeliveryActionForm({
 					</div>
 				</fieldset>
 			</form>
+		);
+	if (guided)
+		return (
+			<>
+				{guard.feedback}
+				{!available && <p role="status">{t.actionChanged}</p>}
+				{form}
+			</>
+		);
+	return (
+		<section className={panel}>
+			<h2 className="text-xl font-bold" tabIndex={-1} data-fulfilment-actions>
+				{isSeller ? s.actions : t.exact}
+			</h2>
+			{isSeller && <p className="text-sm text-muted">{t.exact}</p>}
+			{guard.feedback}
+			{!available && <p role="status">{t.actionChanged}</p>}
+			{selector}
+			{form}
 		</section>
 	);
 }

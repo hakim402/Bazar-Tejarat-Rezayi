@@ -32,10 +32,13 @@ import {
 } from "../../sales/components/seller-sales-ui";
 import { fulfilment, fulfilmentHref, clearFulfilmentIntents } from "../api";
 import { fulfilmentCopy, fulfilmentState } from "../copy";
+import { workflowCopy } from "../workflow-copy";
 import { useFulfilmentCommand } from "../use-command";
+import toast from "react-hot-toast";
 import type { Context, Detail, Reviewed } from "../types";
 import { DeliverySummary } from "./summary";
 import { DeliveryActionForm } from "./action-form";
+import { SellerFulfilment } from "./seller-workflow";
 import { DeliveryReview } from "./review";
 import { DeliveryHistory } from "./history";
 import { paymentHref } from "../../payments/api";
@@ -115,6 +118,7 @@ export function DeliveryDetail({
 			else if (intent) {
 				setFormGeneration((value) => value + 1);
 				setUploaded(null);
+				if (isSeller) toast.success(workflowCopy[locale].applied);
 			}
 			if (current) setRow(current);
 			setReload((value) => value + 1);
@@ -225,6 +229,29 @@ export function DeliveryDetail({
 			</SalesFrame>
 		) : (
 			<p role={error ? "alert" : "status"}>{error ? t.error : t.loading}</p>
+		);
+	if (isSeller)
+		return (
+			<SalesFrame seller>
+				<SellerFulfilment
+					locale={locale}
+					row={row}
+					seller={seller}
+					page={page}
+					params={params}
+					command={command}
+					review={review}
+					setReview={setReview}
+					uploaded={uploaded}
+					formGeneration={formGeneration}
+					deny={deny}
+					handover={handover}
+					downloading={downloading}
+					online={online}
+					error={error}
+					opener={opener}
+				/>
+			</SalesFrame>
 		);
 	return (
 		<SalesFrame seller={isSeller}>

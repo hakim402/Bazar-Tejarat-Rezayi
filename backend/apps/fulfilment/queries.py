@@ -61,6 +61,12 @@ def current_charge(order):
     )
 
 
+def line_image(actor, pk, line_id):
+    from apps.orders.queries import line_image as resolve
+
+    return resolve(get_object_or_404(access.scope(actor), pk=pk), line_id)
+
+
 def active_blockers(order):
     closed = m.BlockerClosure.objects.filter(blocker_id=OuterRef("pk"))
     return m.Blocker.objects.filter(order_id=order.pk).filter(~Exists(closed))
@@ -186,6 +192,7 @@ def summary(actor, order, *, read_scope=None):
         "id": str(order.pk),
         "seller": str(order.seller_id),
         "number": order.invoice.number,
+        "buyer": order.snapshot.get("buyer", ""),
         "invoice": str(order.invoice.pk)
         if access.capabilities(actor, order, read_scope=read_scope)["invoice"]
         else None,
@@ -334,6 +341,9 @@ def detail(actor, pk, *, seller=None, page=1):
             "sku": item["line"].snapshot.get("sku", ""),
             "unit": item["line"].snapshot.get("unit", ""),
             "unit_labels": item["line"].snapshot.get("unit_labels", {}),
+            "titles": item["line"].snapshot.get("titles", {}),
+            "source_locale": item["line"].snapshot.get("source_locale", ""),
+            "image": f"/api/v1/fulfilment/{actor.context}/orders/{order.pk}/lines/{item['line'].pk}/image/",
         }
         for item in aftercare_effective_lines(order)
     ]

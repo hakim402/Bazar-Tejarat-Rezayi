@@ -274,6 +274,14 @@ class Evidence(ProtectedDocumentView):
         return media.response(self.actor(context), pk, head=True)
 
 
+class LineImage(ProtectedDocumentView):
+    @extend_schema(operation_id="fulfilment_line_image", responses={(200, "image/jpeg"): bytes})
+    def get(self, request, context, pk, line_id):
+        from apps.catalogue.views import image_response
+
+        return image_response(queries.line_image(self.actor(context), pk, line_id), request)
+
+
 class Handover(ProtectedDocumentView):
     @extend_schema(operation_id="fulfilment_handover", parameters=[c.HandoverQuery], responses=OpenApiTypes.BINARY)
     def get(self, request, context, pk):

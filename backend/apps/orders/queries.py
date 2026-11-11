@@ -148,12 +148,11 @@ def document(actor, pk, *, action="invoice_read", native=False):
     return row
 
 
-def order_line_image(actor, pk, line_id):
+def line_image(order, line_id):
     # Order access outlives catalogue publication and never grants catalogue editing rights.
     from apps.catalogue.models import SourceRevision, ProductImage
     from rest_framework.exceptions import NotFound
 
-    order = get_object_or_404(access.scope(actor), pk=pk)
     line = get_object_or_404(order.lines.select_related("variant"), pk=line_id)
     revision = SourceRevision.objects.filter(pk=line.snapshot.get("revision"), product_id=line.variant.product_id).first()
     if revision is None:
@@ -163,3 +162,7 @@ def order_line_image(actor, pk, line_id):
     if not images:
         raise NotFound()
     return get_object_or_404(ProductImage, pk=images[0]["id"], product_id=line.variant.product_id)
+
+
+def order_line_image(actor, pk, line_id):
+    return line_image(get_object_or_404(access.scope(actor), pk=pk), line_id)
