@@ -60,6 +60,8 @@ class Products(CatalogueView):
                     "id": item.pk,
                     "seller": item.seller.display_name,
                     "title": latest.body["title"] if latest else "",
+                    "description": latest.body.get("description", "")[:240] if latest else "",
+                    "approved": item.revisions.filter(state="published").exists(),
                     "state": latest.state if latest else "draft",
                     "version": item.version,
                     "published": item.published_id,

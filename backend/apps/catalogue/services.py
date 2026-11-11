@@ -229,7 +229,17 @@ def transition(actor, pk, data):
     reason = text(data.get("reason", ""), "reason", 1000, optional=action in {"submit", "publish", "withdraw"})
     if action in {"submit", "withdraw"} and actor.context != "seller":
         raise PermissionDenied()
-    if action in {"publish", "reject"} and actor.context == "seller":
+    last_unpublish = item.events.filter(action="unpublish").order_by("-created_at", "-pk").first()
+    republish = (
+        action == "publish"
+        and actor.context == "seller"
+        and revision.state == "published"
+        and not item.published_id
+        and last_unpublish is not None
+        and last_unpublish.context == "seller"
+        and last_unpublish.revision_id == revision.pk
+    )
+    if action in {"publish", "reject"} and actor.context == "seller" and not republish:
         raise PermissionDenied()
     if action == "submit":
         if revision.state != "draft" or item.revisions.filter(state="submitted").exists():
@@ -241,7 +251,7 @@ def transition(actor, pk, data):
             raise Conflict()
         revision.state = "withdrawn"
     elif action in {"publish", "reject"}:
-        if revision.state != "submitted":
+        if revision.state != "submitted" and not republish:
             raise Conflict()
         if action == "publish":
             if not access.public_eligible(Product(seller=item.seller, published=revision)):

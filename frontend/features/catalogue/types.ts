@@ -113,6 +113,8 @@ export type ProductList = {
 		seller: string;
 		published: string | null;
 		image: string | null;
+		description: string;
+		approved: boolean;
 	}[];
 	sellers: { id: string; name: string }[];
 	permissions: string[];

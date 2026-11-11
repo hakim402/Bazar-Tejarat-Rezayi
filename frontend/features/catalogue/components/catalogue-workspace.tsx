@@ -11,6 +11,7 @@ import {
 } from "../../../components/ui/status-badge";
 import {
 	productFlowCopy,
+	productActionsCopy,
 	sellerProductsCopy,
 } from "../../../lib/i18n/seller-products";
 import { languageNames } from "../../../lib/i18n/locales";
@@ -127,6 +128,93 @@ export function CatalogueWorkspace({
 		[success, setSuccess] = useState(false),
 		[blocked, setBlocked] = useState(false);
 	const [step, setStep] = useState(1);
+	const [cardAction, setCardAction] = useState<{
+		id: string;
+		action: "publish" | "unpublish";
+	} | null>(null);
+	const [cardReason, setCardReason] = useState("");
+	const actionDialog = useRef<HTMLDialogElement>(null);
+	function askCardAction(productId: string, action: "publish" | "unpublish") {
+		setCardAction({ id: productId, action });
+		setCardReason("");
+		actionDialog.current?.showModal();
+	}
+	async function applyCardAction() {
+		if (
+			!cardAction ||
+			busy ||
+			write.current ||
+			(cardAction.action === "unpublish" && !cardReason.trim())
+		)
+			return;
+		const mine = generation.current,
+			owner = Symbol();
+		write.current = owner;
+		setBusy(true);
+		let acknowledged = false;
+		try {
+			const session = await accountSession("seller");
+			if (mine !== generation.current) return;
+			if (`${session.identity.id}:${session.accounts[0].id}` !== identity)
+				throw new AccountError(403);
+			const fresh = await api<ProductDetail>(
+				context,
+				`products/${cardAction.id}/`,
+			);
+			if (mine !== generation.current) return;
+			const approved = fresh.revisions.find((row) => row.state === "published");
+			const revision =
+				cardAction.action === "unpublish"
+					? fresh.published
+					: approved?.id ||
+						(fresh.revisions[0]?.state === "draft"
+							? fresh.revisions[0].id
+							: null);
+			if (!revision) throw new AccountError(400);
+			await api<Operation>(context, `products/${fresh.id}/actions/`, {
+				version: fresh.version,
+				revision,
+				action:
+					cardAction.action === "unpublish"
+						? "unpublish"
+						: approved
+							? "publish"
+							: "submit",
+				reason: cardReason,
+			});
+			acknowledged = true;
+			if (mine !== generation.current) return;
+			toast.success(productActionsCopy[locale].done);
+			actionDialog.current?.close();
+			setCardReason("");
+			if (id) install(await api<ProductDetail>(context, `products/${id}/`));
+			else
+				setList(
+					await api<ProductList>(
+						context,
+						`products/?state=${state}&page=${page}`,
+					),
+				);
+		} catch (error) {
+			if (mine !== generation.current) return;
+			toast.error(productFlowCopy[locale].errorToast);
+			setFeedback(
+				acknowledged
+					? { message: copy.acknowledged, issues: [] }
+					: failure(error, locale),
+			);
+			if (
+				acknowledged ||
+				!(error instanceof AccountError) ||
+				(error.status ?? 0) >= 500
+			)
+				setBlocked(true);
+		} finally {
+			if (write.current === owner) write.current = null;
+			if (mine === generation.current) setBusy(false);
+		}
+	}
+
 	const [deleteTarget, setDeleteTarget] = useState<{
 		id: string;
 		title: string;
@@ -158,6 +246,11 @@ export function CatalogueWorkspace({
 		setSuccess(false);
 		resetGuard();
 		removeDialog.current?.close();
+		deleteDialog.current?.close();
+		actionDialog.current?.close();
+		setDeleteTarget(null);
+		setCardAction(null);
+		setCardReason("");
 	}, [resetGuard]);
 	const install = useCallback(
 		(value: ProductDetail, revisionId?: string | null) => {
@@ -491,6 +584,21 @@ export function CatalogueWorkspace({
 						</Link>
 					) : id && item ? (
 						<div className="flex flex-wrap gap-2">
+							<Button
+								variant="secondary"
+								compact
+								disabled={busy || blocked || sourceDirty || priceDirty}
+								onClick={() =>
+									askCardAction(
+										item.id,
+										item.published ? "unpublish" : "publish",
+									)
+								}
+							>
+								{item.published
+									? productActionsCopy[locale].unpublish
+									: productActionsCopy[locale].publish}
+							</Button>
 							{item.published && (
 								<Link
 									className={productLink}
@@ -607,6 +715,7 @@ export function CatalogueWorkspace({
 							seller={seller}
 							filters={query}
 							onDelete={askDelete}
+							onAction={askCardAction}
 						/>
 						<nav
 							aria-label={copy.page}
@@ -881,6 +990,57 @@ export function CatalogueWorkspace({
 						</dialog>
 					</>
 				)}
+				<dialog
+					ref={actionDialog}
+					aria-labelledby="product-action-title"
+					onCancel={(event) => {
+						if (busy) event.preventDefault();
+					}}
+					onClose={() => setCardAction(null)}
+					className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
+				>
+					<h2 id="product-action-title" className="text-xl font-semibold">
+						{cardAction?.action === "unpublish"
+							? productActionsCopy[locale].unpublish
+							: productActionsCopy[locale].publish}
+					</h2>
+					<p className="my-4 text-sm text-muted">
+						{cardAction?.action === "unpublish"
+							? copy.removeHelp
+							: productActionsCopy[locale].help}
+					</p>
+					{cardAction?.action === "unpublish" && (
+						<Control
+							path="card-reason"
+							label={t.reason}
+							value={cardReason}
+							onChange={setCardReason}
+							required
+							maxLength={1000}
+						/>
+					)}
+					<div className="flex justify-end gap-2">
+						<Button
+							variant="secondary"
+							disabled={busy}
+							onClick={() => actionDialog.current?.close()}
+						>
+							{copy.cancel}
+						</Button>
+						<Button
+							disabled={
+								busy ||
+								blocked ||
+								(cardAction?.action === "unpublish" && !cardReason.trim())
+							}
+							onClick={() => void applyCardAction()}
+						>
+							{cardAction?.action === "unpublish"
+								? productActionsCopy[locale].unpublish
+								: productActionsCopy[locale].publish}
+						</Button>
+					</div>
+				</dialog>
 				<dialog
 					ref={deleteDialog}
 					aria-labelledby="product-delete-title"
