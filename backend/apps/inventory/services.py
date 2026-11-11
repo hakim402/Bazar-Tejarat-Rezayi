@@ -172,8 +172,28 @@ def configure(actor, profile_id, variant_id, data):
         position.tracking, position.expiry_required, position.threshold = tracking, required, threshold
         position.version += 1
         position.save()
+    changes = []
+    if "opening_quantity" in data:
+        # Setup and opening balance share one transaction and replay identity.
+        if Movement.objects.filter(bucket__position=position).exists() or position.batches.exists():
+            raise Conflict("Opening stock has already been recorded.")
+        opening = v.quantity(data["opening_quantity"], variant, "opening_quantity", zero=True)
+        if tracking == "batch" and opening > ZERO:
+            expires_on = v.expiry(data.get("expires_on"))
+            if required and expires_on is None:
+                fail("expires_on", "required")
+            if expires_on is not None and expires_on < today():
+                fail("expires_on", "expired")
+            batch = Batch.objects.create(position=position, code=f"OPEN-{token.hex[:12]}", expires_on=expires_on)
+            bucket = Bucket.objects.create(position=position, batch=batch)
+        elif tracking == "plain":
+            if data.get("expires_on"):
+                fail("expires_on", "tracking")
+            bucket = position.buckets.get(batch__isnull=True)
+        if opening > ZERO:
+            changes.append((bucket, opening, ZERO))
     result = {"operation": str(token), "status": "completed", "version": position.version}
-    record(actor, profile, "configure", data, token, digest, result)
+    record(actor, profile, "configure", data, token, digest, result, changes)
     return result
 
 

@@ -364,7 +364,7 @@ export function StockSummary({
 		] as const;
 	return (
 		<div className="grid grid-cols-2 gap-3 desktop:grid-cols-4 desktop:gap-4">
-			{items.map(({ key, state, label, hint, Icon: ItemIcon, chip }) => (
+			{items.map(({ key, state, label, Icon: ItemIcon, chip }) => (
 				<Link
 					key={key}
 					href={href("inventory", { state, page: "1" })}
@@ -382,9 +382,6 @@ export function StockSummary({
 						<bdi className="mt-2 text-kpi font-bold tabular-nums text-foreground">
 							{numberFormat.format(counts[key] ?? 0)}
 						</bdi>
-						<p className="m-0 mt-1 text-caption leading-snug text-muted">
-							{hint}
-						</p>
 					</Card>
 				</Link>
 			))}

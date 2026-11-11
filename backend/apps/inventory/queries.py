@@ -42,7 +42,7 @@ def variants(profile):
             stock_cover=Subquery(
                 SourceRevision.objects.filter(product_id=OuterRef("product_id"))
                 .order_by("-number")
-                .values("body__images__0__id")[:1]
+                .values("body")[:1]
             ),
         )
         .prefetch_related(
@@ -74,6 +74,9 @@ def position_data(variant, caps, *, detail=False, now=None):
         if position.threshold is not None and available <= position.threshold
         else "available"
     )
+    images = (variant.stock_cover.get("images", []) if isinstance(variant.stock_cover, dict) else []) if caps["write"] else []
+    if not images and variant.product.published_id:
+        images = variant.product.published.body.get("images", [])
     result = {
         "id": str(variant.pk),
         "product": str(variant.product_id),
@@ -84,9 +87,7 @@ def position_data(variant, caps, *, detail=False, now=None):
         )
         or variant.sku,
         "sku": variant.sku,
-        "image": image_url(variant.stock_cover, "seller")
-        if caps["write"] and variant.stock_cover
-        else None,
+        "image": image_url(images[0]["id"], "seller" if caps["write"] else None) if images else None,
         "unit": variant.unit.code,
         "unit_labels": variant.unit.labels,
         "increment": format(variant.quantity_increment, ".3f"),

@@ -3462,16 +3462,6 @@ export interface components {
          * @enum {string}
          */
         CompanyBundleEnum: "catalogue" | "orders_negotiation" | "payments_refunds" | "fulfilment" | "messaging";
-        ConfigureRequest: {
-            /** Format: uuid */
-            token: string;
-            version: number;
-            reason: string;
-            reference?: string;
-            tracking: components["schemas"]["TrackingEnum"];
-            expiry_required: boolean;
-            threshold?: string | null;
-        };
         ConfirmCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -5751,6 +5741,19 @@ export interface components {
         CatalogueDeleted: {
             deleted: boolean;
         };
+        SetupRequest: {
+            /** Format: uuid */
+            token: string;
+            version: number;
+            reason: string;
+            reference?: string;
+            tracking: components["schemas"]["TrackingEnum"];
+            expiry_required: boolean;
+            threshold?: string | null;
+            opening_quantity?: string;
+            /** Format: date */
+            expires_on?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -7527,9 +7530,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ConfigureRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["ConfigureRequest"];
-                "multipart/form-data": components["schemas"]["ConfigureRequest"];
+                "application/json": components["schemas"]["SetupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SetupRequest"];
+                "multipart/form-data": components["schemas"]["SetupRequest"];
             };
         };
         responses: {

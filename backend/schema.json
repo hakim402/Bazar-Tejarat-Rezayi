@@ -3604,17 +3604,17 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ConfigureRequest"
+                                "$ref": "#/components/schemas/SetupRequest"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/ConfigureRequest"
+                                "$ref": "#/components/schemas/SetupRequest"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/ConfigureRequest"
+                                "$ref": "#/components/schemas/SetupRequest"
                             }
                         }
                     },
@@ -12234,46 +12234,6 @@
                 "type": "string",
                 "description": "* `catalogue` - catalogue\n* `orders_negotiation` - orders_negotiation\n* `payments_refunds` - payments_refunds\n* `fulfilment` - fulfilment\n* `messaging` - messaging"
             },
-            "ConfigureRequest": {
-                "type": "object",
-                "properties": {
-                    "token": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "version": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "reason": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 1000
-                    },
-                    "reference": {
-                        "type": "string",
-                        "maxLength": 120
-                    },
-                    "tracking": {
-                        "$ref": "#/components/schemas/TrackingEnum"
-                    },
-                    "expiry_required": {
-                        "type": "boolean"
-                    },
-                    "threshold": {
-                        "type": "string",
-                        "nullable": true,
-                        "maxLength": 20
-                    }
-                },
-                "required": [
-                    "expiry_required",
-                    "reason",
-                    "token",
-                    "tracking",
-                    "version"
-                ]
-            },
             "ConfirmCommandRequest": {
                 "type": "object",
                 "properties": {
@@ -19689,6 +19649,55 @@
                 },
                 "required": [
                     "deleted"
+                ]
+            },
+            "SetupRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                    },
+                    "reference": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "tracking": {
+                        "$ref": "#/components/schemas/TrackingEnum"
+                    },
+                    "expiry_required": {
+                        "type": "boolean"
+                    },
+                    "threshold": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    },
+                    "opening_quantity": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "expires_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "expiry_required",
+                    "reason",
+                    "token",
+                    "tracking",
+                    "version"
                 ]
             }
         },

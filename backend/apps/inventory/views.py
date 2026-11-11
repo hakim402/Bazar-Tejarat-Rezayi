@@ -64,14 +64,17 @@ class Detail(OrganizationView):
 class Configure(OrganizationView):
     @extend_schema(
         operation_id="inventory_configure",
-        request=c.Configure,
+        request=c.Setup,
         responses=c.Operation,
         parameters=SCOPE,
     )
     def post(self, request, pk):
         actor = self.actor("seller")
         rate_limit(request, "inventory_write", identity=str(actor.account.pk), limit=120)
-        return Response(services.configure(actor, seller_scope(request), pk, self.data(c.Configure)))
+        data = self.data(c.Setup)
+        if data.get("expires_on"):
+            data["expires_on"] = data["expires_on"].isoformat()
+        return Response(services.configure(actor, seller_scope(request), pk, data))
 
 
 class Receipt(OrganizationView):

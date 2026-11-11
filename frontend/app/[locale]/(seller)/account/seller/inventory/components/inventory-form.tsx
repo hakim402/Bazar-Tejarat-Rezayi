@@ -1,13 +1,5 @@
 "use client";
-import {
-	AlertTriangle,
-	ArrowLeft,
-	FileText,
-	Package,
-	PackagePlus,
-	RefreshCw,
-	Settings2,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -31,7 +23,6 @@ import {
 import { Textarea } from "../../../../../../../components/shadcn/textarea";
 import { CheckField } from "../../../../../../../components/ui/form-field";
 import { Alert } from "../../../../../../../components/ui/alert";
-import { StickyActionBar } from "../../../../../../../components/ui/sticky-action-bar";
 import { useUnsavedNavigation } from "../../../../../../../components/layout/navigation-guard";
 import { AccountError } from "../../../../../../../lib/api/private-client";
 import {
@@ -40,6 +31,7 @@ import {
 } from "../../../../../../../features/inventory/api/inventory";
 import { StockModal, panel } from "./stock-parts";
 import { stockHref } from "./stock-ui";
+import { stockFlowCopy } from "../../../../../../../lib/i18n/stock-flow";
 
 type InventoryFormProps = {
 	locale: Locale;
@@ -58,6 +50,7 @@ type StockPayload = Readonly<{
 	threshold?: string | null;
 	reference?: string;
 	quantity?: string;
+	opening_quantity?: string;
 	batch?: string;
 	batch_code?: string;
 	expires_on?: string | null;
@@ -131,7 +124,9 @@ function FormField({
 					)}
 				</span>
 				{optional && (
-					<span className="text-caption font-normal text-muted">{optional}</span>
+					<span className="text-caption font-normal text-muted">
+						{optional}
+					</span>
 				)}
 			</label>
 			{children}
@@ -157,13 +152,24 @@ function StockForm({
 }: InventoryFormProps) {
 	const t = inventoryCopy[locale],
 		copy = sellerInventoryCopy[locale],
+		flow = stockFlowCopy[locale],
 		returnParams = useSearchParams();
 	const [snapshot, setSnapshot] = useState(position),
 		[tracking, setTracking] = useState(position.tracking ?? "plain"),
 		[required, setRequired] = useState(position.expiry_required),
 		[threshold, setThreshold] = useState(position.threshold ?? ""),
 		[quantity, setQuantity] = useState(""),
-		[reason, setReason] = useState(""),
+		[reason, setReason] = useState<string>(
+			mode === "settings"
+				? position.configured
+					? flow.settingsReason
+					: flow.openingReason
+				: mode === "adjustment"
+					? flow.correction
+					: t.received,
+		),
+		[step, setStep] = useState(1),
+		[notes, setNotes] = useState(""),
 		[reference, setReference] = useState(""),
 		[batch, setBatch] = useState(() => {
 			const values = returnParams.getAll("selected_batch");
@@ -177,7 +183,6 @@ function StockForm({
 				? selected.id
 				: "";
 		}),
-		[code, setCode] = useState(""),
 		[expiry, setExpiry] = useState(""),
 		[dirty, setDirty] = useState(false),
 		[busy, setBusy] = useState(false),
@@ -190,6 +195,7 @@ function StockForm({
 		[saved, setSaved] = useState(false),
 		[refreshFailed, setRefreshFailed] = useState(false),
 		[scopeRevoked, setScopeRevoked] = useState(false);
+	const opening = mode === "settings" && !position.configured;
 	const form = useRef<HTMLFormElement>(null),
 		errorFocus = useRef<HTMLParagraphElement>(null),
 		busyRef = useRef(false),
@@ -336,7 +342,9 @@ function StockForm({
 			return;
 		const element = form.current;
 		if (!element) return;
+		let invalidMessage = "";
 		const invalid = (name: string, message: string) => {
+			invalidMessage = message;
 			const control = element.elements.namedItem(name);
 			if (
 				control instanceof HTMLInputElement ||
@@ -348,6 +356,24 @@ function StockForm({
 		if (!reason.trim()) invalid("reason", t.reason);
 		const increment = thousandths(snapshot.increment);
 		if (mode === "settings") {
+			if (opening) {
+				const initial = thousandths(quantity);
+				if (
+					initial === null ||
+					initial < BigInt(0) ||
+					initial > maximum ||
+					increment === null ||
+					increment <= BigInt(0) ||
+					initial % increment !== BigInt(0)
+				)
+					invalid("quantity", t.quantityError);
+				if (
+					policyTracking === "batch" &&
+					policyRequired &&
+					(!expiry || expiry < kabulToday())
+				)
+					invalid("expires_on", t.batchError);
+			}
 			const amount = threshold === "" ? null : thousandths(threshold);
 			if (
 				threshold !== "" &&
@@ -360,8 +386,12 @@ function StockForm({
 			)
 				invalid("threshold", `${t.threshold} — ${t.precision}`);
 		} else {
-			const amount = thousandths(quantity),
+			const entered = thousandths(quantity),
 				base = thousandths(before),
+				amount =
+					mode === "adjustment" && entered !== null && base !== null
+						? entered - base
+						: entered,
 				held = thousandths(
 					snapshot.tracking === "batch"
 						? (selected?.held ?? "0.000")
@@ -388,7 +418,6 @@ function StockForm({
 				)
 					invalid("batch", t.batchError);
 				if (!batch && mode === "receipt") {
-					if (!code.trim()) invalid("batch_code", t.batchCode);
 					if (
 						(snapshot.expiry_required && !expiry) ||
 						(expiry && expiry < kabulToday())
@@ -397,29 +426,49 @@ function StockForm({
 				}
 			}
 		}
+		if (invalidMessage) {
+			setError(invalidMessage);
+			return;
+		}
 		if (!element.reportValidity()) return;
-		const amount = thousandths(quantity),
+		const entered = thousandths(quantity),
 			base = thousandths(before);
+		const amount =
+			mode === "adjustment" && entered !== null && base !== null
+				? entered - base
+				: entered;
+		const token = crypto.randomUUID();
+		const deliveryCode = `DEL-${token.slice(0, 12)}`;
 		const data: StockPayload = Object.freeze(
 			mode === "settings"
 				? {
-						token: crypto.randomUUID(),
+						token,
 						version: snapshot.version,
-						reason,
+						reason: notes ? `${reason}: ${notes}` : reason,
+						...(opening
+							? {
+									opening_quantity: quantity,
+									expires_on:
+										policyTracking === "batch" ? expiry || null : null,
+								}
+							: {}),
 						tracking: policyTracking,
 						expiry_required: policyTracking === "batch" && policyRequired,
 						threshold: threshold || null,
 					}
 				: {
-						token: crypto.randomUUID(),
+						token,
 						version: snapshot.version,
-						reason,
+						reason: notes ? `${reason}: ${notes}` : reason,
 						reference,
-						quantity,
+						quantity:
+							mode === "adjustment" && amount !== null
+								? exactQuantity(amount)
+								: quantity,
 						...(snapshot.tracking === "batch"
 							? batch
 								? { batch }
-								: { batch_code: code, expires_on: expiry || null }
+								: { batch_code: deliveryCode, expires_on: expiry || null }
 							: {}),
 					},
 		);
@@ -429,11 +478,12 @@ function StockForm({
 				path: `seller/variants/${position.id}/${mode === "settings" ? "settings" : mode === "receipt" ? "receipts" : "adjustments"}/?seller=${encodeURIComponent(seller)}`,
 				data,
 				before,
-				after:
-					amount !== null && base !== null
+				after: opening
+					? quantity
+					: amount !== null && base !== null
 						? exactQuantity(base + amount)
 						: t.unknown,
-				batchCode: selected?.code ?? code,
+				batchCode: selected?.code ?? deliveryCode,
 				batchExpiry: selected?.expires_on ?? (batch ? null : expiry || null),
 				unit,
 				increment: snapshot.increment,
@@ -441,6 +491,7 @@ function StockForm({
 				title: snapshot.title,
 			}),
 		);
+		setStep(3);
 	}
 	async function submit(packet: StockAttempt) {
 		if (
@@ -484,6 +535,7 @@ function StockForm({
 				// Only a definite first refusal permits an editable new attempt.
 				pendingRef.current = null;
 				setPending(null);
+				setStep(2);
 				if (cause.status === 409) {
 					setStale(true);
 					setError(t.stale);
@@ -536,207 +588,180 @@ function StockForm({
 				<Alert role="alert">{t.denied}</Alert>
 			</section>
 		);
-	const previewAmount = thousandths(quantity),
-		previewBase = thousandths(before),
-		previewResult =
-			previewAmount !== null && previewBase !== null
-				? exactQuantity(previewBase + previewAmount)
+	if (
+		mode === "adjustment" &&
+		snapshot.tracking === "batch" &&
+		!snapshot.batches?.length
+	)
+		return (
+			<section className={`${panel} mx-auto max-w-3xl space-y-4`}>
+				<h2 className="m-0 text-lg font-semibold">{snapshot.title}</h2>
+				<p className="text-sm text-muted">{flow.noBatches}</p>
+				<Button asChild>
+					<Link
+						href={stockHref(
+							locale,
+							`inventory/${position.id}/receipts/new`,
+							seller,
+							returnParams,
+						)}
+					>
+						{t.receipt}
+					</Link>
+				</Button>
+			</section>
+		);
+	const entered = thousandths(quantity),
+		base = thousandths(before);
+	const result =
+		mode === "adjustment"
+			? entered
+			: entered !== null && base !== null
+				? entered + base
 				: null;
 	const displayed = review ?? pending;
-	const reviewRows: [string, ReactNode][] = displayed
-		? [
-				[t.sku, <bdi key="sku">{displayed.sku}</bdi>],
-				[t.unit, displayed.unit],
+	const summary = displayed && (
+		<dl className="m-0 divide-y divide-border">
+			{[
 				[
-					t.precision,
-					<span key="increment">
-						<bdi dir="ltr">{displayed.increment}</bdi> {displayed.unit}
-					</span>,
+					mode === "adjustment"
+						? flow.changed
+						: mode === "receipt"
+							? flow.received
+							: flow.opening,
+					mode === "settings"
+						? displayed.data.opening_quantity
+						: displayed.data.quantity,
 				],
-				...(mode === "settings"
-					? ([
-							[
-								t.tracking,
-								displayed.data.tracking === "batch" ? t.batchMode : t.plain,
-							],
-							[
-								t.expiryRequired,
-								displayed.data.expiry_required ? copy.yes : copy.no,
-							],
-							[
-								t.threshold,
-								displayed.data.threshold === null ? (
-									copy.notSet
-								) : (
-									<span key="threshold">
-										<bdi dir="ltr">{displayed.data.threshold}</bdi>{" "}
-										{displayed.unit}
-									</span>
-								),
-							],
-						] as [string, ReactNode][])
-					: ([
-							[
-								t.quantity,
-								<span key="quantity">
-									<bdi dir="ltr">{displayed.data.quantity}</bdi>{" "}
-									{displayed.unit}
-								</span>,
-							],
-							[
-								t.before,
-								<span key="before">
-									<bdi dir="ltr">{displayed.before}</bdi> {displayed.unit}
-								</span>,
-							],
-							[
-								t.after,
-								<span key="after">
-									<bdi dir="ltr">{displayed.after}</bdi> {displayed.unit}
-								</span>,
-							],
-							...(displayed.data.batch || displayed.data.batch_code
-								? ([
-										[
-											displayed.data.batch ? t.chooseBatch : t.newBatch,
-											<bdi key="batch">{displayed.batchCode}</bdi>,
-										],
-										[
-											t.expires,
-											displayed.batchExpiry ? (
-												<bdi key="expiry" dir="ltr">
-													{displayed.batchExpiry}
-												</bdi>
-											) : (
-												copy.notSet
-											),
-										],
-									] as [string, ReactNode][])
-								: []),
-							[
-								t.reference,
-								displayed.data.reference ? (
-									<bdi key="reference" dir="auto">
-										{displayed.data.reference}
-									</bdi>
-								) : (
-									copy.notSet
-								),
-							],
-						] as [string, ReactNode][])),
-				[t.reason, displayed.data.reason],
+				...(mode !== "settings"
+					? [
+							[t.before, displayed.before],
+							[t.after, displayed.after],
+						]
+					: [
+							[flow.threshold, displayed.data.threshold ?? copy.notSet],
+							[flow.expiryDate, displayed.data.expires_on ?? copy.notSet],
+						]),
+				...(displayed.data.batch || displayed.data.batch_code
+					? [
+							[flow.existingDelivery, displayed.batchCode],
+							[flow.expiryDate, displayed.batchExpiry ?? copy.notSet],
+						]
+					: []),
+				...(mode === "adjustment"
+					? [[flow.reason, displayed.data.reason]]
+					: []),
 			]
-		: [];
-	const packetSummary = displayed && (
-		<>
-			<p className="font-semibold wrap-anywhere">{displayed.title}</p>
-			<dl className="mt-4 divide-y divide-border">
-				{reviewRows.map(([label, value]) => (
+				.filter(([, value]) => value !== undefined)
+				.map(([label, value]) => (
 					<div
 						key={label}
-						className="grid min-w-0 gap-1 py-3 sm:grid-cols-2 sm:gap-4"
+						className="flex flex-wrap justify-between gap-3 py-3 text-sm"
 					>
-						<dt className="text-sm text-muted">{label}</dt>
-						<dd className="min-w-0 whitespace-pre-wrap text-sm font-medium wrap-anywhere">
-							{value}
+						<dt className="text-muted">{label}</dt>
+						<dd className="m-0 font-medium">
+							<bdi>
+								{typeof value === "string"
+									? value.replace(/\.000$/, "")
+									: value}
+							</bdi>
 						</dd>
 					</div>
 				))}
-			</dl>
-		</>
+		</dl>
 	);
+	const next = () => {
+		if (!form.current?.reportValidity()) return;
+		setError("");
+		if (step === 1) setStep(2);
+		else reviewChange();
+	};
 	return (
-		<section className={`${panel} space-y-6`}>
-			<header className="min-w-0 space-y-4">
-				<Button
-					asChild
-					variant="ghost"
-					size="sm"
-					className="h-9 rounded-lg text-xs font-semibold text-muted"
-				>
-					<Link href={backHref}>
-						<ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
-						{t.back}
-					</Link>
-				</Button>
-				<div className="flex min-w-0 items-start gap-3 rounded-xl border border-border bg-page/50 p-4">
-					<span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-info text-action">
-						<Package className="size-5" aria-hidden="true" />
-					</span>
-					<div className="min-w-0">
-						<h2 className="m-0 text-lg font-bold text-foreground wrap-anywhere">
-							{snapshot.title}
-						</h2>
-						<p className="m-0 mt-1 text-sm text-muted wrap-anywhere">
-							{t.sku}: <bdi className="text-foreground">{snapshot.sku}</bdi>
-						</p>
-						<p className="m-0 mt-1 text-xs text-muted wrap-anywhere">
-							{t.unit}: {unit} · <bdi dir="ltr">{snapshot.increment}</bdi> {unit}
-						</p>
-					</div>
-				</div>
-			</header>
-			{saved && (
-				<Alert variant="success" role="status">
-					{t.saved}
-				</Alert>
+		<div className="mx-auto w-full max-w-3xl space-y-6">
+			<Link
+				className="inline-flex items-center gap-2 text-sm text-muted no-underline hover:text-action"
+				href={backHref}
+			>
+				<ArrowLeft className="size-4 rtl:rotate-180" />
+				{t.back}
+			</Link>
+			<div>
+				<h2 className="m-0 text-xl font-semibold">{snapshot.title}</h2>
+				<p className="m-0 mt-1 text-sm text-muted">
+					<bdi>{snapshot.sku}</bdi> · {unit}
+				</p>
+			</div>
+			{!saved && (
+				<ol className="m-0 flex list-none gap-2 p-0" aria-label={flow.options}>
+					{[
+						mode === "settings" && !opening ? flow.settings : flow.quantity,
+						flow.options,
+						flow.confirm,
+					].map((label, index) => (
+						<li
+							key={label}
+							aria-current={step === index + 1 ? "step" : undefined}
+							className="flex min-w-0 flex-1 flex-col gap-2 text-xs"
+						>
+							<span
+								className={`flex size-9 items-center justify-center rounded-full border border-solid ${step >= index + 1 ? "border-action bg-action text-on-primary" : "border-border bg-surface text-muted"}`}
+							>
+								{new Intl.NumberFormat(locale).format(index + 1)}
+							</span>
+							<span
+								className={
+									step === index + 1
+										? "font-semibold text-foreground"
+										: "text-muted"
+								}
+							>
+								{label}
+							</span>
+							<span
+								className={`h-0.5 ${step > index + 1 ? "bg-action" : "bg-border"}`}
+							/>
+						</li>
+					))}
+				</ol>
 			)}
-			{refreshFailed && (
+			{(error || refreshFailed) && (
 				<Alert ref={errorFocus} tabIndex={-1} role="alert">
-					{copy.savedRefresh}
-				</Alert>
-			)}
-			{error && (
-				<Alert ref={errorFocus} tabIndex={-1} role="alert">
-					{error}
+					{refreshFailed ? copy.savedRefresh : error}
 				</Alert>
 			)}
 			{(stale || refreshFailed) && (
 				<Button
 					variant="outline"
-					size="sm"
-					className="h-9 rounded-lg text-xs font-semibold"
 					disabled={busy || pending !== null}
 					onClick={() => void reloadStock()}
 				>
-					<RefreshCw className="size-4" aria-hidden="true" />
 					{t.reload}
 				</Button>
 			)}
-			<section aria-labelledby={`${formId}-stock`} className="space-y-3">
-				<h3 id={`${formId}-stock`} className="text-base font-semibold">
-					{copy.currentStock}
-				</h3>
-				<dl className="grid gap-3 sm:grid-cols-3">
-					{[
-						[t.physical, snapshot.physical],
-						[t.held, snapshot.held],
-						[t.available, snapshot.available ?? t.unknown],
-					].map(([label, value]) => (
-						<div
-							key={label}
-							className="min-w-0 rounded-xl border border-border bg-page p-4"
-						>
-							<dt className="text-sm text-muted">{label}</dt>
-							<dd className="mt-2 text-xl font-semibold text-foreground wrap-anywhere">
-								<bdi dir="ltr">{value}</bdi>{" "}
-								<span className="text-sm font-normal text-muted">{unit}</span>
-							</dd>
-						</div>
-					))}
-				</dl>
-				<p className="text-sm leading-relaxed text-muted">{t.stockMeaning}</p>
-			</section>
-			{!saved && (
+			{saved ? (
+				<section className={`${panel} space-y-4`}>
+					<h3 className="m-0 text-lg font-semibold">{flow.saved}</h3>
+					<p className="text-sm">
+						{flow.inStock}: <bdi>{snapshot.physical}</bdi> {unit}
+					</p>
+					<Button asChild>
+						<Link href={stockHref(locale, "inventory", seller, returnParams)}>
+							{flow.done}
+						</Link>
+					</Button>
+				</section>
+			) : (
 				<>
 					<form
 						id={formId}
 						ref={form}
-						aria-busy={busy}
+						onSubmit={(event) => {
+							event.preventDefault();
+							next();
+						}}
 						onChange={() => {
-							if (busyRef.current || pendingRef.current || savedRef.current)
-								return;
 							setDirty(true);
+							setError("");
 							for (const control of Array.from(form.current?.elements ?? [])) {
 								if (
 									control instanceof HTMLInputElement ||
@@ -746,437 +771,313 @@ function StockForm({
 									control.setCustomValidity("");
 							}
 						}}
-						onSubmit={(event) => {
-							event.preventDefault();
-							reviewChange();
-						}}
+						className={`${panel} space-y-5`}
 					>
+						<h3 className="m-0 text-lg font-semibold">
+							{step === 3
+								? flow.review
+								: step === 2
+									? flow.options
+									: opening
+										? flow.opening
+										: mode === "adjustment"
+											? flow.count
+											: mode === "receipt"
+												? flow.received
+												: flow.settings}
+						</h3>
 						<fieldset
 							disabled={controlsLocked}
-							className="m-0 min-w-0 space-y-6 border-0 p-0"
+							className="m-0 min-w-0 space-y-5 border-0 p-0"
 						>
-							<legend className="sr-only">{t[mode]}</legend>
-							{mode === "settings" ? (
-								<section
-									aria-labelledby={`${formId}-policy`}
-									className="space-y-4"
-								>
-									<div>
-										<h3
-											id={`${formId}-policy`}
-											className="flex items-center gap-2 text-base font-semibold"
+							{step === 1 && (
+								<>
+									{mode !== "settings" && snapshot.tracking === "batch" && (
+										<FormField
+											id="field-batch"
+											label={flow.existingDelivery}
+											required={mode === "adjustment"}
 										>
-											<Settings2
-												className="size-4 text-action"
-												aria-hidden="true"
-											/>
-											{copy.policy}
-										</h3>
-										<p
-											id={`${formId}-policy-help`}
-											className="mt-1 text-sm leading-relaxed text-muted"
-										>
-											{locked ? copy.lockedHelp : copy.setupHelp}
-										</p>
-									</div>
-									<Alert variant="info">{locked ? t.locked : t.policy}</Alert>
-									<FormField id="field-tracking" label={t.tracking}>
-										<NativeSelect
-											id="field-tracking"
-											name="tracking"
-											value={policyTracking}
-											disabled={locked}
-											aria-describedby={`${formId}-policy-help`}
-											onChange={(event) => setTracking(event.target.value)}
-										>
-											<NativeSelectOption value="plain">
-												{t.plain}
-											</NativeSelectOption>
-											<NativeSelectOption value="batch">
-												{t.batchMode}
-											</NativeSelectOption>
-										</NativeSelect>
-									</FormField>
-									{policyTracking === "batch" && (
-										<CheckField
-											name="expiry_required"
-											label={t.expiryRequired}
-											checked={policyRequired}
-											disabled={locked}
-											aria-describedby={`${formId}-policy-help`}
-											onChange={(event) => setRequired(event.target.checked)}
-										/>
-									)}
-									<FormField
-										id="field-threshold"
-										label={`${t.threshold} · ${unit}`}
-										optional={copy.optional}
-									>
-										<Input
-											id="field-threshold"
-											name="threshold"
-											dir="ltr"
-											inputMode="decimal"
-											pattern="[0-9]{1,9}([.][0-9]{1,3})?"
-											value={threshold}
-											maxLength={20}
-											className="font-identifier"
-											aria-describedby={`${formId}-threshold-help`}
-											onChange={(event) => setThreshold(event.target.value)}
-										/>
-									</FormField>
-									<p
-										id={`${formId}-threshold-help`}
-										className="text-sm leading-relaxed text-muted"
-									>
-										{copy.thresholdHelp} {t.precision}{" "}
-										<bdi dir="ltr">{snapshot.increment}</bdi> {unit}
-									</p>
-								</section>
-							) : (
-								<section
-									aria-labelledby={`${formId}-change`}
-									className="space-y-4"
-								>
-									<div>
-										<h3
-											id={`${formId}-change`}
-											className="flex items-center gap-2 text-base font-semibold"
-										>
-											<PackagePlus
-												className="size-4 text-action"
-												aria-hidden="true"
-											/>
-											{copy.change}
-										</h3>
-										<p
-											id={`${formId}-change-help`}
-											className="mt-1 text-sm leading-relaxed text-muted"
-										>
-											{mode === "receipt" ? copy.receiveHelp : copy.adjustHelp}
-										</p>
-									</div>
-									{snapshot.tracking === "batch" && (
-										<>
-											<FormField
+											<NativeSelect
 												id="field-batch"
-												label={t.chooseBatch}
+												name="batch"
+												value={batch}
 												required={mode === "adjustment"}
+												onChange={(e) => setBatch(e.target.value)}
 											>
-												<NativeSelect
-													id="field-batch"
-													name="batch"
-													value={batch}
-													required={mode === "adjustment"}
-													aria-describedby={`${formId}-change-help`}
-													onChange={(event) => setBatch(event.target.value)}
-												>
-													<NativeSelectOption value="">
-														{mode === "receipt" ? t.newBatch : t.chooseBatch}
+												<NativeSelectOption value="">
+													{mode === "receipt"
+														? flow.newDelivery
+														: flow.existingDelivery}
+												</NativeSelectOption>
+												{snapshot.batches?.map((item) => (
+													<NativeSelectOption
+														key={item.id}
+														value={item.id}
+														disabled={mode === "receipt" && !canReceive(item)}
+													>
+														{item.code} · {item.physical} {unit}
 													</NativeSelectOption>
-													{snapshot.batches?.map((item) => (
-														<NativeSelectOption
-															key={item.id}
-															value={item.id}
-															disabled={mode === "receipt" && !canReceive(item)}
-														>
-															{item.code} · {item.physical} {unit}
-															{item.expired ? ` · ${t.expired}` : ""}
+												))}
+											</NativeSelect>
+										</FormField>
+									)}
+									{opening || mode !== "settings" ? (
+										<FormField
+											id="field-quantity"
+											label={`${opening ? flow.opening : mode === "adjustment" ? flow.count : flow.received} · ${unit}`}
+											required
+										>
+											<Input
+												id="field-quantity"
+												name="quantity"
+												dir="ltr"
+												inputMode="decimal"
+												required
+												pattern="[0-9]{1,9}([.][0-9]{1,3})?"
+												value={quantity}
+												onChange={(e) => setQuantity(e.target.value)}
+												aria-describedby="stock-step-help"
+											/>
+											<p
+												id="stock-step-help"
+												className="m-0 mt-2 text-xs text-muted"
+											>
+												{flow.increment}: <bdi>{snapshot.increment}</bdi> {unit}
+											</p>
+										</FormField>
+									) : (
+										<FormField
+											id="field-threshold"
+											label={`${flow.reminder} · ${unit}`}
+											optional={flow.optional}
+										>
+											<Input
+												id="field-threshold"
+												name="threshold"
+												dir="ltr"
+												inputMode="decimal"
+												value={threshold}
+												onChange={(e) => setThreshold(e.target.value)}
+												pattern="[0-9]{1,9}([.][0-9]{1,3})?"
+											/>
+										</FormField>
+									)}
+									{mode !== "settings" && result !== null && (
+										<div className="rounded-xl bg-info p-3 text-sm">
+											{flow.inStock}: <bdi>{before}</bdi> →{" "}
+											<bdi>{exactQuantity(result)}</bdi> {unit}
+										</div>
+									)}
+								</>
+							)}
+							{step === 2 && (
+								<>
+									{mode === "settings" && (
+										<>
+											{opening && (
+												<FormField
+													id="field-threshold"
+													label={`${flow.reminder} · ${unit}`}
+													optional={flow.optional}
+												>
+													<Input
+														id="field-threshold"
+														name="threshold"
+														dir="ltr"
+														inputMode="decimal"
+														value={threshold}
+														onChange={(e) => setThreshold(e.target.value)}
+														pattern="[0-9]{1,9}([.][0-9]{1,3})?"
+													/>
+												</FormField>
+											)}
+											{locked && (
+												<p className="m-0 text-sm text-muted">
+													{policyTracking === "batch"
+														? flow.separate
+														: flow.simple}
+												</p>
+											)}
+											{!locked && (
+												<>
+													<CheckField
+														compact
+														name="expiry_required"
+														label={flow.expiry}
+														checked={policyRequired}
+														onChange={(e) => {
+															setRequired(e.target.checked);
+															if (e.target.checked) setTracking("batch");
+														}}
+													/>
+													<details className="text-sm">
+														<summary className="cursor-pointer text-muted">
+															{flow.advanced}
+														</summary>
+														<div className="mt-3 space-y-2">
+															<CheckField
+																compact
+																name="separate"
+																label={flow.separate}
+																checked={policyTracking === "batch"}
+																disabled={policyRequired}
+																onChange={(e) =>
+																	setTracking(
+																		e.target.checked ? "batch" : "plain",
+																	)
+																}
+															/>
+															<p className="text-xs text-muted">
+																{flow.batchHelp}
+															</p>
+														</div>
+													</details>
+												</>
+											)}
+										</>
+									)}
+									{((opening && policyRequired) ||
+										(mode === "receipt" &&
+											snapshot.tracking === "batch" &&
+											!batch)) && (
+										<FormField
+											id="field-expires_on"
+											label={flow.expiryDate}
+											required={
+												opening ? policyRequired : snapshot.expiry_required
+											}
+										>
+											<Input
+												id="field-expires_on"
+												name="expires_on"
+												type="date"
+												min={kabulToday()}
+												required={
+													opening ? policyRequired : snapshot.expiry_required
+												}
+												value={expiry}
+												onChange={(e) => setExpiry(e.target.value)}
+											/>
+										</FormField>
+									)}
+									{mode === "adjustment" && (
+										<>
+											<FormField id="field-reason" label={flow.reason} required>
+												<NativeSelect
+													id="field-reason"
+													name="reason"
+													value={reason}
+													onChange={(e) => setReason(e.target.value)}
+												>
+													{[
+														flow.correction,
+														flow.damaged,
+														flow.lost,
+														flow.other,
+													].map((label) => (
+														<NativeSelectOption key={label} value={label}>
+															{label}
 														</NativeSelectOption>
 													))}
 												</NativeSelect>
 											</FormField>
-											{!batch && mode === "receipt" && (
-												<div className="grid gap-4 sm:grid-cols-2">
-													<FormField id="field-batch_code" label={t.batchCode} required>
-														<Input
-															id="field-batch_code"
-															name="batch_code"
-															required
-															maxLength={80}
-															value={code}
-															onChange={(event) => setCode(event.target.value)}
-														/>
-													</FormField>
-													<FormField
-														id="field-expires_on"
-														label={t.expires}
-														required={snapshot.expiry_required}
-													>
-														<Input
-															id="field-expires_on"
-															name="expires_on"
-															type="date"
-															dir="ltr"
-															required={snapshot.expiry_required}
-															min={kabulToday()}
-															value={expiry}
-															className="font-identifier"
-															onChange={(event) =>
-																setExpiry(event.target.value)
-															}
-														/>
-													</FormField>
-												</div>
-											)}
+											<FormField
+												id="field-notes"
+												label={flow.notes}
+												optional={
+													reason === flow.other ? undefined : flow.optional
+												}
+											>
+												<Textarea
+													id="field-notes"
+													required={reason === flow.other}
+													value={notes}
+													rows={3}
+													maxLength={800}
+													onChange={(e) => setNotes(e.target.value)}
+												/>
+											</FormField>
 										</>
 									)}
-									<FormField
-										id="field-quantity"
-										label={`${t.quantity} · ${unit}`}
-										required
-									>
-										<Input
-											id="field-quantity"
-											name="quantity"
-											dir="ltr"
-											inputMode="decimal"
-											required
-											pattern={
-												mode === "adjustment"
-													? "-?[0-9]{1,9}([.][0-9]{1,3})?"
-													: "[0-9]{1,9}([.][0-9]{1,3})?"
-											}
-											maxLength={20}
-											value={quantity}
-											className="font-identifier"
-											aria-describedby={`${formId}-quantity-help ${formId}-change-help`}
-											onChange={(event) => setQuantity(event.target.value)}
-										/>
-									</FormField>
-									<p
-										id={`${formId}-quantity-help`}
-										className="text-sm leading-relaxed text-muted"
-									>
-										{copy.quantityHelp} {t.precision}{" "}
-										<bdi dir="ltr">{snapshot.increment}</bdi> {unit}
-									</p>
-									{previewResult !== null && (
-										<div
-											aria-live="polite"
-											className={`rounded-xl border p-4 ${
-												mode === "receipt"
-													? "border-success/30 bg-success-surface"
-													: "border-border bg-page"
-											}`}
-										>
-											{mode === "receipt" ? (
-												<div className="flex flex-wrap items-baseline justify-between gap-2">
-													<span className="text-sm font-medium text-foreground">
-														{t.receivePreview}
-													</span>
-													<span className="text-lg font-bold text-success">
-														<bdi dir="ltr">{previewResult}</bdi>{" "}
-														<span className="text-sm font-normal">{unit}</span>
-													</span>
-												</div>
-											) : (
-												<>
-													<dl className="grid grid-cols-3 gap-3 text-center">
-														{[
-															[t.current, before, "text-foreground"],
-															[
-																t.changeAmount,
-																quantity,
-																previewAmount !== null && previewAmount < BigInt(0)
-																	? "text-danger"
-																	: "text-success",
-															],
-															[t.resulting, previewResult, "text-foreground"],
-														].map(([label, value, tone]) => (
-															<div key={label} className="min-w-0">
-																<dt className="text-caption text-muted">
-																	{label}
-																</dt>
-																<dd
-																	className={`mt-1 text-base font-bold tabular-nums ${tone} wrap-anywhere`}
-																>
-																	<bdi dir="ltr">{value}</bdi>
-																</dd>
-															</div>
-														))}
-													</dl>
-													<p className="mt-3 border-t border-border pt-3 text-caption leading-relaxed text-muted">
-														{t.adjustNotice}
-													</p>
-												</>
-											)}
-										</div>
-									)}
-								</section>
-							)}
-							<section
-								aria-labelledby={`${formId}-details`}
-								className="space-y-4"
-							>
-								<h3
-									id={`${formId}-details`}
-									className="flex items-center gap-2 text-base font-semibold"
-								>
-									<FileText className="size-4 text-action" aria-hidden="true" />
-									{copy.details}
-								</h3>
-								{mode !== "settings" && (
-									<FormField
-										id="field-reference"
-										label={t.reference}
-										optional={copy.optional}
-									>
-										<Input
+									{mode === "receipt" && (
+										<FormField
 											id="field-reference"
-											name="reference"
-											maxLength={120}
-											value={reference}
-											onChange={(event) => setReference(event.target.value)}
-										/>
-									</FormField>
-								)}
-								<FormField id="field-reason" label={t.reason} required>
-									<Textarea
-										id="field-reason"
-										name="reason"
-										required
-										maxLength={1000}
-										rows={4}
-										className="min-h-32 resize-y"
-										value={reason}
-										onChange={(event) => setReason(event.target.value)}
-									/>
-								</FormField>
-							</section>
+											label={t.reference}
+											optional={flow.optional}
+										>
+											<Input
+												id="field-reference"
+												value={reference}
+												maxLength={120}
+												onChange={(e) => setReference(e.target.value)}
+											/>
+										</FormField>
+									)}
+								</>
+							)}
 						</fieldset>
+						{step === 3 && summary}
+						{pending && <Alert role="status">{copy.uncertain}</Alert>}
 					</form>
-					{pending && (
-						<section
-							aria-labelledby={`${formId}-pending`}
-							className={`rounded-xl border p-4 ${
-								uncertain
-									? "border-warning/40 bg-warning-surface"
-									: "border-border bg-page"
-							}`}
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<Button
+							type="button"
+							variant="outline"
+							disabled={busy || pending !== null || step === 1}
+							onClick={() => {
+								setReview(null);
+								setStep((value) => Math.max(1, value - 1));
+								setError("");
+							}}
 						>
-							<h3
-								id={`${formId}-pending`}
-								className="flex items-center gap-2 text-base font-semibold"
-							>
-								{uncertain && (
-									<AlertTriangle
-										className="size-4 text-warning"
-										aria-hidden="true"
-									/>
-								)}
-								{t.review}
-							</h3>
-							<p className="mt-2 text-sm leading-relaxed text-muted">
-								{uncertain ? copy.uncertain : copy.reviewHelp}
-							</p>
-							{packetSummary}
-						</section>
-					)}
-					<StickyActionBar className="-mx-4! -mb-4! desktop:-mx-6! desktop:-mb-6!">
+							{flow.previous}
+						</Button>
 						{pending ? (
 							<Button
-								size="lg"
-								className="w-full rounded-lg whitespace-normal sm:w-auto"
 								disabled={busy || !uncertain}
 								onClick={() => void submit(pending)}
 							>
-								<RefreshCw className="size-4" aria-hidden="true" />
 								{copy.replay}
 							</Button>
+						) : step === 3 && review ? (
+							<Button disabled={busy} onClick={() => void submit(review)}>
+								{t.confirm}
+							</Button>
 						) : (
-							<>
-								<Button
-									asChild
-									variant="outline"
-									size="lg"
-									className="w-full rounded-lg sm:w-auto"
-								>
-									<Link href={backHref}>{t.cancel}</Link>
-								</Button>
-								<Button
-									type="submit"
-									form={formId}
-									size="lg"
-									className="w-full rounded-lg sm:w-auto"
-									disabled={controlsLocked}
-								>
-									{t.save}
-								</Button>
-							</>
+							<Button
+								type="submit"
+								form={formId}
+								disabled={busy || stale || !snapshot.capabilities.write}
+							>
+								{flow.next}
+							</Button>
 						)}
-					</StickyActionBar>
-				</>
-			)}
-			{review && (
-				<StockModal
-					title={t.review}
-					onClose={() => !busyRef.current && setReview(null)}
-				>
-					<p className="mb-4 text-sm leading-relaxed text-muted">
-						{copy.reviewHelp}
-					</p>
-					{packetSummary}
-					<div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
-						<Button
-							variant="outline"
-							size="lg"
-							className="w-full rounded-lg sm:w-auto"
-							disabled={busy}
-							onClick={() => setReview(null)}
-						>
-							{t.keep}
-						</Button>
-						<Button
-							size="lg"
-							className="w-full rounded-lg sm:w-auto"
-							disabled={busy}
-							onClick={() => void submit(review)}
-						>
-							{t.confirm}
-						</Button>
 					</div>
-				</StockModal>
+				</>
 			)}
 			{leave && (
 				<StockModal
 					title={pending ? copy.pendingLeave : t.discard}
 					onClose={() => setLeave(null)}
 				>
-					{pending && (
-						<p className="mb-4 text-sm leading-relaxed text-muted">
-							{copy.pendingLeave}
-						</p>
-					)}
-					<div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-						<Button
-							variant="outline"
-							size="lg"
-							className="w-full rounded-lg sm:w-auto"
-							onClick={() => setLeave(null)}
-						>
+					<div className="flex gap-3">
+						<Button variant="outline" onClick={() => setLeave(null)}>
 							{t.keep}
 						</Button>
 						{!pending && (
 							<Button
-								variant="destructive"
-								size="lg"
-								className="w-full rounded-lg sm:w-auto"
-								disabled={busy}
 								onClick={() => {
-									if (busyRef.current || pendingRef.current) return;
-									setDirty(false);
-									const action = leave;
 									setLeave(null);
-									action();
+									leave();
 								}}
 							>
-								{t.discardConfirm}
+								{t.discard}
 							</Button>
 						)}
 					</div>
 				</StockModal>
 			)}
-		</section>
+		</div>
 	);
 }

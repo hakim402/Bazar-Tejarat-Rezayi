@@ -1,5 +1,5 @@
 "use client";
-import { History, Info, Package, Search, SlidersHorizontal } from "lucide-react";
+import { Info, Package, Search, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -16,6 +16,7 @@ import type {
 	StockPosition,
 } from "../../../../../../../features/inventory/api/inventory";
 import { apiOrigin } from "../../../../../../../lib/api/client";
+import { stockFlowCopy } from "../../../../../../../lib/i18n/stock-flow";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import type { Locale } from "../../../../../../../lib/i18n/locales";
 import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
@@ -27,10 +28,6 @@ import {
 import { SellerOverview } from "../../components/seller-overview";
 import { StockBadge, StockRowActions } from "./stock-parts";
 import { StockPagination, StockSummary, stockHref } from "./stock-ui";
-function shortTitle(value: string) {
-	const chars = Array.from(value);
-	return chars.length > 10 ? `${chars.slice(0, 10).join("")}…` : value;
-}
 function StockIdentity({
 	position,
 	href,
@@ -59,9 +56,9 @@ function StockIdentity({
 					href={href}
 					title={position.title}
 					aria-label={position.title}
-					className="block truncate text-sm font-semibold text-foreground no-underline hover:text-action"
+					className="block max-w-64 truncate text-sm font-semibold text-foreground no-underline hover:text-action"
 				>
-					<bdi>{shortTitle(position.title)}</bdi>
+					<bdi>{position.title}</bdi>
 				</Link>
 				<span className="mt-0.5 block truncate text-xs text-muted">
 					<bdi>{position.sku}</bdi>
@@ -89,7 +86,8 @@ export function StockList({
 	setQuery: (value: string) => void;
 	change: (values: Record<string, string>) => void;
 }) {
-	const t = inventoryCopy[locale];
+	const t = inventoryCopy[locale],
+		flow = stockFlowCopy[locale];
 	const copy = sellerInventoryCopy[locale];
 	const filterId = useId();
 	const href = (route: string, changes: Record<string, string> = {}) =>
@@ -112,8 +110,8 @@ export function StockList({
 	const sortOptions = [
 		{ value: "sku", label: `${t.sku} ↑` },
 		{ value: "-sku", label: `${t.sku} ↓` },
-		{ value: "available", label: `${t.available} ↑` },
-		{ value: "-available", label: `${t.available} ↓` },
+		{ value: "available", label: `${flow.available} ↑` },
+		{ value: "-available", label: `${flow.available} ↓` },
 	];
 	const activeState = states.find((value) => value === state);
 	const numberFormat = new Intl.NumberFormat(locale);
@@ -152,7 +150,9 @@ export function StockList({
 		<span
 			className={`tabular-nums wrap-anywhere ${strong ? "font-semibold text-foreground" : "text-muted"}`}
 		>
-			<bdi dir={value === null ? "auto" : "ltr"}>{value ?? t.unknown}</bdi>{" "}
+			<bdi dir={value === null ? "auto" : "ltr"}>
+				{value === null ? "—" : value.replace(/\.000$/, "")}
+			</bdi>{" "}
 			<span className="text-xs font-normal text-muted">
 				{position.unit_labels[locale] ?? position.unit}
 			</span>
@@ -187,9 +187,6 @@ export function StockList({
 							counts={overview.counts}
 							href={href}
 						/>
-						<p className="m-0 text-caption leading-relaxed text-muted">
-							{t.scope}
-						</p>
 					</div>
 					<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
 						<div className="flex flex-wrap items-start justify-between gap-3 px-4 pt-5 desktop:px-6">
@@ -197,21 +194,7 @@ export function StockList({
 								<h2 className="m-0 text-base font-semibold text-foreground">
 									{copy.stockWorkspace}
 								</h2>
-								<p className="m-0 mt-1 text-xs text-muted">
-									{copy.stockWorkspaceHelp}
-								</p>
 							</div>
-							<Button
-								asChild
-								variant="outline"
-								size="sm"
-								className="h-9 rounded-lg text-xs font-semibold"
-							>
-								<Link href={href("inventory/movements")}>
-									<History className="size-4" aria-hidden="true" />
-									{t.movements}
-								</Link>
-							</Button>
 						</div>
 						<div className="mt-4 flex flex-col gap-3 border-b border-border px-4 pb-4 desktop:flex-row desktop:items-center desktop:justify-between desktop:px-6">
 							<nav
@@ -478,7 +461,7 @@ export function StockList({
 													className={th}
 												>
 													<span className="inline-flex items-center gap-1">
-														{t.available}
+														{flow.available}
 														<span title={t.availableHelp}>
 															<Info
 																className="size-3.5 text-muted"
@@ -488,10 +471,10 @@ export function StockList({
 													</span>
 												</th>
 												<th scope="col" className={th}>
-													{t.held}
+													{flow.reserved}
 												</th>
 												<th scope="col" className={th}>
-													{t.totalStock}
+													{flow.inStock}
 												</th>
 												<th scope="col" className={th}>
 													{t.filter}
@@ -530,6 +513,7 @@ export function StockList({
 													</td>
 													<td className="px-4 py-4 align-middle pe-6">
 														<StockRowActions
+															seller={seller}
 															locale={locale}
 															position={position}
 															write={write && position.capabilities.write}
@@ -557,17 +541,17 @@ export function StockList({
 											<dl className="m-0 mt-3 grid min-w-0 grid-cols-3 gap-2 rounded-xl bg-page p-3">
 												{[
 													{
-														label: t.available,
+														label: flow.available,
 														value: position.available,
 														strong: true,
 													},
 													{
-														label: t.held,
+														label: flow.reserved,
 														value: position.held,
 														strong: false,
 													},
 													{
-														label: t.totalStock,
+														label: flow.inStock,
 														value: position.physical,
 														strong: false,
 													},
@@ -593,6 +577,7 @@ export function StockList({
 													{tracking(position)}
 												</span>
 												<StockRowActions
+													seller={seller}
 													locale={locale}
 													position={position}
 													write={write && position.capabilities.write}
@@ -617,10 +602,6 @@ export function StockList({
 							</div>
 						)}
 					</Card>
-					<p className="m-0 flex items-start gap-2 text-caption leading-relaxed text-muted">
-						<Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-						<span>{t.stockMeaning}</span>
-					</p>
 				</>
 			)}
 		</>

@@ -279,11 +279,7 @@ export function SellerNavigation({
 			key: "inventory",
 			label: t.inventory,
 			icon: "warehouse",
-			collapsible: true,
-			links: [
-				["inventory", t.inventory, "warehouse", !!caps?.read],
-				["inventory/movements", t.movements, "history", !!caps?.read],
-			],
+			links: [["inventory", t.inventory, "warehouse", !!caps?.read]],
 		},
 		{
 			key: "sales",

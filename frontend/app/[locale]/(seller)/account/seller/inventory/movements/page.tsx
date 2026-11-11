@@ -1,12 +1,24 @@
+import { redirect } from "next/navigation";
 import { pageLocale } from "../../../../../../../lib/routes/page";
-import { PageContent } from "./components/movements-content";
+import {
+	sellerHref,
+	uuidPattern,
+} from "../../../../../../../lib/routes/account-routes";
 export const dynamic = "force-dynamic";
-export const metadata = { robots: { index: false, follow: false } };
 export default async function Page({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ locale: string }>;
+	searchParams: Promise<{ seller?: string }>;
 }) {
-	const value = await params;
-	return <PageContent locale={pageLocale(value.locale)} />;
+	const { locale } = await params,
+		{ seller } = await searchParams;
+	redirect(
+		sellerHref(
+			pageLocale(locale),
+			"inventory",
+			seller && uuidPattern.test(seller) ? seller : undefined,
+		),
+	);
 }

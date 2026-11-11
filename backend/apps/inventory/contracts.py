@@ -45,6 +45,11 @@ class Configure(Command):
     threshold = DecimalString(max_length=20, allow_blank=True, allow_null=True, required=False)
 
 
+class Setup(Configure):
+    opening_quantity = DecimalString(max_length=20, required=False)
+    expires_on = s.DateField(required=False, allow_null=True)
+
+
 class Receipt(Command):
     quantity = DecimalString(max_length=20)
     batch = s.UUIDField(required=False, allow_null=True)

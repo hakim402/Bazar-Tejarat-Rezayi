@@ -10,7 +10,7 @@ import {
 	Store,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Badge } from "../../../../../../../components/shadcn/badge";
 import { Button } from "../../../../../../../components/shadcn/button";
 import {
@@ -22,15 +22,19 @@ import {
 } from "../../../../../../../components/shadcn/dropdown-menu";
 import { EmptyState } from "../../../../../../../components/ui/empty-state";
 import { Icon } from "../../../../../../../components/ui/icon";
-import type {
-	StockMovement,
-	StockPosition,
+import {
+	inventoryRequest,
+	type StockHistory,
+	type StockMovement,
+	type StockPosition,
 } from "../../../../../../../features/inventory/api/inventory";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import type { Locale } from "../../../../../../../lib/i18n/locales";
 import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
 import { sellerShellCopy } from "../../../../../../../lib/i18n/seller-shell";
 import type { QueryReader } from "../../../../../../../lib/routes/account-routes";
+import { stockFlowCopy } from "../../../../../../../lib/i18n/stock-flow";
+import { Alert } from "../../../../../../../components/ui/alert";
 import { movementStockHref, stockHref } from "./stock-ui";
 
 export const panel =
@@ -84,109 +88,118 @@ export function StockRowActions({
 	position,
 	write,
 	href,
+	seller,
 }: {
+	seller: string;
 	locale: Locale;
 	position: StockPosition;
 	write: boolean;
 	href: (path: string, changes?: Record<string, string>) => string;
 }) {
 	const t = inventoryCopy[locale];
+	const [showHistory, setShowHistory] = useState(false);
 	const itemClass = "gap-2.5 text-sm no-underline";
 	return (
-		<div className="flex items-center justify-end gap-1.5">
-			{write && (
-				<Button
-					asChild
-					variant="secondary"
-					size="sm"
-					className="h-9 rounded-lg border-0 bg-info px-3 text-xs font-semibold text-action shadow-none hover:bg-info/70"
-				>
-					<Link
-						href={href(
-							`inventory/${position.id}/${position.configured ? "receipts/new" : "settings"}`,
-						)}
-					>
-						{position.configured ? (
-							<PackagePlus className="size-4" aria-hidden="true" />
-						) : (
-							<Settings2 className="size-4" aria-hidden="true" />
-						)}
-						{position.configured ? t.receipt : t.setupStock}
-					</Link>
-				</Button>
-			)}
-			<DropdownMenu dir={locale === "en" ? "ltr" : "rtl"}>
-				<DropdownMenuTrigger asChild>
+		<>
+			<div className="flex items-center justify-end gap-1.5">
+				{write && (
 					<Button
-						variant="ghost"
-						size="icon"
-						className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action focus-visible:ring-action/50 data-[state=open]:bg-transparent dark:hover:bg-transparent"
-						aria-label={`${t.moreActions}: ${position.title}`}
-						title={t.moreActions}
+						asChild
+						variant="secondary"
+						size="sm"
+						className="h-9 rounded-lg border-0 bg-info px-3 text-xs font-semibold text-action shadow-none hover:bg-info/70"
 					>
-						<MoreHorizontal className="size-4" aria-hidden="true" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					align="end"
-					sideOffset={6}
-					className="w-56 rounded-xl border-border p-1.5"
-				>
-					<DropdownMenuItem asChild className={itemClass}>
-						<Link href={href(`inventory/${position.id}`)}>
-							<Eye aria-hidden="true" />
-							{t.detail}
+						<Link
+							href={href(
+								`inventory/${position.id}/${position.configured ? "receipts/new" : "settings"}`,
+							)}
+						>
+							{position.configured ? (
+								<PackagePlus className="size-4" aria-hidden="true" />
+							) : (
+								<Settings2 className="size-4" aria-hidden="true" />
+							)}
+							{position.configured ? t.receipt : t.setupStock}
 						</Link>
-					</DropdownMenuItem>
-					{write && position.configured && (
-						<>
-							<DropdownMenuItem asChild className={itemClass}>
-								<Link href={href(`inventory/${position.id}/receipts/new`)}>
-									<PackagePlus aria-hidden="true" />
-									{t.receipt}
-								</Link>
-							</DropdownMenuItem>
-							<DropdownMenuItem asChild className={itemClass}>
-								<Link href={href(`inventory/${position.id}/adjustments/new`)}>
-									<SlidersHorizontal aria-hidden="true" />
-									{t.correct}
-								</Link>
-							</DropdownMenuItem>
-						</>
-					)}
-					{write && !position.configured && (
+					</Button>
+				)}
+				<DropdownMenu dir={locale === "en" ? "ltr" : "rtl"}>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action focus-visible:ring-action/50 data-[state=open]:bg-transparent dark:hover:bg-transparent"
+							aria-label={`${t.moreActions}: ${position.title}`}
+							title={t.moreActions}
+						>
+							<MoreHorizontal className="size-4" aria-hidden="true" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						align="end"
+						sideOffset={6}
+						className="w-56 rounded-xl border-border p-1.5"
+					>
 						<DropdownMenuItem asChild className={itemClass}>
-							<Link href={href(`inventory/${position.id}/settings`)}>
-								<Settings2 aria-hidden="true" />
-								{t.setupStock}
+							<Link href={href(`inventory/${position.id}`)}>
+								<Eye aria-hidden="true" />
+								{t.detail}
 							</Link>
 						</DropdownMenuItem>
-					)}
-					<DropdownMenuItem asChild className={itemClass}>
-						<Link
-							href={href("inventory/movements", {
-								variant: position.id,
-								page: "1",
-							})}
-						>
-							<History aria-hidden="true" />
-							{t.movements}
-						</Link>
-					</DropdownMenuItem>
-					{position.capabilities.write && (
-						<>
-							<DropdownMenuSeparator />
+						{write && position.configured && (
+							<>
+								<DropdownMenuItem asChild className={itemClass}>
+									<Link href={href(`inventory/${position.id}/receipts/new`)}>
+										<PackagePlus aria-hidden="true" />
+										{t.receipt}
+									</Link>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild className={itemClass}>
+									<Link href={href(`inventory/${position.id}/adjustments/new`)}>
+										<SlidersHorizontal aria-hidden="true" />
+										{stockFlowCopy[locale].count}
+									</Link>
+								</DropdownMenuItem>
+							</>
+						)}
+						{write && !position.configured && (
 							<DropdownMenuItem asChild className={itemClass}>
-								<Link href={href(`catalogue/${position.product}`)}>
-									<Store aria-hidden="true" />
-									{t.openCatalogue}
+								<Link href={href(`inventory/${position.id}/settings`)}>
+									<Settings2 aria-hidden="true" />
+									{t.setupStock}
 								</Link>
 							</DropdownMenuItem>
-						</>
-					)}
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</div>
+						)}
+						<DropdownMenuItem
+							className={itemClass}
+							onSelect={() => setShowHistory(true)}
+						>
+							<History aria-hidden="true" />
+							{stockFlowCopy[locale].history}
+						</DropdownMenuItem>
+						{position.capabilities.write && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem asChild className={itemClass}>
+									<Link href={href(`catalogue/${position.product}`)}>
+										<Store aria-hidden="true" />
+										{t.openCatalogue}
+									</Link>
+								</DropdownMenuItem>
+							</>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
+			{showHistory && (
+				<InventoryHistory
+					locale={locale}
+					position={position}
+					seller={seller}
+					onClose={() => setShowHistory(false)}
+				/>
+			)}
+		</>
 	);
 }
 
@@ -248,6 +261,7 @@ export function MovementTable({
 	const t = inventoryCopy[locale];
 	const copy = sellerInventoryCopy[locale];
 	const actions: Record<string, string> = {
+		configure: stockFlowCopy[locale].opening,
 		receive: t.received,
 		adjust: t.adjusted,
 		reserve: t.reserved,
@@ -458,5 +472,87 @@ export function MovementTable({
 				))}
 			</ul>
 		</div>
+	);
+}
+
+function InventoryHistory({
+	locale,
+	position,
+	seller,
+	onClose,
+}: {
+	locale: Locale;
+	position: StockPosition;
+	seller: string;
+	onClose: () => void;
+}) {
+	const t = inventoryCopy[locale],
+		flow = stockFlowCopy[locale];
+	const [page, setPage] = useState(1),
+		[history, setHistory] = useState<StockHistory | null>(null),
+		[error, setError] = useState(false),
+		[retry, setRetry] = useState(0);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: The retry counter deliberately reloads this read request.
+	useEffect(() => {
+		let active = true;
+		setHistory(null);
+		setError(false);
+		inventoryRequest<StockHistory>(
+			`seller/movements/?${new URLSearchParams({ seller, variant: position.id, page: String(page) })}`,
+		)
+			.then((value) => {
+				if (active) setHistory(value);
+			})
+			.catch(() => {
+				if (active) setError(true);
+			});
+		return () => {
+			active = false;
+		};
+	}, [seller, position.id, page, retry]);
+	return (
+		<StockModal title={`${flow.history} · ${position.title}`} onClose={onClose}>
+			{error ? (
+				<Alert role="alert">
+					{t.unavailable}
+					<Button variant="outline" onClick={() => setRetry((n) => n + 1)}>
+						{t.retry}
+					</Button>
+				</Alert>
+			) : !history ? (
+				<p role="status">{t.loading}</p>
+			) : (
+				<>
+					<MovementTable
+						locale={locale}
+						seller={seller}
+						rows={history.results}
+						compact
+					/>
+					<div className="mt-4 flex items-center justify-between gap-3">
+						<Button
+							variant="outline"
+							disabled={page <= 1}
+							onClick={() => setPage((n) => n - 1)}
+						>
+							{t.previous}
+						</Button>
+						<span className="text-sm">
+							{new Intl.NumberFormat(locale).format(page)}
+						</span>
+						<Button
+							variant="outline"
+							disabled={page * history.page_size >= history.count}
+							onClick={() => setPage((n) => n + 1)}
+						>
+							{t.next}
+						</Button>
+					</div>
+				</>
+			)}
+			<Button variant="outline" className="mt-4 w-full" onClick={onClose}>
+				{t.back}
+			</Button>
+		</StockModal>
 	);
 }

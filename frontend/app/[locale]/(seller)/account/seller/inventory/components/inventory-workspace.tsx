@@ -1,21 +1,15 @@
 "use client";
-import { Search } from "lucide-react";
 import { organizationCopy } from "../../../../../../../lib/i18n/organizations";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSellerAccount } from "../../components/seller-account";
 import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
-import { StockPagination, stockHref } from "./stock-ui";
+import { stockHref } from "./stock-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { direction, type Locale } from "../../../../../../../lib/i18n/locales";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import { authCopy } from "../../../../../../../lib/i18n/auth";
 import { Button } from "../../../../../../../components/shadcn/button";
-import { Input } from "../../../../../../../components/shadcn/input";
-import {
-	NativeSelect,
-	NativeSelectOption,
-} from "../../../../../../../components/shadcn/native-select";
 import { Alert } from "../../../../../../../components/ui/alert";
 import { useNavigation } from "../../../../../../../components/layout/navigation-guard";
 import { AccountError } from "../../../../../../../lib/api/private-client";
@@ -33,7 +27,7 @@ import {
 import { StockList } from "./stock-list";
 import { StockDetail } from "./stock-detail";
 import { InventoryForm } from "./inventory-form";
-import { MovementTable, panel, linkClass } from "./stock-parts";
+import { panel, linkClass } from "./stock-parts";
 import { SellerSelect } from "../../components/seller-select";
 import { sellerShellCopy } from "../../../../../../../lib/i18n/seller-shell";
 import {
@@ -222,7 +216,9 @@ function InventoryContext({
 					<h1 className="text-page-title font-bold text-foreground">
 						{t[screen]}
 					</h1>
-					<p className="mt-1 max-w-2xl text-body text-muted">{description}</p>
+					{screen === "overview" && (
+						<p className="mt-1 max-w-2xl text-body text-muted">{description}</p>
+					)}
 				</div>
 				<fieldset
 					dir={direction(locale)}
@@ -356,17 +352,10 @@ function ScopedStock({
 					setPosition(value);
 					return value;
 				}
-				if (screen === "movements") {
-					const value = await inventoryRequest<StockHistory>(
-						`seller/movements/?${queryString}`,
-					);
-					if (current()) setHistory(value);
-				} else {
-					const value = await inventoryRequest<StockOverview>(
-						`seller/overview/?${queryString}`,
-					);
-					if (current()) setOverview(value);
-				}
+				const value = await inventoryRequest<StockOverview>(
+					`seller/overview/?${queryString}`,
+				);
+				if (current()) setOverview(value);
 			} catch (e) {
 				if (current()) {
 					if (e instanceof AccountError && [401, 403].includes(e.status ?? 0))
@@ -389,7 +378,7 @@ function ScopedStock({
 		const promise = run();
 		inFlight.current = promise;
 		return promise;
-	}, [variant, seller, screen, queryString, t, revoked, batch, batchPage]);
+	}, [variant, seller, queryString, t, revoked, batch, batchPage]);
 	useEffect(() => {
 		mounted.current = true;
 		void load().catch(() => {});
@@ -482,133 +471,6 @@ function ScopedStock({
 		);
 	}
 
-	if (history) {
-		const copy = sellerInventoryCopy[locale];
-		const movementsFiltered = ["q", "action", "variant", "batch"].some((key) =>
-			params.get(key),
-		);
-		return (
-			<section className={panel}>
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<h2 className="m-0 text-base font-semibold">
-						{t.movements}:{" "}
-						<bdi className="tabular-nums text-muted">
-							{new Intl.NumberFormat(locale).format(history.count)}
-						</bdi>
-					</h2>
-					{movementsFiltered && (
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-8 rounded-lg text-xs font-semibold"
-							onClick={() => {
-								setQuery("");
-								change({
-									q: "",
-									action: "",
-									variant: "",
-									batch: "",
-									page: "1",
-								});
-							}}
-						>
-							{copy.clear}
-						</Button>
-					)}
-				</div>
-				<form
-					aria-label={t.filters}
-					className="mt-4 grid min-w-0 items-end gap-3 border-b border-border pb-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
-					onSubmit={(e) => {
-						e.preventDefault();
-						change({ q: query, page: "1" });
-					}}
-				>
-					<div className="min-w-0 space-y-1.5">
-						<label
-							htmlFor="movement-q"
-							className="block text-xs font-medium text-muted"
-						>
-							{copy.movementSearch}
-						</label>
-						<div className="relative">
-							<Search
-								className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted"
-								aria-hidden="true"
-							/>
-							<Input
-								id="movement-q"
-								name="q"
-								type="search"
-								value={query}
-								onChange={(e) => setQuery(e.target.value)}
-								maxLength={100}
-								placeholder={copy.movementSearch}
-								className="h-9 rounded-lg ps-9 text-sm"
-							/>
-						</div>
-					</div>
-					<div className="min-w-0 space-y-1.5">
-						<label
-							htmlFor="movement-action"
-							className="block text-xs font-medium text-muted"
-						>
-							{t.action}
-						</label>
-						<NativeSelect
-							id="movement-action"
-							name="action"
-							value={params.get("action") ?? ""}
-							onChange={(event) =>
-								change({ action: event.target.value, page: "1" })
-							}
-							className="rounded-lg"
-						>
-							<NativeSelectOption value="">
-								{copy.allOperations}
-							</NativeSelectOption>
-							{[
-								["receive", t.received],
-								["adjust", t.adjusted],
-								["reserve", t.reserved],
-								["release", t.released],
-								["consume", t.consumed],
-								["cod", t.cod],
-							].map(([value, label]) => (
-								<NativeSelectOption key={value} value={value}>
-									{label}
-								</NativeSelectOption>
-							))}
-						</NativeSelect>
-					</div>
-					<Button
-						type="submit"
-						className="h-9 rounded-lg text-xs font-semibold"
-					>
-						<Search className="size-4" aria-hidden="true" />
-						{t.filters}
-					</Button>
-				</form>
-				<div className="mt-5">
-					<MovementTable
-						locale={locale}
-						seller={seller}
-						rows={history.results}
-						params={params}
-						fromHistory
-					/>
-				</div>
-				<StockPagination
-					locale={locale}
-					page={history.page}
-					count={history.count}
-					size={history.page_size}
-					href={(page) => href("inventory/movements", { page: String(page) })}
-					onPage={(page) => change({ page: String(page) })}
-				/>
-			</section>
-		);
-	}
 	if (!overview) return null;
 	return (
 		<StockList
