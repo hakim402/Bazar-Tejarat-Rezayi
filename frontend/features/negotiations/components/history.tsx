@@ -164,6 +164,7 @@ export function History({
 	seller,
 	presentation,
 	params,
+	embedded = false,
 }: {
 	locale: Locale;
 	row: RequestRow;
@@ -171,6 +172,7 @@ export function History({
 	seller: string;
 	presentation?: "seller";
 	params?: QueryReader;
+	embedded?: boolean;
 }) {
 	const t = negotiationCopy[locale],
 		sales = sellerSalesCopy[locale],
@@ -181,11 +183,13 @@ export function History({
 	}
 	return (
 		<section className={sellerPresentation ? salesPanel : panel}>
-			<h2
-				className={sellerPresentation ? "text-lg font-semibold" : "font-bold"}
-			>
-				{sellerPresentation ? sales.history : t.history}
-			</h2>
+			{!embedded && (
+				<h2
+					className={sellerPresentation ? "text-lg font-semibold" : "font-bold"}
+				>
+					{sellerPresentation ? sales.history : t.history}
+				</h2>
+			)}
 			{sellerPresentation && (
 				<p className="text-sm text-muted">
 					{t.history} · {sales.results}:{" "}

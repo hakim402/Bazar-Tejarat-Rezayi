@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiTypes
 from rest_framework.response import Response
 from apps.messaging.views import query, throttle
-from .views import OrderView
+from .views import OrderView, ProtectedDocumentView
 from . import negotiations as n, negotiation_contracts as c
 from .models import NegotiationSubmission
 
@@ -168,3 +168,22 @@ class Correction(Action):
     )
     def post(self, request, pk):
         return super().post(request, "seller", pk, "request-correction")
+
+
+class ProductImage(ProtectedDocumentView):
+    @extend_schema(operation_id="negotiation_product_image", responses={(200, "image/jpeg"): bytes})
+    def get(self, request, context, pk, variant):
+        from apps.catalogue.views import image_response
+
+        return image_response(n.line_image(self.actor(context), pk, variant), request)
+
+
+class Conversation(NegotiationView):
+    @extend_schema(
+        operation_id="negotiation_conversation", request=c.ConversationCommand, responses=OpenApiTypes.OBJECT
+    )
+    def post(self, request, pk):
+        actor = self.actor("seller")
+        query(request)
+        throttle(actor, "negotiation_conversation", pk, limit=20)
+        return Response(n.ensure_conversation(actor, pk, self.data(c.ConversationCommand)), status=201)

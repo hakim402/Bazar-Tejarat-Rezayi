@@ -1,4 +1,4 @@
-import { NegotiationWorkspace } from "../../../../../../../../features/negotiations/components/workspace";
+import { SellerNegotiationWorkspace } from "../../../../../../../../features/negotiations/components/seller-workspace";
 import type { Locale } from "../../../../../../../../lib/i18n/locales";
 export function NegotiationContent({
 	locale,
@@ -7,5 +7,5 @@ export function NegotiationContent({
 	locale: Locale;
 	id?: string;
 }) {
-	return <NegotiationWorkspace locale={locale} context="seller" id={id} />;
+	return <SellerNegotiationWorkspace locale={locale} id={id} />;
 }

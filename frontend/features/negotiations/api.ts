@@ -58,6 +58,8 @@ export type RequestRow = {
 	actions: string[];
 	order: string | null;
 	invoice: string | null;
+	can_message?: boolean;
+	conversation?: string | null;
 };
 export type Result = {
 	id?: string;
@@ -109,6 +111,19 @@ export function requestHref(
 	seller?: string,
 ) {
 	return `/${locale}/account/${context}/negotiations${id ? `/${id}` : ""}${seller ? `?seller=${seller}` : ""}`;
+}
+/** Idempotent seller-opened product conversation for the request's buyer. */
+export function ensureConversation(context: Context, id: string) {
+	return negotiation<{ conversation: string; seller: string }>(
+		context,
+		`negotiations/${id}/conversation/`,
+		{ command_id: crypto.randomUUID() },
+	);
+}
+export function productImage(
+	product: Record<string, unknown> | undefined,
+): string | null {
+	return typeof product?.image === "string" ? product.image : null;
 }
 export function reference(key: string | null) {
 	const url = new URL(location.href);

@@ -365,7 +365,7 @@ def request_data(row, context, history_page=1, *, include_history=True):
         "version": row.version,
         "revision": row.revision,
         "created_at": row.created_at,
-        "proposal": current.body,
+        "proposal": with_product_images(current.body, context, row.pk),
         "history": history,
         "history_count": count,
         "history_page": history_page,
@@ -376,7 +376,11 @@ def request_data(row, context, history_page=1, *, include_history=True):
 
 
 def detail(actor, pk, seller=None, history_page=1):
-    return request_data(get_object_or_404(scope(actor, seller), pk=pk), actor.context, history_page)
+    row = get_object_or_404(scope(actor, seller), pk=pk)
+    data = request_data(row, actor.context, history_page)
+    if actor.context == "seller":
+        data.update(messaging_info(actor, row))
+    return data
 
 
 def page(actor, query):
@@ -384,7 +388,11 @@ def page(actor, query):
     if query["state"]:
         qs = qs.filter(state=query["state"])
     if query["q"]:
-        qs = qs.filter(Q(id__icontains=query["q"]) | Q(seller__display_name__icontains=query["q"]))
+        qs = qs.filter(
+            Q(id__icontains=query["q"])
+            | Q(seller__display_name__icontains=query["q"])
+            | Q(buyer__user__display_name__icontains=query["q"])
+        )
     qs = qs.order_by("-created_at", "pk")
     p = query["page"]
     return {
@@ -523,3 +531,135 @@ def settle_submission(actor, key):
         return submission_data(old)
     NegotiationSubmissionFence.objects.get_or_create(buyer=actor.account, key=key)
     return {"rejected": True}
+
+
+def with_product_images(body, context, request_id):
+    """Read-only projection: accepted revision images outlive current publication."""
+    block = body.get("context") or {}
+    products = [
+        {
+            **p,
+            "image": f"/api/v1/orders/{context}/negotiations/{request_id}/products/{p['variant']}/image/"
+            if p.get("variant")
+            else None,
+        }
+        for p in block.get("products") or []
+    ]
+    return {**body, "context": {**block, "products": products}}
+
+
+def _revision_body(row):
+    return row.revisions.get(number=row.revision).body
+
+
+def _product_for(body, variant):
+    return next(
+        (p for p in (body.get("context") or {}).get("products") or [] if str(p.get("variant")) == str(variant)),
+        None,
+    )
+
+
+def line_image(actor, pk, variant):
+    from apps.catalogue.models import SourceRevision, ProductImage
+    from rest_framework.exceptions import NotFound
+
+    body = _revision_body(get_object_or_404(scope(actor), pk=pk))
+    product = _product_for(body, variant)
+    if not product or not product.get("product"):
+        raise NotFound()
+    revision = SourceRevision.objects.filter(
+        pk=product.get("revision"), product_id=product["product"]
+    ).first()
+    if revision is None:
+        raise NotFound()
+    images = [x for x in revision.body.get("images", []) if x.get("variant") in (None, "", str(variant))]
+    if not images:
+        raise NotFound()
+    return get_object_or_404(ProductImage, pk=images[0]["id"], product_id=product["product"])
+
+
+def _contactable(account_id):
+    return Account.objects.filter(
+        pk=account_id, status="active", user__is_active=True, user__email_verified=True
+    ).exists()
+
+
+def _primary_product(body):
+    for product in (body.get("context") or {}).get("products") or []:
+        if product.get("product"):
+            return product
+    return None
+
+
+def messaging_info(actor, row):
+    """Whether this seller may open the negotiation's product conversation."""
+    from apps.messaging import access as messaging_access
+    from apps.messaging.models import Conversation
+
+    product = _primary_product(_revision_body(row))
+    can_message = bool(
+        product
+        and product.get("product")
+        and _contactable(row.buyer_id)
+        and messaging_access.profile_permission(row.seller, actor.account)
+    )
+    conversation = None
+    if can_message:
+        existing = Conversation.objects.filter(
+            buyer_id=row.buyer_id, seller_id=row.seller_id, product_id=product["product"]
+        ).first()
+        conversation = str(existing.pk) if existing else None
+    return {"can_message": can_message, "conversation": conversation}
+
+
+@transaction.atomic
+def ensure_conversation(actor, pk, data):
+    """Idempotent seller-opened product conversation for the request's buyer."""
+    from apps.messaging import access as messaging_access
+    from apps.messaging import services as messaging
+    from apps.messaging.models import Conversation
+    from apps.catalogue.models import Product
+
+    if actor.context != "seller":
+        raise PermissionDenied()
+    preliminary = get_object_or_404(scope(actor), pk=pk)
+    if not messaging_access.profile_permission(preliminary.seller, actor.account):
+        raise PermissionDenied()
+    participant_locks(actor, preliminary.seller_id, preliminary.buyer_id, require_buyer=True)
+    row = get_object_or_404(scope(actor).select_for_update(), pk=pk)
+    product_body = _primary_product(_revision_body(row))
+    if not product_body or not product_body.get("product"):
+        raise ValidationError({"conversation": ["product_unavailable"]})
+    if not _contactable(row.buyer_id):
+        raise ValidationError({"conversation": ["buyer_unavailable"]})
+    product = get_object_or_404(
+        Product.objects.select_for_update(), pk=product_body["product"], seller_id=row.seller_id
+    )
+    account = actor.account
+    action = f"negotiation-conversation:{row.pk}"
+    old = messaging.replay(account, action, data["command_id"], data)
+    if old:
+        return old
+    titles = product_body.get("titles") or {}
+    item, _ = Conversation.objects.get_or_create(
+        buyer_id=row.buyer_id,
+        seller_id=row.seller_id,
+        product=product,
+        defaults={
+            "snapshot": {
+                "product": str(product.pk),
+                "revision": str(product.published_id) if product.published_id else "",
+                "title": next(iter(titles.values()), product_body.get("sku", "")),
+                "currency": row.currency,
+                "seller": row.seller.display_name,
+                "negotiation": str(row.pk),
+            }
+        },
+    )
+    return messaging.outcome(
+        account,
+        action,
+        data["command_id"],
+        data,
+        {"conversation": str(item.pk), "seller": str(row.seller_id)},
+    )

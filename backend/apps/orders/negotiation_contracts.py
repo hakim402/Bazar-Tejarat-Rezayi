@@ -84,6 +84,8 @@ class RequestResult(s.Serializer):
     actions = s.ListField(child=s.CharField())
     order = s.UUIDField(allow_null=True)
     invoice = s.UUIDField(allow_null=True)
+    can_message = s.BooleanField(required=False)
+    conversation = s.UUIDField(required=False, allow_null=True)
 
 
 class RequestPage(s.Serializer):
@@ -97,3 +99,7 @@ class SubmissionResult(s.Serializer):
     currency = s.CharField()
     pending = s.BooleanField()
     outcomes = s.ListField(child=s.JSONField())
+
+
+class ConversationCommand(Strict):
+    command_id = s.UUIDField()
