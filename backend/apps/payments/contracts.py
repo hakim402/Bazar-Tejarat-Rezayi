@@ -76,6 +76,7 @@ class Query(Strict):
     seller = s.UUIDField(required=False)
     page = s.IntegerField(min_value=1, max_value=10000, default=1)
     state = s.ChoiceField(choices=["", "unpaid", "partial", "paid", "overpaid", "overdue"], default="")
+    q = s.CharField(max_length=100, allow_blank=True, default="")
 
 
 @extend_schema_serializer(component_name="PaymentUploadCommand")
@@ -114,6 +115,8 @@ class Summary(s.Serializer):
     deadline_generation = s.IntegerField()
     version = s.IntegerField()
     overdue = s.BooleanField()
+    pending_claims = s.IntegerField()
+    review_pending = s.IntegerField()
     capabilities = s.DictField(child=s.BooleanField())
 
 

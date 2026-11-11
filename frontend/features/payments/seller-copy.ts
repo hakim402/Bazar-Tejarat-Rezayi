@@ -1,0 +1,108 @@
+import type { Locale } from "../../lib/i18n/locales";
+const copy = {
+	en: {
+		backToOrder: "Back to order",
+		overview: "Overview",
+		claimsReceipts: "Claims & receipts",
+		activity: "Activity",
+		nextAction: "Next action",
+		recordPayment: "Record payment received",
+		reviewClaim: "Review customer claim",
+		recordHelp:
+			"Records money already received. It does not transfer funds or mark delivery.",
+		deliverySeparate:
+			"Goods payments only. Delivery-provider charges are separate and settled in delivery.",
+		refundDue: "Refund due to customer",
+		pendingClaim: "Customer reported payment — awaiting your decision",
+		confirmNote:
+			"Confirming records the claimed amount as received and updates the order balance.",
+		openInvoice: "Open invoice",
+		search: "Search invoice or customer",
+		status: "Payment status",
+		emptyFiltered: "No payments match these filters.",
+		emptyHelp: "Try a different search or status.",
+		recorded: "Recorded",
+		failed: "Not completed; review the details",
+		projected: "After this",
+		noBusiness: "No payable business",
+	},
+	"fa-AF": {
+		backToOrder: "بازگشت به سفارش",
+		overview: "نمای کلی",
+		claimsReceipts: "ادعاها و رسیدها",
+		activity: "فعالیت",
+		nextAction: "اقدام بعدی",
+		recordPayment: "ثبت پرداخت دریافتی",
+		reviewClaim: "بررسی ادعای مشتری",
+		recordHelp:
+			"پول دریافت‌شده را ثبت می‌کند؛ انتقال وجه یا ثبت تحویل انجام نمی‌دهد.",
+		deliverySeparate:
+			"فقط پرداخت کالا. هزینهٔ ارائه‌کنندهٔ تحویل جدا است و در تحویل تسویه می‌شود.",
+		refundDue: "بازپرداخت به مشتری",
+		pendingClaim: "مشتری پرداخت را گزارش کرده — در انتظار تصمیم شما",
+		confirmNote:
+			"تأیید، مبلغ ادعا را به‌عنوان دریافتی ثبت و ماندهٔ سفارش را به‌روز می‌کند.",
+		openInvoice: "باز کردن فاکتور",
+		search: "جستجوی فاکتور یا مشتری",
+		status: "وضعیت پرداخت",
+		emptyFiltered: "پرداختی با این فیلترها نیست.",
+		emptyHelp: "جستجو یا وضعیت دیگری را امتحان کنید.",
+		recorded: "ثبت شد",
+		failed: "تکمیل نشد؛ جزئیات را بررسی کنید",
+		projected: "پس از این",
+		noBusiness: "کسب‌وکار قابل پرداختی نیست",
+	},
+	ps: {
+		backToOrder: "فرمایش ته ستون",
+		overview: "لنډه کتنه",
+		claimsReceipts: "ادعاوې او رسیدونه",
+		activity: "فعالیت",
+		nextAction: "بل عمل",
+		recordPayment: "ترلاسه شوې تادیه ثبتول",
+		reviewClaim: "د پېرودونکي ادعا کتل",
+		recordHelp:
+			"ترلاسه شوې پیسې ثبتوي؛ پیسې نه لېږدوي او سپارنه نه ثبتوي.",
+		deliverySeparate:
+			"یوازې د توکو تادیه. د سپارلو د چمتو کوونکي لګښت جلا دی او په سپارنه کې تصفیېږي.",
+		refundDue: "پېرودونکي ته بېرته تادیه",
+		pendingClaim: "پېرودونکي تادیه راپور کړې — ستاسو پرېکړې ته منتظر",
+		confirmNote:
+			"تایید د ادعا مبلغ د ترلاسه شوي په توګه ثبتوي او د فرمایش پاتې بدلوي.",
+		openInvoice: "بل پرانیستل",
+		search: "بل یا پېرودونکی ولټوئ",
+		status: "د تادیې حالت",
+		emptyFiltered: "د دې چاڼ سره تادیه نشته.",
+		emptyHelp: "بل لټون یا حالت وګورئ.",
+		recorded: "ثبت شو",
+		failed: "بشپړ نه شو؛ جزئیات وګورئ",
+		projected: "د دې وروسته",
+		noBusiness: "د تادیې وړ سوداګري نشته",
+	},
+	ar: {
+		backToOrder: "العودة إلى الطلب",
+		overview: "نظرة عامة",
+		claimsReceipts: "الادعاءات والإيصالات",
+		activity: "النشاط",
+		nextAction: "الإجراء التالي",
+		recordPayment: "تسجيل دفعة مستلمة",
+		reviewClaim: "مراجعة ادعاء العميل",
+		recordHelp:
+			"يسجل أموالاً استُلمت فعلاً؛ لا يحوّل الأموال ولا يسجل التسليم.",
+		deliverySeparate:
+			"خصوص مدفوعات البضائع. رسوم مقدم التوصيل منفصلة وتُسوّى في التوصيل.",
+		refundDue: "مبلغ مستحق للعميل",
+		pendingClaim: "أبلغ العميل عن دفعة — بانتظار قرارك",
+		confirmNote:
+			"التأكيد يسجل مبلغ الادعاء كمستلم ويحدّث رصيد الطلب.",
+		openInvoice: "فتح الفاتورة",
+		search: "بحث الفاتورة أو العميل",
+		status: "حالة الدفع",
+		emptyFiltered: "لا مدفوعات تطابق هذه الفلاتر.",
+		emptyHelp: "جرّب بحثاً أو حالة أخرى.",
+		recorded: "سُجل",
+		failed: "لم يكتمل؛ راجع التفاصيل",
+		projected: "بعد هذا",
+		noBusiness: "لا نشاط قابل للدفع",
+	},
+};
+export const sellerPaymentCopy = copy as Record<Locale, (typeof copy)["en"]>;

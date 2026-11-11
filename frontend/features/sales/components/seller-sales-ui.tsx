@@ -30,11 +30,11 @@ const sections: { key: SalesSection; icon: IconName }[] = [
 ];
 const filters: Record<SalesSection, readonly string[]> = {
 	orders: ["page"],
-	invoices: ["page"],
+	invoices: ["page", "state", "q"],
 	aftercare: ["page"],
 	negotiations: ["page", "state", "q"],
 	fulfilment: ["page", "state", "q"],
-	payments: ["page", "state"],
+	payments: ["page", "state", "q"],
 };
 
 export function salesHref(

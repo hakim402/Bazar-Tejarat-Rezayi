@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q, F
+from django.utils import timezone
 from apps.accounts.models import AuditEvent
 from . import access
 from .models import CheckoutSubmission, Invoice
@@ -109,8 +111,22 @@ def order_queryset(actor, *, seller=None, invoices=False):
     )
 
 
-def order_page(actor, *, seller=None, page=1, invoices=False):
+def order_page(actor, *, seller=None, page=1, invoices=False, q="", state=""):
     qs = order_queryset(actor, seller=seller, invoices=invoices)
+    if q:
+        qs = qs.filter(
+            Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q)
+        )
+    if state == "overdue":
+        qs = qs.filter(payment_due__lte=timezone.now(), payment_total__lt=F("accepted_total"))
+    elif state == "unpaid":
+        qs = qs.filter(payment_total=0)
+    elif state == "partial":
+        qs = qs.filter(payment_total__gt=0, payment_total__lt=F("accepted_total"))
+    elif state == "paid":
+        qs = qs.filter(payment_total=F("accepted_total"))
+    elif state == "overpaid":
+        qs = qs.filter(payment_total__gt=F("accepted_total"))
     return {"count": qs.count(), "page": page, "results": [order_data(x, seller_list=actor.context == "seller" and not invoices) for x in qs[(page - 1) * 20 : page * 20]]}
 
 

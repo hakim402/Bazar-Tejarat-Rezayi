@@ -125,7 +125,16 @@ class Orders(OrderView):
         actor = self.actor(context)
         data = query(request, c.Query)
         return Response(
-            c.OrderPage(queries.order_page(actor, seller=data.get("seller"), page=data["page"], invoices=invoices)).data
+            c.OrderPage(
+                queries.order_page(
+                    actor,
+                    seller=data.get("seller"),
+                    page=data["page"],
+                    invoices=invoices,
+                    q=data["q"],
+                    state=data["state"],
+                )
+            ).data
         )
 
 

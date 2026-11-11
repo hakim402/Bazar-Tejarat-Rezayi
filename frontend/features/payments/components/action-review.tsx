@@ -5,6 +5,8 @@ import { localTimestamp } from "../../messaging/api";
 import { Confirmation } from "../../negotiations/components/confirmation";
 import { action } from "../../orders/components/controls";
 import { paymentCopy } from "../copy";
+import { sellerPaymentCopy } from "../seller-copy";
+import { moneyUnits } from "../validation";
 import type { Detail, Intent, Selection, SelectionPreview } from "../api";
 import { PaymentEvidence } from "./evidence";
 export type ReviewedAction = {
@@ -58,6 +60,29 @@ export function ActionReview({
 	const images = Array.isArray(facts.evidence)
 		? facts.evidence.filter((x): x is string => typeof x === "string")
 		: [];
+	const path = review.packet.path,
+		addsMoney = /\/receipts\/$/.test(path) || /\/confirm\/$/.test(path),
+		amountUnits = typeof facts.amount === "string" ? moneyUnits(facts.amount) : null,
+		confirmedUnits = moneyUnits(row.confirmed_total, true),
+		remainingUnits = moneyUnits(row.remaining, true),
+		overUnits = moneyUnits(row.overpayment, true),
+		projected =
+			addsMoney &&
+			amountUnits !== null &&
+			confirmedUnits !== null &&
+			remainingUnits !== null &&
+			overUnits !== null
+				? (() => {
+						const applied = amountUnits > remainingUnits ? remainingUnits : amountUnits,
+							fmt = (n: bigint) =>
+								`${n / BigInt(100)}.${String(n % BigInt(100)).padStart(2, "0")}`;
+						return {
+							confirmed: fmt(confirmedUnits + amountUnits),
+							remaining: fmt(remainingUnits - applied),
+							overpayment: fmt(overUnits + (amountUnits - applied)),
+						};
+					})()
+				: null;
 	return (
 		<Confirmation label={t.exact} close={cancel} returnFocus={opener}>
 			<h2 className="text-xl font-bold">{review.label}</h2>
@@ -77,6 +102,27 @@ export function ActionReview({
 					{row.remaining} {row.currency}
 				</bdi>
 			</p>
+			{context === "seller" && projected && (
+				<p className="rounded-control border border-border bg-page p-3 text-sm font-semibold">
+					{sellerPaymentCopy[locale].projected}: {t.confirmed}{" "}
+					<bdi>
+						{projected.confirmed} {row.currency}
+					</bdi>{" "}
+					· {t.remaining}{" "}
+					<bdi>
+						{projected.remaining} {row.currency}
+					</bdi>
+					{projected.overpayment !== "0.00" && (
+						<>
+							{" "}
+							· {t.overpayment}{" "}
+							<bdi>
+								{projected.overpayment} {row.currency}
+							</bdi>
+						</>
+					)}
+				</p>
+			)}
 			{receipt && (
 				<section
 					className="space-y-2 rounded-control border border-border p-3"

@@ -66,6 +66,7 @@ import {
 import { FactsForm } from "./facts-form";
 import { SelectionForm } from "./selection-form";
 import { PaymentEvidence } from "./evidence";
+import { SellerPayments } from "./seller-payments";
 
 export function PaymentWorkspace({
 	locale,
@@ -79,6 +80,7 @@ export function PaymentWorkspace({
 	const session = useCommunicationSession(context),
 		q = useSearchParams(),
 		t = paymentCopy[locale];
+	if (context === "seller") return <SellerPayments locale={locale} id={id} />;
 	if (session.loading) return <p role="status">{t.loading}</p>;
 	if (!session.session)
 		return (

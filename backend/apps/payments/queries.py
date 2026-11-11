@@ -1,7 +1,7 @@
 """Exact indexed projections; GET never initializes financial records."""
 
 from decimal import Decimal
-from django.db.models import OuterRef, Subquery, Sum, Value, F, DecimalField, IntegerField, DateTimeField
+from django.db.models import OuterRef, Subquery, Sum, Value, F, DecimalField, IntegerField, DateTimeField, Count, Q
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -14,6 +14,7 @@ from .models import (
     Extension,
     AllocationIntent,
     ReviewCase,
+    Claim,
     Event,
     RefundDecision,
     RefundReport,
@@ -60,6 +61,18 @@ def annotate(qs):
     extension = Extension.objects.filter(order_id=OuterRef("pk")).order_by("-generation")
     state = Finance.objects.filter(order_id=OuterRef("pk"))
     allocation = AllocationIntent.objects.filter(order_id=OuterRef("pk"))
+    pending_claims = (
+        Claim.objects.filter(order_id=OuterRef("pk"), decision__isnull=True)
+        .values("order_id")
+        .annotate(total=Count("pk"))
+        .values("total")
+    )
+    open_cases = (
+        ReviewCase.objects.filter(order_id=OuterRef("pk"), state="open")
+        .values("order_id")
+        .annotate(total=Count("pk"))
+        .values("total")
+    )
     return aftercare.annotate(qs).annotate(
         payment_total=Coalesce(Subquery(ledger[:1]), Value(Decimal("0.00")), output_field=MONEY),
         payment_version=Coalesce(Subquery(state.values("version")[:1]), Value(0), output_field=IntegerField()),
@@ -69,6 +82,8 @@ def annotate(qs):
         ),
         payment_allocation_state=Subquery(allocation.values("state")[:1]),
         payment_actual_allocation=Subquery(allocation.values("allocation__state")[:1]),
+        payment_pending_claims=Coalesce(Subquery(pending_claims[:1]), Value(0), output_field=IntegerField()),
+        payment_open_cases=Coalesce(Subquery(open_cases[:1]), Value(0), output_field=IntegerField()),
     )
 
 
@@ -97,6 +112,8 @@ def projection(order):
         "deadline_generation": order.payment_generation,
         "version": order.payment_version,
         "overdue": bool(order.payment_due and order.payment_due <= timezone.now() and remaining > 0),
+        "pending_claims": getattr(order, "payment_pending_claims", 0) or 0,
+        "review_pending": getattr(order, "payment_open_cases", 0) or 0,
     }
 
 
@@ -117,12 +134,16 @@ def row(actor, order):
     }
 
 
-def page(actor, *, page=1, seller=None, state=""):
+def page(actor, *, page=1, seller=None, state="", q=""):
     qs = (
         annotate(access.scope(actor, seller=seller))
-        .select_related("invoice", "seller__account")
+        .select_related("invoice", "seller__account", "buyer__user")
         .order_by("-accepted_at", "pk")
     )
+    if q:
+        qs = qs.filter(
+            Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q)
+        )
     if state == "overdue":
         qs = qs.filter(payment_due__lte=timezone.now(), payment_total__lt=F("accepted_total"))
     elif state == "unpaid":

@@ -58,6 +58,8 @@ class Query(Strict):
     page = s.IntegerField(min_value=1, max_value=10000, default=1)
     seller = s.UUIDField(required=False)
     locale = s.ChoiceField(choices=["fa-AF", "ps", "ar", "en"], default="fa-AF")
+    q = s.CharField(max_length=100, allow_blank=True, default="")
+    state = s.ChoiceField(choices=["", "unpaid", "partial", "paid", "overpaid", "overdue"], default="")
 
 
 class Outcome(s.Serializer):

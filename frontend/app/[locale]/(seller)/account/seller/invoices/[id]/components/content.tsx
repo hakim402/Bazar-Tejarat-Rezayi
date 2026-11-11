@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Locale } from "../../../../../../../../lib/i18n/locales";
-import { OrdersWorkspace } from "../../../../../../../../features/orders/components/orders";
+import { SellerInvoices } from "../../../../../../../../features/orders/components/seller-invoices";
 export function PageContent({ locale, id }: { locale: Locale; id?: string }) {
 	if (!id) return notFound();
-	return (
-		<OrdersWorkspace locale={locale} context="seller" mode="invoices" id={id} />
-	);
+	return <SellerInvoices locale={locale} id={id} />;
 }

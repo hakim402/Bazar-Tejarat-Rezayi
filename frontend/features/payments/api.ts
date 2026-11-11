@@ -60,10 +60,15 @@ export type Payment = {
 	number: string;
 	currency: string;
 	goods_total: string;
+	accepted_total: string;
 	payment_method: string;
 	seller_name: string;
 	buyer_name: string;
 	confirmed_total: string;
+	received: string;
+	refunded: string;
+	refund_due: string;
+	refundable_excess: string;
 	remaining: string;
 	overpayment: string;
 	financial: string;
@@ -73,6 +78,8 @@ export type Payment = {
 	deadline_generation: number;
 	version: number;
 	overdue: boolean;
+	pending_claims: number;
+	review_pending: number;
 	capabilities: Record<Capability, boolean>;
 };
 export type Detail = Payment & {
