@@ -75,10 +75,9 @@ export function StockList({
 	const write = overview.capabilities.write;
 	const tabStates = ["", "low", "zero", "expiring"];
 	const [showFilters, setShowFilters] = useState(
-		Boolean((activeState && !tabStates.includes(activeState)) || sort !== "sku"),
-	);
-	const canClear = Boolean(
-		query || appliedQuery || state || sort !== "sku" || overview.page > 1,
+		Boolean(
+			(activeState && !tabStates.includes(activeState)) || sort !== "sku",
+		),
 	);
 	const clearFilters = () => {
 		setQuery("");
@@ -124,6 +123,7 @@ export function StockList({
 	const th =
 		"border-b border-border px-4 py-3 text-start text-xs font-semibold text-muted wrap-anywhere";
 	const noOptions = overview.counts.variants === 0 && !appliedQuery.trim();
+	const pageOutOfRange = overview.count > 0 && overview.results.length === 0;
 	return (
 		<>
 			{screen === "overview" && (
@@ -137,7 +137,11 @@ export function StockList({
 			{screen === "inventory" && (
 				<>
 					<div className="space-y-3">
-						<StockSummary locale={locale} counts={overview.counts} href={href} />
+						<StockSummary
+							locale={locale}
+							counts={overview.counts}
+							href={href}
+						/>
 						<p className="m-0 text-caption leading-relaxed text-muted">
 							{t.scope}
 						</p>
@@ -230,7 +234,9 @@ export function StockList({
 									className={`h-9 shrink-0 rounded-lg text-xs font-semibold ${showFilters ? "bg-info text-action" : ""}`}
 								>
 									<SlidersHorizontal className="size-4" aria-hidden="true" />
-									<span className="hidden sm:inline">{copy.advancedFilters}</span>
+									<span className="hidden sm:inline">
+										{copy.advancedFilters}
+									</span>
 								</Button>
 							</div>
 						</div>
@@ -280,7 +286,10 @@ export function StockList({
 										className="rounded-lg"
 									>
 										{sortOptions.map((option) => (
-											<NativeSelectOption key={option.value} value={option.value}>
+											<NativeSelectOption
+												key={option.value}
+												value={option.value}
+											>
 												{option.label}
 											</NativeSelectOption>
 										))}
@@ -335,16 +344,34 @@ export function StockList({
 								<EmptyState
 									borderless
 									icon={noOptions ? "warehouse" : "search"}
-									title={noOptions ? copy.noOptions : copy.noMatches}
+									title={
+										pageOutOfRange
+											? copy.pageOutOfRange
+											: noOptions
+												? copy.noOptions
+												: copy.noMatches
+									}
 									description={
-										noOptions
-											? write
-												? copy.noOptionsHelp
-												: t.readOnly
-											: copy.noMatchesHelp
+										pageOutOfRange
+											? copy.pageOutOfRangeHelp
+											: noOptions
+												? write
+													? copy.noOptionsHelp
+													: t.readOnly
+												: copy.noMatchesHelp
 									}
 									action={
-										noOptions ? (
+										pageOutOfRange ? (
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => change({ page: "1" })}
+												className="h-9 rounded-lg text-xs font-semibold"
+											>
+												{copy.firstPage}
+											</Button>
+										) : noOptions ? (
 											write ? (
 												<Button
 													asChild
@@ -371,7 +398,7 @@ export function StockList({
 							</div>
 						) : (
 							<>
-								<div
+								<section
 									// biome-ignore lint/a11y/noNoninteractiveTabindex: Named overflow region allows keyboard access to every stock column.
 									tabIndex={0}
 									aria-label={t.inventory}
@@ -456,7 +483,10 @@ export function StockList({
 														{quantity(position, position.physical)}
 													</td>
 													<td className="px-4 py-4 align-middle">
-														<StockBadge locale={locale} state={position.state} />
+														<StockBadge
+															locale={locale}
+															state={position.state}
+														/>
 													</td>
 													<td className="px-4 py-4 align-middle pe-6">
 														<StockRowActions
@@ -470,7 +500,7 @@ export function StockList({
 											))}
 										</tbody>
 									</table>
-								</div>
+								</section>
 								<ul className="m-0 min-w-0 list-none space-y-3 p-4 desktop:hidden">
 									{overview.results.map((position) => (
 										<li
@@ -500,7 +530,11 @@ export function StockList({
 														value: position.available,
 														strong: true,
 													},
-													{ label: t.held, value: position.held, strong: false },
+													{
+														label: t.held,
+														value: position.held,
+														strong: false,
+													},
 													{
 														label: t.totalStock,
 														value: position.physical,
@@ -512,15 +546,20 @@ export function StockList({
 															{balance.label}
 														</dt>
 														<dd className="m-0 mt-1 text-sm">
-															{quantity(position, balance.value, balance.strong)}
+															{quantity(
+																position,
+																balance.value,
+																balance.strong,
+															)}
 														</dd>
 													</div>
 												))}
 											</dl>
 											<div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
 												<span className="min-w-0 text-xs text-muted wrap-anywhere">
-													{t.unit}: {position.unit_labels[locale] ?? position.unit}{" "}
-													· {tracking(position)}
+													{t.unit}:{" "}
+													{position.unit_labels[locale] ?? position.unit} ·{" "}
+													{tracking(position)}
 												</span>
 												<StockRowActions
 													locale={locale}

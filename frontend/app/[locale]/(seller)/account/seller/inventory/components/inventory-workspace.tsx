@@ -409,7 +409,7 @@ function ScopedStock({
 		router.push(`${path}?${next}`, { scroll: false });
 	}
 	const href = (route: string, changes: Record<string, string> = {}) =>
-		stockHref(locale, route, seller, params, changes);
+		stockHref(locale, route, seller, params, changes, screen === "movements");
 	if (busy && !position)
 		return (
 			<div role="status" aria-label={t.loading}>
@@ -581,7 +581,10 @@ function ScopedStock({
 							))}
 						</NativeSelect>
 					</div>
-					<Button type="submit" className="h-9 rounded-lg text-xs font-semibold">
+					<Button
+						type="submit"
+						className="h-9 rounded-lg text-xs font-semibold"
+					>
 						<Search className="size-4" aria-hidden="true" />
 						{t.filters}
 					</Button>

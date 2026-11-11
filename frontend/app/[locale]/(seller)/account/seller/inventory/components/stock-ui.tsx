@@ -39,14 +39,20 @@ export function stockHref(
 	seller: string,
 	params?: QueryReader,
 	changes: Record<string, string> = {},
+	fromMovement = false,
 ) {
 	if (!path.startsWith("inventory")) return sellerHref(locale, path, seller);
 	const next = new URLSearchParams({ seller });
 	const movement = path === "inventory/movements";
 	for (const key of movement ? historyKeys : inventoryKeys) {
-		const value = params?.get(
-			movement && params.get("history") === "1" ? `history_${key}` : key,
-		);
+		// Inventory searches match product titles; movement searches match SKU/reason.
+		// Only carry filters into history when returning to an existing history view.
+		const value =
+			movement && params?.get("history") === "1"
+				? params.get(`history_${key}`)
+				: movement && !fromMovement
+					? null
+					: params?.get(key);
 		if (value) next.set(key, value);
 	}
 	if (!movement && path.includes("/batches/")) {
@@ -243,7 +249,12 @@ export function StockPagination({
 		event.preventDefault();
 		onPage(n);
 	};
-	const step = (n: number, label: string, icon: "back" | "next", off: boolean) => (
+	const step = (
+		n: number,
+		label: string,
+		icon: "back" | "next",
+		off: boolean,
+	) => (
 		<PaginationLink
 			href={off ? undefined : href(n)}
 			aria-label={label}
@@ -298,12 +309,7 @@ export function StockPagination({
 						</PaginationItem>
 					))}
 					<PaginationItem>
-						{step(
-							Math.min(last, current + 1),
-							t.next,
-							"next",
-							current >= last,
-						)}
+						{step(Math.min(last, current + 1), t.next, "next", current >= last)}
 					</PaginationItem>
 				</PaginationContent>
 			</Pagination>

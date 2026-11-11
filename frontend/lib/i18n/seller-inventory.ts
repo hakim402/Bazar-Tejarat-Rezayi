@@ -22,6 +22,10 @@ export const sellerInventoryCopy = {
 			"Open Products and save an option before configuring its stock.",
 		noMatches: "No options match these filters",
 		noMatchesHelp: "Try a different SKU, product name or stock status.",
+		pageOutOfRange: "This stock page is no longer available",
+		pageOutOfRangeHelp:
+			"The list changed. Return to the first page to see current options.",
+		firstPage: "Go to first page",
 		searchHint: "Search by product name or SKU.",
 		movementSearch: "Search SKU or reason",
 		allOperations: "All operations",
@@ -93,6 +97,10 @@ export const sellerInventoryCopy = {
 			"در بخش محصولات، یک گزینه را ذخیره کنید و سپس موجودی آن را تنظیم کنید.",
 		noMatches: "گزینه‌ای با این فیلترها نیست",
 		noMatchesHelp: "کُد، نام محصول یا وضعیت موجودی دیگری را امتحان کنید.",
+		pageOutOfRange: "این صفحهٔ موجودی دیگر در دسترس نیست",
+		pageOutOfRangeHelp:
+			"فهرست تغییر کرده است. برای دیدن گزینه‌های فعلی به صفحهٔ اول بروید.",
+		firstPage: "رفتن به صفحهٔ اول",
 		searchHint: "با نام محصول یا کُد آن جستجو کنید.",
 		movementSearch: "جستجوی کُد یا دلیل",
 		allOperations: "همهٔ عملیات",
@@ -160,6 +168,10 @@ export const sellerInventoryCopy = {
 			"په محصولاتو کې یو انتخاب خوندي کړئ، بیا یې موجودي تنظیم کړئ.",
 		noMatches: "له دې چاڼونو سره انتخاب نشته",
 		noMatchesHelp: "بل کوډ، د محصول نوم یا د موجودۍ حالت وازمویئ.",
+		pageOutOfRange: "د موجودۍ دا پاڼه نور نشته",
+		pageOutOfRangeHelp:
+			"لړلیک بدل شوی دی. د اوسنیو انتخابونو لپاره لومړۍ پاڼې ته لاړ شئ.",
+		firstPage: "لومړۍ پاڼې ته لاړ شئ",
 		searchHint: "د محصول په نوم یا کوډ لټون وکړئ.",
 		movementSearch: "د کوډ یا دلیل لټون",
 		allOperations: "ټول عملیات",
@@ -226,6 +238,10 @@ export const sellerInventoryCopy = {
 		noOptionsHelp: "افتح المنتجات واحفظ خيارًا قبل إعداد مخزونه.",
 		noMatches: "لا توجد خيارات تطابق المرشحات",
 		noMatchesHelp: "جرّب رمزًا أو اسم منتج أو حالة مخزون مختلفة.",
+		pageOutOfRange: "صفحة المخزون هذه لم تعد متاحة",
+		pageOutOfRangeHelp:
+			"تغيّرت القائمة. ارجع إلى الصفحة الأولى لعرض الخيارات الحالية.",
+		firstPage: "الذهاب إلى الصفحة الأولى",
 		searchHint: "ابحث باسم المنتج أو رمزه.",
 		movementSearch: "البحث بالرمز أو السبب",
 		allOperations: "جميع العمليات",
