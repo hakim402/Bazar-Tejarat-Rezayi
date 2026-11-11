@@ -8,7 +8,7 @@ import {
 	type ReactNode,
 } from "react";
 import { useUnsavedNavigation } from "../../../components/layout/navigation-guard";
-import { Button } from "../../../components/ui/button";
+import { Button } from "./product-controls";
 import { Icon } from "../../../components/ui/icon";
 import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -53,7 +53,7 @@ export function productHref(
 	);
 }
 export const productLink =
-	"inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-info motion-reduce:transition-none";
+	"inline-flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-xl border border-solid border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-info motion-reduce:transition-none";
 export function ProductsPage({
 	locale,
 	title,
@@ -74,7 +74,7 @@ export function ProductsPage({
 	const t = sellerProductsCopy[locale];
 	return (
 		<div
-			className={`min-w-0 space-y-6 ${narrow ? "mx-auto w-full max-w-4xl" : ""}`}
+			className={`min-w-0 space-y-5 ${narrow ? "mx-auto w-full max-w-4xl" : ""}`}
 			data-testid="seller-products-page"
 		>
 			<header className="space-y-4">

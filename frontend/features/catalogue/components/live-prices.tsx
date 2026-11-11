@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useContext, useRef } from "react";
-import { Button } from "../../../components/ui/button";
+import { Button } from "./product-controls";
 import { Icon } from "../../../components/ui/icon";
-import { SectionCard } from "../../../components/ui/section-card";
+import { ProductSection as SectionCard } from "./product-controls";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
 import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
 import type { Locale } from "../../../lib/i18n/locales";

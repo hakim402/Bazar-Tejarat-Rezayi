@@ -6,7 +6,10 @@ import {
 	useRef,
 	type ReactNode,
 } from "react";
-import { Input, Select, Toggle } from "../../../components/ui/form-field";
+import { Input } from "../../../components/shadcn/input";
+import { NativeSelect as Select } from "../../../components/shadcn/native-select";
+import { Textarea } from "../../../components/shadcn/textarea";
+import { Toggle } from "../../../components/ui/form-field";
 import type { ValidationIssue } from "../../../lib/api/private-client";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -160,8 +163,8 @@ export function Control({
 		...(isolated ? { dir: "ltr" as const } : {}),
 	};
 	return (
-		<div className="min-w-0 space-y-2">
-			<label className="block font-bold" htmlFor={id}>
+		<div className="min-w-0 space-y-1.5">
+			<label className="block text-xs font-medium text-foreground" htmlFor={id}>
 				{label}
 				{required && (
 					<span aria-hidden="true" className="ms-1 text-danger">
@@ -170,7 +173,11 @@ export function Control({
 				)}
 			</label>
 			{options ? (
-				<Select {...props} compact onChange={(e) => onChange(e.target.value)}>
+				<Select
+					{...props}
+					className="h-10 rounded-xl bg-surface shadow-none"
+					onChange={(e) => onChange(e.target.value)}
+				>
 					{options.map((o) => (
 						<option value={o.value} key={o.value}>
 							{o.label}
@@ -178,16 +185,16 @@ export function Control({
 					))}
 				</Select>
 			) : textarea ? (
-				<textarea
+				<Textarea
 					{...props}
 					maxLength={maxLength}
-					className="w-full min-h-24 rounded-control border border-control bg-surface p-3 text-sm"
+					className="min-h-28 rounded-xl bg-surface text-sm shadow-none"
 					onChange={(e) => onChange(e.target.value)}
 				/>
 			) : (
 				<Input
 					{...props}
-					compact
+					className="h-10 rounded-xl bg-surface text-sm shadow-none"
 					maxLength={maxLength}
 					inputMode={decimal ? "decimal" : undefined}
 					onChange={(e) => onChange(e.target.value)}

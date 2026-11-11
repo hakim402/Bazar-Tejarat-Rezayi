@@ -4,7 +4,7 @@ import { cn } from "@/lib/shadcn-utils";
 import { Slot } from "radix-ui";
 
 const buttonVariants = cva(
-	"inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-action focus-visible:ring-[3px] focus-visible:ring-action/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-danger/20 dark:aria-invalid:ring-danger/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+	"appearance-none cursor-pointer border border-solid border-transparent bg-transparent no-underline inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-action focus-visible:ring-[3px] focus-visible:ring-action/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-danger/20 dark:aria-invalid:ring-danger/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 	{
 		variants: {
 			variant: {
@@ -12,7 +12,7 @@ const buttonVariants = cva(
 				destructive:
 					"bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger/20 dark:bg-danger/60 dark:focus-visible:ring-danger/40",
 				outline:
-					"border bg-surface shadow-xs hover:bg-info hover:text-foreground dark:border-control dark:bg-info/30 dark:hover:bg-info/50",
+					"border border-border bg-surface shadow-xs hover:bg-info hover:text-foreground dark:border-control dark:bg-info/30 dark:hover:bg-info/50",
 				secondary: "bg-info text-action hover:bg-info/80",
 				ghost: "hover:bg-info hover:text-foreground dark:hover:bg-info/50",
 				link: "text-primary underline-offset-4 hover:underline",

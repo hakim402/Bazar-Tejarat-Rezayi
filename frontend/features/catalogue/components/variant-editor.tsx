@@ -1,6 +1,6 @@
 "use client";
 import { useContext, useState } from "react";
-import { Button } from "../../../components/ui/button";
+import { Button } from "./product-controls";
 import { Toggle } from "../../../components/ui/form-field";
 import { Icon } from "../../../components/ui/icon";
 import type { Locale } from "../../../lib/i18n/locales";

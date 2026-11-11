@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { Button } from "../../../components/ui/button";
+import { Button } from "./product-controls";
 import { Icon } from "../../../components/ui/icon";
-import { SectionCard } from "../../../components/ui/section-card";
+import { ProductSection as SectionCard } from "./product-controls";
 import { AccountError } from "../../../lib/api/private-client";
 import {
 	accountSession,

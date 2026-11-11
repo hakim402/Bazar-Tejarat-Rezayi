@@ -192,7 +192,7 @@ export function CatalogueOverview({
 												<Button
 													size="icon"
 													variant="ghost"
-													className="size-9 rounded-lg"
+													className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent dark:hover:bg-transparent hover:text-action data-[state=open]:bg-transparent"
 													aria-label={`${a.menu}: ${title}`}
 													title={a.menu}
 												>

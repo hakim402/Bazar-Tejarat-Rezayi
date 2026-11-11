@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { Icon } from "../../../components/ui/icon";
-import { Button } from "../../../components/ui/button";
+import { Button } from "./product-controls";
 import {
 	StatusBadge,
 	statusVariant,
@@ -126,7 +126,6 @@ export function CatalogueWorkspace({
 			null,
 		),
 		[busy, setBusy] = useState(false),
-		[success, setSuccess] = useState(false),
 		[blocked, setBlocked] = useState(false);
 	const [step, setStep] = useState(1);
 	const [cardAction, setCardAction] = useState<{
@@ -244,7 +243,6 @@ export function CatalogueWorkspace({
 		setPriceDirty(false);
 		setReason("");
 		setStockAccess(false);
-		setSuccess(false);
 		resetGuard();
 		removeDialog.current?.close();
 		deleteDialog.current?.close();
@@ -364,7 +362,6 @@ export function CatalogueWorkspace({
 		write.current = owner;
 		setBusy(true);
 		setFeedback(null);
-		setSuccess(false);
 		let acknowledged = false;
 		try {
 			const session = await accountSession("seller");
@@ -380,7 +377,6 @@ export function CatalogueWorkspace({
 			if (mine !== generation.current) return false;
 			setItem(fresh);
 			after?.(fresh, result);
-			setSuccess(true);
 			toast.success(successMessage);
 			return true;
 		} catch (error) {
@@ -426,7 +422,6 @@ export function CatalogueWorkspace({
 			install(fresh, selected?.id);
 			setBlocked(false);
 			setFeedback(null);
-			setSuccess(false);
 		} catch (error) {
 			if (mine !== generation.current) return;
 			if (
@@ -632,14 +627,6 @@ export function CatalogueWorkspace({
 						}}
 					/>
 				)}{" "}
-				{success && (
-					<p
-						role="status"
-						className="rounded-control bg-success-surface p-3 text-success"
-					>
-						{t.success}
-					</p>
-				)}
 				{guard.feedback}
 				{blocked && (
 					<div
