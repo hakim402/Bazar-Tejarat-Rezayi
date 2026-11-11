@@ -35,6 +35,7 @@ import {
 } from "./history";
 import { AftercareActionForm } from "./action-form";
 import { AftercareReview } from "./review";
+import { SellerIssueSummary } from "./seller-issue-summary";
 
 export function AftercareDetail({
 	locale,
@@ -331,6 +332,13 @@ export function AftercareDetail({
 										? [{ section: "fulfilment" as const, id: data.order.id }]
 										: []),
 								]}
+							/>
+						)}
+						{isSeller && (
+							<SellerIssueSummary
+								locale={locale}
+								data={data}
+								seller={data.order.seller || seller}
 							/>
 						)}
 						<AftercareSummary

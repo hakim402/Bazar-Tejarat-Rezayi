@@ -11,6 +11,7 @@ import type { Context } from "./types";
 import { AftercareDetail } from "./components/detail";
 import { AftercareList } from "./components/list";
 import { DisputeList } from "./components/dispute-list";
+import { SellerIssues } from "./components/seller-issues";
 
 type Props = { locale: Locale; context: Context; orderId?: string; disputeId?: string; disputeList?: boolean; embedded?: boolean };
 
@@ -30,6 +31,22 @@ function WorkspaceContent({ locale, context, orderId, disputeId, disputeList, em
 	const account = session.session.accounts.find((account) => account.context === context);
 	if (!account) return <p role="alert">{t.noAccess}</p>;
 	const scope = `${session.session.identity.id}:${account.id}:${context}:${seller}:${disputeId ?? orderId ?? "list"}`;
+	if (context === "seller")
+		return orderId || disputeId ? (
+			<AftercareDetail
+				key={`${scope}:${locale}`}
+				{...{ locale, context, orderId: orderId ?? "", disputeId, embedded, seller, scope, attempt, attemptDomain }}
+			/>
+		) : (
+			<SellerIssues
+				key={`${scope}:${locale}:${page}:${query.get("q") ?? ""}`}
+				locale={locale}
+				seller={seller}
+				page={page}
+				search={query.get("q") ?? ""}
+				initialTab={disputeList ? "disputes" : "attention"}
+			/>
+		);
 	return orderId || disputeId ? <AftercareDetail key={`${scope}:${locale}`} {...{ locale, context, orderId: orderId ?? "", disputeId, embedded, seller, scope, attempt, attemptDomain }} />
 		: disputeList ? <DisputeList key={`${scope}:${locale}:${page}`} {...{ locale, context, seller, page }} /> : <AftercareList key={`${scope}:${locale}:${page}`} {...{ locale, context, seller, page }} />;
 }

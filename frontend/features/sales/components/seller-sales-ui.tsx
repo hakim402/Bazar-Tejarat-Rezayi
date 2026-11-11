@@ -31,7 +31,7 @@ const sections: { key: SalesSection; icon: IconName }[] = [
 const filters: Record<SalesSection, readonly string[]> = {
 	orders: ["page"],
 	invoices: ["page", "state", "q"],
-	aftercare: ["page"],
+	aftercare: ["page", "q"],
 	negotiations: ["page", "state", "q"],
 	fulfilment: ["page", "state", "q"],
 	payments: ["page", "state", "q"],

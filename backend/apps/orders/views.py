@@ -243,7 +243,7 @@ class AftercareList(OrderView):
             raise PermissionDenied()
         from . import aftercare_queries
 
-        return Response(c.AftercarePage(aftercare_queries.aftercare_page(actor, page=data["page"], seller=data.get("seller"))).data)
+        return Response(c.AftercarePage(aftercare_queries.aftercare_page(actor, page=data["page"], seller=data.get("seller"), q=data["q"])).data)
 
 
 class AftercareDetail(OrderView):

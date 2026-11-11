@@ -103,6 +103,8 @@ export type Detail = {
 	invoice: string;
 	currency: string;
 	seller: string;
+	seller_name: string;
+	buyer_name: string;
 	goods_total: string;
 	accepted_total: string;
 	version: number;
@@ -115,6 +117,9 @@ export type Detail = {
 	adjustments: Adjustment[];
 	disputes?: DisputeRow[];
 	review?: ReviewRow | null;
+	refund_dues?: RefundDue[];
+	refund_reports?: RefundReport[];
+	delivery_refunds?: DeliveryRefund[];
 };
 export type RefundDue = {
 	id: string;

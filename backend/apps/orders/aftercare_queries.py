@@ -155,6 +155,9 @@ def effective_lines(order):
 def order_data(actor, order):
     from apps.marketplace.access import eligible_profiles
     from apps.payments.queries import projection as money
+    from apps.payments import access as payment_access
+    from apps.payments.models import RefundDue, RefundReport
+    from apps.payments.queries import due_state
 
     eligible = projection.eligibility(order)
     seller = actor.context == "seller" and access.profiles(actor.account).filter(pk=order.seller_id).exists()
@@ -168,6 +171,62 @@ def order_data(actor, order):
         capabilities.append("dispute_open")
     if buyer and eligible["review"]:
         capabilities.append("review_submit")
+    payment_caps = payment_access.capabilities(actor, order)
+    account = getattr(actor.account, "pk", None)
+    refund_dues = []
+    for due in RefundDue.objects.filter(order=order).prefetch_related("reports__decision").order_by("-created_at"):
+        state = due_state(due)
+        latest = due.reports.order_by("-created_at", "pk").select_related("decision").first()
+        refund_dues.append(
+            {
+                "id": str(due.pk),
+                "cause": due.cause,
+                "amount": format(due.amount, ".2f"),
+                "currency": due.currency,
+                "state": state,
+                "can_report": bool(payment_caps["refund"] and state == "due"),
+                "previous": str(latest.pk) if latest and state == "due" else None,
+                "version": due.version,
+                "created_at": due.created_at,
+            }
+        )
+    refund_reports = [
+        {
+            "id": str(report.pk),
+            "due": str(report.due_id),
+            "previous": str(report.previous_id) if report.previous_id else None,
+            "amount": format(report.amount, ".2f"),
+            "currency": order.currency,
+            "sent_at": report.sent_at,
+            "reference": report.reference,
+            "description": report.description,
+            "state": report.decision.action if getattr(report, "decision", None) else "pending",
+            "can_withdraw": bool(
+                payment_caps["refund"]
+                and report.actor_id == account
+                and getattr(report, "decision", None) is None
+            ),
+            "created_at": report.created_at,
+        }
+        for report in RefundReport.objects.filter(due__order=order).select_related("decision").order_by("-created_at")
+    ]
+    from apps.fulfilment.models import DeliveryRefund
+
+    delivery_refunds = [
+        {
+            "id": str(refund.pk),
+            "provider": str(refund.provider_id),
+            "provider_name": refund.provider.name,
+            "amount": format(refund.amount, ".2f"),
+            "currency": order.currency,
+            "sent_at": refund.sent_at,
+            "state": refund.decision.action if getattr(refund, "decision", None) else "pending",
+            "created_at": refund.created_at,
+        }
+        for refund in DeliveryRefund.objects.filter(order=order)
+        .select_related("provider", "decision")
+        .order_by("-created_at")
+    ]
     return {
         "id": str(order.pk),
         "version": Aftercare.objects.filter(order=order).values_list("version", flat=True).first() or 0,
@@ -204,6 +263,9 @@ def order_data(actor, order):
             )[:20]
         ],
         "review": review_row(order.review, actor) if hasattr(order, "review") and order.review else None,
+        "refund_dues": refund_dues,
+        "refund_reports": refund_reports,
+        "delivery_refunds": delivery_refunds,
     }
 
 
@@ -217,7 +279,7 @@ def cancellation_page(actor, *, page=1, seller=None):
     }
 
 
-def aftercare_page(actor, *, page=1, seller=None):
+def aftercare_page(actor, *, page=1, seller=None, q=""):
     qs = (
         access.scope(actor, invoices=True, seller=seller)
         .filter(
@@ -229,6 +291,10 @@ def aftercare_page(actor, *, page=1, seller=None):
         .distinct()
         .order_by("-accepted_at", "pk")
     )
+    if q:
+        qs = qs.filter(
+            Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q)
+        )
     return {
         "count": qs.count(),
         "page": page,
