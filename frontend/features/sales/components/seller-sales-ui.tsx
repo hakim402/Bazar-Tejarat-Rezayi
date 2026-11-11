@@ -74,7 +74,7 @@ export function salesHref(
 export function salesHistoryHref(href: string, params: QueryReader) {
 	const [path, search = ""] = href.split("?");
 	const query = new URLSearchParams(search);
-	for (const key of ["list_page", "list_state", "list_q"]) {
+	for (const key of ["list_page", "list_state", "list_q", "list_issue_tab"]) {
 		const value = params.get(key);
 		if (value) query.set(key, value);
 	}
@@ -110,6 +110,7 @@ export function SalesFrame({
 export function SalesHeader({
 	locale,
 	section,
+	seller = "",
 	title,
 	business,
 	back,
@@ -138,7 +139,14 @@ export function SalesHeader({
 			>
 				<div className="min-w-0 space-y-2">
 					<h1 className="m-0 text-2xl font-bold tracking-tight">
-						{title ?? t[section]}
+						{title ??
+							(section === "payments" || section === "invoices"
+								? t.finance
+								: section === "orders" || section === "fulfilment"
+									? t.orders
+									: section === "aftercare"
+										? t.issues
+										: t[section])}
 					</h1>
 				</div>
 				{business && (
@@ -151,6 +159,7 @@ export function SalesHeader({
 					</div>
 				)}
 			</div>
+			<SalesWorkspaceTabs locale={locale} section={section} seller={seller} />
 		</header>
 	);
 }
@@ -334,4 +343,50 @@ export function SalesRelated({
 			))}
 		</nav>
 	) : null;
+}
+
+function SalesWorkspaceTabs({
+	locale,
+	section,
+	seller,
+}: {
+	locale: Locale;
+	section: SalesSection;
+	seller: string;
+}) {
+	const t = sellerSalesCopy[locale],
+		destinations = useSellerNavigation();
+	const items: { key: SalesSection; label: string }[] =
+		section === "orders" || section === "fulfilment"
+			? [
+					{ key: "orders", label: t.orders },
+					{ key: "fulfilment", label: t.deliveries },
+				]
+			: section === "payments" || section === "invoices"
+				? [
+						{ key: "payments", label: t.payments },
+						{ key: "invoices", label: t.invoices },
+					]
+				: [];
+	const available = items.filter((item) =>
+		destinations?.some((link) => link.route === item.key),
+	);
+	if (available.length < 2) return null;
+	return (
+		<nav
+			aria-label={t.related}
+			className="flex flex-wrap gap-1 border-0 border-b border-solid border-border"
+		>
+			{available.map((item) => (
+				<Link
+					key={item.key}
+					href={salesHref(locale, item.key, seller)}
+					aria-current={section === item.key ? "page" : undefined}
+					className={`inline-flex min-h-10 items-center rounded-t-lg border-0 border-b-2 border-solid px-4 py-2 text-sm no-underline focus-visible:outline-2 focus-visible:outline-action ${section === item.key ? "border-action font-semibold text-action" : "border-transparent text-muted hover:bg-page hover:text-foreground"}`}
+				>
+					{item.label}
+				</Link>
+			))}
+		</nav>
+	);
 }

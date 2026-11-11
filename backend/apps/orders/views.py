@@ -527,3 +527,11 @@ class OrderImage(ProtectedDocumentView):
     def get(self, request, pk, line_id):
         from apps.catalogue.views import image_response
         return image_response(queries.order_line_image(self.actor("seller"), pk, line_id), request)
+
+
+class SellerIssues(OrderView):
+    @extend_schema(operation_id="seller_issues", parameters=[c.SellerIssueQuery], responses=c.SellerIssuePage)
+    def get(self, request):
+        from . import issue_queries
+        data = query(request, c.SellerIssueQuery)
+        return Response(c.SellerIssuePage(issue_queries.page(self.actor("seller"), **data)).data)

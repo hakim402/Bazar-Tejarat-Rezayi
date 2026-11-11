@@ -2948,6 +2948,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/seller/issues/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["seller_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5777,6 +5793,42 @@ export interface components {
             name: string;
             /** Format: email */
             email: string;
+        };
+        SellerIssuePage: {
+            count: number;
+            page: number;
+            results: components["schemas"]["SellerIssueRow"][];
+        };
+        SellerIssueRow: {
+            key: string;
+            kind: components["schemas"]["SellerIssueRowKindEnum"];
+            order: components["schemas"]["SellerIssueOrder"];
+            amount: string | null;
+            state: string;
+            /** Format: date-time */
+            date: string;
+            actionable: boolean;
+            /** Format: uuid */
+            dispute_id: string | null;
+        };
+        /**
+         * @description * `cancellation` - cancellation
+         *     * `correction` - correction
+         *     * `refund_due` - refund_due
+         *     * `refund_report` - refund_report
+         *     * `delivery_refund` - delivery_refund
+         *     * `dispute` - dispute
+         * @enum {string}
+         */
+        SellerIssueRowKindEnum: "cancellation" | "correction" | "refund_due" | "refund_report" | "delivery_refund" | "dispute";
+        SellerIssueOrder: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            number: string;
+            buyer_name: string;
+            currency: string;
         };
     };
     responses: never;
@@ -10929,6 +10981,37 @@ export interface operations {
                 };
                 content: {
                     "image/jpeg": string;
+                };
+            };
+        };
+    };
+    seller_issues: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `attention` - attention
+                 *     * `cancellations` - cancellations
+                 *     * `corrections` - corrections
+                 *     * `refunds` - refunds
+                 *     * `disputes` - disputes
+                 */
+                tab?: "attention" | "cancellations" | "corrections" | "refunds" | "disputes";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerIssuePage"];
                 };
             };
         };

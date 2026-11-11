@@ -36,32 +36,18 @@ import { aftercare, disputeHref } from "../api";
 import { aftercareCopy, aftercareState } from "../copy";
 import { sellerAftercareCopy } from "../seller-copy";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
-import type { Detail, Page } from "../types";
+import type { components } from "../../../lib/api/schema";
 
-type Kind =
-	| "cancellation"
-	| "correction"
-	| "refund_due"
-	| "refund_report"
-	| "delivery_refund"
-	| "dispute";
+type QueueIssue = components["schemas"]["SellerIssueRow"];
+type Kind = QueueIssue["kind"];
 type Tab =
 	| "attention"
 	| "cancellations"
 	| "corrections"
 	| "refunds"
 	| "disputes";
-type Issue = {
-	key: string;
-	kind: Kind;
-	order: Detail;
-	amount: string | null;
-	state: string;
-	date: string;
-	actionable: boolean;
-	href: string;
-	disputeId?: string;
-};
+
+type Issue = QueueIssue & { href: string };
 
 export function SellerIssues({
 	locale,
@@ -82,22 +68,24 @@ export function SellerIssues({
 		params = useSearchParams(),
 		router = useRouter(),
 		tab = initialTab,
-		[data, setData] = useState<Page<Detail> | null>(null),
+		[data, setData] = useState<components["schemas"]["SellerIssuePage"] | null>(
+			null,
+		),
 		[error, setError] = useState(false),
 		[denied, setDenied] = useState(false),
 		[revision, setRevision] = useState(0);
 	useVisiblePoll(
 		async (signal) => {
 			try {
-				const query = new URLSearchParams({ page: String(page), q: search });
+				const query = new URLSearchParams({
+					page: String(page),
+					q: search,
+					tab,
+				});
 				if (seller) query.set("seller", seller);
-				const result = await aftercare<Page<Detail>>(
-					"orders",
-					"seller",
-					`aftercare/?${query}`,
-					undefined,
-					signal,
-				);
+				const result = await aftercare<
+					components["schemas"]["SellerIssuePage"]
+				>("orders", "seller", `issues/?${query}`, undefined, signal);
 				if (signal.aborted) return;
 				setData(result);
 				setError(false);
@@ -111,21 +99,27 @@ export function SellerIssues({
 				throw e;
 			}
 		},
-		[seller, page, search, revision, denied],
+		[seller, page, search, tab, revision, denied],
 		!denied,
 	);
 	if (denied) return <p role="alert">{sales.noAccess}</p>;
-	const issues = (data?.results ?? []).flatMap((order) => orderIssues(order));
-	const shown = issues.filter((issue) => {
-		if (tab === "attention") return issue.actionable;
-		if (tab === "cancellations") return issue.kind === "cancellation";
-		if (tab === "corrections") return issue.kind === "correction";
-		if (tab === "refunds")
-			return ["refund_due", "refund_report", "delivery_refund"].includes(
-				issue.kind,
-			);
-		return issue.kind === "dispute";
-	});
+	const shown: Issue[] = (data?.results ?? []).map((issue) => ({
+		...issue,
+		href: issue.dispute_id
+			? disputeHref(locale, "seller", issue.dispute_id, issue.order.seller)
+			: salesHref(
+					locale,
+					"aftercare",
+					issue.order.seller,
+					issue.order.id,
+					params,
+					{
+						page: String(page),
+						q: search,
+						issue_tab: tab,
+					},
+				),
+	}));
 	const tabList: [Tab, string][] = [
 		["attention", t.attention],
 		["cancellations", t.cancellations],
@@ -133,104 +127,6 @@ export function SellerIssues({
 		["refunds", t.refunds],
 		["disputes", t.disputes],
 	];
-	function orderIssues(order: Detail): Issue[] {
-		const base = (
-			key: string,
-			kind: Kind,
-			amount: string | null,
-			state: string,
-			date: string,
-			href: string,
-			actionable = false,
-			disputeId?: string,
-		): Issue => ({
-			key,
-			kind,
-			order,
-			amount,
-			state,
-			date,
-			actionable,
-			href,
-			disputeId,
-		});
-		const detailHref = salesHref(
-			locale,
-			"aftercare",
-			seller,
-			order.id,
-			params,
-			{
-				page: String(page),
-				q: search,
-			},
-		);
-		const out: Issue[] = [];
-		for (const c of order.cancellations)
-			out.push(
-				base(
-					c.id,
-					"cancellation",
-					order.accepted_total,
-					c.state,
-					c.created_at,
-					detailHref,
-				),
-			);
-		for (const a of order.amendments)
-			out.push(
-				base(
-					a.id,
-					"correction",
-					a.after_total,
-					a.state,
-					a.created_at,
-					detailHref,
-				),
-			);
-		for (const d of order.refund_dues ?? [])
-			out.push(
-				base(
-					d.id,
-					"refund_due",
-					d.amount,
-					d.state,
-					d.created_at,
-					detailHref,
-					d.can_report,
-				),
-			);
-		for (const r of order.refund_reports ?? [])
-			out.push(
-				base(
-					r.id,
-					"refund_report",
-					r.amount,
-					r.state,
-					r.sent_at,
-					detailHref,
-					false,
-				),
-			);
-		for (const r of order.delivery_refunds ?? [])
-			out.push(
-				base(r.id, "delivery_refund", r.amount, r.state, r.sent_at, detailHref),
-			);
-		for (const d of order.disputes ?? [])
-			out.push(
-				base(
-					d.id,
-					"dispute",
-					d.decision?.amount ?? null,
-					d.state,
-					d.created_at,
-					disputeHref(locale, "seller", d.id, seller),
-					d.can_respond,
-					d.id,
-				),
-			);
-		return out;
-	}
 	function typeLabel(kind: Kind) {
 		return {
 			cancellation: t.typeCancellation,
@@ -322,7 +218,6 @@ export function SellerIssues({
 					</Link>
 				)}
 			</form>
-			<p className="m-0 text-xs text-muted">{t.pageScope}</p>
 			<nav
 				aria-label={t.title}
 				className="flex flex-wrap gap-1 border-b border-solid border-border"
@@ -459,11 +354,7 @@ export function SellerIssues({
 											</Link>
 										</td>
 										<td className="px-4 py-3 text-end align-top">
-											<IssueMenu
-												locale={locale}
-												seller={seller}
-												issue={issue}
-											/>
+											<IssueMenu locale={locale} issue={issue} />
 										</td>
 									</tr>
 								))}
@@ -485,7 +376,7 @@ export function SellerIssues({
 											{issue.order.buyer_name}
 										</p>
 									</div>
-									<IssueMenu locale={locale} seller={seller} issue={issue} />
+									<IssueMenu locale={locale} issue={issue} />
 								</div>
 								<div className="flex flex-wrap items-center gap-2 text-sm">
 									<span className="font-medium">{typeLabel(issue.kind)}</span>
@@ -538,15 +429,7 @@ function statusTone(state: string) {
 				: "bg-info text-action";
 }
 
-function IssueMenu({
-	locale,
-	seller,
-	issue,
-}: {
-	locale: Locale;
-	seller: string;
-	issue: Issue;
-}) {
+function IssueMenu({ locale, issue }: { locale: Locale; issue: Issue }) {
 	const t = sellerAftercareCopy[locale],
 		sales = aftercareCopy[locale];
 	return (
@@ -573,14 +456,28 @@ function IssueMenu({
 					</Link>
 				</DropdownMenuItem>
 				<DropdownMenuItem asChild className="gap-2.5 no-underline">
-					<Link href={salesHref(locale, "orders", seller, issue.order.id)}>
+					<Link
+						href={salesHref(
+							locale,
+							"orders",
+							issue.order.seller,
+							issue.order.id,
+						)}
+					>
 						<ShoppingBag aria-hidden="true" />
 						{t.openOrder}
 					</Link>
 				</DropdownMenuItem>
-				{issue.kind === "dispute" && issue.disputeId && (
+				{issue.kind === "dispute" && issue.dispute_id && (
 					<DropdownMenuItem asChild className="gap-2.5 no-underline">
-						<Link href={disputeHref(locale, "seller", issue.disputeId, seller)}>
+						<Link
+							href={disputeHref(
+								locale,
+								"seller",
+								issue.dispute_id,
+								issue.order.seller,
+							)}
+						>
 							<ShieldX aria-hidden="true" />
 							{sales.disputes}
 						</Link>
@@ -590,7 +487,14 @@ function IssueMenu({
 					issue.kind === "refund_report" ||
 					issue.kind === "delivery_refund") && (
 					<DropdownMenuItem asChild className="gap-2.5 no-underline">
-						<Link href={salesHref(locale, "payments", seller, issue.order.id)}>
+						<Link
+							href={salesHref(
+								locale,
+								"payments",
+								issue.order.seller,
+								issue.order.id,
+							)}
+						>
 							<ReceiptIcon aria-hidden="true" />
 							{t.openPayments}
 						</Link>

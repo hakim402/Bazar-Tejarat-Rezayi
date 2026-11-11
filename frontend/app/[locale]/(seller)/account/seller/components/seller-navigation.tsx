@@ -10,6 +10,7 @@ import { commerce, type Profile } from "../../../../../../features/orders/api";
 import { ACCOUNT_SESSION_CHANGED } from "../../../../../../features/identity/api/accounts";
 import { commerceCopy } from "../../../../../../features/orders/copy";
 import { communicationCopy } from "../../../../../../features/messaging/copy";
+import { sellerSalesCopy } from "../../../../../../lib/i18n/seller-sales";
 import { sellerSettingsCopy } from "../../../../../../lib/i18n/seller-settings";
 import { sellerProductsCopy } from "../../../../../../lib/i18n/seller-products";
 import { settingsDestinations } from "../../../../../../components/accounts/seller-settings-ui";
@@ -160,7 +161,8 @@ const SellerNavigationContext = createContext<
 	readonly SellerDestination[] | null
 >(null);
 
-// Presentation only: these are the destinations currently rendered by navigation.
+// Authorized workspace destinations include actions grouped under the compact sidebar.
+// Presentation hints only; every API still checks current permissions.
 export function useSellerNavigation() {
 	return useContext(SellerNavigationContext);
 }
@@ -385,7 +387,7 @@ export function SellerNavigation({
 			path.includes("/inventory/") &&
 			!path.endsWith("/movements"));
 
-	const visibleGroups: NavigationGroup[] = groups
+	const authorizedGroups: NavigationGroup[] = groups
 		.map((group) => ({
 			key: group.key,
 			label: group.label,
@@ -402,6 +404,38 @@ export function SellerNavigation({
 				})),
 		}))
 		.filter((group) => group.links.length > 0);
+	const availableDestinations = authorizedGroups.flatMap(
+		(group) => group.links,
+	);
+	const labels = sellerSalesCopy[locale];
+	const visibleGroups = authorizedGroups.map((group) => {
+		if (group.key !== "sales") return group;
+		const canonical = [
+			{ routes: ["orders", "fulfilment"], label: labels.orders },
+			{ routes: ["negotiations"], label: labels.negotiations },
+			{ routes: ["payments", "invoices"], label: labels.finance },
+			{ routes: ["aftercare", "disputes"], label: labels.issues },
+		];
+		return {
+			...group,
+			links: canonical.flatMap((item) => {
+				const destination = item.routes
+					.map((route) => group.links.find((link) => link.route === route))
+					.find(Boolean);
+				return destination
+					? [
+							{
+								...destination,
+								label: item.label,
+								active: group.links.some(
+									(link) => item.routes.includes(link.route) && link.active,
+								),
+							},
+						]
+					: [];
+			}),
+		};
+	});
 	const destinations = visibleGroups.flatMap((group) => group.links);
 
 	const navigation = (
@@ -423,7 +457,7 @@ export function SellerNavigation({
 	);
 
 	return (
-		<SellerNavigationContext.Provider value={destinations}>
+		<SellerNavigationContext.Provider value={availableDestinations}>
 			<JumpToPage locale={locale} groups={visibleGroups} scope={seller} />
 			<div dir={direction(locale)} className="flex min-w-0">
 				<aside

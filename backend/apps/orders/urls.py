@@ -21,6 +21,7 @@ urlpatterns = [
     path("seller/negotiations/<uuid:pk>/conversation/", n.Conversation.as_view()),
     path("<marketplace:context>/negotiations/<uuid:pk>/products/<str:variant>/image/", n.ProductImage.as_view()),
     path("seller/orders/<uuid:pk>/lines/<uuid:line_id>/image/", v.OrderImage.as_view()),
+    path("seller/issues/", v.SellerIssues.as_view()),
     path("seller/profiles/", v.Profiles.as_view()),
     path("seller/checkout-terms/<uuid:pk>/", v.Terms.as_view()),
     path("buyer/review/", v.Review.as_view()),

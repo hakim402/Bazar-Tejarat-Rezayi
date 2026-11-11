@@ -84,7 +84,7 @@ function WorkspaceContent({
 			/>
 		) : (
 			<SellerIssues
-				key={`${scope}:${locale}:${page}:${query.get("q") ?? ""}`}
+				key={`${scope}:${locale}:${page}:${query.get("q") ?? ""}:${disputeList}:${query.get("issue_tab") ?? "attention"}`}
 				locale={locale}
 				seller={seller}
 				page={page}

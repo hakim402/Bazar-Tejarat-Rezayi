@@ -387,3 +387,35 @@ class ReviewPage(s.Serializer):
     results = s.ListField(child=ReviewStatus())
     page = s.IntegerField()
     count = s.IntegerField()
+
+
+class SellerIssueQuery(Strict):
+    seller = s.UUIDField(required=False)
+    page = s.IntegerField(min_value=1, max_value=10000, default=1)
+    q = s.CharField(max_length=100, allow_blank=True, default="")
+    tab = s.ChoiceField(choices=["attention", "cancellations", "corrections", "refunds", "disputes"], default="attention")
+
+
+class SellerIssueOrder(s.Serializer):
+    id = s.UUIDField()
+    seller = s.UUIDField()
+    number = s.CharField()
+    buyer_name = s.CharField(allow_blank=True)
+    currency = s.CharField()
+
+
+class SellerIssueRow(s.Serializer):
+    key = s.CharField()
+    kind = s.ChoiceField(choices=["cancellation", "correction", "refund_due", "refund_report", "delivery_refund", "dispute"])
+    order = SellerIssueOrder()
+    amount = s.CharField(allow_null=True)
+    state = s.CharField()
+    date = s.DateTimeField()
+    actionable = s.BooleanField()
+    dispute_id = s.UUIDField(allow_null=True)
+
+
+class SellerIssuePage(s.Serializer):
+    count = s.IntegerField()
+    page = s.IntegerField()
+    results = SellerIssueRow(many=True)

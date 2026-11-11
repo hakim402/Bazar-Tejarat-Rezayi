@@ -10531,6 +10531,78 @@
                     }
                 }
             }
+        },
+        "/api/v1/orders/seller/issues/": {
+            "get": {
+                "operationId": "seller_issues",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "tab",
+                        "schema": {
+                            "enum": [
+                                "attention",
+                                "cancellations",
+                                "corrections",
+                                "refunds",
+                                "disputes"
+                            ],
+                            "type": "string",
+                            "default": "attention",
+                            "minLength": 1
+                        },
+                        "description": "* `attention` - attention\n* `cancellations` - cancellations\n* `corrections` - corrections\n* `refunds` - refunds\n* `disputes` - disputes"
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SellerIssuePage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -19772,6 +19844,112 @@
                 "required": [
                     "email",
                     "name"
+                ]
+            },
+            "SellerIssuePage": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SellerIssueRow"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "SellerIssueRow": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/SellerIssueRowKindEnum"
+                    },
+                    "order": {
+                        "$ref": "#/components/schemas/SellerIssueOrder"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actionable": {
+                        "type": "boolean"
+                    },
+                    "dispute_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "actionable",
+                    "amount",
+                    "date",
+                    "dispute_id",
+                    "key",
+                    "kind",
+                    "order",
+                    "state"
+                ]
+            },
+            "SellerIssueRowKindEnum": {
+                "enum": [
+                    "cancellation",
+                    "correction",
+                    "refund_due",
+                    "refund_report",
+                    "delivery_refund",
+                    "dispute"
+                ],
+                "type": "string",
+                "description": "* `cancellation` - cancellation\n* `correction` - correction\n* `refund_due` - refund_due\n* `refund_report` - refund_report\n* `delivery_refund` - delivery_refund\n* `dispute` - dispute"
+            },
+            "SellerIssueOrder": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "buyer_name": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "buyer_name",
+                    "currency",
+                    "id",
+                    "number",
+                    "seller"
                 ]
             }
         },

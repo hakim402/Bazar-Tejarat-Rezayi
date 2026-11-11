@@ -1,6 +1,9 @@
 export const sellerSalesCopy = {
 	en: {
 		sales: "Sales",
+		finance: "Payments & invoices",
+		issues: "Issues & returns",
+		deliveries: "Deliveries",
 		business: "Business",
 		moreBusinesses: "Load more businesses",
 		paymentStatus: "Payment status",
@@ -48,6 +51,9 @@ export const sellerSalesCopy = {
 	},
 	"fa-AF": {
 		sales: "فروش",
+		finance: "پرداخت‌ها و صورت‌حساب‌ها",
+		issues: "مشکلات و بازپرداخت‌ها",
+		deliveries: "تحویل‌ها",
 		business: "کسب‌وکار",
 		moreBusinesses: "دیدن کسب‌وکارهای بیشتر",
 		paymentStatus: "وضعیت پرداخت",
@@ -94,6 +100,9 @@ export const sellerSalesCopy = {
 	},
 	ps: {
 		sales: "پلور",
+		finance: "تادیې او بلونه",
+		issues: "ستونزې او بېرته ورکړې",
+		deliveries: "سپارنې",
 		business: "سوداګري",
 		moreBusinesses: "نورې سوداګرۍ ښکاره کړئ",
 		paymentStatus: "د تادیې حالت",
@@ -139,6 +148,9 @@ export const sellerSalesCopy = {
 	},
 	ar: {
 		sales: "المبيعات",
+		finance: "المدفوعات والفواتير",
+		issues: "المشكلات والاستردادات",
+		deliveries: "التوصيل",
 		business: "النشاط التجاري",
 		moreBusinesses: "تحميل المزيد من الأنشطة",
 		paymentStatus: "حالة الدفع",
