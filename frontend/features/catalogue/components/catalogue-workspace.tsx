@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
 import { Icon } from "../../../components/ui/icon";
 import { Button } from "../../../components/ui/button";
 import {
@@ -126,6 +127,10 @@ export function CatalogueWorkspace({
 		[success, setSuccess] = useState(false),
 		[blocked, setBlocked] = useState(false);
 	const [step, setStep] = useState(1);
+	const [deleteTarget, setDeleteTarget] = useState<{
+		id: string;
+		title: string;
+	} | null>(null);
 	const [epoch, setEpoch] = useState(0),
 		[priceDirty, setPriceDirty] = useState(false),
 		[stockAccess, setStockAccess] = useState(false),
@@ -133,6 +138,7 @@ export function CatalogueWorkspace({
 	const generation = useRef(0),
 		write = useRef<symbol | null>(null),
 		removeDialog = useRef<HTMLDialogElement>(null),
+		deleteDialog = useRef<HTMLDialogElement>(null),
 		removeFocus = useRef<HTMLElement | null>(null);
 	const sourceDirty = !!body && JSON.stringify(body) !== baseline;
 	const guard = useProductGuard(locale, sourceDirty || priceDirty || !!reason);
@@ -176,6 +182,7 @@ export function CatalogueWorkspace({
 			clear();
 			setBlocked(true);
 			setBusy(false);
+			toast.error(productFlowCopy[locale].errorToast);
 			setFeedback(failure(error, locale));
 		},
 		[clear, locale],
@@ -215,8 +222,10 @@ export function CatalogueWorkspace({
 					} else setList(value);
 				})
 				.catch((error) => {
-					if (current && mine === generation.current)
+					if (current && mine === generation.current) {
+						toast.error(productFlowCopy[locale].errorToast);
 						setFeedback(failure(error, locale));
+					}
 				});
 		};
 		load();
@@ -253,6 +262,7 @@ export function CatalogueWorkspace({
 	async function run(
 		task: () => Promise<Operation>,
 		after?: (fresh: ProductDetail, result: Operation) => void,
+		successMessage = productFlowCopy[locale].savedToast,
 	) {
 		if (!item || busy || blocked || write.current) return false;
 		const owner = Symbol(),
@@ -277,6 +287,7 @@ export function CatalogueWorkspace({
 			setItem(fresh);
 			after?.(fresh, result);
 			setSuccess(true);
+			toast.success(successMessage);
 			return true;
 		} catch (error) {
 			if (mine !== generation.current) return false;
@@ -286,6 +297,7 @@ export function CatalogueWorkspace({
 			)
 				deny(error);
 			else {
+				toast.error(productFlowCopy[locale].errorToast);
 				setFeedback(
 					acknowledged
 						? { message: copy.acknowledged, issues: [] }
@@ -328,7 +340,10 @@ export function CatalogueWorkspace({
 				[401, 403, 404].includes(error.status ?? 0)
 			)
 				deny(error);
-			else setFeedback(failure(error, locale));
+			else {
+				toast.error(productFlowCopy[locale].errorToast);
+				setFeedback(failure(error, locale));
+			}
 		} finally {
 			if (mine === generation.current) setBusy(false);
 		}
@@ -353,6 +368,9 @@ export function CatalogueWorkspace({
 					);
 				setReason("");
 			},
+			action === "submit"
+				? productFlowCopy[locale].submittedToast
+				: productFlowCopy[locale].savedToast,
 		);
 		if (accepted) removeDialog.current?.close();
 	}
@@ -406,6 +424,51 @@ export function CatalogueWorkspace({
 			(fresh) => install(fresh, packet.revision),
 		);
 	}
+	function askDelete(productId: string, title: string) {
+		setDeleteTarget({ id: productId, title });
+		deleteDialog.current?.showModal();
+	}
+	async function deleteProduct() {
+		if (!deleteTarget || busy || blocked || write.current) return;
+		const target = deleteTarget;
+		const owner = Symbol();
+		const mine = generation.current;
+		write.current = owner;
+		setBusy(true);
+		try {
+			const session = await accountSession("seller");
+			if (mine !== generation.current) return;
+			if (`${session.identity.id}:${session.accounts[0].id}` !== identity)
+				throw new AccountError(403);
+			await api<{ deleted: boolean }>(
+				context,
+				`products/${target.id}/`,
+				{},
+				"DELETE",
+			);
+			if (mine !== generation.current) return;
+			toast.success(productFlowCopy[locale].deleteSuccess);
+			deleteDialog.current?.close();
+			setDeleteTarget(null);
+			if (id) router.replace(back);
+			else
+				setList((current) =>
+					current
+						? {
+								...current,
+								results: current.results.filter((row) => row.id !== target.id),
+								count: Math.max(0, current.count - 1),
+							}
+						: current,
+				);
+		} catch (error) {
+			toast.error(productFlowCopy[locale].errorToast);
+			setFeedback(failure(error, locale));
+		} finally {
+			if (write.current === owner) write.current = null;
+			if (mine === generation.current) setBusy(false);
+		}
+	}
 	const back = productHref(locale, "catalogue", seller, query);
 	return (
 		<CatalogueValidation.Provider
@@ -426,15 +489,27 @@ export function CatalogueWorkspace({
 							<Icon name="plus" className="size-4" />
 							{copy.add}
 						</Link>
-					) : id && item?.published ? (
-						<Link
-							className={productLink}
-							href={`/${locale}/products/${item.id}`}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{copy.viewPublic}
-						</Link>
+					) : id && item ? (
+						<div className="flex flex-wrap gap-2">
+							{item.published && (
+								<Link
+									className={productLink}
+									href={`/${locale}/products/${item.id}`}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									{copy.viewPublic}
+								</Link>
+							)}
+							<button
+								type="button"
+								disabled={busy || sourceDirty || priceDirty || blocked}
+								onClick={() => askDelete(item.id, body?.title || copy.untitled)}
+								className="min-h-11 rounded-xl border border-danger/30 bg-surface px-3 text-sm font-semibold text-danger disabled:opacity-50"
+							>
+								{productFlowCopy[locale].delete}
+							</button>
+						</div>
 					) : undefined
 				}
 			>
@@ -531,6 +606,7 @@ export function CatalogueWorkspace({
 							list={list}
 							seller={seller}
 							filters={query}
+							onDelete={askDelete}
 						/>
 						<nav
 							aria-label={copy.page}
@@ -805,6 +881,42 @@ export function CatalogueWorkspace({
 						</dialog>
 					</>
 				)}
+				<dialog
+					ref={deleteDialog}
+					aria-labelledby="product-delete-title"
+					aria-describedby="product-delete-help"
+					onClose={() => setDeleteTarget(null)}
+					className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
+				>
+					<h2 id="product-delete-title" className="text-xl font-semibold">
+						{productFlowCopy[locale].deleteTitle}
+					</h2>
+					<p
+						id="product-delete-help"
+						className="my-3 text-sm leading-relaxed text-muted"
+					>
+						{productFlowCopy[locale].deleteHelp}
+					</p>
+					{deleteTarget && (
+						<p className="font-semibold wrap-anywhere">{deleteTarget.title}</p>
+					)}
+					<div className="mt-5 flex flex-wrap justify-end gap-2">
+						<Button
+							variant="secondary"
+							disabled={busy}
+							onClick={() => deleteDialog.current?.close()}
+						>
+							{copy.cancel}
+						</Button>
+						<Button
+							className="!border-danger !bg-danger hover:!brightness-95"
+							disabled={busy || !deleteTarget}
+							onClick={() => void deleteProduct()}
+						>
+							{productFlowCopy[locale].delete}
+						</Button>
+					</div>
+				</dialog>
 				{!list && !item && !feedback && <p role="status">{t.loading}</p>}
 			</ProductsPage>
 		</CatalogueValidation.Provider>

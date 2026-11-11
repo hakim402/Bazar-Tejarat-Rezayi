@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
 import Link from "next/link";
 import { Button } from "../../../components/ui/button";
 import { Icon } from "../../../components/ui/icon";
@@ -42,6 +43,7 @@ export function CatalogueCreate({
 }) {
 	const t = catalogueCopy[locale],
 		copy = sellerProductsCopy[locale],
+		router = useRouter(),
 		query = useSearchParams();
 	const [list, setList] = useState<ProductList | null>(null),
 		[feedback, setFeedback] = useState<ReturnType<typeof failure> | null>(null);
@@ -98,10 +100,10 @@ export function CatalogueCreate({
 	}, [locale, query, resetGuard]);
 	useEffect(() => {
 		if (created)
-			window.location.assign(
+			router.push(
 				productHref(locale, `catalogue/${created.id}`, seller, query),
 			);
-	}, [created, locale, seller, query]);
+	}, [created, locale, router, seller, query]);
 	async function create() {
 		if (
 			write.current ||
@@ -128,9 +130,13 @@ export function CatalogueCreate({
 				currency,
 				pricing_mode: mode,
 			});
-			if (mine === generation.current) setCreated(result);
+			if (mine === generation.current) {
+				toast.success(productFlowCopy[locale].savedToast);
+				setCreated(result);
+			}
 		} catch (error) {
 			if (mine !== generation.current) return;
+			toast.error(productFlowCopy[locale].errorToast);
 			setFeedback(failure(error, locale));
 			if (
 				error instanceof AccountError &&

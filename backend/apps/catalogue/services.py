@@ -2,18 +2,40 @@
 
 import copy
 import json
+from functools import partial
+
+from django.core.files.storage import storages
 from django.db import transaction
 from django.db.models import Max
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
+
 from apps.organizations.access import Conflict, assert_version
 from . import access
-from .models import Product, Variant, SourceRevision, Category, ProductImage, PriceChange
+from .models import (
+    CatalogueEvent,
+    Category,
+    PriceChange,
+    Product,
+    ProductImage,
+    SourceRevision,
+    Translation,
+    TranslationJob,
+    Variant,
+)
 from .validation import text, attribute_values, definition, prices, fail
 
 
 def operation(item, revision=None):
     return {"id": item.pk, "version": item.version, "revision": revision.pk if revision else None}
+
+
+def remove_private_asset(alias, key):
+    try:
+        storages[alias].delete(key)
+    except Exception:
+        pass
 
 
 def bump(item):
@@ -31,6 +53,46 @@ def create(actor, data):
     item = Product.objects.create(seller=profile, currency=data["currency"], pricing_mode=data["pricing_mode"])
     access.audit(actor, item, "create")
     return operation(item)
+
+
+@transaction.atomic
+def delete_product(actor, pk):
+    item = access.resource(actor, pk, lock=True)
+    if actor.context != "seller":
+        raise PermissionDenied()
+    product_id = str(item.pk)
+    images = list(item.images.values_list("storage_alias", "key"))
+    # Keep the audit trail while removing its foreign keys to the deleted object.
+    for event in CatalogueEvent.objects.filter(product=item):
+        event.product = None
+        event.revision = None
+        event.translation = None
+        event.reason = f"{event.reason} [product {product_id} deleted]"[:1000]
+        event.save(update_fields=["product", "revision", "translation", "reason"])
+    item._allow_catalogue_transition = True
+    item.published = None
+    item.save(update_fields=["published"])
+    item._allow_catalogue_transition = False
+    TranslationJob.objects.filter(translation__revision__product=item).delete()
+    Translation.objects.filter(revision__product=item).delete()
+    PriceChange.objects.filter(product=item).delete()
+    ProductImage.objects.filter(product=item).delete()
+    SourceRevision.objects.filter(product=item).delete()
+    try:
+        item.variants.all().delete()
+        item.delete()
+    except ProtectedError:
+        raise ValidationError("This product is linked to protected business history and cannot be deleted.") from None
+    CatalogueEvent.objects.create(
+        product=None,
+        actor=actor.user,
+        account=actor.account,
+        context=actor.context,
+        action="delete",
+        reason=f"Seller deleted product {product_id}",
+    )
+    for alias, key in images:
+        transaction.on_commit(partial(remove_private_asset, alias, key))
 
 
 @transaction.atomic

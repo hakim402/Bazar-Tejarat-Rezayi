@@ -7,6 +7,7 @@ import { readSite } from "../features/site/server";
 import { bundledSite } from "../features/site/contract";
 import { SiteProvider } from "../features/site/context";
 import { ReviewOriginRedirect } from "../components/layout/review-origin-redirect";
+import { ToastHost } from "../components/ui/toast-host";
 const arabic = localFont({
 	src: [
 		{ path: "../public/fonts/NotoSansArabic-Regular.ttf", weight: "400" },
@@ -52,6 +53,7 @@ export default async function RootLayout({
 				<script id="theme-init">{themeScript}</script>
 			</head>
 			<body>
+				<ToastHost />
 				<ReviewOriginRedirect />
 				<SiteProvider site={site}>{children}</SiteProvider>
 			</body>

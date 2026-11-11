@@ -63,6 +63,9 @@ class Products(CatalogueView):
                     "state": latest.state if latest else "draft",
                     "version": item.version,
                     "published": item.published_id,
+                    "image": queries.image_url(latest.body["images"][0]["id"], context)
+                    if context == "seller" and latest and latest.body.get("images")
+                    else None,
                 }
             )
         return Response(
@@ -90,6 +93,11 @@ class Detail(CatalogueView):
     @extend_schema(operation_id="catalogue_save", request=c.CatalogueSave, responses=c.CatalogueOperation)
     def post(self, request, context, pk):
         return Response(services.save(self.actor(context), pk, self.data(c.CatalogueSave)))
+
+    @extend_schema(operation_id="catalogue_delete", responses=c.CatalogueDeleted)
+    def delete(self, request, context, pk):
+        services.delete_product(self.actor(context), pk)
+        return Response({"deleted": True})
 
 
 class Action(CatalogueView):

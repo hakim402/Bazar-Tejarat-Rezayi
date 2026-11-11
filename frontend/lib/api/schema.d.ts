@@ -398,7 +398,7 @@ export interface paths {
         get: operations["catalogue_detail"];
         put?: never;
         post: operations["catalogue_save"];
-        delete?: never;
+        delete: operations["catalogue_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5747,6 +5747,9 @@ export interface components {
             /** Format: uuid */
             claim: string;
         };
+        CatalogueDeleted: {
+            deleted: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -6491,6 +6494,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CatalogueOperation"];
+                };
+            };
+        };
+    };
+    catalogue_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueDeleted"];
                 };
             };
         };

@@ -93,6 +93,10 @@ class CatalogueOperation(s.Serializer):
     revision = s.UUIDField(allow_null=True)
 
 
+class CatalogueDeleted(s.Serializer):
+    deleted = s.BooleanField()
+
+
 class CatalogueRevision(s.Serializer):
     id = s.UUIDField()
     number = s.IntegerField()

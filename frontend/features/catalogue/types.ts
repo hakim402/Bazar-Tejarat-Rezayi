@@ -112,6 +112,7 @@ export type ProductList = {
 		version: number;
 		seller: string;
 		published: string | null;
+		image: string | null;
 	}[];
 	sellers: { id: string; name: string }[];
 	permissions: string[];

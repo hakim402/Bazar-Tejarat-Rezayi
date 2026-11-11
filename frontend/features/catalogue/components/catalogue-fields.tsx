@@ -170,7 +170,7 @@ export function Control({
 				)}
 			</label>
 			{options ? (
-				<Select {...props} onChange={(e) => onChange(e.target.value)}>
+				<Select {...props} compact onChange={(e) => onChange(e.target.value)}>
 					{options.map((o) => (
 						<option value={o.value} key={o.value}>
 							{o.label}
@@ -181,12 +181,13 @@ export function Control({
 				<textarea
 					{...props}
 					maxLength={maxLength}
-					className="w-full min-h-32 rounded-control border border-control bg-surface p-3"
+					className="w-full min-h-24 rounded-control border border-control bg-surface p-3 text-sm"
 					onChange={(e) => onChange(e.target.value)}
 				/>
 			) : (
 				<Input
 					{...props}
+					compact
 					maxLength={maxLength}
 					inputMode={decimal ? "decimal" : undefined}
 					onChange={(e) => onChange(e.target.value)}

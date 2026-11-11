@@ -443,6 +443,13 @@ export const productFlowCopy: Record<
 		step: string;
 		advanced: string;
 		submitted: string;
+		savedToast: string;
+		submittedToast: string;
+		errorToast: string;
+		delete: string;
+		deleteTitle: string;
+		deleteHelp: string;
+		deleteSuccess: string;
 	}
 > = {
 	en: {
@@ -462,6 +469,15 @@ export const productFlowCopy: Record<
 		advanced: "Quantity & pack settings",
 		submitted:
 			"A version of this product is awaiting approval. You can save further changes as a new draft.",
+		savedToast: "Product changes saved.",
+		submittedToast: "Product sent for review.",
+		errorToast:
+			"We could not complete that action. Review the message and try again.",
+		delete: "Delete product",
+		deleteTitle: "Delete this product?",
+		deleteHelp:
+			"This permanently removes the product and its saved catalogue details. Products linked to protected business history cannot be deleted.",
+		deleteSuccess: "Product deleted.",
 	},
 	"fa-AF": {
 		steps: ["تنظیم فروش", "معلومات محصول", "گزینه‌ها و قیمت‌ها", "عکس‌ها"],
@@ -480,6 +496,14 @@ export const productFlowCopy: Record<
 		advanced: "تنظیم مقدار و بسته",
 		submitted:
 			"یک نسخه این محصول در انتظار تأیید است. تغییرات بعدی را می‌توانید به‌صورت پیش‌نویس جدید ذخیره کنید.",
+		savedToast: "تغییرات محصول ذخیره شد.",
+		submittedToast: "محصول برای بررسی فرستاده شد.",
+		errorToast: "این کار انجام نشد. پیام را بررسی کنید و دوباره تلاش نمایید.",
+		delete: "حذف محصول",
+		deleteTitle: "این محصول حذف شود؟",
+		deleteHelp:
+			"این کار محصول و معلومات ذخیره‌شده آن را برای همیشه حذف می‌کند. محصول پیوندخورده به سابقه تجارتی محافظت‌شده حذف نمی‌شود.",
+		deleteSuccess: "محصول حذف شد.",
 	},
 	ps: {
 		steps: ["د پلور تنظیم", "د محصول معلومات", "بڼې او بیې", "انځورونه"],
@@ -498,6 +522,14 @@ export const productFlowCopy: Record<
 		advanced: "د مقدار او بستې تنظیمات",
 		submitted:
 			"د دې محصول یوه بڼه د تایید په تمه ده. نور بدلونونه د نوې مسودې په توګه خوندي کولای شئ.",
+		savedToast: "د محصول بدلونونه خوندي شول.",
+		submittedToast: "محصول د بیاکتنې لپاره واستول شو.",
+		errorToast: "دا کار بشپړ نه شو. پیغام وګورئ او بیا هڅه وکړئ.",
+		delete: "محصول ړنګ کړئ",
+		deleteTitle: "دا محصول ړنګ شي؟",
+		deleteHelp:
+			"دا کار محصول او خوندي شوي معلومات د تل لپاره ړنګوي. له خوندي سوداګریزې مخینې سره تړلی محصول نه شي ړنګېدای.",
+		deleteSuccess: "محصول ړنګ شو.",
 	},
 	ar: {
 		steps: ["إعداد البيع", "تفاصيل المنتج", "الخيارات والأسعار", "الصور"],
@@ -516,5 +548,13 @@ export const productFlowCopy: Record<
 		advanced: "إعدادات الكمية والعبوة",
 		submitted:
 			"هناك إصدار من هذا المنتج بانتظار الموافقة. يمكنك حفظ التغييرات الإضافية كمسودة جديدة.",
+		savedToast: "تم حفظ تغييرات المنتج.",
+		submittedToast: "تم إرسال المنتج للمراجعة.",
+		errorToast: "تعذر إكمال هذا الإجراء. راجع الرسالة وحاول مرة أخرى.",
+		delete: "حذف المنتج",
+		deleteTitle: "حذف هذا المنتج؟",
+		deleteHelp:
+			"سيؤدي ذلك إلى حذف المنتج وتفاصيله المحفوظة نهائياً. لا يمكن حذف المنتجات المرتبطة بسجل تجاري محمي.",
+		deleteSuccess: "تم حذف المنتج.",
 	},
 };

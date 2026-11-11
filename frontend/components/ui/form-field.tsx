@@ -14,11 +14,15 @@ export function Input({
 		/>
 	);
 }
-export function Select({ className = "", ...props }: ComponentProps<"select">) {
+export function Select({
+	className = "",
+	compact = false,
+	...props
+}: ComponentProps<"select"> & { compact?: boolean }) {
 	return (
 		<select
 			id={props.id ?? `field-${props.name}`}
-			className={`${inputClass} ${className}`}
+			className={`${compact ? "w-full min-w-0 min-h-10 rounded-control border border-control bg-surface focus:border-action text-foreground px-3 py-2 text-sm font-normal" : inputClass} ${className}`}
 			{...props}
 		/>
 	);

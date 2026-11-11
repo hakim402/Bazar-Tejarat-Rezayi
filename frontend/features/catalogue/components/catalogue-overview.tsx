@@ -1,10 +1,15 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Locale } from "../../../lib/i18n/locales";
 import { catalogueCopy, catalogueStatuses } from "../../../lib/i18n/catalogue";
-import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
+import {
+	productFlowCopy,
+	sellerProductsCopy,
+} from "../../../lib/i18n/seller-products";
 import type { QueryReader } from "../../../lib/routes/account-routes";
 import type { ProductList } from "../types";
 import { Icon } from "../../../components/ui/icon";
+import { apiOrigin } from "../../../lib/api/client";
 import {
 	StatusBadge,
 	statusVariant,
@@ -17,11 +22,13 @@ export function CatalogueOverview({
 	list,
 	seller,
 	filters,
+	onDelete,
 }: {
 	locale: Locale;
 	list: ProductList;
 	seller?: string | null;
 	filters?: QueryReader;
+	onDelete: (id: string, title: string) => void;
 }) {
 	const t = sellerProductsCopy[locale];
 	return (
@@ -58,11 +65,26 @@ export function CatalogueOverview({
 								aria-hidden="true"
 								className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-2xl bg-info/60 text-action no-underline"
 							>
-								<span className="absolute inset-6 rounded-2xl border border-action/10 rotate-6" />
-								<Icon
-									name="box"
-									className="size-14 opacity-60 transition-transform group-hover:scale-105 motion-reduce:transform-none"
-								/>
+								{product.image ? (
+									<Image
+										unoptimized
+										fill
+										sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
+										className="object-cover transition-transform group-hover:scale-[1.03] motion-reduce:transform-none"
+										src={
+											apiOrigin(process.env.NEXT_PUBLIC_API_URL) + product.image
+										}
+										alt={product.title || t.untitled}
+									/>
+								) : (
+									<>
+										<span className="absolute inset-6 rounded-2xl border border-action/10 rotate-6" />
+										<Icon
+											name="box"
+											className="size-14 opacity-60 transition-transform group-hover:scale-105 motion-reduce:transform-none"
+										/>
+									</>
+								)}
 							</Link>
 							<div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
 								<div className="min-w-0 flex-1 space-y-2">
@@ -86,14 +108,25 @@ export function CatalogueOverview({
 										{product.published ? t.live : t.notLive}
 									</span>
 								</div>
-								<Link
-									href={href}
-									className={`${productLink} w-full border-action! bg-action! text-on-primary! hover:bg-action-hover!`}
-									aria-label={`${t.edit}: ${product.title || t.untitled}`}
-								>
-									{t.edit}
-									<Icon name="arrow" className="size-4 rtl:rotate-180" />
-								</Link>
+								<div className="grid grid-cols-[1fr_auto] gap-2">
+									<Link
+										href={href}
+										className={`${productLink} w-full border-action! bg-action! text-on-primary! hover:bg-action-hover!`}
+										aria-label={`${t.edit}: ${product.title || t.untitled}`}
+									>
+										{t.edit}
+										<Icon name="arrow" className="size-4 rtl:rotate-180" />
+									</Link>
+									<button
+										type="button"
+										onClick={() =>
+											onDelete(product.id, product.title || t.untitled)
+										}
+										className="min-h-11 rounded-xl border border-danger/30 bg-surface px-3 text-sm font-semibold text-danger hover:bg-danger-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+									>
+										{productFlowCopy[locale].delete}
+									</button>
+								</div>
 							</div>
 						</li>
 					);

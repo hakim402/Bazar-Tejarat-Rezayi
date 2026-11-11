@@ -1348,6 +1348,50 @@
                         "description": ""
                     }
                 }
+            },
+            "delete": {
+                "operationId": "catalogue_delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "catalogue"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CatalogueDeleted"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
             }
         },
         "/api/v1/catalogue/{context}/products/{id}/actions/": {
@@ -19629,6 +19673,17 @@
                     "goods_version",
                     "reason",
                     "version"
+                ]
+            },
+            "CatalogueDeleted": {
+                "type": "object",
+                "properties": {
+                    "deleted": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "deleted"
                 ]
             }
         },
