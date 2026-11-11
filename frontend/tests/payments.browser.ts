@@ -7,6 +7,8 @@ import {
 import { syntheticImage } from "./support/messaging-runtime";
 import { noOverflow } from "./support/commerce-runtime";
 import { adminLogin, adminAppearance } from "./support/admin-runtime";
+import { selectControl } from "./support/seller-controls";
+import { sellerSalesCopy } from "../lib/i18n/seller-sales";
 import { paymentCopy } from "../features/payments/copy";
 import type { Locale } from "../lib/i18n/locales";
 import { catalogueCopy } from "../lib/i18n/catalogue";
@@ -600,9 +602,7 @@ test("P12 uncertain A receipt cannot overwrite business B; deliberate switch and
 			exact: true,
 		});
 		await expect(reconcile).toBeEnabled({ timeout: 20000 });
-		await seller.page
-			.getByRole("combobox", { name: paymentCopy.en.business, exact: true })
-			.selectOption(other);
+		await selectControl(seller.page, sellerSalesCopy.en.business, other);
 		const warning = seller.page
 			.getByRole("alert")
 			.filter({ hasText: catalogueCopy.en.dirty });

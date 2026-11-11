@@ -1,31 +1,29 @@
 {% extends "admin/base_site.html" %}
+{% load i18n %}
 {% block content %}
-<section lang="{{ locale }}" dir="{{ direction }}" class="max-w-4xl">
-<h1>{{ title }}</h1>
-<p>{{ resource }}</p>
-{% if requested_alternatives %}
+<div class="rz-owner ra:space-y-6 ra:min-w-0">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{{ title }}</h1>
+<p dir="auto">{{ resource }}</p>
 <p>{{ t.intro }}</p>
-<h2>{{ t.requested }}</h2>
-<dl class="my-4 space-y-3">
+</section>
+{% if requested_alternatives %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h2 class="ra:text-lg ra:font-semibold">{{ t.requested }}</h2>
+<dl class="ra:space-y-3">
 {% for item in requested_alternatives %}
-<div><dt class="font-semibold">{{ item.label }}</dt><dd class="break-words whitespace-pre-wrap">{{ item.reason }}</dd></div>
+<div><dt>{{ item.label }}</dt><dd dir="auto">{{ item.reason }}</dd></div>
 {% endfor %}
 </dl>
+</section>
 {% endif %}
-<form method="post">
-{% csrf_token %}
-{% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
-{% for field in form %}
-{% if field.is_hidden %}{{ field }}{% else %}
-<div class="mb-5">
-<label for="{{ field.id_for_label }}" class="block font-semibold mb-2">{{ field.label }}</label>
-{{ field }}
-{% if field.errors %}<div role="alert">{{ field.errors }}</div>{% endif %}
-{% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="mt-2 text-sm">{{ field.help_text }}</p>{% endif %}
-</div>
-{% endif %}
-{% endfor %}
-<button type="submit" class="bg-primary-600 text-white rounded-default px-4 py-2 font-medium">{{ t.apply }}</button>
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{{ t.title }}">
+<h2 class="ra:text-lg ra:font-semibold">{{ t.action }}</h2>
+<form method="post" class="ra:space-y-3">{% csrf_token %}
+{{ form.non_field_errors }}
+{{ form.as_p }}
+<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{{ t.apply }}</button>
 </form>
 </section>
+</div>
 {% endblock %}

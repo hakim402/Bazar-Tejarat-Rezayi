@@ -13,13 +13,17 @@ def main():
     from apps.runtime.models import Job
 
     seed_sweeps()
-    call_command("run_due_jobs", seconds=40, limit=10)
-    rows = list(Job.objects.filter(kind__in=SWEEPS))
+    try:
+        call_command("run_due_jobs", seconds=40, limit=10)
+    finally:
+        rows = list(Job.objects.filter(kind__in=SWEEPS))
+        # Keep bounded status diagnostics even if the command raises. Never
+        # include job payloads, exception text or private resource identifiers.
+        print(
+            "Required sweep results:",
+            [(row.kind, row.attempts, row.failures, row.state, row.lease is None, row.lease_until is None) for row in rows],
+        )
     assert {row.kind for row in rows} == set(SWEEPS)
-    print(
-        "Required sweep results:",
-        [(row.kind, row.attempts, row.failures, row.state, row.lease is None, row.lease_until is None) for row in rows],
-    )
     assert all(
         row.attempts >= 1
         and row.failures == 0

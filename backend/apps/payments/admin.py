@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
@@ -185,8 +186,7 @@ class CaseAdmin(PaymentAdmin):
         return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
     def workspace(self, obj):
-        return format_html(
-            '<a href="{}" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700">{}</a>',
+        return format_html('<a href="{}">{}</a>',
             reverse("admin:payments_reviewcase_workflow", args=[obj.pk]),
             ADMIN_COPY["payment_open_review"],
         )
@@ -397,11 +397,9 @@ class RefundDueAdmin(PaymentAdmin):
         return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
     def workspace(self, obj):
-        return format_html(
-            '<a href="{}" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700">Open guarded refund review</a>',
-            self.review_url(obj.pk),
+        return format_html('<a href="{}">{}</a>',
+            self.review_url(obj.pk), _("Open guarded refund review"),
         )
-
     def review_url(self, pk):
         return reverse("admin:payments_refunddue_review", args=[pk])
 

@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.core.exceptions import SuspiciousOperation
 from django.contrib.admin import SimpleListFilter
 from django.utils.html import format_html, format_html_join
+from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import permits
@@ -31,7 +32,10 @@ class InventoryAuditAdmin(AdminDisplayMixin, ModelAdmin):
         return self.readonly_fields or [field.name for field in self.model._meta.fields]
 
     def get_fieldsets(self, request, obj=None):
-        return [(None, {'fields': self.get_readonly_fields(request, obj), 'description': 'Authoritative stock inspection. Balances and retained ledger records change only through existing trusted inventory services and compensating operations; no generic edit/delete or invented reserve/recovery actions.'})]
+        description = _(
+            "Authoritative stock inspection. Balances and retained ledger records change only through existing trusted inventory services and compensating operations; no generic edit/delete or invented reserve/recovery actions."
+        )
+        return [(None, {'fields': self.get_readonly_fields(request, obj), 'description': description})]
 
     def has_add_permission(self, request):
         return False
@@ -104,11 +108,12 @@ class ShortageAdmin(InventoryAuditAdmin):
 
     def shortage_state(self, obj):
         root = self.root_shortage(obj).pk
-        return 'Recovered' if Recovery.objects.filter(shortage_id=root).exists() else 'Shortage'
+        return _("Recovered") if Recovery.objects.filter(shortage_id=root).exists() else _("Shortage")
 
     def requested_lines(self, obj):
         # JSON was validated by stock services. Escape every value; expose no actor/storage/contact fields.
-        return format_html('<table><thead><tr><th>SKU</th><th>Unit</th><th>Requested</th><th>Available</th></tr></thead><tbody>{}</tbody></table>',
+        return format_html('<table><thead><tr><th>{}</th><th>{}</th><th>{}</th><th>{}</th></tr></thead><tbody>{}</tbody></table>',
+            _("SKU"), _("Unit"), _("Requested"), _("Available"),
             format_html_join('', '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>',
                 ((line.get('sku', ''), line.get('unit', ''), line.get('requested', ''), line.get('available', ''))
                  for line in obj.lines)))
@@ -121,15 +126,15 @@ class ShortageAdmin(InventoryAuditAdmin):
             frontier = list(Shortage.objects.filter(recovery_of_id__in=frontier).values_list('pk', flat=True))
             ids.extend(frontier)
         attempts = Shortage.objects.filter(pk__in=ids).exclude(pk=root).select_related('operation').order_by('operation__created_at')
-        links = [(reverse('admin:inventory_shortage_change', args=[root]), 'Original shortage')]
+        links = [(reverse('admin:inventory_shortage_change', args=[root]), _("Original shortage"))]
         links += [(reverse('admin:inventory_shortage_change', args=[s.pk]),
-                   'Failed recovery: ' + s.operation.reference) for s in attempts]
+                   format_html('{} {}', _("Failed recovery:"), s.operation.reference)) for s in attempts]
         successful = Recovery.objects.filter(shortage_id=root).select_related('operation').first()
         # Successful operation details do not become general ledger authority. Show only narrow history.
         content = format_html_join(' · ', '<a href="{}">{}</a>', links)
         if successful:
-            content = format_html('{} · Successful recovery: {} · {}', content,
-                                  successful.operation.reference, successful.operation.created_at)
+            content = format_html('{} · {} {} · {}', content,
+                                  _("Successful recovery:"), successful.operation.reference, successful.operation.created_at)
         return content
 
 

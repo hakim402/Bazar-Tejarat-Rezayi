@@ -1,38 +1,39 @@
 {% extends "admin/base_site.html" %}
+{% load i18n %}
 {% block content %}
-<div class="rz-owner space-y-6 min-w-0">
-  <section class="rounded-default border border-base-200 dark:border-base-800 p-4">
-    <h1 class="text-xl font-semibold">Message report case</h1>
-    <p>Case <bdi>{{ report.id }}</bdi> · {{ report.get_category_display }} · {{ report.get_status_display }} · Version {{ report.version }}</p>
-    <p class="mt-2">Private inspection requires an open participant report, current authorization and a recorded access audit. Participant read state is unchanged.</p>
-  </section>
-  {% if content %}
-  <section class="rounded-default border border-base-200 dark:border-base-800 p-4 space-y-3" aria-label="Case conversation">
-    <h2 class="text-lg font-semibold">{{ content.snapshot.title }}</h2>
-    <p>{{ content.snapshot.seller }} · <bdi>{{ content.snapshot.currency }}</bdi></p>
-    <h3 class="font-semibold">Participant report reason</h3><p class="whitespace-pre-wrap break-words" dir="auto">{{ content.reason }}</p>
-    {% if content.reported_message %}
-    <h3 class="font-semibold">Reported message · #{{ content.reported_message.sequence }}</h3>
-    <article class="border border-base-200 dark:border-base-800 rounded-default p-3 space-y-2">
-      <p><strong dir="auto">{{ content.reported_message.author }}</strong> · <bdi>{{ content.reported_message.created_at|date:"Y-m-d H:i" }} Kabul</bdi></p>
-      <p class="whitespace-pre-wrap break-words" dir="auto">{{ content.reported_message.body }}</p>
-      {% for image in content.reported_message.images %}<a href="{{ image.download }}" rel="noreferrer">Protected reported image · {{ image.width }} × {{ image.height }}</a>{% endfor %}
-    </article>
-    {% endif %}
-    <h3 class="font-semibold">Conversation history</h3>
-    {% if content.has_more %}<a href="?before={{ content.oldest }}">Earlier messages</a>{% endif %}
-    {% for message in content.messages %}
-    <article class="border border-base-200 dark:border-base-800 rounded-default p-3 space-y-2">
-      <p><strong dir="auto">{{ message.author }}</strong> · {{ message.context }} · <bdi>{{ message.created_at|date:"Y-m-d H:i" }} Kabul</bdi> · #{{ message.sequence }}</p>
-      <p class="whitespace-pre-wrap break-words" dir="auto">{{ message.body }}</p>
-      {% for image in message.images %}<a href="{{ image.download }}" rel="noreferrer">Protected image · {{ image.width }} × {{ image.height }}</a>{% endfor %}
-    </article>
-    {% empty %}<p>No messages in this history page.</p>{% endfor %}
-  </section>
-  {% else %}<p role="status">Conversation content is locked. An open case, current permission and assignment are required.</p>{% endif %}
-  <section class="rounded-default border border-base-200 dark:border-base-800 p-4">
-    <h2 class="text-lg font-semibold">Case action</h2>
-    <form method="post" class="space-y-3">{% csrf_token %}{{ form.as_p }}<button class="bg-primary-600 text-white px-4 py-2 rounded-default" type="submit">Apply case action</button></form>
-  </section>
+<div class="rz-owner ra:space-y-6 ra:min-w-0">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{% translate "Message report case" %}</h1>
+<p>{% translate "Case" %} <bdi>{{ report.id }}</bdi> · {{ report.get_category_display }} · {{ report.get_status_display }} · {% translate "Version" %} <bdi>{{ report.version }}</bdi></p>
+<p>{% translate "Private inspection requires an open participant report, current authorization and a recorded access audit. Participant read state is unchanged." %}</p>
+</section>
+{% if content %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Case conversation' %}">
+<h2 class="ra:text-lg ra:font-semibold" dir="auto">{{ content.snapshot.title }}</h2>
+<p dir="auto">{{ content.snapshot.seller }} · <bdi>{{ content.snapshot.currency }}</bdi></p>
+<h3 class="ra:font-semibold">{% translate "Participant report reason" %}</h3><p class="ra:whitespace-pre-wrap ra:break-words" dir="auto">{{ content.reason }}</p>
+{% if content.reported_message %}
+<h3 class="ra:font-semibold">{% blocktranslate with sequence=content.reported_message.sequence %}Reported message · #{{ sequence }}{% endblocktranslate %}</h3>
+<article class="ra:rounded-control ra:border ra:border-line ra:p-3 ra:space-y-2">
+<p><strong dir="auto">{{ content.reported_message.author }}</strong> · <bdi>{{ content.reported_message.created_at|date:"Y-m-d H:i" }} {% translate "Kabul" %}</bdi></p>
+<p class="ra:whitespace-pre-wrap ra:break-words" dir="auto">{{ content.reported_message.body }}</p>
+{% for image in content.reported_message.images %}<p><a href="{{ image.download }}" rel="noreferrer">{% blocktranslate with width=image.width height=image.height %}Protected reported image · {{ width }} × {{ height }}{% endblocktranslate %}</a></p>{% endfor %}
+</article>
+{% endif %}
+<h3 class="ra:font-semibold">{% translate "Conversation history" %}</h3>
+{% if content.has_more %}<p><a href="?before={{ content.oldest }}">{% translate "Earlier messages" %}</a></p>{% endif %}
+{% for message in content.messages %}
+<article class="ra:rounded-control ra:border ra:border-line ra:p-3 ra:space-y-2">
+<p><strong dir="auto">{{ message.author }}</strong> · {{ message.context }} · <bdi>{{ message.created_at|date:"Y-m-d H:i" }} {% translate "Kabul" %}</bdi> · #{{ message.sequence }}</p>
+<p class="ra:whitespace-pre-wrap ra:break-words" dir="auto">{{ message.body }}</p>
+{% for image in message.images %}<p><a href="{{ image.download }}" rel="noreferrer">{% blocktranslate with width=image.width height=image.height %}Protected image · {{ width }} × {{ height }}{% endblocktranslate %}</a></p>{% endfor %}
+</article>
+{% empty %}<p>{% translate "No messages in this history page." %}</p>{% endfor %}
+</section>
+{% else %}<p role="status">{% translate "Conversation content is locked. An open case, current permission and assignment are required." %}</p>{% endif %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Case action' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Case action" %}</h2>
+<form method="post" class="ra:space-y-3">{% csrf_token %}{{ form.non_field_errors }}{{ form.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{% translate "Apply case action" %}</button></form>
+</section>
 </div>
 {% endblock %}

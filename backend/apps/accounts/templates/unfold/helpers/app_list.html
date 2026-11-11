@@ -1,29 +1,27 @@
 {% load i18n unfold %}
-<div id="nav-sidebar-apps" tabindex="0" aria-label="{% translate 'Administration navigation' %}" class="ra:min-h-0 ra:flex-1 ra:overflow-y-auto ra:px-3 ra:pb-4">
+<div id="nav-sidebar-apps" tabindex="0" aria-label="{% translate 'Administration navigation' %}" class="h-0 grow overflow-auto scrollbar-default-hover pb-2">
   {% for group in sidebar_navigation %}{% if group.items %}
-    {% if group.section %}{% ifchanged group.section %}<p class="rz-nav-section ra:mb-1 ra:mt-4 ra:px-3 ra:text-[11px] ra:font-semibold ra:uppercase ra:tracking-wider ra:text-muted">{{ group.section }}</p>{% endifchanged %}{% endif %}
-    <section class="ra:mb-1">
-      <ol class="ra:space-y-1">
-        {% for item in group.items %}{% if item.has_permission %}
-          {% if item.items.0 %}
-            <li x-data="{ navigationOpen: {% if item.active %}true{% else %}false{% endif %} }">
-              <button type="button" x-bind:aria-expanded="navigationOpen" aria-controls="nav-group-{{ group.key }}" x-on:click="navigationOpen = !navigationOpen" class="rz-nav-group ra:flex ra:min-h-11 ra:w-full ra:items-center ra:gap-3 ra:rounded-md ra:px-3 ra:py-2 ra:text-start ra:text-[13px] ra:font-medium {% if item.active %}active ra:bg-tint ra:text-action{% else %}ra:text-ink{% endif %} ra:hover:bg-tint">
-                <span data-admin-icon aria-hidden="true" class="material-symbols-outlined ra:text-lg">{{ item.icon }}</span>
-                <span class="ra:min-w-0 ra:flex-1 ra:break-words">{{ item.title }}</span>
-                <span data-admin-icon aria-hidden="true" class="material-symbols-outlined ra:text-base ra:transition-transform ra:rtl:rotate-180" x-bind:class="navigationOpen ? 'ra:rotate-90 ra:rtl:-rotate-90' : ''">chevron_right</span>
-              </button>
-              <ul id="nav-group-{{ group.key }}" x-cloak x-show="navigationOpen" class="ra:ms-5 ra:my-2 ra:space-y-0.5 ra:border-s-2 ra:border-line ra:ps-3">
-                {% for child in item.items %}{% if child.has_permission %}
-                  <li><a href="{% if child.link_callback %}{{ child.link_callback }}{% else %}{{ child.link }}{% endif %}" {% if child.active %}aria-current="page"{% endif %} class="ra:flex ra:min-h-11 ra:items-center ra:gap-2 ra:rounded-md ra:px-3 ra:py-2 ra:text-sm ra:hover:bg-tint {% if child.active %}active ra:bg-tint ra:font-semibold ra:text-action{% else %}ra:text-muted{% endif %}"><span class="ra:min-w-0 ra:flex-1 ra:break-words">{{ child.title }}</span>{% include 'unfold/helpers/app_list_badge.html' with item=child %}</a></li>
-                {% endif %}{% endfor %}
-              </ul>
-            </li>
-          {% else %}
-            <li><a href="{% if item.link_callback %}{{ item.link_callback }}{% else %}{{ item.link }}{% endif %}" {% if item.active %}aria-current="page"{% endif %} class="ra:flex ra:min-h-11 ra:items-center ra:gap-3 ra:rounded-md ra:px-3 ra:py-2 ra:text-sm ra:hover:bg-tint {% if item.active %}active ra:bg-tint ra:font-semibold ra:text-action{% else %}ra:text-muted{% endif %}"><span data-admin-icon aria-hidden="true" class="material-symbols-outlined ra:text-lg">{{ item.icon }}</span><span class="ra:min-w-0 ra:flex-1 ra:break-words">{{ item.title }}</span>{% include 'unfold/helpers/app_list_badge.html' with item=item %}</a></li>
-          {% endif %}
-        {% endif %}{% endfor %}
-      </ol>
-    </section>
+    {% if group.section %}{% ifchanged group.section %}<h2 class="rz-nav-section font-semibold flex flex-row items-center mb-1 mt-3 mx-3 py-1.5 px-3 select-none text-font-important-light text-sm dark:text-font-important-dark">{{ group.section }}</h2>{% endifchanged %}{% endif %}
+    <ol class="flex flex-col px-3 mb-1.5">
+      {% for item in group.items %}{% if item.has_permission %}
+        {% if item.items.0 %}
+          <li x-data="{ navigationOpen: {% if item.active %}true{% else %}false{% endif %} }">
+            <button type="button" x-bind:aria-expanded="navigationOpen" aria-controls="nav-group-{{ group.key }}" x-on:click="navigationOpen = !navigationOpen" class="rz-nav-group cursor-pointer flex h-[38px] w-full items-center px-3 rounded-default text-start hover:text-primary-600 dark:hover:text-primary-500 {% if item.active %}font-semibold text-primary-600 dark:text-primary-500 active{% endif %}">
+              <span data-admin-icon aria-hidden="true" class="material-symbols-outlined md-18 me-3 w-[18px]">{{ item.icon }}</span>
+              <span class="min-w-0 truncate">{{ item.title }}</span>
+              <span data-admin-icon aria-hidden="true" class="material-symbols-outlined ms-auto select-none transition-all rtl:-scale-x-100" x-bind:class="{'rotate-90 rtl:-rotate-90': navigationOpen}">chevron_right</span>
+            </button>
+            <ul id="nav-group-{{ group.key }}" x-cloak x-show="navigationOpen" class="border-s-2 border-base-200 flex flex-col gap-0.5 ms-5 my-2 dark:border-base-800">
+              {% for child in item.items %}{% if child.has_permission %}
+                <li class="ms-5"><a href="{% if child.link_callback %}{{ child.link_callback }}{% else %}{{ child.link }}{% endif %}" {% if child.active %}aria-current="page"{% endif %} class="flex items-center gap-2 rounded-default -mx-3 px-3 py-1.5 hover:text-primary-600 dark:hover:text-primary-500 {% if child.active %}active bg-base-100 font-medium text-primary-600 dark:bg-white/[.06] dark:text-primary-500{% endif %}"><span class="min-w-0 grow truncate">{{ child.title }}</span>{% include 'unfold/helpers/app_list_badge.html' with item=child %}</a></li>
+              {% endif %}{% endfor %}
+            </ul>
+          </li>
+        {% else %}
+          <li><a href="{% if item.link_callback %}{{ item.link_callback }}{% else %}{{ item.link }}{% endif %}" {% if item.active %}aria-current="page"{% endif %} class="cursor-pointer flex h-[38px] items-center px-3 rounded-default hover:text-primary-600 dark:hover:text-primary-500 {% if item.active %}active bg-base-100 font-semibold text-primary-600 dark:bg-white/[.06] dark:text-primary-500{% endif %}"><span data-admin-icon aria-hidden="true" class="material-symbols-outlined md-18 me-3 w-[18px]">{{ item.icon }}</span><span class="min-w-0 grow truncate">{{ item.title }}</span>{% include 'unfold/helpers/app_list_badge.html' with item=item %}</a></li>
+        {% endif %}
+      {% endif %}{% endfor %}
+    </ol>
   {% endif %}{% endfor %}
 </div>
 {% include 'unfold/helpers/app_list_all.html' %}

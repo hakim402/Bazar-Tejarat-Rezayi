@@ -71,7 +71,7 @@ export function ReportForm({ context, id, locale, target = "message", onDirty, o
 			{!online && <p role="status">{t.offline}</p>}
 			{results?.map((result) => <p key={result.id} role="status">{t.reportSaved} · {result.status === "open" ? t.open : t.resolved} · <bdi>{result.id}</bdi> · <bdi>v{result.version}{result.created_at ? ` · ${new Intl.DateTimeFormat(locale, { timeZone: "Asia/Kabul", dateStyle: "medium", timeStyle: "short" }).format(new Date(result.created_at))}` : ""}</bdi></p>)}
 			{uncertain && <p role="status">{t.reportUncertain}</p>}
-			{(!results?.length || dirty || uncertain) && <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+			{(!results?.length || dirty || uncertain) && <form aria-label={label} className="space-y-3" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
 				<label className="block space-y-2">{t.category}<select className={context === "seller" ? messageControl : control} value={category} disabled={busy || uncertain} onChange={(event) => { setCategory(event.target.value); setDirty(true); }}>{(["abuse", "fraud", "spam", "privacy", "other"] as const).map((value) => <option key={value} value={value}>{value === "privacy" ? t.privacyCategory : t[value]}</option>)}</select></label>
 				<label className="block space-y-2">{t.reason}<textarea dir="auto" required minLength={3} maxLength={1000} className={context === "seller" ? messageControl : control} value={reason} disabled={busy || uncertain} onChange={(event) => { setReason(event.target.value); setDirty(true); }} /></label>
 				<button className={context === "seller" ? messageAction : action} disabled={busy || !online} type="submit">{busy ? t.sending : uncertain ? t.retry : t.submitReport}</button>

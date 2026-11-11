@@ -34,7 +34,7 @@ test("canonical super admin: native coverage, sidebar, forms and responsive impo
     const fingerprint = createHash("sha256").update(await css.body()).digest("hex").slice(0, 16);
     expect(new URL(stylesheet!, apiOrigin).searchParams.get("v")).toBe(fingerprint);
 
-	await expect(page.locator("header").first()).toContainText("Super admin");
+	await expect(page.getByRole("button", { name: /Canonical browser super admin/ })).toBeVisible();
 	const nav = page.locator("#nav-sidebar-apps");
 	if (!(await nav.isVisible()))
 		await page
@@ -205,8 +205,7 @@ test("expanded native sidebar supports wheel, keyboard and last-link access at s
 			).toBeInViewport();
 			await expect(
 				page.getByRole("button", {
-					name: "Search apps and models...",
-					exact: true,
+					name: /^Search apps and models/,
 				}),
 			).toBeInViewport();
 			await page.screenshot({

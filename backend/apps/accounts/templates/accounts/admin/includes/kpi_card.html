@@ -1,19 +1,17 @@
 {% load i18n %}
-<a href="{{ metric.url }}" class="ra:group ra:flex ra:min-w-0 ra:flex-col ra:overflow-hidden ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:text-ink" data-testid="dashboard-metric">
-  <div class="ra:flex-1 ra:p-4 ra:sm:p-5">
-    <div class="ra:flex ra:flex-wrap ra:items-start ra:justify-between ra:gap-2">
-      <p class="ra:text-sm ra:font-medium ra:text-muted ra:group-hover:text-action">{{ metric.label }}</p>
-      <span data-admin-icon class="material-symbols-outlined ra:text-xl ra:text-muted" aria-hidden="true">{{ metric.icon }}</span>
+<a href="{{ metric.url }}" class="ra:group ra:flex ra:min-w-0 ra:flex-col ra:overflow-hidden ra:rounded-md ra:border ra:border-line ra:bg-panel ra:text-ink ra:shadow-xs ra:transition-colors ra:hover:border-action" data-testid="dashboard-metric">
+  <div class="ra:flex-1 ra:px-6 ra:py-5">
+    <div class="ra:flex ra:items-start ra:justify-between ra:gap-2">
+      <p class="ra:text-sm ra:text-muted ra:group-hover:text-action">{{ metric.label }}</p>
+      <span class="ra:flex ra:size-8 ra:shrink-0 ra:items-center ra:justify-center ra:rounded-md ra:bg-tint ra:text-action"><span data-admin-icon class="material-symbols-outlined ra:text-lg" aria-hidden="true">{{ metric.icon }}</span></span>
     </div>
-    <p class="ra:mt-3 ra:text-3xl ra:font-semibold ra:tabular-nums ra:tracking-tight" data-testid="metric-value"><bdi dir="ltr">{{ metric.value }}</bdi></p>
+    <p class="ra:text-3xl ra:font-bold ra:tabular-nums ra:tracking-tight" data-testid="metric-value"><bdi dir="ltr">{{ metric.value }}</bdi></p>
+    <p class="ra:mt-1 ra:text-xs ra:leading-5 ra:text-muted">{{ metric.note }}</p>
   </div>
-  <div class="ra:space-y-2 ra:border-t ra:border-line ra:px-4 ra:py-3 ra:sm:px-5">
-    {% if metric.delta %}
-      <div class="ra:flex ra:flex-wrap ra:items-center ra:gap-x-2 ra:gap-y-1 ra:text-xs ra:text-muted">
-        <span>{% translate 'Last 7 days' %}</span>
-        {% include 'accounts/admin/includes/delta_chip.html' with delta=metric.delta %}
-      </div>
-    {% endif %}
-    <p class="ra:text-xs ra:leading-5 ra:text-muted">{{ metric.note }}</p>
-  </div>
+  {% if metric.delta %}
+    <div class="ra:flex ra:flex-wrap ra:items-center ra:gap-x-2 ra:gap-y-1 ra:border-t ra:border-line ra:px-6 ra:py-3 ra:text-sm ra:text-muted">
+      {% include 'accounts/admin/includes/delta_chip.html' with delta=metric.delta %}
+      <span class="ra:ms-auto ra:rounded-sm ra:bg-tint ra:px-2 ra:py-0.5 ra:text-[11px] ra:font-semibold ra:uppercase ra:tracking-wide ra:text-action">{% translate 'Last 7 days' %}</span>
+    </div>
+  {% endif %}
 </a>

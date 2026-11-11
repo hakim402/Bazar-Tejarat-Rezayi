@@ -56,11 +56,17 @@ class MariaDBInfrastructure:
             self.marker["native_prefix"] = str(alias)
             self.marker["native_prefix_target"] = str(original.resolve(strict=True))
         (self.runtime / "ownership.json").write_text(json.dumps(self.marker))
+        # Bootstrap and server temporary tables must stay in this run's owned
+        # tree rather than the shared macOS temporary directory.
+        temporary_tables = self.runtime / "temporary-tables"
+        temporary_tables.mkdir(mode=0o700)
         self.command([str(self.initializer), "--no-defaults", "--basedir=" + str(self.base),
-                      "--datadir=" + self.marker["datadir"], "--auth-root-authentication-method=normal", "--skip-test-db"],
+                      "--datadir=" + self.marker["datadir"], "--tmpdir=" + str(temporary_tables),
+                      "--auth-root-authentication-method=normal", "--skip-test-db"],
                      "mariadb-initialize")
         self.database_process = self.start([str(self.server), "--no-defaults", "--basedir=" + str(self.base),
             "--datadir=" + self.marker["datadir"], "--socket=" + self.marker["socket"],
+            "--tmpdir=" + str(temporary_tables),
             "--skip-networking", "--skip-log-bin", "--pid-file=" + str(self.runtime / "mariadb.pid"),
             "--log-error=" + str(self.evidence / "mariadb-error.log"), "--character-set-server=utf8mb4",
             "--collation-server=utf8mb4_nopad_bin", "--default-storage-engine=InnoDB",

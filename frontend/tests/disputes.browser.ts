@@ -83,7 +83,7 @@ async function open(page: Page, item: Item, context: Context = "buyer", locale: 
 async function reviewDispute(page: Page, reason: string, locale: Locale = "en") {
 	const t = aftercareCopy[locale];
 	await page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("dispute_open");
-	await page.getByLabel(t.disputeReason, { exact: true }).fill(reason);
+	await page.getByRole("textbox", { name: t.disputeReason, exact: true }).fill(reason);
 	await page.getByRole("button", { name: t.exact, exact: true }).click();
 	await expect(page.getByRole("alertdialog")).toContainText(reason);
 }
@@ -141,7 +141,7 @@ for (const locale of locales) {
 			expect(snapshot(item)).toEqual(before);
 			await buyer.page.keyboard.press("Escape");
 			await expect(buyer.page.getByRole("button", { name: t.exact, exact: true })).toBeFocused();
-			await expect(buyer.page.getByLabel(t.disputeReason, { exact: true })).toHaveValue(reason);
+			await expect(buyer.page.getByRole("textbox", { name: t.disputeReason, exact: true })).toHaveValue(reason);
 			await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 			const sent = buyer.page.waitForResponse((r) => r.request().method() === "POST" && r.url().endsWith(`/orders/${item.id}/disputes/`));
 			await confirm(buyer.page, locale);
@@ -152,8 +152,8 @@ for (const locale of locales) {
 			await buyer.page.goto(disputeHref(locale, "buyer", dispute?.id));
 			await expect(buyer.page.locator("option[value=dispute_withdraw]")).toHaveCount(1);
 			await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("dispute_withdraw");
-			await buyer.page.getByLabel(t.target, { exact: true }).selectOption(dispute?.id as string);
-			await buyer.page.getByLabel(t.reason, { exact: true }).fill("Withdraw own exact synthetic dispute");
+			await buyer.page.getByRole("combobox", { name: t.target, exact: true }).selectOption(dispute?.id as string);
+			await buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill("Withdraw own exact synthetic dispute");
 			await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 			const withdrawn = buyer.page.waitForResponse((r) => r.request().method() === "POST" && r.url().endsWith(`/disputes/${dispute?.id}/withdraw/`));
 			await confirm(buyer.page, locale);
@@ -178,8 +178,9 @@ for (const locale of locales) {
 			await open(buyer.page, item, "buyer", locale);
 			const before = snapshot(item), text = `Seller experience • ${locale} • ${item.id}`;
 			await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("review_submit");
-			await buyer.page.getByLabel(t.reviewRating, { exact: true }).selectOption("4");
-			await buyer.page.getByLabel(t.reviewText, { exact: true }).fill(text);
+			await expect(buyer.page.getByRole("combobox", { name: t.exact, exact: true })).toHaveValue("review_submit");
+			await buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("combobox", { name: t.reviewRating, exact: true }).selectOption("4");
+			await buyer.page.getByRole("textbox", { name: t.reviewText, exact: true }).fill(text);
 			await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 			await expect(buyer.page.getByRole("alertdialog")).toContainText(text);
 			const sent = buyer.page.waitForResponse((r) => r.request().method() === "POST" && r.url().endsWith(`/orders/${item.id}/reviews/`));
@@ -189,7 +190,7 @@ for (const locale of locales) {
 			expect(review).toMatchObject({ rating: 4, text, language: locale, state: "pending", can_withdraw: true });
 			await buyer.page.reload();
 			await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("review_withdraw");
-			await buyer.page.getByLabel(t.reason, { exact: true }).fill("Withdraw pending seller experience review");
+			await buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill("Withdraw pending seller experience review");
 			await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 			await expect(buyer.page.getByRole("alertdialog")).toContainText(text);
 			const withdrawn = buyer.page.waitForResponse((r) => r.request().method() === "POST" && r.url().endsWith(`/reviews/${review?.id}/withdraw/`));
@@ -236,7 +237,7 @@ test("P15 seller response uses the selected dispute id and removes only response
 		await seller.page.locator('[role="option"][value="dispute_respond"]').click();
 		await seller.page.getByRole("combobox", { name: t.target, exact: true }).click();
 		await seller.page.locator(`[role="option"][value="${dispute}"]`).click();
-		await seller.page.getByLabel(t.disputeResponse, { exact: true }).fill(text);
+		await seller.page.getByRole("textbox", { name: t.disputeResponse, exact: true }).fill(text);
 		await seller.page.getByRole("button", { name: t.exact, exact: true }).click();
 		const response = seller.page.waitForResponse((r) => r.request().method() === "POST" && r.url().endsWith(`/disputes/${dispute}/respond/`));
 		await confirm(seller.page);
@@ -254,7 +255,7 @@ test("P15 old dispute detail retains the complete collection after opening a new
 		const oldReason = `Historical withdrawn case ${item.id}`, reason = `New pending case ${item.id}`;
 		const opened = await privatePost(buyer.page, `orders/buyer/orders/${item.id}/disputes/`, { command_id: crypto.randomUUID(), version: (await detail(buyer.page, item)).version, reason: oldReason, evidence: [] });
 		expect(opened.status()).toBe(201);
-		const old = (await opened.json()).dispute as string;
+		const old = (await opened.json()).outcome.dispute as string;
 		const withdrawn = await privatePost(buyer.page, `orders/buyer/disputes/${old}/withdraw/`, { command_id: crypto.randomUUID(), version: (await detail(buyer.page, item)).version, dispute: old, reason: "Close the owned historical case" });
 		expect(withdrawn.status()).toBe(200);
 		expect((await detail(buyer.page, item)).disputes).toEqual([expect.objectContaining({ id: old, state: "withdrawn", can_withdraw: false })]);
@@ -266,7 +267,7 @@ test("P15 old dispute detail retains the complete collection after opening a new
 		await confirm(buyer.page);
 		const response = await sent;
 		expect(response.status()).toBe(201);
-		const pending = (await response.json()).dispute as string;
+		const pending = (await response.json()).outcome.dispute as string;
 		expect(pending).not.toBe(old);
 		const read = await buyer.page.request.get(`${apiOrigin}/api/v1/orders/buyer/disputes/${old}/`);
 		expect(read.status()).toBe(200);
@@ -281,11 +282,11 @@ test("P15 old dispute detail retains the complete collection after opening a new
 		for (const id of [old, pending]) await expect(buyer.page.locator(`article a[href="${disputeHref("en", "buyer", id, item.seller)}"]`)).toHaveCount(1);
 		await expect(buyer.page.getByText(reason, { exact: true })).toBeVisible();
 		await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("dispute_withdraw");
-		const target = buyer.page.getByLabel(t.target, { exact: true });
+		const target = buyer.page.getByRole("combobox", { name: t.target, exact: true });
 		await expect(target.locator(`option[value="${pending}"]`)).toHaveCount(1);
 		await expect(target.locator(`option[value="${old}"]`)).toHaveCount(0);
 		await target.selectOption(pending);
-		await buyer.page.getByLabel(t.reason, { exact: true }).fill("Review only the current pending case");
+		await buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill("Review only the current pending case");
 		await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 		await expect(buyer.page.getByRole("alertdialog")).toContainText(pending);
 		await expect(buyer.page.getByRole("alertdialog")).not.toContainText(oldReason);
@@ -313,7 +314,7 @@ test("P15 concurrent real opening leaves the original review visible and stale, 
 		await expect(dialog.getByRole("button", { name: t.confirm, exact: true })).toBeDisabled({ timeout: 30000 });
 		await expect(dialog).toContainText(text);
 		await dialog.getByRole("button", { name: t.cancel, exact: true }).click();
-		await expect(buyer.page.getByLabel(t.disputeReason, { exact: true })).toHaveValue(text);
+		await expect(buyer.page.getByRole("textbox", { name: t.disputeReason, exact: true })).toHaveValue(text);
 		expect((await detail(buyer.page, item)).disputes).toHaveLength(1);
 	} finally { await buyer.session.close(); }
 });
@@ -334,7 +335,7 @@ for (const applied of [true, false]) {
 			await expect(reconcile).toHaveCount(0);
 			expect(sends).toBe(1);
 			expect((await detail(buyer.page, item)).disputes).toHaveLength(applied ? 1 : 0);
-			if (!applied) await expect(buyer.page.getByLabel(t.disputeReason, { exact: true })).toHaveValue(reason);
+			if (!applied) await expect(buyer.page.getByRole("textbox", { name: t.disputeReason, exact: true })).toHaveValue(reason);
 		} finally { await buyer.session.close(); }
 	});
 }
@@ -343,7 +344,7 @@ test("P15 evidence reuses private payments upload and binds the exact reviewed o
 	try {
 		await open(buyer.page, item);
 		await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("dispute_open");
-		await buyer.page.getByLabel(t.disputeReason, { exact: true }).fill("Exact dispute with private synthetic evidence");
+		await buyer.page.getByRole("textbox", { name: t.disputeReason, exact: true }).fill("Exact dispute with private synthetic evidence");
 		const version = (await detail(buyer.page, item)).version;
 		await buyer.page.getByRole("button", { name: t.loadGoods, exact: true }).click();
 		await buyer.page.locator('input[type="file"]').setInputFiles(syntheticImage());
@@ -362,7 +363,7 @@ test("P15 evidence reuses private payments upload and binds the exact reviewed o
 		expect(packet.evidence).toEqual([evidence.id]);
 		const response = await sent;
 		expect(response.status()).toBe(201);
-		const dispute = (await response.json()).dispute as string;
+		const dispute = (await response.json()).outcome.dispute as string;
 		await expect.poll(() => snapshot(item).disputes.length).toBe(1);
 		const current = (await detail(buyer.page, item)).disputes?.[0];
 		expect(current).toMatchObject({ id: dispute, state: "pending" });
@@ -374,16 +375,16 @@ test("P15 order report and aftercare drafts share a discard guard without replac
 	try {
 		await open(buyer.page, item);
 		await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("dispute_open");
-		await buyer.page.getByLabel(t.disputeReason, { exact: true }).fill("Keep aftercare draft");
+		await buyer.page.getByRole("textbox", { name: t.disputeReason, exact: true }).fill("Keep aftercare draft");
 		const report = buyer.page.locator("details").filter({ has: buyer.page.locator("summary", { hasText: copy.reportOrder }) });
 		await report.locator("summary").click();
 		await report.getByLabel(copy.reason, { exact: true }).fill("Keep generalized report draft");
-		await buyer.page.locator('a[href="/en/account/buyer/disputes"]').first().click();
+		await buyer.page.locator('main a[href="/en/account/buyer/disputes"]').first().click();
 		const warning = buyer.page.getByRole("alert").filter({ has: buyer.page.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }) });
 		await expect(warning).toBeVisible();
 		await warning.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }).click();
-		await expect(buyer.page.getByLabel(t.disputeReason, { exact: true })).toHaveValue("Keep aftercare draft");
-		await expect(report.getByLabel(copy.reason, { exact: true })).toHaveValue("Keep generalized report draft");
+		await expect(buyer.page.getByRole("textbox", { name: t.disputeReason, exact: true })).toHaveValue("Keep aftercare draft");
+		await expect(report.locator("textarea")).toHaveValue("Keep generalized report draft");
 		expect(snapshot(item).disputes).toHaveLength(0);
 	} finally { await buyer.session.close(); }
 });
@@ -435,10 +436,11 @@ for (const target of ["product", "store"] as const) {
 				await expect(buyer.page).toHaveURL(new URL(href, buyer.page.url()).href);
 				await warning.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }).click();
 				await expect(language.locator('input[value="en"]')).toBeChecked();
-				await expect(language.locator('input[value="ar"]')).not.toBeChecked();
-				await expect(language.locator('input[value="ar"]')).toBeFocused();
+				// Retained locale order is Dari, English, Pashto, Arabic: ArrowLeft from English reaches Dari.
+				await expect(language.locator('input[value="fa-AF"]')).not.toBeChecked();
+				await expect(language.locator('input[value="fa-AF"]')).toBeFocused();
 				expect((await buyer.session.cookies()).filter((cookie) => cookie.name === "rezayi-locale")).toEqual(cookies.filter((cookie) => cookie.name === "rezayi-locale"));
-				await expect(report.getByLabel(copy.reason, { exact: true })).toHaveValue(reason);
+				await expect(report.locator("textarea")).toHaveValue(reason);
 				await buyer.page.keyboard.press("Escape");
 				await expect(preferences.locator("summary")).toBeFocused();
 			}
@@ -451,7 +453,7 @@ for (const target of ["product", "store"] as const) {
 			await warning.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }).click();
 			await expect(home).toBeFocused();
 			await report.locator("summary").click();
-			await expect(report.getByLabel(copy.reason, { exact: true })).toHaveValue(reason);
+			await expect(report.locator("textarea")).toHaveValue(reason);
 			await report.locator("summary").click();
 			await home.click();
 			await expect(warning).toBeVisible();
@@ -485,7 +487,7 @@ test("P15 financial-only seller downgrade redacts finance but preserves the inde
 		expect(await payment.json()).toMatchObject({ capabilities: { details: true, evidence: true, refund: true }, refund_dues: expect.arrayContaining([expect.objectContaining({ id: item.refund_due, can_report: true })]) });
 		await page.getByRole("combobox", { name: sellerSalesCopy.en.actions, exact: true }).click();
 		await page.locator('[role="option"][value="report"]').click();
-		await page.getByLabel(t.description, { exact: true }).fill("Sensitive financial draft must be redacted");
+		await page.getByRole("textbox", { name: t.description, exact: true }).fill("Sensitive financial draft must be redacted");
 		const report = page.locator("details").filter({ has: page.locator("summary", { hasText: copy.reportOrder }) });
 		const reportPath = `${apiOrigin}/api/v1/messaging/seller/reports/order/${item.id}/`;
 		const loaded = page.waitForResponse((r) => r.request().method() === "GET" && r.url() === reportPath);
@@ -501,14 +503,14 @@ test("P15 financial-only seller downgrade redacts finance but preserves the inde
 		const downgraded = await refreshed;
 		expect(downgraded.status()).toBe(200);
 		expect(await downgraded.json()).toMatchObject({ capabilities: { details: false, evidence: false, refund: false }, refund_dues: [], refund_reports: [] });
-		await expect(page.getByLabel(t.description, { exact: true })).toHaveCount(0);
+		await expect(page.getByRole("textbox", { name: t.description, exact: true })).toHaveCount(0);
 		await expect(page.getByText("Sensitive financial draft must be redacted", { exact: true })).toHaveCount(0);
 		expect((await detail(page, item, "seller")).id).toBe(item.id);
 		const status = await page.request.get(reportPath);
 		expect(status.status()).toBe(200);
 		expect((await status.json()).results).toEqual([]);
-		await expect(report.getByLabel(copy.reason, { exact: true })).toHaveValue(reason);
-		const href = disputeHref("en", "seller", undefined, item.seller), link = page.locator(`a[href="${href}"]`).last();
+		await expect(report.locator("textarea")).toHaveValue(reason);
+		const href = disputeHref("en", "seller", undefined, item.seller), link = page.locator(`main a[href="${href}"]:visible`).last();
 		const warning = page.getByRole("alert").filter({ has: page.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }) });
 		const retainedUrl = page.url();
 		await link.click();
@@ -517,7 +519,7 @@ test("P15 financial-only seller downgrade redacts finance but preserves the inde
 		await warning.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }).click();
 		await expect(link).toBeFocused();
 		await report.locator("summary").click();
-		await expect(report.getByLabel(copy.reason, { exact: true })).toHaveValue(reason);
+		await expect(report.locator("textarea")).toHaveValue(reason);
 		await report.locator("summary").click();
 		await link.click();
 		await expect(warning).toBeVisible();
@@ -571,7 +573,7 @@ test("P15 generalized report lost acknowledgement retries the identical real pac
 		});
 		await report.getByRole("button", { name: copy.submitReport, exact: true }).click();
 		await expect(report).toContainText(copy.reportUncertain);
-		await expect(report.getByLabel(copy.reason, { exact: true })).toBeDisabled();
+		await expect(report.locator("textarea")).toBeDisabled();
 		await report.locator("form").getByRole("button", { name: copy.retry, exact: true }).click();
 		await expect(report).toContainText(copy.reportSaved);
 		expect(sends).toBe(2);
@@ -596,7 +598,7 @@ test("P15 public review projection is approved-only, real aggregate, paginated a
 	await page.goto(`/en/stores/${values.store}/reviews?page=2`);
 	await expect(page.getByText("نظر آزمایشی • Synthetic retained review approved", { exact: true })).toHaveCount(0);
 	await page.goto(`/en/stores/${values.store}/reviews?page=invalid`);
-	await expect(page.getByRole("alert")).toBeVisible();
+	await expect(page.locator("main").getByRole("alert")).toBeVisible();
 });
 test("P15 a real empty public aggregate displays no placeholder rating", async ({ page }) => {
 	const values = fixtures();
@@ -642,7 +644,7 @@ print(json.dumps(result))`)) as { conversation: string; message: string };
 		await thread.getByRole("link", { name: copy.back, exact: true }).click();
 		await expect(warning).toBeVisible();
 		await warning.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }).click();
-		await expect(message.getByLabel(copy.reason, { exact: true })).toHaveValue("Keep private message report");
+		await expect(message.locator("textarea")).toHaveValue("Keep private message report");
 	} finally { await buyer.session.close(); }
 });
 test("P15 own-report statuses remain available through authenticated notifications", async ({ browser }) => {

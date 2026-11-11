@@ -1,0 +1,11 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n %}
+{% block content %}
+<h2>{% translate "My work" %}</h2>
+<p>{% translate "Open items in the queues your current roles allow. Counts exclude businesses you belong to." %}</p>
+<p><a href="?export=1">{% translate "Download CSV" %}</a></p>
+<table>
+<thead><tr><th>{% translate "Queue" %}</th><th>{% translate "Open" %}</th><th>{% translate "Assigned to me" %}</th><th>{% translate "Unassigned" %}</th></tr></thead>
+<tbody>{% for row in my_work %}<tr><td><a href="{{ row.url }}">{{ row.label }}</a></td><td>{{ row.open }}</td><td>{{ row.mine|default_if_none:'—' }}</td><td>{{ row.unassigned|default_if_none:'—' }}</td></tr>{% empty %}<tr><td colspan="4">{% translate "No review queues are available to your current roles." %}</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

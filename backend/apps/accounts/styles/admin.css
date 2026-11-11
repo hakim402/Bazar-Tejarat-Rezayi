@@ -8,6 +8,8 @@
 @source "../../payments/templates";
 @source "../../fulfilment/templates";
 @source "../../orders/templates";
+@source "../../organizations/templates";
+@source "../../messaging/templates";
 @source "../../catalogue/templates";
 @source "../../reports/templates";
 @custom-variant dark (&:where(.dark, .dark *));
@@ -48,8 +50,7 @@ html[lang^="en"] body {line-height:1.6}
 /* Dari (fa-AF): Arabic-script first with the Latin face for identifiers; extra leading for readability. */
 html[lang^="fa"] body,html[lang^="fa"] .font-sans {font-family:RezayiAdminArabic,RezayiAdminLatin,system-ui,sans-serif}
 html[lang^="fa"] body {line-height:1.8}
-html[lang^="fa"] #nav-sidebar-apps a {line-height:1.7}
-:focus-visible {outline:3px solid var(--admin-action);outline-offset:3px}
+:focus-visible {outline:2px solid var(--admin-action);outline-offset:2px}
 [x-cloak] {display:none!important}
 .admin-login {margin:0;background:var(--admin-canvas);color:var(--admin-ink);font:16px/1.6 RezayiAdminLatin,system-ui,sans-serif}
 html[lang^="fa"] .admin-login {font-family:RezayiAdminArabic,RezayiAdminLatin,system-ui,sans-serif;line-height:1.8}
@@ -59,24 +60,15 @@ html[lang^="fa"] .admin-login {font-family:RezayiAdminArabic,RezayiAdminLatin,sy
 .admin-login button,.admin-login input {font-family:inherit}
 .admin-login button {cursor:pointer}
 .admin-login .private {overflow-wrap:anywhere;user-select:all}
-#nav-sidebar-inner {background:var(--admin-panel);display:flex;flex-direction:column;height:100dvh;max-height:100dvh;min-height:0;overflow:hidden}
 /* Keep only the navigation list scrollable; native search/account controls stay reachable. */
+#nav-sidebar-inner {display:flex;flex-direction:column;height:100dvh;max-height:100dvh;min-height:0;overflow:hidden}
 #nav-sidebar-inner > :not(#nav-sidebar-apps) {flex-shrink:0}
 #nav-sidebar-apps {flex:1 1 0%;height:auto;min-height:0;overflow-y:auto;overscroll-behavior-y:contain}
-#nav-sidebar-apps a {min-height:44px;height:auto;padding-block:9px;font-size:13px;line-height:1.5}
-#nav-sidebar-apps a.active {background:var(--admin-tint);color:var(--admin-action)}
-#nav-sidebar-inner a img.h-8 {width:140px;height:auto;max-height:34px;object-fit:contain;margin-inline-end:0}
-#nav-sidebar-apps .rz-nav-section {line-height:1.4}
-#main {background:var(--admin-canvas)}
-.rz-admin-header,#nav-sidebar-inner,.rz-admin-overview {--admin-canvas:#f8fafc;--admin-panel:#fff;--admin-ink:#111827;--admin-muted:#475569;--admin-line:#e2e8f0;--admin-tint:#eaf4ff}
-html.dark .rz-admin-header,html.dark #nav-sidebar-inner,html.dark .rz-admin-overview {--admin-canvas:#111827;--admin-panel:#111827;--admin-ink:#f1f5f9;--admin-muted:#cbd5e1;--admin-line:#334155;--admin-tint:#1e3a50}
-#nav-sidebar-apps .rz-nav-group {line-height:1.5}
-#nav-sidebar-apps [aria-current="page"] {background:var(--admin-tint);color:var(--admin-action)}
-.rz-admin-header h1 {font-size:1.125rem;line-height:1.5;font-weight:600}
-.rz-admin-header h1,.rz-admin-header nav {overflow-wrap:anywhere}
+#nav-sidebar-inner .rz-admin-brand img {inline-size:auto;block-size:28px;max-inline-size:150px;object-fit:contain;margin-inline-end:0}
+html[lang^="fa"] #nav-sidebar-apps a,html[lang^="fa"] #nav-sidebar-apps button {line-height:1.6}
+.rz-admin-overview {--admin-canvas:#fff;--admin-panel:#fff;--admin-ink:#111827;--admin-muted:#4b5563;--admin-line:#e5e7eb;--admin-tint:#eaf4ff}
+html.dark .rz-admin-overview {--admin-canvas:#111827;--admin-panel:#111827;--admin-ink:#f3f4f6;--admin-muted:#9ca3af;--admin-line:#1f2937;--admin-tint:#1e3a50}
 .rz-admin-header h1 > a,.rz-admin-header h1 > span:not(.material-symbols-outlined) {max-inline-size:100%;white-space:normal;overflow-wrap:anywhere}
-.rz-admin-header .font-semibold {white-space:normal}
-.rz-admin-overview {background:var(--admin-canvas)}
 @media(prefers-reduced-motion:reduce) {*,*::before,*::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 /* Reserve ligature icon dimensions while the local font loads. */

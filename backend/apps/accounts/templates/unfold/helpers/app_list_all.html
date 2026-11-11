@@ -1,8 +1,18 @@
 {% load i18n %}
 {% if sidebar_show_all_applications and app_list %}
-<div class="ra:border-t ra:border-line">
-<button type="button" id="all-applications-toggle" x-on:click="openAllApplications = !openAllApplications; $nextTick(() => document.getElementById('all-applications-close').focus())" x-bind:aria-expanded="openAllApplications" aria-controls="all-applications-directory" class="ra:flex ra:min-h-11 ra:w-full ra:items-center ra:gap-3 ra:px-6 ra:py-3 ra:text-sm ra:font-bold ra:text-ink ra:hover:bg-tint"><span data-admin-icon class="material-symbols-outlined" aria-hidden="true">apps</span>{% translate 'All applications' %}</button>
-<div id="all-applications-directory" role="dialog" aria-modal="true" aria-labelledby="all-applications-title" x-cloak x-show="openAllApplications" x-trap.noautofocus.noscroll="openAllApplications" x-on:keydown.escape.stop.prevent="openAllApplications = false; document.getElementById('all-applications-toggle').focus()" class="ra:fixed ra:inset-0 ra:z-50 ra:bg-panel ra:p-5 ra:text-ink ra:overflow-y-auto ra:xl:start-72 ra:xl:w-96 ra:xl:border-e ra:xl:border-line">
-<div class="ra:flex ra:items-center ra:justify-between ra:gap-3"><h2 id="all-applications-title" class="ra:text-lg ra:font-bold">{% translate 'All applications' %}</h2><button type="button" id="all-applications-close" aria-label="{% translate 'Close applications' %}" x-on:click="openAllApplications = false; document.getElementById('all-applications-toggle').focus()" class="ra:size-11 ra:rounded-lg ra:hover:bg-tint"><span data-admin-icon class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
-{% for app in app_list %}<section class="ra:mt-5"><h3 class="ra:font-bold">{{ app.name }}</h3><ul>{% for model in app.models %}{% if model.admin_url %}<li><a href="{{ model.admin_url }}" class="ra:flex ra:min-h-11 ra:items-center ra:rounded-lg ra:px-2 ra:text-sm ra:text-action ra:hover:bg-tint">{{ model.name }}</a></li>{% endif %}{% endfor %}</ul></section>{% endfor %}
-</div></div>{% endif %}
+<div class="mt-auto border-t border-base-200 dark:border-base-800">
+  <button type="button" id="all-applications-toggle" x-on:click="openAllApplications = !openAllApplications; $nextTick(() => document.getElementById('all-applications-close').focus())" x-bind:aria-expanded="openAllApplications" aria-controls="all-applications-directory" class="cursor-pointer flex items-center w-full h-[52px] px-6 text-start hover:text-primary-600 dark:hover:text-primary-500"><span data-admin-icon class="material-symbols-outlined md-18 me-3" aria-hidden="true">apps</span><span>{% translate 'All applications' %}</span></button>
+  <div class="absolute bottom-0 max-md:!start-0 end-0 top-0 z-50" x-cloak x-show="openAllApplications" x-bind:style="{'inset-inline-start': sidebarWidth + 'px'}">
+    <div class="absolute bg-base-900/20 backdrop-blur-xs bottom-0 left-0 right-0 top-0 z-10 w-screen dark:bg-base-900/80" aria-hidden="true"></div>
+    <div id="all-applications-directory" role="dialog" aria-modal="true" aria-labelledby="all-applications-title" x-trap.noautofocus.noscroll="openAllApplications" x-on:click.outside="openAllApplications = false" x-on:keydown.escape.stop.prevent="openAllApplications = false; document.getElementById('all-applications-toggle').focus()" class="bg-white flex flex-col h-full overflow-x-hidden overflow-y-auto py-5 px-8 relative scrollbar-default w-80 z-20 dark:bg-base-900 dark:border-e dark:border-base-800">
+      <div class="flex items-center justify-between gap-3 mb-6"><h2 id="all-applications-title" class="font-semibold text-important text-base">{% translate 'All applications' %}</h2><button type="button" id="all-applications-close" aria-label="{% translate 'Close applications' %}" x-on:click="openAllApplications = false; document.getElementById('all-applications-toggle').focus()" class="cursor-pointer flex items-center justify-center rounded-default ra:size-8 hover:bg-base-100 dark:hover:bg-white/[.06]"><span data-admin-icon class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+      {% for app in app_list %}
+        <div class="mb-6 last:mb-0">
+          <h3 class="mb-3 font-semibold text-important truncate">{{ app.name }}</h3>
+          <ul class="flex flex-col gap-4">{% for model in app.models %}{% if model.admin_url %}<li><a href="{{ model.admin_url }}" class="block truncate hover:text-primary-600 dark:hover:text-primary-500">{{ model.name }}</a></li>{% endif %}{% endfor %}</ul>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}

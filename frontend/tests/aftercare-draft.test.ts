@@ -205,8 +205,8 @@ test("Phase 15 modes fail closed without explicit capabilities and exact row fla
 	data.order.capabilities = [];
 	assert.ok(data.order.disputes && data.order.review);
 	data.order.disputes[0].can_withdraw = false;
-	delete data.order.disputes[0].can_respond;
-	delete data.order.review.can_withdraw;
+	Reflect.deleteProperty(data.order.disputes[0], "can_respond");
+	Reflect.deleteProperty(data.order.review, "can_withdraw");
 	assert.deepEqual(availableModes(data), []);
 	assert.equal(buildAction("en", data, "review_submit", { ...emptyDraft(), rating: "5", text: "Seller experience" }, key), null);
 });

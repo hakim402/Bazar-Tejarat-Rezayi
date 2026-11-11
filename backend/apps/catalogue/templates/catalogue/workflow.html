@@ -1,25 +1,50 @@
 {% extends 'admin/base_site.html' %}{% load i18n %}
 {% block content %}
-{% if item and not independent_decision %}<p role="status" class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-ink">You can inspect this product. An independent reviewer must decide source and translation submissions for your own or historically linked business.</p>{% endif %}
-<div class="max-w-5xl space-y-6" lang="{{ locale }}" dir="{{ direction }}">
-<p>{{ t.revision }}</p>
-{% if item %}<p>{{ item.id }} · {{ item.currency }} · {{ item.pricing_mode }} · {{ item.version }}</p>
-<p>{% if can_translate or is_owner_admin %}<a href="?translation=1&locale={{ locale }}">{{ t.translation }}</a>{% endif %}{% if can_review_source or is_owner_admin %} · <a href="?locale={{ locale }}">{{ t.source }}</a>{% endif %}</p>{% endif %}
+<div class="rz-owner ra:space-y-6 ra:min-w-0">
+{% if item and not independent_decision %}<p role="status">{% translate "You can inspect this product. An independent reviewer must decide source and translation submissions for your own or historically linked business." %}</p>{% endif %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{{ title }}</h1>
+{% if item %}<p><bdi>{{ item.id }}</bdi> · {{ item.currency }} · {{ item.pricing_mode }} · {% translate "Version" %} <bdi>{{ item.version }}</bdi></p>
+<p>{% if can_translate or is_owner_admin %}<a href="?translation=1&amp;locale={{ locale }}">{{ t.translation }}</a>{% endif %}{% if can_review_source or is_owner_admin %} · <a href="?locale={{ locale }}">{{ t.source }}</a>{% endif %}</p>{% endif %}
+</section>
 {% if selection %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{{ t.revision }}">
+<h2 class="ra:text-lg ra:font-semibold">{{ t.revision }}</h2>
 <p>{{ t.load_help }}</p>
-<form method="get" class="space-y-4" id="translation-selection">
+<form method="get" class="ra:space-y-3" id="translation-selection">
 <input type="hidden" name="translation" value="1"><input type="hidden" name="locale" value="{{ locale }}">
-{{ selection.as_p }}<button type="submit" class="px-4 py-3 border rounded">{{ t.load }}</button>
+{{ selection.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{{ t.load }}</button>
 </form>
-{% if selected_revision %}<p id="translation-identity">{{ selected_revision.id }} · #{{ selected_revision.number }} · {{ selected_revision.body.locale }} → {{ form.locale.value }} · {{ t.version }} {{ form.version.value }} · {{ selected_translation.state|default:'draft' }}</p>{% endif %}
+{% if selected_revision %}<p role="status" id="translation-identity"><bdi>{{ selected_revision.id }}</bdi> · #{{ selected_revision.number }} · {{ selected_revision.body.locale }} → {{ form.locale.value }} · {% translate "Version" %} <bdi>{{ form.version.value }}</bdi> · {{ selected_translation.state|default:'draft' }}</p>{% endif %}
+</section>
 {% endif %}
-<form method="post" class="space-y-4" id="catalogue-operation">{% csrf_token %}
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Guarded decision' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Guarded decision" %}</h2>
+<form method="post" class="ra:space-y-3" id="catalogue-operation">{% csrf_token %}
 {% if translation %}<input type="hidden" name="form" value="translation">{% endif %}
-{{ form.as_p }}<button type="submit" class="px-4 py-3 border rounded">{{ t.action }}</button></form>
-{% for image in private_images %}<p><a href="{{ image.url }}">Protected image {{ image.id }}</a></p>{% endfor %}
-{% for revision in revisions %}<details class="border rounded p-4"><summary>{{ revision.id }} · #{{ revision.number }} · {{ revision.state }} · {{ revision.body.locale }}</summary><pre class="whitespace-pre-wrap break-words">{{ revision.body }}</pre><p>{{ revision.reason }}</p></details>{% endfor %}
-{% for t in translations %}<p>{{ t.revision_id }} · {{ t.locale }} · {{ t.version }} · {{ t.state }} · {{ t.title }}</p>{% endfor %}
-{% if translation %}<p>{% if provider == 'groq' or provider == 'test_adapter' %}{% translate "Automatic draft provider enabled" %}{% else %}{% translate "Automatic draft provider disabled. Manual translation remains available." %}{% endif %}</p>{% endif %}
-{% for job in translation_jobs %}<p>{{ job.translation.locale }} · {{ job.status }} · {% translate "Attempts" %} {{ job.attempts }} · {{ job.error_code }}</p>{% endfor %}
-{% for event in events %}<p>{{ event.created_at }} · {{ event.action }} · {{ event.revision_id }} · {{ event.reason }}</p>{% endfor %}
-</div>{% endblock %}
+{{ form.non_field_errors }}
+{{ form.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{{ t.action }}</button></form>
+</section>
+{% if private_images %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Protected evidence' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Protected evidence" %}</h2>
+{% for image in private_images %}<p><a href="{{ image.url }}" rel="noreferrer">{% translate "Open protected image" %} <bdi>{{ image.id }}</bdi></a></p>{% endfor %}
+</section>{% endif %}
+{% if revisions %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Source revisions' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Source revisions" %}</h2>
+{% for revision in revisions %}<details class="ra:rounded-control ra:border ra:border-line ra:p-4"><summary dir="auto">{{ revision.id }} · #{{ revision.number }} · {{ revision.state }} · {{ revision.body.locale }}</summary><pre dir="auto" class="ra:whitespace-pre-wrap ra:break-words">{{ revision.body }}</pre><p dir="auto">{{ revision.reason }}</p></details>{% endfor %}
+</section>{% endif %}
+{% if translations %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Translations' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Translations" %}</h2>
+{% for row in translations %}<p dir="auto"><bdi>{{ row.revision_id }}</bdi> · {{ row.locale }} · {% translate "Version" %} <bdi>{{ row.version }}</bdi> · {{ row.state }} · {{ row.title }}</p>{% endfor %}
+</section>{% endif %}
+{% if translation %}<p role="status">{% if provider == 'groq' or provider == 'test_adapter' %}{% translate "Automatic draft provider enabled" %}{% else %}{% translate "Automatic draft provider disabled. Manual translation remains available." %}{% endif %}</p>{% endif %}
+{% if translation_jobs %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Translation jobs' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "Translation jobs" %}</h2>
+{% for job in translation_jobs %}<p>{{ job.translation.locale }} · {{ job.status }} · {% translate "Attempts" %} <bdi>{{ job.attempts }}</bdi> · {{ job.error_code }}</p>{% endfor %}
+</section>{% endif %}
+{% if events %}<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'History' %}">
+<h2 class="ra:text-lg ra:font-semibold">{% translate "History" %}</h2>
+{% for event in events %}<p dir="auto"><bdi>{{ event.created_at }}</bdi> · {{ event.action }} · <bdi>{{ event.revision_id }}</bdi> · {{ event.reason }}</p>{% endfor %}
+</section>{% endif %}
+</div>
+{% endblock %}

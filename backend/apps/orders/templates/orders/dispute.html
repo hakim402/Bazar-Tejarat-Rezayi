@@ -4,7 +4,7 @@
 <div class="rz-owner ra:space-y-6 ra:min-w-0">
 <section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
 <h1 class="ra:text-xl ra:font-semibold">{% translate "Order dispute review" %}</h1>
-<p><bdi>{{ record.pk }}</bdi> · {{ record.get_state_display }} · {% blocktranslate with version=record.version %}Version {{ version }}{% endblocktranslate %}</p>
+<p><bdi>{{ record.pk }}</bdi> · {{ record.get_state_display }} · {% translate "Version" %} <bdi>{{ record.version }}</bdi></p>
 <p>{% translate "Only an independent exact assignee may decide. Original delivery and completion history stay retained." %}</p>
 {% if not independent %}<p role="status">{% translate "A buyer, seller, historical participant or evidence-author conflict prevents you from deciding, including root. Assign an eligible independent reviewer." %}</p>{% endif %}
 </section>

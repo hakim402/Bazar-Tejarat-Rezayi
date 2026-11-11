@@ -3,11 +3,15 @@ import re
 from django import forms
 from django.forms import modelformset_factory
 from django.utils.translation import gettext_lazy as _
+from unfold.widgets import (
+    UnfoldAdminEmailInputWidget, UnfoldAdminFileFieldWidget, UnfoldAdminIntegerFieldWidget,
+    UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget,
+    UnfoldAdminURLInputWidget, UnfoldBooleanWidget,
+)
 from .models import SiteSettings, SiteLocale, HeroSlide, HeroLocale, PageSEO, LOCALES
 from .validation import text, destination, external_media
 from .media import inspect_upload
 
-CONTROL = "ra:block ra:w-full ra:min-w-0 ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:py-2 ra:text-ink"
 SITE_TEXT = ["name", "tagline", "title_template", "description", "address", "hours", "announcement", "announcement_label", "maintenance_title", "maintenance_message"]
 HERO_TEXT = ["title", "description", "alt", "cta_label", "cta_url", "transcript"]
 SITE_FIELDS = ["default_locale", "default_theme", "indexing", "email", "phone", "website", "facebook", "instagram", "linkedin", "youtube", "announcement_enabled", "announcement_url", "maintenance_enabled", "hero_mode", "hero_autoplay", "hero_rotate", "hero_interval", "promotion_one", "promotion_two"]
@@ -19,9 +23,26 @@ class StyledForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
-            if isinstance(field.widget, forms.HiddenInput):
+            widget = field.widget
+            if isinstance(widget, forms.HiddenInput):
                 continue
-            field.widget.attrs["class"] = "ra:size-5 ra:accent-action" if isinstance(field.widget, forms.CheckboxInput) else CONTROL
+            attrs = {key: value for key, value in widget.attrs.items() if key != "class"}
+            if isinstance(widget, forms.CheckboxInput):
+                field.widget = UnfoldBooleanWidget(attrs=attrs)
+            elif isinstance(widget, forms.Select):
+                field.widget = UnfoldAdminSelectWidget(attrs=attrs, choices=widget.choices)
+            elif isinstance(widget, forms.Textarea):
+                field.widget = UnfoldAdminTextareaWidget(attrs=attrs)
+            elif isinstance(widget, forms.NumberInput):
+                field.widget = UnfoldAdminIntegerFieldWidget(attrs=attrs)
+            elif isinstance(widget, forms.EmailInput):
+                field.widget = UnfoldAdminEmailInputWidget(attrs=attrs)
+            elif isinstance(widget, forms.URLInput):
+                field.widget = UnfoldAdminURLInputWidget(attrs=attrs)
+            elif isinstance(widget, forms.FileInput):
+                field.widget = UnfoldAdminFileFieldWidget(attrs=attrs)
+            else:
+                field.widget = UnfoldAdminTextInputWidget(attrs=attrs)
             if isinstance(field, forms.CharField) and not isinstance(field, forms.FileField):
                 field.validators.append(text)
         self.uploads = {}
@@ -45,7 +66,7 @@ class StyledForm(forms.ModelForm):
             for name in names:
                 key = f"{code}_{name}"
                 original = model._meta.get_field(name)
-                self.fields[key] = forms.CharField(label=_(name.replace("_", " ").title()), max_length=original.max_length, required=False, initial=getattr(row, name, ""), validators=[text], widget=forms.Textarea(attrs={"class": CONTROL, "rows": 3, "dir": "ltr" if code == "en" or name.endswith("_url") else "rtl", "lang": code}) if name in {"description", "maintenance_message", "transcript"} else forms.TextInput(attrs={"class": CONTROL, "dir": "ltr" if code == "en" or name.endswith("_url") else "rtl", "lang": code}))
+                self.fields[key] = forms.CharField(label=_(name.replace("_", " ").title()), max_length=original.max_length, required=False, initial=getattr(row, name, ""), validators=[text], widget=UnfoldAdminTextareaWidget(attrs={"rows": 3, "dir": "ltr" if code == "en" or name.endswith("_url") else "rtl", "lang": code}) if name in {"description", "maintenance_message", "transcript"} else UnfoldAdminTextInputWidget(attrs={"dir": "ltr" if code == "en" or name.endswith("_url") else "rtl", "lang": code}))
                 keys.append(key)
             self.language_tabs.append({"code": code, "caption": caption, "fields": keys})
 
@@ -77,9 +98,9 @@ class SettingsForm(StyledForm):
         for tab in self.language_tabs:
             for name in ["logo_light", "logo_dark"]:
                 key = f"{tab['code']}_{name}_file"
-                self.fields[key] = forms.FileField(label=_(name.replace("_", " ").title() + " replacement (raster image)"), required=False, widget=forms.FileInput(attrs={"class": CONTROL, "accept": "image/png,image/jpeg,image/webp"}))
+                self.fields[key] = forms.FileField(label=_(name.replace("_", " ").title() + " replacement (raster image)"), required=False, widget=UnfoldAdminFileFieldWidget(attrs={"accept": "image/png,image/jpeg,image/webp"}))
                 clear = f"{tab['code']}_{name}_clear"
-                self.fields[clear] = forms.BooleanField(label=_("Restore original " + name.replace("_", " ")), required=False, widget=forms.CheckboxInput(attrs={"class":"ra:size-5 ra:accent-action"}))
+                self.fields[clear] = forms.BooleanField(label=_("Restore original " + name.replace("_", " ")), required=False, widget=UnfoldBooleanWidget())
                 tab["fields"].extend([key, clear])
         if section:
             allowed = {"version", *section.fields}
@@ -284,6 +305,12 @@ class PostForm(SlideForm):
         if self.promotion and self.publishing and data.get("kind") == "image" and not (data.get("fa-AF_cta_label") and data.get("fa-AF_cta_url")):
             self.add_error("fa-AF_cta_url", "A published image promotion needs Dari button text and a destination.")
         return data
+
+
+class MediaLibraryFilterForm(forms.Form):
+    q = forms.CharField(label=_('Search by internal name'), required=False, widget=UnfoldAdminTextInputWidget())
+    kind = forms.ChoiceField(label=_('Media type'), required=False, choices=[('', _('All types')), ('image', _('Image')), ('video', _('Video'))], widget=UnfoldAdminSelectWidget())
+    status = forms.ChoiceField(label=_('Status'), required=False, choices=[('', _('All posts')), ('draft', _('Drafts / pending changes')), ('published', _('Published'))], widget=UnfoldAdminSelectWidget())
 
 
 class SEOForm(StyledForm):

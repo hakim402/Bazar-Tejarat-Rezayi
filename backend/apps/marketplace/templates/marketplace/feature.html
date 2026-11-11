@@ -1,5 +1,11 @@
 {% extends "admin/base_site.html" %}
-{% block content %}<section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
-<p class="ra:mb-4">Explicitly select the real eligible Rezayi seller. Featuring grants no approval, sales ranking or wider permissions. Leave empty to disable placement.</p>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button class="ra:mt-4 ra:min-h-11 ra:rounded-lg ra:bg-action ra:px-5 ra:font-bold ra:text-on-action" type="submit">Save featured store</button></form>
-</section>{% endblock %}
+{% load i18n %}
+{% block content %}
+<div class="rz-owner ra:space-y-6">
+<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
+<h1 class="ra:text-xl ra:font-semibold">{{ title }}</h1>
+<p>{% translate "Explicitly select the real eligible Rezayi seller. Featuring grants no approval, sales ranking or wider permissions. Leave empty to disable placement." %}</p>
+<form method="post" class="ra:space-y-3">{% csrf_token %}{{ form.as_p }}<button class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold" type="submit">{% translate "Save featured store" %}</button></form>
+</section>
+</div>
+{% endblock %}

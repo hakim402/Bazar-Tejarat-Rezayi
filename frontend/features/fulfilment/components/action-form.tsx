@@ -38,7 +38,6 @@ export function DeliveryActionForm({
 	uploaded,
 	review,
 	upload,
-	onDirty,
 	onDenied,
 }: {
 	locale: Locale;
@@ -48,7 +47,6 @@ export function DeliveryActionForm({
 	uploaded: { id: string; purpose: string } | null;
 	review: (review: Reviewed, opener: HTMLElement | null) => void;
 	upload: (file: File, purpose: "claim" | "correction" | "refund") => void;
-	onDirty: (dirty: boolean) => void;
 	onDenied: () => void;
 }) {
 	const required: Record<Mode, Capability> = {
@@ -151,9 +149,6 @@ export function DeliveryActionForm({
 			owner.current = null;
 		};
 	}, []);
-	useEffect(() => {
-		onDirty(dirty);
-	}, [dirty, onDirty]);
 	useEffect(() => {
 		if (
 			uploaded &&

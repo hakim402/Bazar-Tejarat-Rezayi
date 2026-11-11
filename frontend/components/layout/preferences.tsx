@@ -51,7 +51,7 @@ export function Preferences({
 		return () => observer.disconnect();
 	}, [compact]);
 
-	function changeLocale(next: Locale) {
+	function changeLocale(next: Locale, returnFocus?: HTMLElement) {
 		if (next === locale) return;
 		const href =
 			localizePath(path, next) + location.search + location.hash;
@@ -59,7 +59,7 @@ export function Preferences({
 			// biome-ignore lint/suspicious/noDocumentCookie: supports browsers without Cookie Store API.
 			document.cookie = `rezayi-locale=${next}; Path=/; SameSite=Lax; Max-Age=31536000`;
 			location.assign(href);
-		});
+		}, returnFocus);
 	}
 
 	function changeTheme(value: string) {
@@ -153,7 +153,7 @@ export function Preferences({
 										: "border border-border/70 bg-surface text-foreground hover:border-action/30 hover:bg-info"
 								}`}
 							>
-								<input type="radio" name={`${groupId}-language`} value={code} checked={active} onChange={() => changeLocale(code)} className="absolute inset-0 size-full cursor-pointer opacity-0" />
+								<input type="radio" name={`${groupId}-language`} value={code} checked={active} onChange={(event) => changeLocale(code, event.currentTarget)} className="absolute inset-0 size-full cursor-pointer opacity-0" />
 								{active && <Icon name="check" className="size-3.5" />}
 								<span className={active ? "" : "ms-1"}>
 									{languageNames[code]}

@@ -265,6 +265,7 @@ class AdminAuditTests(AftercareFixture, TestCase):
         ).latest("created_at")
         self.assertEqual(reverse_event.state, {"action": "post_remove", "group_ids": [str(group.pk)]})
 
+    @override_settings(LANGUAGE_CODE="en")
     def test_staff_my_work_lists_only_permitted_queues(self):
         page = self.staff_client.get("/admin/")
         self.assertEqual(page.status_code, 200)

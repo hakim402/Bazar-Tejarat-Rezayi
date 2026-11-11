@@ -492,10 +492,8 @@ class CancellationAdmin(AftercareAdmin):
         return reviewer_name(obj)
 
     def workspace(self, obj):
-        return format_html(
-            '<a class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm '
-            'font-semibold text-white hover:bg-primary-700" href="{}">Open guarded cancellation review</a>',
-            self.review_url(obj.pk),
+        return format_html('<a href="{}">{}</a>',
+            self.review_url(obj.pk), _("Open guarded cancellation review"),
         )
 
     def review_url(self, pk):
@@ -629,10 +627,8 @@ class AmendmentAdmin(AftercareAdmin):
         return reviewer_name(obj)
 
     def workspace(self, obj):
-        return format_html(
-            '<a class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm '
-            'font-semibold text-white hover:bg-primary-700" href="{}">Open guarded amendment review</a>',
-            self.review_url(obj.pk),
+        return format_html('<a href="{}">{}</a>',
+            self.review_url(obj.pk), _("Open guarded amendment review"),
         )
 
     def review_url(self, pk):

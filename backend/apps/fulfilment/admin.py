@@ -3,6 +3,7 @@
 from django.core.exceptions import PermissionDenied
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import admin_actor, is_owner
 from apps.organizations.admin import ReadOnlyAdmin
@@ -115,9 +116,9 @@ class RefundAdmin(MetadataAdmin):
         refund_id = obj.pk if self.refund_path == "pk" else obj.refund_id
         case = m.ReviewCase.objects.filter(refund_id=refund_id).first()
         if case is None:
-            return "Unpublished"
+            return _("Unpublished")
         return format_html(
-            '<a href="{}">{}</a>', reverse("admin:fulfilment_reviewcase_review", args=[case.pk]), "Open guarded refund review"
+            '<a href="{}">{}</a>', reverse("admin:fulfilment_reviewcase_review", args=[case.pk]), _("Open guarded refund review")
         )
 
 
@@ -154,7 +155,7 @@ class StateAdmin(MetadataAdmin):
         return format_html(
             '<a href="{}">{}</a>',
             reverse("admin:fulfilment_state_workflow", args=[obj.pk]),
-            "Delivery / fulfilment workflow",
+            _("Delivery / fulfilment workflow"),
         )
 
     def get_urls(self):
@@ -185,11 +186,11 @@ class CaseAdmin(MetadataAdmin):
         )
 
     def reviewer(self, obj):
-        return obj.assigned_to.display_name if obj.assigned_to_id else "Unassigned"
+        return obj.assigned_to.display_name if obj.assigned_to_id else _("Unassigned")
 
     def workflow_link(self, obj):
         return format_html(
-            '<a href="{}">{}</a>', reverse("admin:fulfilment_reviewcase_review", args=[obj.pk]), "Open guarded review"
+            '<a href="{}">{}</a>', reverse("admin:fulfilment_reviewcase_review", args=[obj.pk]), _("Open guarded review")
         )
 
     def get_urls(self):

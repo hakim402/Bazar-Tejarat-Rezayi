@@ -4,7 +4,7 @@
 <div class="rz-owner ra:space-y-6 ra:min-w-0">
 <section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
 <h1 class="ra:text-xl ra:font-semibold">{% translate "Buyer review moderation" %}</h1>
-<p>{% translate "Invoice" %}: <bdi>{{ record.order.invoice.number }}</bdi> · {{ record.get_state_display }} · {% blocktranslate with version=record.version %}Version {{ version }}{% endblocktranslate %}</p>
+<p>{% translate "Invoice" %}: <bdi>{{ record.order.invoice.number }}</bdi> · {{ record.get_state_display }} · {% translate "Version" %} <bdi>{{ record.version }}</bdi></p>
 <p>{% translate "Reviews rate the whole seller experience for one completed order. Only approved eligible reviews enter the public average and count; reports never affect ratings." %}</p>
 <dl><dt>{% translate "Rating" %}</dt><dd><bdi>{{ record.rating }} / 5</bdi></dd><dt>{% translate "Submitted language" %}</dt><dd><bdi>{{ record.language }}</bdi></dd></dl>
 <p lang="{{ record.language }}" dir="auto">{{ record.text }}</p>

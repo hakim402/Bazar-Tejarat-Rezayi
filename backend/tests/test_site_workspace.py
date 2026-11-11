@@ -3,7 +3,7 @@ from tests.test_identity import native_auth
 from unittest.mock import patch
 from django.conf import settings
 from django.core.files.storage import storages
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APIClient
 from apps.accounts.models import User, Authenticator
 from apps.site.defaults import initialize
@@ -41,11 +41,13 @@ class SiteWorkspaceTests(TestCase):
         response = self.client.get(f'/admin/site-setting/{section}/')
         self.assertEqual(response.status_code, 200)
         data = {field.html_name: field.value() for field in response.context['form'] if field.value() is not None}
-        if response.context['seo'] is not None:
-            for form in [response.context['seo'].management_form, *response.context['seo'].forms]:
+        for inline in response.context['inline_admin_formsets']:
+            seo = inline.formset
+            for form in [seo.management_form, *seo.forms]:
                 data.update({field.html_name: field.value() for field in form if field.value() is not None})
         return data
 
+    @override_settings(LANGUAGE_CODE="en")
     def test_all_routes_navigation_two_modes_and_legacy_redirects(self):
         for section in SECTIONS:
             response = self.client.get(f'/admin/site-setting/{section.key}/')
@@ -58,7 +60,7 @@ class SiteWorkspaceTests(TestCase):
         response = self.client.get('/admin/site-setting/hero/')
         self.assertEqual(list(response.context['form'].fields['hero_mode'].choices), [('image_carousel', 'Image Carousel'), ('video_carousel', 'Video Carousel')])
         from apps.accounts.admin_navigation import navigation
-        self.assertEqual(str(navigation(response.wsgi_request)[-1]['title']), 'Site Settings')
+        self.assertEqual(str(navigation(response.wsgi_request)[-1]['items'][0]['title']), 'Site Settings')
 
     def test_settings_drafts_are_private_on_every_section_and_publish(self):
         for section in SECTIONS:

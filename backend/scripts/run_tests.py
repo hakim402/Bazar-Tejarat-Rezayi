@@ -446,7 +446,13 @@ class TestRun:
             # verified separately; this is not a hosted-load benchmark.
             env={**self.env, "WEB_CONCURRENCY": "2"},
         )
-        self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/", self.web)
+        try:
+            self.wait_ready(f"http://127.0.0.1:{self.api_port}/api/v1/health/ready/", self.web)
+        except TestFailure:
+            self.python(
+                "-m", "scripts.check_readiness_state", name="native-api-readiness-diagnostics", check=False,
+            )
+            raise
 
     def browser_environment(self):
         api = f"http://127.0.0.1:{self.api_port}"
@@ -609,6 +615,7 @@ class TestRun:
                 str(self.runtime / "handover-inspection"),
                 name="fulfilment-documents",
             )
+        self.python("-m", "scripts.check_browser_fixture_backlog", name="browser-fixture-backlog")
         self.start_web()
         env = self.browser_environment()
         previews = self.evidence / "email-previews"
@@ -683,6 +690,7 @@ class TestRun:
                 "playwright",
                 "test",
                 *(["tests/" + spec for spec in self.browser_spec] if self.browser_spec else []),
+                *(["--grep", self.browser_grep] if getattr(self, "browser_grep", None) else []),
                 "--output",
                 str(self.evidence / "browser-results"),
                 (
@@ -968,6 +976,7 @@ class TestRun:
                             "test_labels": list(self.labels),
                             "phase": self.phase,
                             "browser_spec": self.browser_spec,
+                            "browser_grep": getattr(self, "browser_grep", None),
                             "evidence": str(self.evidence.relative_to(ROOT)),
                         },
                         indent=2,
@@ -1066,6 +1075,7 @@ def main():
         ],
         help="Scoped evidence location; does not change fixture or permission policy",
     )
+    parser.add_argument("--browser-grep", help="Explicit regex for a bounded browser subset; recorded in the receipt")
     parser.add_argument("--backend-only", action="store_true")
     parser.add_argument(
         "--frontend-only",
@@ -1132,6 +1142,7 @@ def main():
     run.cgi_only = args.cgi_only
     run.transfer_only = args.transfer_only
     run.cross_engine = args.cross_engine
+    run.browser_grep = args.browser_grep
     run.frontend_only = args.frontend_only
     run.tests_only = args.tests_only
     run.cleanup_probe = args.cleanup_probe

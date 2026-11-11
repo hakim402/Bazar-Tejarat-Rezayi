@@ -12,15 +12,15 @@
   <section aria-label="{% translate 'Commerce overview' %}" class="ra:grid ra:grid-cols-1 ra:gap-4 ra:sm:grid-cols-3">
     {% for metric in metrics %}{% include 'accounts/admin/includes/kpi_card.html' with metric=metric %}{% endfor %}
   </section>
-  <section class="ra:min-w-0 ra:overflow-hidden ra:rounded-lg ra:border ra:border-line ra:bg-panel" aria-labelledby="activity-heading">
-    <div class="ra:flex ra:flex-wrap ra:items-start ra:justify-between ra:gap-3 ra:border-b ra:border-line ra:p-4 ra:sm:px-5">
+  <section class="ra:min-w-0 ra:overflow-hidden ra:rounded-md ra:border ra:border-line ra:bg-panel ra:shadow-xs" aria-labelledby="activity-heading">
+    <div class="ra:flex ra:flex-wrap ra:items-start ra:justify-between ra:gap-3 ra:border-b ra:border-line ra:px-4 ra:py-4 ra:sm:px-6">
       <div>
         <h2 id="activity-heading" class="ra:text-base ra:font-semibold">{{ admin_copy.growth }}</h2>
         <p class="ra:mt-1 ra:text-sm ra:text-muted">{{ admin_copy.growth_body }}</p>
       </div>
-      <span class="ra:rounded-md ra:border ra:border-line ra:px-2 ra:py-1 ra:text-xs ra:text-muted">{% translate 'Last 14 days' %}</span>
+      <span class="ra:rounded-sm ra:bg-tint ra:px-2 ra:py-0.5 ra:text-[11px] ra:font-semibold ra:uppercase ra:tracking-wide ra:text-action">{% translate 'Last 14 days' %}</span>
     </div>
-    <div class="ra:p-4 ra:sm:p-5">
+    <div class="ra:p-4 ra:sm:p-6">
       <div class="ra:flex ra:flex-wrap ra:gap-5 ra:text-xs ra:text-muted">
         <span class="ra:flex ra:items-center ra:gap-2"><span class="ra:size-2.5 ra:rounded-sm ra:bg-action" aria-hidden="true"></span>{{ admin_copy.accounts }}</span>
         <span class="ra:flex ra:items-center ra:gap-2"><span class="ra:size-2.5 ra:rounded-sm ra:bg-muted" aria-hidden="true"></span>{{ admin_copy.products }}</span>
@@ -145,7 +145,7 @@
     </div>
     <ul class="ra:grid ra:grid-cols-1 ra:gap-4 ra:sm:grid-cols-2 ra:xl:grid-cols-3">
       {% for shortcut in shortcuts %}
-        <li><a href="{{ shortcut.url }}" class="ra:group ra:flex ra:h-full ra:min-w-0 ra:items-start ra:gap-3 ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:p-4 ra:hover:border-action">
+        <li><a href="{{ shortcut.url }}" class="ra:group ra:flex ra:h-full ra:min-w-0 ra:items-start ra:gap-3 ra:rounded-md ra:border ra:border-line ra:bg-panel ra:shadow-xs ra:p-4 ra:transition-colors ra:hover:border-action">
           <span class="ra:flex ra:size-10 ra:shrink-0 ra:items-center ra:justify-center ra:rounded-md ra:bg-tint ra:text-action"><span data-admin-icon class="material-symbols-outlined ra:text-xl" aria-hidden="true">{{ shortcut.icon }}</span></span>
           <span class="ra:min-w-0 ra:flex-1">
             <span class="ra:block ra:text-sm ra:font-medium ra:group-hover:text-action">{{ shortcut.label }}</span>
@@ -154,7 +154,7 @@
           <span data-admin-icon class="material-symbols-outlined ra:text-lg ra:text-muted ra:group-hover:text-action ra:rtl:rotate-180" aria-hidden="true">chevron_right</span>
         </a></li>
       {% endfor %}
-      <li><a href="{% url 'admin:accounts_account_changelist' %}?context__exact=staff" class="ra:group ra:flex ra:h-full ra:min-w-0 ra:items-start ra:gap-3 ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:p-4 ra:hover:border-action">
+      <li><a href="{% url 'admin:accounts_account_changelist' %}?context__exact=staff" class="ra:group ra:flex ra:h-full ra:min-w-0 ra:items-start ra:gap-3 ra:rounded-md ra:border ra:border-line ra:bg-panel ra:shadow-xs ra:p-4 ra:transition-colors ra:hover:border-action">
         <span class="ra:flex ra:size-10 ra:shrink-0 ra:items-center ra:justify-center ra:rounded-md ra:bg-tint ra:text-action"><span data-admin-icon class="material-symbols-outlined ra:text-xl" aria-hidden="true">admin_panel_settings</span></span>
         <span class="ra:min-w-0 ra:flex-1"><span class="ra:block ra:text-sm ra:font-medium ra:group-hover:text-action">{{ admin_copy.manage_staff }}</span></span>
         <span data-admin-icon class="material-symbols-outlined ra:text-lg ra:text-muted ra:group-hover:text-action ra:rtl:rotate-180" aria-hidden="true">chevron_right</span>
@@ -162,15 +162,15 @@
     </ul>
   </section>
   <div class="ra:grid ra:gap-4 ra:xl:grid-cols-2">
-    <section class="ra:min-w-0 ra:overflow-hidden ra:rounded-lg ra:border ra:border-line ra:bg-panel" aria-labelledby="queue-heading">
-      <div class="ra:border-b ra:border-line ra:p-4 ra:sm:px-5">
+    <section class="ra:min-w-0 ra:overflow-hidden ra:rounded-md ra:border ra:border-line ra:bg-panel ra:shadow-xs" aria-labelledby="queue-heading">
+      <div class="ra:border-b ra:border-line ra:px-4 ra:py-4 ra:sm:px-6">
         <div class="ra:flex ra:items-center ra:justify-between ra:gap-3">
           <h2 id="queue-heading" class="ra:text-base ra:font-semibold">{{ admin_copy.attention }}</h2>
           <span class="ra:rounded-md ra:border ra:border-line ra:px-2 ra:py-0.5 ra:text-xs ra:font-semibold ra:tabular-nums ra:text-muted" data-testid="pending-total"><bdi dir="ltr">{{ pending_total }}</bdi></span>
         </div>
         <p class="ra:mt-1 ra:text-sm ra:text-muted">{{ admin_copy.attention_body }}</p>
       </div>
-      <ul class="ra:divide-y ra:divide-line ra:px-4 ra:sm:px-5">
+      <ul class="ra:divide-y ra:divide-line ra:px-4 ra:sm:px-6">
         {% for queue in queues %}
           <li class="ra:py-3">
             <a href="{{ queue.url }}" class="ra:group ra:flex ra:min-h-11 ra:items-center ra:gap-3" aria-label="{{ queue.label }}: {{ queue.count }} {{ admin_copy.pending }}">
@@ -186,8 +186,8 @@
         {% endfor %}
       </ul>
     </section>
-    <section class="ra:min-w-0 ra:overflow-hidden ra:rounded-lg ra:border ra:border-line ra:bg-panel" aria-labelledby="events-heading">
-      <div class="ra:flex ra:flex-wrap ra:items-center ra:justify-between ra:gap-3 ra:border-b ra:border-line ra:p-4 ra:sm:px-5">
+    <section class="ra:min-w-0 ra:overflow-hidden ra:rounded-md ra:border ra:border-line ra:bg-panel ra:shadow-xs" aria-labelledby="events-heading">
+      <div class="ra:flex ra:flex-wrap ra:items-center ra:justify-between ra:gap-3 ra:border-b ra:border-line ra:px-4 ra:py-4 ra:sm:px-6">
         <div>
           <h2 id="events-heading" class="ra:text-base ra:font-semibold">{{ admin_copy.recent_activity }}</h2>
           <p class="ra:mt-1 ra:text-sm ra:text-muted">{{ admin_copy.activity_body }}</p>
@@ -197,7 +197,7 @@
       {% if recent_events %}
         <ul class="ra:divide-y ra:divide-line">
           {% for event in recent_events %}
-            <li class="ra:flex ra:flex-wrap ra:items-center ra:gap-3 ra:px-4 ra:py-3 ra:sm:px-5">
+            <li class="ra:flex ra:flex-wrap ra:items-center ra:gap-3 ra:px-4 ra:py-3 ra:sm:px-6">
               <span data-admin-icon class="material-symbols-outlined ra:hidden ra:text-lg ra:text-muted ra:sm:block" aria-hidden="true">history</span>
               <div class="ra:min-w-0 ra:flex-1">
                 <a class="ra:block ra:break-words ra:text-sm ra:font-medium ra:text-ink ra:hover:text-action" href="{{ event.url }}">{{ event.label }}</a>
@@ -208,7 +208,7 @@
           {% endfor %}
         </ul>
       {% else %}
-        <p class="ra:p-5 ra:text-sm ra:text-muted">{{ admin_copy.activity_empty }}</p>
+        <p class="ra:px-6 ra:py-5 ra:text-sm ra:text-muted">{{ admin_copy.activity_empty }}</p>
       {% endif %}
     </section>
   </div>

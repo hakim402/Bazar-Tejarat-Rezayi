@@ -3,6 +3,7 @@
 from django.apps import apps
 from django.db.models import Exists, OuterRef, Q
 from django.urls import NoReverseMatch, reverse
+from django.utils.translation import gettext_lazy as _
 
 
 def _refund_open():
@@ -12,18 +13,18 @@ def _refund_open():
 
 # (label, app, model, open filter, assignee target: "user" | "account" | None, changelist query)
 QUEUES = (
-    ("Business verification", "verification", "ReviewCase",
+    (_("Business verification"), "verification", "ReviewCase",
      lambda: Q(status__in=["submitted", "under_review"]), "account", ""),
-    ("Catalogue publication", "catalogue", "SourceRevision", lambda: Q(state="submitted"), None, "state__exact=submitted"),
-    ("Store pages", "marketplace", "StoreRevision", lambda: Q(state="submitted"), "account", ""),
-    ("Goods payment cases", "payments", "ReviewCase", lambda: Q(state="open"), "user", ""),
-    ("Refund reports", "payments", "RefundDue", _refund_open, "user", ""),
-    ("Delivery cases", "fulfilment", "ReviewCase", lambda: Q(state="open"), "user", ""),
-    ("Cancellation requests", "orders", "CancellationRequest", lambda: Q(state="pending"), "user", ""),
-    ("Amendments", "orders", "Amendment", lambda: Q(state="pending"), "user", ""),
-    ("Disputes", "orders", "DisputeRequest", lambda: Q(state="pending"), "user", ""),
-    ("Reviews awaiting moderation", "orders", "Review", lambda: Q(state="pending"), None, ""),
-    ("Message reports", "messaging", "Report", lambda: Q(status="open"), "account", ""),
+    (_("Catalogue publication"), "catalogue", "SourceRevision", lambda: Q(state="submitted"), None, "state__exact=submitted"),
+    (_("Store pages"), "marketplace", "StoreRevision", lambda: Q(state="submitted"), "account", ""),
+    (_("Goods payment cases"), "payments", "ReviewCase", lambda: Q(state="open"), "user", ""),
+    (_("Refund reports"), "payments", "RefundDue", _refund_open, "user", ""),
+    (_("Delivery cases"), "fulfilment", "ReviewCase", lambda: Q(state="open"), "user", ""),
+    (_("Cancellation requests"), "orders", "CancellationRequest", lambda: Q(state="pending"), "user", ""),
+    (_("Amendments"), "orders", "Amendment", lambda: Q(state="pending"), "user", ""),
+    (_("Disputes"), "orders", "DisputeRequest", lambda: Q(state="pending"), "user", ""),
+    (_("Reviews awaiting moderation"), "orders", "Review", lambda: Q(state="pending"), None, ""),
+    (_("Message reports"), "messaging", "Report", lambda: Q(status="open"), "account", ""),
 )
 
 

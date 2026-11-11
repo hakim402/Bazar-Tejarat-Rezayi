@@ -1,8 +1,11 @@
 {% load i18n %}
-<form method="post" action="{% url 'admin:admin_set_language' %}" class="ra:inline-flex" data-testid="admin-language-switch">{% csrf_token %}
-  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-  <div class="ra:inline-flex ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:p-0.5" role="group" aria-label="{% translate 'Language' %}">
-    <button type="submit" name="language" value="en" aria-pressed="{% if request.LANGUAGE_CODE == 'en' %}true{% else %}false{% endif %}" class="ra:min-h-11 ra:rounded-md ra:px-3 ra:text-xs ra:font-bold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">English</button>
-    <button type="submit" name="language" value="fa-af" aria-pressed="{% if request.LANGUAGE_CODE == 'fa-af' %}true{% else %}false{% endif %}" class="ra:min-h-11 ra:rounded-md ra:px-3 ra:text-xs ra:font-bold ra:text-ink ra:hover:bg-tint ra:aria-pressed:bg-tint ra:aria-pressed:text-action">دری</button>
-  </div>
-</form>
+<div data-testid="admin-language-switch" role="group" aria-label="{% translate 'Language' %}" class="border-b border-base-200 flex flex-col mb-1 pb-1 dark:border-base-700">
+  <form method="post" action="{% url 'admin:admin_set_language' %}" class="flex w-full">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" name="language" value="en" aria-pressed="{% if request.LANGUAGE_CODE == 'en' %}true{% else %}false{% endif %}" class="cursor-pointer flex flex-row grow items-center gap-1 mx-1 px-3 py-2 rounded-default text-start hover:bg-base-100 hover:text-base-700 dark:hover:bg-base-700 dark:hover:text-base-200 {% if request.LANGUAGE_CODE == 'en' %}text-primary-600 dark:text-primary-500 dark:hover:text-primary-500! hover:text-primary-600!{% endif %}"><span lang="en" dir="ltr">English</span><span class="ms-auto uppercase font-semibold text-xs text-subtle">EN</span></button>
+  </form>
+  <form method="post" action="{% url 'admin:admin_set_language' %}" class="flex w-full">{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" name="language" value="fa-af" aria-pressed="{% if request.LANGUAGE_CODE == 'fa-af' %}true{% else %}false{% endif %}" class="cursor-pointer flex flex-row grow items-center gap-1 mx-1 px-3 py-2 rounded-default text-start hover:bg-base-100 hover:text-base-700 dark:hover:bg-base-700 dark:hover:text-base-200 {% if request.LANGUAGE_CODE == 'fa-af' %}text-primary-600 dark:text-primary-500 dark:hover:text-primary-500! hover:text-primary-600!{% endif %}"><span lang="fa-AF" dir="rtl">دری</span><span class="ms-auto uppercase font-semibold text-xs text-subtle">FA</span></button>
+  </form>
+</div>

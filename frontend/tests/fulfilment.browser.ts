@@ -7,6 +7,9 @@ import {
 import { noOverflow } from "./support/commerce-runtime";
 import { syntheticImage } from "./support/messaging-runtime";
 import { adminLogin } from "./support/admin-runtime";
+import { sellerSalesCopy } from "../lib/i18n/seller-sales";
+import { selectControl } from "./support/seller-controls";
+import { sellerShellCopy } from "../lib/i18n/seller-shell";
 import { fulfilmentCopy } from "../features/fulfilment/copy";
 import type { Locale } from "../lib/i18n/locales";
 import { catalogueCopy } from "../lib/i18n/catalogue";
@@ -1129,7 +1132,7 @@ test("P13 a delayed committed tracking response cannot cross a deliberate busine
 		).toBeEnabled({ timeout: 20000 });
 		const back = page
 			.locator("main")
-			.getByRole("link", { name: t.sellerTitle, exact: true })
+			.getByRole("link", { name: sellerSalesCopy.en.fulfilment, exact: true })
 			.last();
 		await back.click();
 		const warning = page
@@ -1139,7 +1142,7 @@ test("P13 a delayed committed tracking response cannot cross a deliberate busine
 		await warning
 			.getByRole("button", { name: catalogueCopy.en.cancel, exact: true })
 			.click();
-		await expect(page.getByLabel(t.reason, { exact: true })).toHaveValue(
+		await expect(page.getByRole("textbox", { name: t.reason, exact: true })).toHaveValue(
 			"Private business A tracking fact",
 		);
 		await back.click();
@@ -1155,14 +1158,11 @@ test("P13 a delayed committed tracking response cannot cross a deliberate busine
 		expect(
 			profiles.results.some((value: { id: string }) => value.id === other),
 		).toBe(true);
-		const selector = page.getByLabel(t.selectBusiness, { exact: true });
-		await expect(selector).toBeVisible();
-		await expect(selector.locator(`option[value="${other}"]`)).toHaveCount(1);
-		await selector.selectOption(other);
+		await selectControl(page, sellerSalesCopy.en.business, other);
 		await expect(page).toHaveURL(new RegExp(`/fulfilment\\?seller=${other}$`));
 		release();
 		await expect(
-			page.getByRole("heading", { name: t.sellerTitle, exact: true }),
+			page.getByRole("heading", { name: sellerSalesCopy.en.fulfilment, exact: true }),
 		).toBeVisible();
 		await expect(page.locator("body")).not.toContainText(item.number);
 		await expect(page.locator("body")).not.toContainText(
@@ -1212,19 +1212,19 @@ for (const locale of ["fa-AF", "ps", "ar", "en"] as const) {
 					locale === "en" ? "ltr" : "rtl",
 				);
 				await expect(seller.page.getByRole("main")).toHaveCount(1);
-				await expect(seller.page.locator("header")).toHaveCount(1);
+				await expect(seller.page.getByRole("banner")).toHaveCount(1);
 				await expect(seller.page.locator(".account-shell")).toHaveCount(0);
-				await expect(seller.page.locator("footer")).toHaveCount(0);
-				if (width < 1280) await seller.page.locator("aside summary").click();
+				await expect(seller.page.getByRole("contentinfo")).toHaveCount(0);
+				if (width < 640) await seller.page.getByRole("button", { name: sellerShellCopy[locale].more, exact: true }).click();
 				const navigation = seller.page
 					.locator('nav a[aria-current="page"]:visible')
-					.filter({ hasText: t.sellerTitle });
+					.filter({ hasText: sellerSalesCopy[locale].fulfilment });
 				await expect(navigation).toHaveCount(1);
 				await expect(navigation).toHaveAttribute(
 					"href",
 					`/${locale}/account/seller/fulfilment?seller=${item.seller}`,
 				);
-				if (width < 1280) await seller.page.locator("aside summary").click();
+				if (width < 640) await seller.page.getByRole("button", { name: sellerShellCopy[locale].close, exact: true }).click();
 				await choose(seller.page, locale, "dispatch");
 				await seller.page
 					.getByLabel(t.reason, { exact: true })
@@ -1459,7 +1459,7 @@ print(c['claim'])`,
 			buyer.page.getByText(t.actionChanged, { exact: true }),
 		).toBeVisible();
 		await discardChangedAction(buyer.page, "en", "deliver", true);
-		await expect(buyer.page.getByLabel(t.reason, { exact: true })).toHaveValue(
+		await expect(buyer.page.getByRole("textbox", { name: t.reason, exact: true })).toHaveValue(
 			"Synthetic retained withdrawal reason",
 		);
 		await discardChangedAction(buyer.page, "en", "deliver", false);

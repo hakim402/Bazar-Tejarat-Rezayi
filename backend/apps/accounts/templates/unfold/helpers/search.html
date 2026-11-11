@@ -1,9 +1,10 @@
 {% load i18n %}
 {% if sidebar_show_search %}
-<div class="ra:mx-3 ra:mb-3">
-<button type="button" id="owner-command-toggle" x-data="{restoreSearchFocus: false}" x-init="$watch('openCommandResults', value => { if (!value &amp;&amp; restoreSearchFocus) { restoreSearchFocus = false; setTimeout(() => { if (!openCommandResults &amp;&amp; $el.isConnected) $el.focus() }, 50) } })" x-on:click="restoreSearchFocus = true; $dispatch('opencommand')" aria-haspopup="dialog" class="ra:flex ra:min-h-11 ra:w-full ra:items-center ra:gap-2 ra:rounded-lg ra:border ra:border-line ra:bg-panel ra:px-3 ra:text-start ra:text-sm ra:text-muted ra:hover:border-action">
-<span data-admin-icon aria-hidden="true" class="material-symbols-outlined ra:text-lg">manage_search</span>
-<span class="ra:min-w-0 ra:flex-1 ra:truncate">{% translate 'Search apps and models...' %}</span>
-</button>
+<div class="mb-2.5 mx-3 relative">
+  <button type="button" id="owner-command-toggle" aria-label="{% translate 'Search apps and models...' %}" x-data="{restoreSearchFocus: false}" x-init="$watch('openCommandResults', value => { if (!value &amp;&amp; restoreSearchFocus) { restoreSearchFocus = false; setTimeout(() => { if (!openCommandResults &amp;&amp; $el.isConnected) $el.focus() }, 50) } })" x-on:click="restoreSearchFocus = true; $dispatch('opencommand')" aria-haspopup="dialog" class="bg-white border border-base-200 cursor-pointer flex flex-row items-center gap-2 px-3 rounded-default relative shadow-xs w-full text-start hover:border-base-300 dark:bg-base-900 dark:border-base-700">
+    <span data-admin-icon aria-hidden="true" class="material-symbols-outlined md-18 text-base-400">manage_search</span>
+    <span class="grow font-medium min-w-0 overflow-hidden py-2 text-font-subtle-light truncate dark:text-font-subtle-dark">{% translate 'Search apps and models...' %}</span>
+    {% if 'Macintosh' in request.META.HTTP_USER_AGENT %}{% include "unfold/helpers/shortcut.html" with icon="keyboard_command_key" shortcut="k" %}{% else %}{% include "unfold/helpers/shortcut.html" with icon="keyboard_control_key" shortcut="k" %}{% endif %}
+  </button>
 </div>
 {% endif %}

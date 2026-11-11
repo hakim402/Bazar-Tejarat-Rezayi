@@ -1,2 +1,6 @@
 {% extends "admin/change_list.html" %}
-{% block content %}{% if taxonomy_create_url %}<div class="ra:mb-4"><a href="{{ taxonomy_create_url }}" class="ra:inline-flex ra:min-h-11 ra:items-center ra:rounded-lg ra:bg-action ra:px-4 ra:py-2 ra:font-semibold ra:text-on-action">{{ taxonomy_create_label }}</a></div>{% endif %}{{ block.super }}{% endblock %}
+{% block object-tools-items %}{% if taxonomy_create_url %}
+<div class="flex flex-row items-center">
+    <a href="{{ taxonomy_create_url }}" class="border border-primary-700 bg-primary-600 flex items-center h-[38px] justify-center -my-1 rounded-default w-[38px] hover:bg-primary-600/80 dark:border-primary-500" title="{{ taxonomy_create_label }}" aria-label="{{ taxonomy_create_label }}"><span class="material-symbols-outlined text-white" aria-hidden="true">add</span></a>
+</div>
+{% endif %}{{ block.super }}{% endblock %}

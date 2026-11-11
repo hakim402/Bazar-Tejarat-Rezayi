@@ -1,56 +1,57 @@
 {% extends 'admin/base_site.html' %}
+{% load i18n %}
 {% block content %}
-<section class="ra:space-y-6" aria-label="Commerce reports">
+<section class="ra:space-y-6" aria-label="{% translate 'Commerce reports' %}">
   <header class="ra:flex ra:flex-wrap ra:items-end ra:justify-between ra:gap-4">
     <div>
-      <h2 class="ra:text-xl ra:font-bold">Commerce reports</h2>
-      <p class="ra:mt-2 ra:text-sm ra:text-muted">{{ window.start|date:"Y-m-d" }} – {{ window.end|date:"Y-m-d" }} (Kabul). AFN and USD are reported separately and never converted. Figures are read from recorded facts only.</p>
+      <h2 class="ra:text-xl ra:font-bold">{% translate "Commerce reports" %}</h2>
+      <p class="ra:mt-2 ra:text-sm ra:text-muted">{{ window.start|date:"Y-m-d" }} – {{ window.end|date:"Y-m-d" }} ({% translate "Kabul" %}). {% blocktranslate trimmed %}AFN and USD are reported separately and never converted. Figures are read from recorded facts only.{% endblocktranslate %}</p>
     </div>
     <form method="get" class="ra:flex ra:flex-wrap ra:items-end ra:gap-3">
-      <label class="ra:text-sm ra:font-bold">From<input type="date" name="start" value="{{ window.start|date:'Y-m-d' }}" class="ra:mt-2 ra:block ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:text-ink"></label>
-      <label class="ra:text-sm ra:font-bold">To<input type="date" name="end" value="{{ window.end|date:'Y-m-d' }}" class="ra:mt-2 ra:block ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:text-ink"></label>
-      <button class="ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:px-4 ra:font-bold ra:text-action">Apply</button>
-      <label class="ra:text-sm ra:font-bold">Export<select name="kind" class="ra:mt-2 ra:block ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:text-ink">{% for kind in kinds %}<option value="{{ kind }}">{{ kind|capfirst }}</option>{% endfor %}</select></label>
-      <button name="export" value="1" class="ra:inline-flex ra:min-h-11 ra:items-center ra:rounded-lg ra:bg-action ra:px-5 ra:font-bold ra:text-on-action">Download CSV</button>
+      <label class="ra:text-sm ra:font-bold">{% translate "From" %}<input type="date" name="start" value="{{ window.start|date:'Y-m-d' }}" class="ra:mt-2 ra:block ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:text-ink"></label>
+      <label class="ra:text-sm ra:font-bold">{% translate "To" %}<input type="date" name="end" value="{{ window.end|date:'Y-m-d' }}" class="ra:mt-2 ra:block ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:text-ink"></label>
+      <button class="ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:px-4 ra:font-bold ra:text-action">{% translate "Apply" %}</button>
+      <label class="ra:text-sm ra:font-bold">{% translate "Export" %}<select name="kind" class="ra:mt-2 ra:block ra:min-h-11 ra:rounded-lg ra:border ra:border-control ra:bg-panel ra:px-3 ra:text-ink">{% for kind in kinds %}<option value="{{ kind }}">{% if kind == "orders" %}{% translate "Orders" %}{% elif kind == "payments" %}{% translate "Payments" %}{% elif kind == "refunds" %}{% translate "Refunds" %}{% else %}{{ kind|capfirst }}{% endif %}</option>{% endfor %}</select></label>
+      <button name="export" value="1" class="ra:inline-flex ra:min-h-11 ra:items-center ra:rounded-lg ra:bg-action ra:px-5 ra:font-bold ra:text-on-action">{% translate "Download CSV" %}</button>
     </form>
   </header>
   {% if form.errors %}<p class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-4 ra:font-bold">{% for error in form.non_field_errors %}{{ error }} {% endfor %}{% for field in form %}{% for error in field.errors %}{{ field.label }}: {{ error }} {% endfor %}{% endfor %}</p>{% endif %}
 
   <div class="ra:grid ra:gap-4 ra:lg:grid-cols-3">
     <article class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
-      <h3 class="ra:text-base ra:font-bold">Accepted orders</h3>
-      {% for row in report.orders %}<p class="ra:mt-3 ra:text-sm"><span class="ra:font-bold">{{ row.currency }}</span> · {{ row.accepted }} accepted · {{ row.cancelled }} cancelled<br><span class="ra:text-muted">Goods {{ row.goods_total }} · Effective {{ row.accepted_total }}</span></p>{% empty %}<p class="ra:mt-3 ra:text-sm ra:text-muted">No accepted orders in this period.</p>{% endfor %}
+      <h3 class="ra:text-base ra:font-bold">{% translate "Accepted orders" %}</h3>
+      {% for row in report.orders %}<p class="ra:mt-3 ra:text-sm"><span class="ra:font-bold">{{ row.currency }}</span> · {% blocktranslate trimmed with accepted=row.accepted cancelled=row.cancelled %}{{ accepted }} accepted · {{ cancelled }} cancelled{% endblocktranslate %}<br><span class="ra:text-muted">{% blocktranslate trimmed with goods=row.goods_total effective=row.accepted_total %}Goods {{ goods }} · Effective {{ effective }}{% endblocktranslate %}</span></p>{% empty %}<p class="ra:mt-3 ra:text-sm ra:text-muted">{% translate "No accepted orders in this period." %}</p>{% endfor %}
     </article>
     <article class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
-      <h3 class="ra:text-base ra:font-bold">Money recorded</h3>
-      {% for row in report.finance %}<p class="ra:mt-3 ra:text-sm"><span class="ra:font-bold">{{ row.currency }}</span> · goods received {{ row.goods_received }} ({{ row.goods_receipts }} receipts)<br><span class="ra:text-muted">Goods refunds confirmed {{ row.goods_refunded }} · net {{ row.goods_net }} · new refund dues {{ row.refund_due_created }}<br>Delivery received {{ row.delivery_received }} · delivery refunds {{ row.delivery_refunded }}</span></p>{% empty %}<p class="ra:mt-3 ra:text-sm ra:text-muted">No receipts or refunds in this period.</p>{% endfor %}
+      <h3 class="ra:text-base ra:font-bold">{% translate "Money recorded" %}</h3>
+      {% for row in report.finance %}<p class="ra:mt-3 ra:text-sm"><span class="ra:font-bold">{{ row.currency }}</span> · {% blocktranslate trimmed with received=row.goods_received receipts=row.goods_receipts %}Goods received {{ received }} ({{ receipts }} receipts){% endblocktranslate %}<br><span class="ra:text-muted">{% blocktranslate trimmed with refunded=row.goods_refunded net=row.goods_net dues=row.refund_due_created %}Goods refunds confirmed {{ refunded }} · net {{ net }} · new refund dues {{ dues }}{% endblocktranslate %}<br>{% blocktranslate trimmed with received=row.delivery_received refunded=row.delivery_refunded %}Delivery received {{ received }} · delivery refunds {{ refunded }}{% endblocktranslate %}</span></p>{% empty %}<p class="ra:mt-3 ra:text-sm ra:text-muted">{% translate "No receipts or refunds in this period." %}</p>{% endfor %}
     </article>
     <article class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
-      <h3 class="ra:text-base ra:font-bold">Logistics</h3>
-      <p class="ra:mt-3 ra:text-sm">Dispatched {{ report.logistics.dispatched }} · Delivered {{ report.logistics.delivered }} · Completed {{ report.logistics.completed }}</p>
-      <h3 class="ra:mt-5 ra:text-base ra:font-bold">Open work now</h3>
+      <h3 class="ra:text-base ra:font-bold">{% translate "Logistics" %}</h3>
+      <p class="ra:mt-3 ra:text-sm">{% blocktranslate trimmed with dispatched=report.logistics.dispatched delivered=report.logistics.delivered completed=report.logistics.completed %}Dispatched {{ dispatched }} · Delivered {{ delivered }} · Completed {{ completed }}{% endblocktranslate %}</p>
+      <h3 class="ra:mt-5 ra:text-base ra:font-bold">{% translate "Open work now" %}</h3>
       <ul class="ra:mt-2 ra:space-y-1 ra:text-sm">
-        <li>Awaiting dispatch: {{ report.queues.awaiting_dispatch }}</li>
-        <li>Cancellation requests: {{ report.queues.cancellations }}</li>
-        <li>Amendments: {{ report.queues.amendments }}</li>
-        <li>Disputes: {{ report.queues.disputes }}</li>
-        <li>Reviews awaiting moderation: {{ report.queues.reviews_pending }}</li>
-        <li>Goods payment cases: {{ report.queues.payment_reviews }}</li>
-        <li>Delivery cases: {{ report.queues.delivery_reviews }}</li>
-        <li>Open holds: {{ report.queues.holds }}</li>
-        <li><a class="ra:text-action" href="{% url 'admin:catalogue_sourcerevision_changelist' %}?state__exact=submitted">Catalogue revisions awaiting publication review: {{ publication_pending }}</a></li>
+        <li>{% translate "Awaiting dispatch" %}: {{ report.queues.awaiting_dispatch }}</li>
+        <li>{% translate "Cancellation requests" %}: {{ report.queues.cancellations }}</li>
+        <li>{% translate "Amendments" %}: {{ report.queues.amendments }}</li>
+        <li>{% translate "Disputes" %}: {{ report.queues.disputes }}</li>
+        <li>{% translate "Reviews awaiting moderation" %}: {{ report.queues.reviews_pending }}</li>
+        <li>{% translate "Goods payment cases" %}: {{ report.queues.payment_reviews }}</li>
+        <li>{% translate "Delivery cases" %}: {{ report.queues.delivery_reviews }}</li>
+        <li>{% translate "Open holds" %}: {{ report.queues.holds }}</li>
+        <li><a class="ra:text-action" href="{% url 'admin:catalogue_sourcerevision_changelist' %}?state__exact=submitted">{% blocktranslate trimmed with count=publication_pending %}Catalogue revisions awaiting publication review: {{ count }}{% endblocktranslate %}</a></li>
       </ul>
     </article>
   </div>
 
   <article class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
-    <h3 class="ra:text-base ra:font-bold">Top sellers by accepted value</h3>
-    <p class="ra:mt-1 ra:text-sm ra:text-muted">Up to 20 sellers per currency, by effective accepted total after approved amendments.</p>
+    <h3 class="ra:text-base ra:font-bold">{% translate "Top sellers by accepted value" %}</h3>
+    <p class="ra:mt-1 ra:text-sm ra:text-muted">{% translate "Up to 20 sellers per currency, by effective accepted total after approved amendments." %}</p>
     <table class="ra:mt-4 ra:w-full ra:text-sm">
-      <thead><tr class="ra:text-muted"><th class="ra:py-2 ra:text-start">Seller</th><th class="ra:py-2 ra:text-start">Currency</th><th class="ra:py-2 ra:text-end">Accepted orders</th><th class="ra:py-2 ra:text-end">Accepted total</th></tr></thead>
-      <tbody>{% for row in sellers %}<tr class="ra:border-t ra:border-line"><td class="ra:py-2"><a class="ra:text-action" href="{% url 'admin:organizations_businessprofile_change' row.seller %}">{{ row.name }}</a></td><td class="ra:py-2">{{ row.currency }}</td><td class="ra:py-2 ra:text-end">{{ row.accepted }}</td><td class="ra:py-2 ra:text-end">{{ row.accepted_total }}</td></tr>{% empty %}<tr><td colspan="4" class="ra:py-3 ra:text-muted">No accepted orders in this period.</td></tr>{% endfor %}</tbody>
+      <thead><tr class="ra:text-muted"><th class="ra:py-2 ra:text-start">{% translate "Seller" %}</th><th class="ra:py-2 ra:text-start">{% translate "Currency" %}</th><th class="ra:py-2 ra:text-end">{% translate "Accepted orders" %}</th><th class="ra:py-2 ra:text-end">{% translate "Accepted total" %}</th></tr></thead>
+      <tbody>{% for row in sellers %}<tr class="ra:border-t ra:border-line"><td class="ra:py-2"><a class="ra:text-action" href="{% url 'admin:organizations_businessprofile_change' row.seller %}">{{ row.name }}</a></td><td class="ra:py-2">{{ row.currency }}</td><td class="ra:py-2 ra:text-end">{{ row.accepted }}</td><td class="ra:py-2 ra:text-end">{{ row.accepted_total }}</td></tr>{% empty %}<tr><td colspan="4" class="ra:py-3 ra:text-muted">{% translate "No accepted orders in this period." %}</td></tr>{% endfor %}</tbody>
     </table>
   </article>
-  <p class="ra:text-xs ra:text-muted">Generated {{ report.generated_at|date:"Y-m-d H:i" }}. Every CSV download is recorded in the audit log.</p>
+  <p class="ra:text-xs ra:text-muted">{% blocktranslate trimmed with generated=report.generated_at|date:"Y-m-d H:i" %}Generated {{ generated }}. Every CSV download is recorded in the audit log.{% endblocktranslate %}</p>
 </section>
 {% endblock %}

@@ -3,7 +3,7 @@
 {% block content %}
 {% translate "Unassigned" as unassigned %}{% translate "Not provided" as not_provided %}
 {% if not independent_decision %}<p role="status" class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-ink">{% translate "You can inspect this record. An independent reviewer must decide your own or historically linked store submission." %}</p>{% endif %}
-<div class="ra:grid ra:gap-6 ra:min-w-0 ra:wrap-anywhere">
+<div class="rz-owner ra:grid ra:gap-6 ra:min-w-0 ra:wrap-anywhere">
   <section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
     <h2 class="ra:text-lg ra:font-bold">{% blocktranslate with number=revision.number %}Exact submitted revision {{ number }}{% endblocktranslate %}</h2>
     <p class="ra:mt-2">{% blocktranslate with state=revision.state business=revision.business_case.revision version=revision.store.version %}State: {{ state }} · Business review revision: {{ business }} · Store version: {{ version }}{% endblocktranslate %}</p>

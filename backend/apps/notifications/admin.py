@@ -5,6 +5,8 @@ from django.http import HttpResponseRedirect, Http404
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from rest_framework.exceptions import APIException
+from django.utils.translation import gettext_lazy as _
+from unfold.widgets import UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_access import permits, admin_actor
 from apps.organizations.admin import ReadOnlyAdmin
@@ -17,9 +19,9 @@ from .delivery import retry
 
 class DeliveryForm(forms.ModelForm):
     expected_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
-    retry_unknown = forms.BooleanField(required=False, label="Retry delivery (may duplicate an accepted email)")
-    reason = forms.CharField(min_length=3, max_length=1000, required=False, widget=forms.Textarea(attrs={"rows": 3}))
-    acknowledge_risk = forms.BooleanField(required=False, label="I acknowledge the risk of duplicate delivery")
+    retry_unknown = forms.BooleanField(required=False, label=_("Retry delivery (may duplicate an accepted email)"))
+    reason = forms.CharField(label=_("Reason"), min_length=3, max_length=1000, required=False, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+    acknowledge_risk = forms.BooleanField(required=False, label=_("I acknowledge the risk of duplicate delivery"))
 
     class Meta:
         model = Outbox
@@ -30,7 +32,7 @@ class DeliveryForm(forms.ModelForm):
         if values.get("retry_unknown") and (
             not values.get("acknowledge_risk") or len(values.get("reason", "").strip()) < 3
         ):
-            raise forms.ValidationError("A reason and duplicate-risk acknowledgement are required.")
+            raise forms.ValidationError(_("A reason and duplicate-risk acknowledgement are required."))
         return values
 
 
@@ -100,9 +102,9 @@ class OutboxAdmin(ReadOnlyAdmin):
                 form.cleaned_data["acknowledge_risk"],
             )
         except APIException:
-            messages.error(request, "Delivery changed or access ended. Review its current status before retrying.")
+            messages.error(request, _("Delivery changed or access ended. Review its current status before retrying."))
         else:
-            messages.info(request, "Retry recorded. The worker will recheck current eligibility.")
+            messages.info(request, _("Retry recorded. The worker will recheck current eligibility."))
         return HttpResponseRedirect(request.path)
 
     def save_model(self, *args, **kwargs):

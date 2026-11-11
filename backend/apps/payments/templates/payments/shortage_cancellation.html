@@ -4,7 +4,7 @@
 <div class="rz-owner ra:space-y-6 ra:min-w-0">
 <section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
 <h1 class="ra:text-xl ra:font-semibold">{% translate "Open a cancellation from a paid-shortage case" %}</h1>
-<p><bdi>{{ case.id }}</bdi> · {{ case.kind }} · {{ case.state }} · Version {{ case.version }} · <bdi>{{ case.order.invoice.number }}</bdi></p>
+<p><bdi>{{ case.id }}</bdi> · {{ case.kind }} · {{ case.state }} · {% translate "Version" %} <bdi>{{ case.version }}</bdi> · <bdi>{{ case.order.invoice.number }}</bdi></p>
 <p>{% translate "This is the only staff-opened cancellation path. Your staff identity is recorded honestly as the initiator; a different independent assigned staff member then decides the request. Approval produces the terminal cancellation effects, including a bounded refund due." %}</p>
 </section>
 <section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3"><h2 class="ra:text-lg ra:font-semibold">{% translate "Linked cancellation requests" %}</h2>{% for item in linked %}<p><bdi>{{ item.id }}</bdi> · {{ item.state }} · {{ item.created_at }}</p><p dir="auto">{{ item.reason }}</p>{% empty %}<p>{% translate "No cancellation request has been opened from this case yet." %}</p>{% endfor %}</section>

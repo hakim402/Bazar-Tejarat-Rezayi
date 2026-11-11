@@ -168,6 +168,7 @@ class SiteTests(TestCase):
         token = self.client.get("/api/v1/auth/csrf/").json()["csrf_token"]
         return self.client.post(f"/admin/site-setting/{key}/", {"action": "publish", **data}, HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN=settings.FRONTEND_ORIGIN)
 
+    @override_settings(LANGUAGE_CODE="en")
     def test_settings_sections_have_one_navigation_and_legacy_root_redirect(self):
         self.authorize()
         before = SiteSettings.objects.get().version
@@ -175,8 +176,8 @@ class SiteTests(TestCase):
         response = self.client.get("/admin/site-setting/general/")
         from apps.accounts.admin_navigation import navigation
         groups = navigation(response.wsgi_request)
-        self.assertEqual(str(groups[-1]["title"]), "Site Settings")
-        self.assertEqual(len(groups[-1]["items"]), len(SECTIONS))
+        self.assertEqual(str(groups[-1]["items"][0]["title"]), "Site Settings")
+        self.assertEqual(len(groups[-1]["items"][0]["items"]), len(SECTIONS))
         self.assertNotContains(response, "All settings")
         for section in SECTIONS:
             response = self.client.get(f"/admin/site-setting/{section.key}/")
@@ -186,7 +187,7 @@ class SiteTests(TestCase):
             form = response.context["form"]
             self.assertEqual(form.section, section)
             self.assertEqual(response.context["posts"] is not None, section.key in {"hero", "promotions"})
-            self.assertEqual(response.context["seo"] is not None, section.key == "seo")
+            self.assertEqual(bool(response.context["inline_admin_formsets"]), section.key == "seo")
             if section.key == "hero":
                 editor = self.client.get("/admin/site-setting/hero/new/").context["form"]
                 for locale in ["fa-AF", "ps", "ar", "en"]:

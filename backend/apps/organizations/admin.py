@@ -4,6 +4,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.admin import ModelAdmin
 
@@ -28,7 +29,7 @@ class ReadOnlyAdmin(AdminDisplayMixin, ModelAdmin):
     # Optional per-field help for subclasses that legitimately allow editing.
     field_help = {}
 
-    RECORD_DESCRIPTION = (
+    RECORD_DESCRIPTION = _(
         "Guarded domain record — the values below are retained history. Supported changes happen "
         "only through the linked guarded workflow; generic editing or deletion would bypass "
         "version, evidence and independence safeguards."
@@ -46,7 +47,7 @@ class ReadOnlyAdmin(AdminDisplayMixin, ModelAdmin):
                 sections.append((title, {"fields": present, "description": description}))
         rest = [name for name in allowed if name not in used]
         if rest:
-            sections.append(("Record details", {"fields": rest, "description": self.RECORD_DESCRIPTION}))
+            sections.append((_("Record details"), {"fields": rest, "description": self.RECORD_DESCRIPTION}))
         return sections
 
     def get_form(self, request, obj=None, **kwargs):
@@ -78,11 +79,7 @@ class WorkflowAdmin(ReadOnlyAdmin):
 
     def guarded_workflow(self, obj):
         url = reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_workflow", args=[obj.pk])
-        return format_html(
-            '<a class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm '
-            'font-semibold text-white hover:bg-primary-700" href="{}">Open guarded workflow</a>',
-            url,
-        )
+        return format_html('<a href="{}">{}</a>', url, _("Open guarded workflow"))
 
     def get_urls(self):
         info = self.model._meta
@@ -182,7 +179,10 @@ class ProfileAdmin(ModelAdmin):
     list_per_page = 30
 
     def get_fieldsets(self, request, obj=None):
-        return [(None, {'fields': self.fields, 'description': 'Validated business details. Material changes start a new verification revision and can remove current public eligibility; review remains independent. Account, kind and historical revisions cannot be reassigned.'})]
+        description = _(
+            "Validated business details. Material changes start a new verification revision and can remove current public eligibility; review remains independent. Account, kind and historical revisions cannot be reassigned."
+        )
+        return [(None, {'fields': self.fields, 'description': description})]
 
     def has_add_permission(self, request):
         return False  # Creation belongs to the applicant account context.

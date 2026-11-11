@@ -87,7 +87,10 @@ from apps.orders.models import Aftercare,DisputeRequest
 row=DisputeRequest.objects.get(pk=sys.argv[1]);root=actor(User.objects.get(email='phase09-root@example.test'),'owner');target=User.objects.get(email='phase03-owner@example.test')
 disputes.decide(root,row.pk,{'command_id':uuid.uuid4(),'version':Aftercare.objects.get(order=row.order).version,'dispute_version':row.version,'action':'assign','assigned_to':target.pk,'reason':'Independent actual CGI dispute reviewer assignment'})
 """
-    run.python("-c", assign, dispute, name="cgi-dispute-independent-assignment")
+    # Match the explicit password-only policy of this owned CGI gateway. Test
+    # settings otherwise default to MFA even though the CGI policy is false.
+    run.python("-c", assign, dispute, name="cgi-dispute-independent-assignment",
+               env={**run.env, "REZAYI_TEST_OWNER_MFA_REQUIRED": "false"})
     token = signin("buyer", "phase03-buyer@example.test")
     assert request(base)[0] == 404
     assert request(f"/api/v1/orders/buyer/disputes/{dispute}/")[0] == 404
@@ -389,7 +392,7 @@ with patch.object(config.environment,"load_environment",return_value=environ.Env
 
             _, output = run.python(
                 "-c",
-                "import django;django.setup();from apps.orders.models import SellerOrder;print(SellerOrder.objects.filter(buyer__user__email='phase12-buyer@example.test',payment_method='cod').first().pk)",
+                "import django;django.setup();from apps.payments.management.commands.seed_payment_examples import example_order;print(example_order('cod')['id'])",
                 name="cgi-payment-owned-order",
             )
             order_id = output.strip()

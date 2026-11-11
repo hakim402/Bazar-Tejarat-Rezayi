@@ -206,13 +206,16 @@ class StaffProvisioningFormMixin:
         super().__init__(*args, **kwargs)
         self.fields["authority_version"].required = not self.instance._state.adding
         self.fields["authority_version"].initial = self.instance.credential_epoch if self.instance.pk else None
-        self.fields["is_superuser"].label = "Super admin"
-        self.fields["is_superuser"].help_text = "Full native administration; independent approvals and immutable history still apply. Requires active staff access and verified email."
+        self.fields["is_superuser"].label = _("Super admin")
+        self.fields["is_superuser"].help_text = _(
+            "Full native administration; independent approvals and immutable history still apply. "
+            "Requires active staff access and verified email."
+        )
 
     def clean(self):
         data = super().clean()
         if data.get("is_superuser") and not data.get("is_staff"):
-            self.add_error("is_superuser", "Super admin requires staff access.")
+            self.add_error("is_superuser", _("Super admin requires staff access."))
         if data.get("is_staff") and not self.instance.email_verified and not data.get("attest_staff_email"):
             self.add_error("attest_staff_email", ADMIN_COPY["staff_email_attest_required"])
         return data
@@ -244,8 +247,13 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
     fieldsets = [
         (None, {"fields": ["email", "display_name", "is_active", "is_staff", "is_superuser", "groups", "attest_staff_email", "authority_version"]}),
         (
-            "Protected identity state",
-            {"fields": ["email_verified", "owner_authority", "credential_epoch"], "description": "The legacy owner flag is retained for history. Super admin above is the canonical administrative role."},
+            _("Protected identity state"),
+            {
+                "fields": ["email_verified", "owner_authority", "credential_epoch"],
+                "description": _(
+                    "The legacy owner flag is retained for history. Super admin above is the canonical administrative role."
+                ),
+            },
         ),
     ]
     add_fieldsets = [(None, {"fields": ["email", "display_name", "password1", "password2", "is_staff", "is_superuser", "groups", "attest_staff_email", "authority_version"]})]

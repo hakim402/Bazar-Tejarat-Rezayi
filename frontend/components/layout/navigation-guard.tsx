@@ -8,9 +8,9 @@ import {
 	useRef,
 	type ReactNode,
 } from "react";
-type Guard = (action: () => void) => void;
+type Guard = (action: () => void, returnFocus?: HTMLElement | null) => void;
 const Context = createContext({
-	navigate: (action: () => void) => action(),
+	navigate: (action: () => void, _returnFocus?: HTMLElement | null) => action(),
 	register: (_owner: symbol, _guard: Guard | null) => {},
 });
 export function NavigationGuard({
@@ -27,7 +27,8 @@ export function NavigationGuard({
 		else guard.current.delete(owner);
 		leaving.current = false;
 	}, []);
-	const navigate = useCallback((action: () => void) => {
+	const navigate = useCallback((action: () => void, returnFocus?: HTMLElement | null) => {
+		const origin = returnFocus ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 		const owners = [...guard.current.keys()];
 		function confirm(index: number) {
 			const owner = owners[index];
@@ -37,7 +38,7 @@ export function NavigationGuard({
 				return;
 			}
 			const current = guard.current.get(owner);
-			if (current) current(() => confirm(index + 1));
+			if (current) current(() => confirm(index + 1), origin);
 			else confirm(index + 1);
 		}
 		confirm(0);
@@ -111,7 +112,7 @@ export function NavigationGuard({
 						return;
 					event.preventDefault();
 					event.stopPropagation();
-					navigate(() => location.assign(target.href));
+					navigate(() => location.assign(target.href), target);
 				}}
 			>
 				{children}

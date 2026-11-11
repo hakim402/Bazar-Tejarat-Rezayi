@@ -259,7 +259,7 @@ export function AftercareActionForm({
 					</select>
 				</label>
 			)}
-			<form onSubmit={submit} className="space-y-4" noValidate>
+			<form aria-label={t.exact} onSubmit={submit} className="space-y-4" noValidate>
 				<fieldset disabled={locked || !available} className="space-y-4">
 					{targets &&
 						(isSeller ? (
@@ -361,7 +361,7 @@ export function AftercareActionForm({
 					{mode === "review_submit" && (
 						<label className={labelClass}>
 							{t.reviewRating}
-							<select className={control} value={draft.rating} onChange={(event) => patch({ rating: event.target.value })}>
+							<select aria-label={t.reviewRating} className={control} value={draft.rating} onChange={(event) => patch({ rating: event.target.value })}>
 								<option value="">—</option>
 								{[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}/5</option>)}
 							</select>

@@ -16,7 +16,6 @@ import {
 	accessLost,
 	useOnlineState,
 } from "../../messaging/hooks";
-import { useCommerceGuard } from "../../orders/components/unsaved";
 import {
 	action as buyerAction,
 	panel as buyerPanel,
@@ -74,7 +73,6 @@ export function DeliveryDetail({
 		[denied, setDenied] = useState(false),
 		[reload, setReload] = useState(0),
 		[loadedRevision, setLoadedRevision] = useState(-1),
-		[dirty, setDirty] = useState(false),
 		[formGeneration, setFormGeneration] = useState(0),
 		[uploaded, setUploaded] = useState<{ id: string; purpose: string } | null>(
 			null,
@@ -90,8 +88,7 @@ export function DeliveryDetail({
 			downloadController.current?.abort();
 		};
 	}, []);
-	const opener = useRef<HTMLElement | null>(null),
-		guard = useCommerceGuard(locale, dirty);
+	const opener = useRef<HTMLElement | null>(null);
 	const deny = useCallback(() => {
 		clearFulfilmentIntents();
 		setDenied(true);
@@ -117,7 +114,6 @@ export function DeliveryDetail({
 				setUploaded({ id: result.id, purpose: String(result.purpose) });
 			else if (intent) {
 				setFormGeneration((value) => value + 1);
-				setDirty(false);
 				setUploaded(null);
 			}
 			if (current) setRow(current);
@@ -233,7 +229,6 @@ export function DeliveryDetail({
 	return (
 		<SalesFrame seller={isSeller}>
 			<div className="min-w-0 space-y-5">
-				{guard.feedback}
 				{isSeller ? (
 					<SalesHeader
 						locale={locale}
@@ -374,7 +369,6 @@ export function DeliveryDetail({
 					key={`${formGeneration}:${JSON.stringify(row.capabilities)}`}
 					{...{ locale, context, row, uploaded }}
 					locked={command.locked || !online}
-					onDirty={setDirty}
 					onDenied={deny}
 					review={(next, focus) => {
 						opener.current = focus;

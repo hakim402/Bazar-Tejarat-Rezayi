@@ -21,7 +21,9 @@ export function Confirmation({
 		dialog?.showModal();
 		return () => {
 			dialog?.close();
-			previous?.focus();
+			queueMicrotask(() => {
+				if (!dialog?.open && previous?.isConnected) previous.focus();
+			});
 		};
 	}, [returnFocus]);
 	return (

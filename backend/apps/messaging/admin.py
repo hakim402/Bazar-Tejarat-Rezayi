@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
@@ -19,24 +20,24 @@ from .models import Conversation, Message, Attachment, ReadState, Command, Repor
 
 class CaseForm(forms.Form):
     version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
-    action = forms.ChoiceField(choices=[], widget=UnfoldAdminSelectWidget)
-    reason = forms.CharField(min_length=3, max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+    action = forms.ChoiceField(label=_("Action"), choices=[], widget=UnfoldAdminSelectWidget)
+    reason = forms.CharField(label=_("Decision reason"), min_length=3, max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
     assigned_to = forms.ModelChoiceField(
-        queryset=cases.Account.objects.none(), required=False, widget=UnfoldAdminSelectWidget
+        label=_("Assigned reviewer"), queryset=cases.Account.objects.none(), required=False, widget=UnfoldAdminSelectWidget
     )
 
 
 class TargetKindFilter(SimpleListFilter):
     """Filter reports by their polymorphic target kind (property, not DB field)."""
-    title = "target kind"
+    title = _("Target kind")
     parameter_name = "target_kind"
 
     def lookups(self, request, model_admin):
         return [
-            ("message", "Message"),
-            ("product", "Product"),
-            ("store", "Store"),
-            ("order", "Order"),
+            ("message", _("Message")),
+            ("product", _("Product")),
+            ("store", _("Store")),
+            ("order", _("Order")),
         ]
 
     def queryset(self, request, queryset):
@@ -74,7 +75,7 @@ class ReportAdmin(ReadOnlyAdmin):
 
     def target_kind_display(self, obj):
         return obj.target_kind
-    target_kind_display.short_description = "Target kind"
+    target_kind_display.short_description = _("Target kind")
 
     def staff_view(self, request, obj=None):
         if not permits(request, "messaging", *PERMISSIONS):
@@ -85,7 +86,7 @@ class ReportAdmin(ReadOnlyAdmin):
         return qs.filter(pk__in=cases.queryset(admin_actor(request)).values("pk"))
 
     def case_workspace(self, obj):
-        return format_html('<a href="{}">Case workspace</a>', reverse("admin:messaging_report_case", args=[obj.pk]))
+        return format_html('<a href="{}">{}</a>', reverse("admin:messaging_report_case", args=[obj.pk]), _("Case workspace"))
 
     def get_urls(self):
         return [
@@ -102,13 +103,13 @@ class ReportAdmin(ReadOnlyAdmin):
         actor = admin_actor(request)
         report = get_object_or_404(cases.queryset(actor).select_related("message__conversation"), pk=pk)
         permissions = cases.rights(actor)
-        choices = [("", "Choose action")]
+        choices = [("", _("Choose action"))]
         if "assign_message_case" in permissions and report.status == "open":
-            choices.append(("assign", "Assign independent reviewer"))
+            choices.append(("assign", _("Assign independent reviewer")))
         if "resolve_message_case" in permissions and report.status == "open":
-            choices.append(("resolve", "Resolve with reason"))
+            choices.append(("resolve", _("Resolve with reason")))
         if "reopen_message_case" in permissions and report.status == "resolved":
-            choices.append(("reopen", "Reopen with reason"))
+            choices.append(("reopen", _("Reopen with reason")))
         form = CaseForm(request.POST if request.method == "POST" else None, initial={"version": report.version})
         form.fields["action"].choices = choices
         form.fields["assigned_to"].queryset = cases.reviewers(report)
@@ -122,7 +123,7 @@ class ReportAdmin(ReadOnlyAdmin):
             try:
                 cases.transition(actor, pk, **data)
             except APIException as error:
-                form.add_error(None, "The case changed or access ended. Review the current state.")
+                form.add_error(None, _("The case changed or access ended. Review the current state."))
                 status = error.status_code
             else:
                 return HttpResponseRedirect(request.path)

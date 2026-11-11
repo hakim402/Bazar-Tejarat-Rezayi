@@ -8,8 +8,10 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from urllib.parse import urlencode
 from rest_framework.exceptions import APIException
+from django.utils.translation import gettext_lazy as _
 from apps.accounts.admin import owner_site
 from apps.accounts.admin_copy import COPY as ADMIN_COPY
+from apps.accounts.admin_locale import admin_language
 from apps.organizations.admin import ReadOnlyAdmin
 from . import contracts, access, services, translations, taxonomy
 from .owner_copy import localize
@@ -29,6 +31,11 @@ from .models import (
 )
 
 
+def chrome_locale(request):
+    """Admin chrome copy follows the session language; database content languages stay separate."""
+    return "fa-AF" if admin_language(request) == "fa-af" else "en"
+
+
 class CatalogueRecordAdmin(ReadOnlyAdmin):
     def staff_view(self, request, obj=None):
         return permits(request, "catalogue", "view_" + self.model._meta.model_name) and permits(
@@ -45,7 +52,7 @@ class PrivateImageAdmin(CatalogueRecordAdmin):
         return ["id", "product", "content_type", "width", "height", "size", "created_at", "protected_preview"]
 
     def protected_preview(self, obj):
-        return format_html('<a href="{}">Protected image</a>', reverse("admin:catalogue_private_image", args=[obj.pk]))
+        return format_html('<a href="{}">{}</a>', reverse("admin:catalogue_private_image", args=[obj.pk]), _("Protected image"))
 
     def get_urls(self):
         return [path("<uuid:pk>/download/", self.admin_site.admin_view(self.download),
@@ -106,7 +113,8 @@ class ProductAdmin(ReadOnlyAdmin):
 
     def workflow_link(self, obj):
         return format_html(
-            '<a href="{}">Review / translate / publish</a>', reverse("admin:catalogue_workflow", args=[obj.pk])
+            '<a href="{}">{}</a>', reverse("admin:catalogue_workflow", args=[obj.pk]),
+            _("Review / translate / publish"),
         )
 
     def get_urls(self):
@@ -116,7 +124,7 @@ class ProductAdmin(ReadOnlyAdmin):
         ]
 
     def workflow(self, request, pk):
-        locale = "en"
+        locale = chrome_locale(request)
         item = get_object_or_404(self.get_queryset(request), pk=pk)
         actor = admin_actor(request)
         access.resource(actor, pk)
@@ -239,13 +247,13 @@ class TaxonomyBaseForm(forms.Form):
     version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
     code = forms.SlugField(
         max_length=40,
-        help_text="Permanent identity: lowercase letters, digits and hyphens. It cannot change after creation.",
+        help_text=_("Permanent identity: lowercase letters, digits and hyphens. It cannot change after creation."),
     )
-    label_fa_af = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text="Required Dari display name (default marketplace language).")
-    label_en = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "ltr"}), help_text="Required English display name.")
-    label_ps = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text="Required Pashto display name.")
-    label_ar = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text="Required Arabic display name.")
-    active = forms.BooleanField(required=False, initial=True, help_text="Inactive entries stay retained but are not offered to new products.")
+    label_fa_af = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text=_("Required Dari display name (default marketplace language)."))
+    label_en = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "ltr"}), help_text=_("Required English display name."))
+    label_ps = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text=_("Required Pashto display name."))
+    label_ar = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"dir": "rtl"}), help_text=_("Required Arabic display name."))
+    active = forms.BooleanField(required=False, initial=True, help_text=_("Inactive entries stay retained but are not offered to new products."))
 
     def initial_from_row(self, row):
         initial = {"version": row["version"], "code": row["code"], "active": row["active"]}
@@ -257,14 +265,14 @@ class TaxonomyBaseForm(forms.Form):
 
 
 class CategoryForm(TaxonomyBaseForm):
-    parent = forms.ChoiceField(required=False, choices=(), help_text="Optional parent category. Hierarchy is bounded to four levels and cycles are refused.")
-    units = forms.CharField(max_length=200, help_text="Comma-separated sale unit codes, 1 to 9 entries, each at most 16 characters. Example: kg, piece.")
-    attributes = forms.JSONField(required=False, widget=forms.Textarea(attrs={"rows": 4, "dir": "ltr"}), help_text='Optional advanced attribute definitions as a JSON list. Leave [] unless this category needs extra variant attributes.')
+    parent = forms.ChoiceField(required=False, choices=(), help_text=_("Optional parent category. Hierarchy is bounded to four levels and cycles are refused."))
+    units = forms.CharField(max_length=200, help_text=_("Comma-separated sale unit codes, 1 to 9 entries, each at most 16 characters. Example: kg, piece."))
+    attributes = forms.JSONField(required=False, widget=forms.Textarea(attrs={"rows": 4, "dir": "ltr"}), help_text=_('Optional advanced attribute definitions as a JSON list. Leave [] unless this category needs extra variant attributes.'))
 
     def clean_units(self):
         entries = [part.strip() for part in self.cleaned_data["units"].split(",")]
         if not entries or any(not entry for entry in entries):
-            raise forms.ValidationError("Provide 1 to 9 unit codes separated by commas, without empty entries.")
+            raise forms.ValidationError(_("Provide 1 to 9 unit codes separated by commas, without empty entries."))
         return entries
 
     def clean_attributes(self):
@@ -272,7 +280,7 @@ class CategoryForm(TaxonomyBaseForm):
         if value is None:
             return []
         if not isinstance(value, list):
-            raise forms.ValidationError("Attributes must be a JSON list, for example [].")
+            raise forms.ValidationError(_("Attributes must be a JSON list, for example []."))
         return value
 
     def payload(self):
@@ -288,8 +296,8 @@ class CategoryForm(TaxonomyBaseForm):
 
 
 class UnitForm(TaxonomyBaseForm):
-    code = forms.SlugField(max_length=16, help_text="Permanent identity: lowercase letters, digits and hyphens, at most 16 characters.")
-    fractional = forms.BooleanField(required=False, help_text="Allow fractional quantities such as 0.25 kg; whole-count units stay unchecked.")
+    code = forms.SlugField(max_length=16, help_text=_("Permanent identity: lowercase letters, digits and hyphens, at most 16 characters."))
+    fractional = forms.BooleanField(required=False, help_text=_("Allow fractional quantities such as 0.25 kg; whole-count units stay unchecked."))
 
     def payload(self):
         return {
@@ -344,7 +352,7 @@ class CategoryAdmin(TaxonomyAdmin):
     list_filter = ["active"]
 
     def workflow_link(self, obj):
-        return format_html('<a href="{}">Taxonomy</a>', reverse("admin:catalogue_taxonomy", args=[obj.pk]))
+        return format_html('<a href="{}">{}</a>', reverse("admin:catalogue_taxonomy", args=[obj.pk]), _("Taxonomy"))
 
     def get_urls(self):
         return [
@@ -354,7 +362,7 @@ class CategoryAdmin(TaxonomyAdmin):
         ]
 
     def workflow(self, request, code):
-        locale = "en"
+        locale = chrome_locale(request)
         actor = admin_actor(request)
         access.staff(actor, "manage_taxonomy")
         row = next((r for r in taxonomy.taxonomy()["categories"] if r["code"] == code), None)
@@ -364,7 +372,7 @@ class CategoryAdmin(TaxonomyAdmin):
         form = CategoryForm(request.POST if request.method == "POST" else None)
         form.initial = form.initial_from_row(row)
         form.initial.update({"parent": row["parent"] or "", "units": ", ".join(row["units"]), "attributes": row["attributes"]})
-        form.fields["parent"].choices = [("", "No parent (top level)")] + [
+        form.fields["parent"].choices = [("", _("No parent (top level)"))] + [
             (c.code, f"{c.code} — {c.labels.get('en') or c.labels.get('fa-AF') or ''}")
             for c in Category.objects.order_by("code") if c.code != code
         ]
@@ -406,7 +414,7 @@ class UnitAdmin(TaxonomyAdmin):
     list_display = ["code", "active", "fractional", "version", "workflow_link"]
 
     def workflow_link(self, obj):
-        return format_html('<a href="{}">Unit</a>', reverse("admin:catalogue_unit", args=[obj.pk]))
+        return format_html('<a href="{}">{}</a>', reverse("admin:catalogue_unit", args=[obj.pk]), _("Sale unit"))
 
     def get_urls(self):
         return [
@@ -418,7 +426,7 @@ class UnitAdmin(TaxonomyAdmin):
     def workflow(self, request, code):
         actor = admin_actor(request)
         access.staff(actor, "manage_taxonomy")
-        locale = "en"
+        locale = chrome_locale(request)
         row = next((r for r in taxonomy.taxonomy()["units"] if r["code"] == code), None)
         if code is None:
             row = {"version": 0, "code": "", "labels": {locale: "" for locale in LOCALES},
@@ -464,7 +472,7 @@ class RevisionAdmin(CatalogueRecordAdmin):
     search_fields = ["product__seller__display_name", "product__variants__sku"]
 
     def workflow_link(self, obj):
-        return format_html('<a href="{}">Review</a>', reverse("admin:catalogue_workflow", args=[obj.product_id]))
+        return format_html('<a href="{}">{}</a>', reverse("admin:catalogue_workflow", args=[obj.product_id]), _("Review"))
 
 
 owner_site.register(SaleUnit, UnitAdmin)

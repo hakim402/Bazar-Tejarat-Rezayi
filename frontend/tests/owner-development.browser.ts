@@ -26,7 +26,11 @@ for (const locale of locales) {
 		await page.locator("[name=password]").fill(fixturePassword);
 		await page.locator('form:has(input[name="stage"][value="password"]) button[type="submit"]').click();
 		await expect(page).toHaveURL(`${apiOrigin}/admin/`);
-		await expect(page.locator('a[href="/admin/accounts/user/"]:visible').first()).toBeVisible();
+		const navigation = page.locator("#nav-sidebar-apps");
+		if (!(await navigation.isVisible())) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+		const accounts = navigation.getByRole("button", { name: "Accounts & Access", exact: true });
+		if (await accounts.getAttribute("aria-expanded") === "false") await accounts.click();
+		await expect(navigation.locator('a[href="/admin/accounts/user/"]:visible').first()).toBeVisible();
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 		await page.screenshot({
 			path: `${process.env.PLAYWRIGHT_EVIDENCE_DIR}/owner-development-${locale}.png`, fullPage: true,

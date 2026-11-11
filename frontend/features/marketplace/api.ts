@@ -42,7 +42,14 @@ export async function publicRequest<T>(
 		throw new ApiError("invalid");
 	const row = value as Record<string, unknown>,
 		route = path.split("?")[0];
-	if ("results" in row) {
+	if (/^stores\/[0-9a-f-]{36}\/reviews\/summary\/$/.test(route)) {
+		if (
+			Object.keys(row).some((key) => key !== "count" && key !== "average") ||
+			!Number.isSafeInteger(row.count) || Number(row.count) < 0 ||
+			(row.count === 0 ? row.average !== null :
+				typeof row.average !== "string" || !/^[1-5]\.[0-9]$/.test(row.average) || Number(row.average) > 5)
+		) throw new ApiError("invalid");
+	} else if ("results" in row) {
 		if (
 			!Array.isArray(row.results) ||
 			row.results.length > 20 ||

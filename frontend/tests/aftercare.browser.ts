@@ -1,5 +1,7 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
 import { apiOrigin, disposablePython, fixturePassword } from "./support/identity-runtime";
+import { selectControl } from "./support/seller-controls";
+import { sellerSalesCopy } from "../lib/i18n/seller-sales";
 import { noOverflow } from "./support/commerce-runtime";
 import { privatePost } from "./support/messaging-runtime";
 import { aftercareCopy } from "../features/aftercare/copy";
@@ -64,6 +66,8 @@ from apps.fulfilment import models as f
 from apps.inventory.models import Bucket,Movement
 from apps.notifications.models import Notice
 from apps.runtime.models import Job
+from apps.notifications.aftercare_events import sweep
+sweep()
 order=o.SellerOrder.objects.get(pk='${item.id}')
 counts={model.__name__:model.objects.filter(order=order).count() for model in [o.Aftercare,o.AftercareCommand,o.AftercareEvent,o.CancellationRequest,o.Amendment,o.InvoiceAdjustment,p.RefundDue,f.Shipment,f.Event,f.Blocker]}
 counts['RefundReport']=p.RefundReport.objects.filter(due__order=order).count()
@@ -123,8 +127,8 @@ async function open(page: Page, item: Item, context: Context = "buyer", locale: 
 }
 async function cancellationReview(page: Page, locale: Locale, reason: string) {
 	const t = aftercareCopy[locale];
-	await page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("cancel");
-	await page.getByLabel(t.reason, { exact: true }).fill(reason);
+	await selectControl(page, page.url().includes("/account/seller/") ? sellerSalesCopy[locale].actions : t.exact, "cancel");
+	await page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill(reason);
 	await page.getByRole("button", { name: t.exact, exact: true }).click();
 	await expect(page.getByRole("alertdialog")).toBeVisible();
 }
@@ -190,7 +194,7 @@ test("P14 concurrent real request makes the displayed review stale without repla
 		await expect(dialog.getByRole("button", { name: t.confirm, exact: true })).toBeDisabled({ timeout: 30000 });
 		await expect(dialog).toContainText(reason);
 		await dialog.getByRole("button", { name: t.cancel, exact: true }).click();
-		await expect(seller.page.getByLabel(t.reason, { exact: true })).toHaveValue(reason);
+		await expect(seller.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true })).toHaveValue(reason);
 		const current = await detail(buyer.page, item);
 		expect(current.cancellations).toHaveLength(1);
 		expect(current.cancellations[0].reason).toBe("Concurrent buyer request");
@@ -241,7 +245,7 @@ for (const locale of locales) {
 				expect(snapshot(item)).toEqual(before);
 				await buyer.page.keyboard.press("Escape");
 				await expect(buyer.page.getByRole("button", { name: t.exact, exact: true })).toBeFocused();
-				await expect(buyer.page.getByLabel(t.reason, { exact: true })).toHaveValue(reason);
+				await expect(buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true })).toHaveValue(reason);
 				await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 				const applied = buyer.page.waitForResponse((r) => r.url().endsWith(`/orders/buyer/orders/${item.id}/cancellations/`) && r.request().method() === "POST");
 				await confirm(buyer.page, locale);
@@ -272,7 +276,7 @@ for (const context of ["buyer", "seller"] as const) {
 			try {
 				const route = screen === "delivery" ? context === "buyer" ? "deliveries" : "fulfilment" : screen;
 				await actor.page.goto(`/en/account/${context}/${route}/${screen === "invoices" ? item.invoice : item.id}${context === "seller" ? `?seller=${item.seller}` : ""}`);
-				const link = actor.page.getByRole("link", { name: aftercareCopy.en.openWorkspace, exact: true });
+				const link = actor.page.locator(`main a[href="${aftercareHref("en", context, item.id, item.seller)}"]`);
 				await expect(link).toHaveAttribute("href", aftercareHref("en", context, item.id, item.seller));
 				await expect(actor.page.locator("main")).toHaveCount(1);
 				const before = snapshot(item);
@@ -341,12 +345,12 @@ test("P14 dirty navigation keeps fields and does not create a cancellation when 
 	try {
 		await open(buyer.page, item);
 		const before = snapshot(item), reason = `Unsaved private reason ${item.id}`;
-		await buyer.page.getByLabel(t.reason, { exact: true }).fill(reason);
-		await buyer.page.locator('a[href="/en/account/buyer/cancellations"]').first().click();
+		await buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill(reason);
+		await buyer.page.locator('main a[href="/en/account/buyer/cancellations"]').click();
 		const warning = buyer.page.getByRole("alert").filter({ has: buyer.page.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }) });
 		await expect(warning).toBeVisible();
 		await warning.getByRole("button", { name: catalogueCopy.en.cancel, exact: true }).click();
-		await expect(buyer.page.getByLabel(t.reason, { exact: true })).toHaveValue(reason);
+		await expect(buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true })).toHaveValue(reason);
 		expect(buyer.page.url()).toContain(item.id);
 		expect(snapshot(item)).toEqual(before);
 	} finally { await buyer.session.close(); }
@@ -380,7 +384,7 @@ for (const applied of [true, false]) {
 				const data = await detail(buyer.page, item);
 				expect(data.cancellations[0].reason).toBe(reason);
 			} else {
-				await expect(buyer.page.getByLabel(t.reason, { exact: true })).toHaveValue(reason);
+				await expect(buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true })).toHaveValue(reason);
 				await buyer.page.unroute(path);
 				await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 				const response = buyer.page.waitForResponse((r) => r.url().endsWith(`/orders/${item.id}/cancellations/`) && r.request().method() === "POST");
@@ -397,8 +401,8 @@ test("P14 withdrawal retains request history without inventing a staff approval 
 		const data = await submitCancellation(buyer.page, item), before = snapshot(item);
 		await buyer.page.reload();
 		await buyer.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("cancel_withdraw");
-		await buyer.page.getByLabel(t.target, { exact: true }).selectOption(data.cancellations[0].id);
-		await buyer.page.getByLabel(t.reason, { exact: true }).fill("Buyer withdraws own synthetic request");
+		await buyer.page.getByRole("combobox", { name: t.target, exact: true }).selectOption(data.cancellations[0].id);
+		await buyer.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill("Buyer withdraws own synthetic request");
 		await buyer.page.getByRole("button", { name: t.exact, exact: true }).click();
 		const response = buyer.page.waitForResponse((r) => r.url().endsWith(`/cancellations/${data.cancellations[0].id}/withdraw/`) && r.request().method() === "POST");
 		await confirm(buyer.page);
@@ -463,11 +467,11 @@ test("P14 accepted decrease releases only reduced held stock and preserves origi
 	try {
 		await open(seller.page, item, "seller");
 		const before = snapshot(item), data = await detail(seller.page, item, "seller");
-		await seller.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("amend");
+		await selectControl(seller.page, sellerSalesCopy.en.actions, "amend");
 		await seller.page.getByLabel(t.selected, { exact: true }).first().check();
-		await seller.page.getByLabel(t.quantity, { exact: true }).fill("1.000");
+		await seller.page.getByRole("form", { name: t.exact, exact: true }).getByLabel(new RegExp(`^${t.quantity}(?: [(]|$)`)).fill("1.000");
 		await seller.page.getByLabel(`${t.unitPrice} (${data.currency})`, { exact: true }).fill(data.effective_lines[0].unit_price);
-		await seller.page.getByLabel(t.reason, { exact: true }).fill("Reduce one whole accepted unit");
+		await seller.page.getByRole("form", { name: t.exact, exact: true }).getByRole("textbox", { name: t.reason, exact: true }).fill("Reduce one whole accepted unit");
 		await seller.page.getByRole("button", { name: t.exact, exact: true }).click();
 		await expect(seller.page.getByRole("alertdialog")).toContainText(data.effective_lines[0].quantity);
 		const proposed = seller.page.waitForResponse((r) => r.url().endsWith(`/orders/${item.id}/amendments/`) && r.request().method() === "POST");
@@ -502,11 +506,11 @@ test("P14 seller refund report records an actual refund claim without confirming
 		const data = await response.json() as { refund_dues: { id: string; amount: string }[] };
 		const due = data.refund_dues[0], before = snapshot(item), reference = `REFUND-${item.id}`;
 		expect(due.amount).toBe(before.money.refund_due);
-		await seller.page.getByRole("combobox", { name: t.exact, exact: true }).selectOption("report");
-		await seller.page.getByLabel(t.target, { exact: true }).selectOption(due.id);
-		await seller.page.locator('input[type="datetime-local"]').fill("2020-01-01T10:00:00");
+		await selectControl(seller.page, sellerSalesCopy.en.actions, "report");
+		await selectControl(seller.page, t.target, due.id);
+		await seller.page.locator('input[type="datetime-local"]').fill("2020-01-01T10:00");
 		await seller.page.getByLabel(t.reference, { exact: true }).fill(reference);
-		await seller.page.getByLabel(t.description, { exact: true }).fill("Synthetic actual sent refund; independent review required");
+		await seller.page.getByRole("textbox", { name: t.description, exact: true }).fill("Synthetic actual sent refund; independent review required");
 		await seller.page.getByRole("button", { name: t.exact, exact: true }).click();
 		await expect(seller.page.getByRole("alertdialog")).toContainText(due.amount);
 		await expect(seller.page.getByRole("alertdialog")).toContainText(reference);
