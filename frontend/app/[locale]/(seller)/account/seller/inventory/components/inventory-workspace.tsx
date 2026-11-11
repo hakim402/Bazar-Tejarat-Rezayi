@@ -1,18 +1,22 @@
 "use client";
-import { Pagination } from "../../../../../../../features/inventory/components/pagination";
+import { Search } from "lucide-react";
 import { organizationCopy } from "../../../../../../../lib/i18n/organizations";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSellerAccount } from "../../components/seller-account";
 import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
-import { stockHref } from "./stock-ui";
+import { StockPagination, stockHref } from "./stock-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { direction, type Locale } from "../../../../../../../lib/i18n/locales";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import { authCopy } from "../../../../../../../lib/i18n/auth";
-import { Button } from "../../../../../../../components/ui/button";
+import { Button } from "../../../../../../../components/shadcn/button";
+import { Input } from "../../../../../../../components/shadcn/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../../../../../components/shadcn/native-select";
 import { Alert } from "../../../../../../../components/ui/alert";
-import { Field, Input } from "../../../../../../../components/ui/form-field";
 import { useNavigation } from "../../../../../../../components/layout/navigation-guard";
 import { AccountError } from "../../../../../../../lib/api/private-client";
 import {
@@ -139,7 +143,9 @@ function InventoryContext({
 				<h1 className="text-2xl font-bold">{t[screen]}</h1>
 				<Alert role="alert">{error}</Alert>
 				<div className="flex flex-wrap gap-3">
-					<Button onClick={() => void refresh()}>{t.retry}</Button>
+					<Button className="rounded-lg" onClick={() => void refresh()}>
+						{t.retry}
+					</Button>
 					<Link className={linkClass} href={`/${locale}/auth/seller-sign-in`}>
 						{authCopy[locale].signin}
 					</Link>
@@ -198,7 +204,12 @@ function InventoryContext({
 			{refreshError && (
 				<Alert role="alert">
 					{refreshError}
-					<Button variant="secondary" onClick={() => void refresh()}>
+					<Button
+						variant="outline"
+						size="sm"
+						className="ms-2 h-8 rounded-lg text-xs"
+						onClick={() => void refresh()}
+					>
 						{t.retry}
 					</Button>
 				</Alert>
@@ -414,7 +425,11 @@ function ScopedStock({
 		return (
 			<section className={panel}>
 				<Alert role="alert">{error}</Alert>
-				<Button disabled={busy} onClick={() => void load().catch(() => {})}>
+				<Button
+					className="rounded-lg"
+					disabled={busy}
+					onClick={() => void load().catch(() => {})}
+				>
 					{t.retry}
 				</Button>
 			</section>
@@ -441,9 +456,16 @@ function ScopedStock({
 						{position.capabilities.write ? t.policy : t.denied}
 					</Alert>
 					{position.capabilities.write && (
-						<Link href={href(`inventory/${position.id}/settings`)}>
-							{t.settings}
-						</Link>
+						<Button
+							asChild
+							variant="outline"
+							size="sm"
+							className="mt-3 h-9 rounded-lg text-xs font-semibold"
+						>
+							<Link href={href(`inventory/${position.id}/settings`)}>
+								{t.settings}
+							</Link>
+						</Button>
 					)}
 				</section>
 			);
@@ -460,70 +482,25 @@ function ScopedStock({
 		);
 	}
 
-	if (history)
+	if (history) {
+		const copy = sellerInventoryCopy[locale];
+		const movementsFiltered = ["q", "action", "variant", "batch"].some((key) =>
+			params.get(key),
+		);
 		return (
 			<section className={panel}>
-				<form
-					className="my-5 grid min-w-0 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
-					onSubmit={(e) => {
-						e.preventDefault();
-						change({ q: query, page: "1" });
-					}}
-				>
-					<Field name="q" label={sellerInventoryCopy[locale].movementSearch}>
-						<Input
-							name="q"
-							type="search"
-							value={query}
-							onChange={(e) => setQuery(e.target.value)}
-							maxLength={100}
-						/>
-					</Field>
-					<div className="min-w-0 space-y-2">
-						<label
-							htmlFor="movement-action"
-							className="block text-sm font-semibold"
-						>
-							{t.action}
-						</label>
-						<SellerSelect
-							id="movement-action"
-							label={t.action}
-							value={params.get("action") ?? ""}
-							options={[
-								{ value: "", label: sellerInventoryCopy[locale].allOperations },
-								...[
-									["receive", t.received],
-									["adjust", t.adjusted],
-									["reserve", t.reserved],
-									["release", t.released],
-									["consume", t.consumed],
-									["cod", t.cod],
-								].map(([value, label]) => ({ value, label })),
-							]}
-							onChange={(action) => change({ action, page: "1" })}
-						/>
-					</div>
-					<Button
-						type="submit"
-						className="mt-0 w-full sm:col-span-2 xl:col-span-1"
-					>
-						{t.filters}
-					</Button>
-				</form>
-				<div className="my-4 flex flex-wrap items-center justify-between gap-3">
-					<h2 className="text-base font-semibold">
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<h2 className="m-0 text-base font-semibold">
 						{t.movements}:{" "}
-						<bdi className="font-semibold tabular-nums">
+						<bdi className="tabular-nums text-muted">
 							{new Intl.NumberFormat(locale).format(history.count)}
 						</bdi>
 					</h2>
-					{["q", "action", "variant", "batch"].some((key) =>
-						params.get(key),
-					) && (
+					{movementsFiltered && (
 						<Button
-							variant="secondary"
-							className="mt-0 min-h-11 py-2 text-sm"
+							variant="ghost"
+							size="sm"
+							className="h-8 rounded-lg text-xs font-semibold"
 							onClick={() => {
 								setQuery("");
 								change({
@@ -535,26 +512,100 @@ function ScopedStock({
 								});
 							}}
 						>
-							{sellerInventoryCopy[locale].clear}
+							{copy.clear}
 						</Button>
 					)}
 				</div>
-				<MovementTable
-					locale={locale}
-					seller={seller}
-					rows={history.results}
-					params={params}
-					fromHistory
-				/>
-				<Pagination
+				<form
+					aria-label={t.filters}
+					className="mt-4 grid min-w-0 items-end gap-3 border-b border-border pb-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
+					onSubmit={(e) => {
+						e.preventDefault();
+						change({ q: query, page: "1" });
+					}}
+				>
+					<div className="min-w-0 space-y-1.5">
+						<label
+							htmlFor="movement-q"
+							className="block text-xs font-medium text-muted"
+						>
+							{copy.movementSearch}
+						</label>
+						<div className="relative">
+							<Search
+								className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+								aria-hidden="true"
+							/>
+							<Input
+								id="movement-q"
+								name="q"
+								type="search"
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+								maxLength={100}
+								placeholder={copy.movementSearch}
+								className="h-9 rounded-lg ps-9 text-sm"
+							/>
+						</div>
+					</div>
+					<div className="min-w-0 space-y-1.5">
+						<label
+							htmlFor="movement-action"
+							className="block text-xs font-medium text-muted"
+						>
+							{t.action}
+						</label>
+						<NativeSelect
+							id="movement-action"
+							name="action"
+							value={params.get("action") ?? ""}
+							onChange={(event) =>
+								change({ action: event.target.value, page: "1" })
+							}
+							className="rounded-lg"
+						>
+							<NativeSelectOption value="">
+								{copy.allOperations}
+							</NativeSelectOption>
+							{[
+								["receive", t.received],
+								["adjust", t.adjusted],
+								["reserve", t.reserved],
+								["release", t.released],
+								["consume", t.consumed],
+								["cod", t.cod],
+							].map(([value, label]) => (
+								<NativeSelectOption key={value} value={value}>
+									{label}
+								</NativeSelectOption>
+							))}
+						</NativeSelect>
+					</div>
+					<Button type="submit" className="h-9 rounded-lg text-xs font-semibold">
+						<Search className="size-4" aria-hidden="true" />
+						{t.filters}
+					</Button>
+				</form>
+				<div className="mt-5">
+					<MovementTable
+						locale={locale}
+						seller={seller}
+						rows={history.results}
+						params={params}
+						fromHistory
+					/>
+				</div>
+				<StockPagination
 					locale={locale}
 					page={history.page}
 					count={history.count}
 					size={history.page_size}
+					href={(page) => href("inventory/movements", { page: String(page) })}
 					onPage={(page) => change({ page: String(page) })}
 				/>
 			</section>
 		);
+	}
 	if (!overview) return null;
 	return (
 		<StockList

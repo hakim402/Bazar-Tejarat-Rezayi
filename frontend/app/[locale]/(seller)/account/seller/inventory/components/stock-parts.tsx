@@ -1,21 +1,194 @@
 "use client";
 
+import {
+	Eye,
+	History,
+	MoreHorizontal,
+	PackagePlus,
+	Settings2,
+	SlidersHorizontal,
+	Store,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
+import { Badge } from "../../../../../../../components/shadcn/badge";
+import { Button } from "../../../../../../../components/shadcn/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "../../../../../../../components/shadcn/dropdown-menu";
 import { EmptyState } from "../../../../../../../components/ui/empty-state";
 import { Icon } from "../../../../../../../components/ui/icon";
-import { StatusBadge } from "../../../../../../../components/ui/status-badge";
-import type { StockMovement } from "../../../../../../../features/inventory/api/inventory";
+import type {
+	StockMovement,
+	StockPosition,
+} from "../../../../../../../features/inventory/api/inventory";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import type { Locale } from "../../../../../../../lib/i18n/locales";
 import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
+import { sellerShellCopy } from "../../../../../../../lib/i18n/seller-shell";
 import type { QueryReader } from "../../../../../../../lib/routes/account-routes";
 import { movementStockHref, stockHref } from "./stock-ui";
 
 export const panel =
-	"min-w-0 rounded-card border border-border bg-surface p-4 shadow-card desktop:p-6";
+	"min-w-0 rounded-2xl border border-border bg-surface p-4 shadow-xs desktop:p-6";
 export const linkClass =
 	"inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-surface px-4 py-2 text-sm font-bold text-action no-underline hover:bg-info";
+
+const badgeTones: Record<string, string> = {
+	unconfigured: "bg-info text-action",
+	inactive: "bg-chip-neutral-bg text-chip-neutral",
+	zero: "bg-danger-surface text-danger",
+	low: "bg-warning-surface text-warning",
+	available: "bg-success-surface text-success",
+	expired: "bg-danger-surface text-danger",
+	expiring: "bg-chip-accent-bg text-chip-accent",
+	held: "bg-info text-action",
+};
+
+export function StockBadge({
+	locale,
+	state,
+}: {
+	locale: Locale;
+	state: string;
+}) {
+	const t = inventoryCopy[locale],
+		glance = sellerShellCopy[locale],
+		labels: Record<string, string> = {
+			unconfigured: glance.glanceSetup,
+			inactive: glance.glanceInactive,
+			zero: glance.glanceZero,
+			low: glance.glanceLow,
+			available: t.stateAvailable,
+			expired: glance.glanceExpired,
+			expiring: glance.glanceExpiring,
+			held: glance.glanceHeld,
+		};
+	return (
+		<Badge
+			variant="secondary"
+			className={`gap-1.5 rounded-full border-0 px-2.5 py-1 text-xs font-medium ${badgeTones[state] ?? "bg-chip-neutral-bg text-chip-neutral"}`}
+		>
+			<span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+			{labels[state] ?? state}
+		</Badge>
+	);
+}
+
+export function StockRowActions({
+	locale,
+	position,
+	write,
+	href,
+}: {
+	locale: Locale;
+	position: StockPosition;
+	write: boolean;
+	href: (path: string, changes?: Record<string, string>) => string;
+}) {
+	const t = inventoryCopy[locale];
+	const itemClass = "gap-2.5 text-sm no-underline";
+	return (
+		<div className="flex items-center justify-end gap-1.5">
+			{write && (
+				<Button
+					asChild
+					variant="secondary"
+					size="sm"
+					className="h-9 rounded-lg border-0 bg-info px-3 text-xs font-semibold text-action shadow-none hover:bg-info/70"
+				>
+					<Link
+						href={href(
+							`inventory/${position.id}/${position.configured ? "receipts/new" : "settings"}`,
+						)}
+					>
+						{position.configured ? (
+							<PackagePlus className="size-4" aria-hidden="true" />
+						) : (
+							<Settings2 className="size-4" aria-hidden="true" />
+						)}
+						{position.configured ? t.receipt : t.setupStock}
+					</Link>
+				</Button>
+			)}
+			<DropdownMenu dir={locale === "en" ? "ltr" : "rtl"}>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action focus-visible:ring-action/50 data-[state=open]:bg-transparent dark:hover:bg-transparent"
+						aria-label={`${t.moreActions}: ${position.title}`}
+						title={t.moreActions}
+					>
+						<MoreHorizontal className="size-4" aria-hidden="true" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align="end"
+					sideOffset={6}
+					className="w-56 rounded-xl border-border p-1.5"
+				>
+					<DropdownMenuItem asChild className={itemClass}>
+						<Link href={href(`inventory/${position.id}`)}>
+							<Eye aria-hidden="true" />
+							{t.detail}
+						</Link>
+					</DropdownMenuItem>
+					{write && position.configured && (
+						<>
+							<DropdownMenuItem asChild className={itemClass}>
+								<Link href={href(`inventory/${position.id}/receipts/new`)}>
+									<PackagePlus aria-hidden="true" />
+									{t.receipt}
+								</Link>
+							</DropdownMenuItem>
+							<DropdownMenuItem asChild className={itemClass}>
+								<Link href={href(`inventory/${position.id}/adjustments/new`)}>
+									<SlidersHorizontal aria-hidden="true" />
+									{t.correct}
+								</Link>
+							</DropdownMenuItem>
+						</>
+					)}
+					{write && !position.configured && (
+						<DropdownMenuItem asChild className={itemClass}>
+							<Link href={href(`inventory/${position.id}/settings`)}>
+								<Settings2 aria-hidden="true" />
+								{t.setupStock}
+							</Link>
+						</DropdownMenuItem>
+					)}
+					<DropdownMenuItem asChild className={itemClass}>
+						<Link
+							href={href("inventory/movements", {
+								variant: position.id,
+								page: "1",
+							})}
+						>
+							<History aria-hidden="true" />
+							{t.movements}
+						</Link>
+					</DropdownMenuItem>
+					{position.capabilities.write && (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem asChild className={itemClass}>
+								<Link href={href(`catalogue/${position.product}`)}>
+									<Store aria-hidden="true" />
+									{t.openCatalogue}
+								</Link>
+							</DropdownMenuItem>
+						</>
+					)}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
+	);
+}
 
 export function StockModal({
 	title,
@@ -47,9 +220,9 @@ export function StockModal({
 				event.preventDefault();
 				onClose();
 			}}
-			className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] min-w-0 max-w-xl overflow-y-auto overscroll-contain rounded-card border border-border bg-surface p-5 text-foreground shadow-card wrap-anywhere backdrop:bg-foreground/30"
+			className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] min-w-0 max-w-xl overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-5 text-foreground shadow-lifted wrap-anywhere backdrop:bg-foreground/40 desktop:p-6"
 		>
-			<h2 tabIndex={-1} className="mb-4 text-xl font-bold">
+			<h2 tabIndex={-1} className="mb-4 text-lg font-bold">
 				{title}
 			</h2>
 			{children}
@@ -112,19 +285,25 @@ export function MovementTable({
 		</div>
 	);
 	const operation = (row: StockMovement) => (
-		<StatusBadge
-			dot={false}
-			variant={
+		<Badge
+			variant="secondary"
+			className={`rounded-full border-0 px-2.5 py-1 text-xs font-medium ${
 				row.action === "receive"
-					? "success"
+					? "bg-success-surface text-success"
 					: row.action === "adjust"
-						? "warning"
-						: "info"
-			}
+						? "bg-warning-surface text-warning"
+						: "bg-info text-action"
+			}`}
 		>
 			{actions[row.action] ?? row.action}
-		</StatusBadge>
+		</Badge>
 	);
+	const deltaTone = (value: string) =>
+		value.startsWith("-")
+			? "text-danger"
+			: value === "0.000"
+				? "text-muted"
+				: "text-success";
 	const quantities = (row: StockMovement, after: boolean) => {
 		const unit = row.unit_labels[locale] ?? row.unit;
 		return (
@@ -133,19 +312,31 @@ export function MovementTable({
 					{
 						label: after ? copy.physicalAfter : copy.physicalChange,
 						value: after ? row.physical_after : row.physical_delta,
+						tone: after ? "" : deltaTone(row.physical_delta),
+						sign:
+							!after &&
+							!row.physical_delta.startsWith("-") &&
+							row.physical_delta !== "0.000",
 					},
 					{
 						label: after ? copy.heldAfter : copy.heldChange,
 						value: after ? row.held_after : row.held_delta,
+						tone: "",
+						sign: false,
 					},
-				].map(({ label, value }) => (
+				].map(({ label, value, tone, sign }) => (
 					<div key={label} className="min-w-0">
 						<dt className="text-xs leading-relaxed text-muted wrap-anywhere">
 							{label}
 						</dt>
-						<dd className="m-0 mt-1 text-sm font-semibold tabular-nums wrap-anywhere">
-							<bdi dir="ltr">{value}</bdi>{" "}
-							<span className="font-normal">{unit}</span>
+						<dd
+							className={`m-0 mt-1 text-sm font-semibold tabular-nums wrap-anywhere ${tone}`}
+						>
+							<bdi dir="ltr">
+								{sign ? "+" : ""}
+								{value}
+							</bdi>{" "}
+							<span className="font-normal text-muted">{unit}</span>
 						</dd>
 					</div>
 				))}
@@ -198,12 +389,12 @@ export function MovementTable({
 					aria-label={t.movements}
 					// biome-ignore lint/a11y/noNoninteractiveTabindex: Named overflow region allows keyboard access to every history column.
 					tabIndex={0}
-					className="hidden min-w-0 overflow-x-auto rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary desktop:block"
+					className="hidden min-w-0 overflow-x-auto rounded-xl border border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary desktop:block"
 				>
 					<table className="w-full min-w-[48rem] border-collapse text-start text-sm">
 						<caption className="sr-only">{t.movements}</caption>
 						<thead>
-							<tr>
+							<tr className="bg-page">
 								{[copy.options, t.action, copy.change, copy.details].map(
 									(label) => (
 										<th

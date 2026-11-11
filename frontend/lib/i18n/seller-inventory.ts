@@ -66,6 +66,13 @@ export const sellerInventoryCopy = {
 			"Tracking and required expiry are read-only. You can still update the threshold with a reason.",
 		latest: "Latest recorded changes",
 		returnHistory: "Back to movement history",
+		stockWorkspace: "Your stock",
+		stockWorkspaceHelp: "Manage quantities for each product option.",
+		advancedFilters: "More filters",
+		tabAll: "All",
+		showing: "Showing {start}–{end} of {total}",
+		errorToast:
+			"The stock change could not be saved. Review the details on this page.",
 	},
 	"fa-AF": {
 		inventoryDescription:
@@ -128,6 +135,12 @@ export const sellerInventoryCopy = {
 			"روش ردیابی و الزام انقضا فقط خواندنی است. حد کمبود را می‌توان با دلیل تغییر داد.",
 		latest: "آخرین تغییرات ثبت‌شده",
 		returnHistory: "بازگشت به تاریخچهٔ تغییرات",
+		stockWorkspace: "موجودی شما",
+		stockWorkspaceHelp: "مقدار هر گزینهٔ محصول را مدیریت کنید.",
+		advancedFilters: "فیلترهای بیشتر",
+		tabAll: "همه",
+		showing: "نمایش {start}–{end} از {total}",
+		errorToast: "تغییر موجودی ذخیره نشد. جزئیات را در همین صفحه بررسی کنید.",
 	},
 	ps: {
 		inventoryDescription:
@@ -188,6 +201,12 @@ export const sellerInventoryCopy = {
 			"څارنه او د پای نېټې شرط یوازې د لوستلو دي. د کمښت حد له دلیل سره بدلېدای شي.",
 		latest: "وروستي ثبت شوي بدلونونه",
 		returnHistory: "د بدلونونو تاریخچې ته ستنېدل",
+		stockWorkspace: "ستاسو موجودي",
+		stockWorkspaceHelp: "د هر محصول انتخاب مقدارونه اداره کړئ.",
+		advancedFilters: "نور چاڼونه",
+		tabAll: "ټول",
+		showing: "ښودل {start}–{end} له {total}",
+		errorToast: "د موجودي بدلګون خوندي نه شو. تفصیلات په همدې پاڼه کې وګورئ.",
 	},
 	ar: {
 		inventoryDescription:
@@ -248,5 +267,11 @@ export const sellerInventoryCopy = {
 			"التتبع واشتراط الصلاحية للقراءة فقط. يمكنك تغيير حد الانخفاض مع ذكر السبب.",
 		latest: "أحدث التغييرات المسجلة",
 		returnHistory: "العودة إلى سجل الحركات",
+		stockWorkspace: "مخزونك",
+		stockWorkspaceHelp: "أدر الكميات لكل خيار منتج.",
+		advancedFilters: "مرشحات أخرى",
+		tabAll: "الكل",
+		showing: "عرض {start}–{end} من {total}",
+		errorToast: "تعذر حفظ تغيير المخزون. راجع التفاصيل في هذه الصفحة.",
 	},
 } as const;

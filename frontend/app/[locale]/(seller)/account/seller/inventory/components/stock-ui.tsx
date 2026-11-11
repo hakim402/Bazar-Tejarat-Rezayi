@@ -1,9 +1,29 @@
+"use client";
+
+import {
+	AlertTriangle,
+	ChevronLeft,
+	ChevronRight,
+	Clock,
+	Ellipsis,
+	Package,
+	PackageX,
+} from "lucide-react";
 import Link from "next/link";
+import type { MouseEvent } from "react";
+import { Card } from "../../../../../../../components/shadcn/card";
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+} from "../../../../../../../components/shadcn/pagination";
 import { DashboardCard } from "../../../../../../../components/ui/dashboard-card";
 import { Icon } from "../../../../../../../components/ui/icon";
 import type { StockOverview } from "../../../../../../../features/inventory/api/inventory";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import type { Locale } from "../../../../../../../lib/i18n/locales";
+import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
 import { sellerShellCopy } from "../../../../../../../lib/i18n/seller-shell";
 import {
 	sellerHref,
@@ -184,5 +204,184 @@ export function StockGlance({
 				})}
 			</div>
 		</DashboardCard>
+	);
+}
+
+export function StockPagination({
+	locale,
+	page,
+	count,
+	size,
+	href,
+	onPage,
+}: {
+	locale: Locale;
+	page: number;
+	count: number;
+	size: number;
+	href: (page: number) => string;
+	onPage: (page: number) => void;
+}) {
+	if (count <= 0) return null;
+	const t = inventoryCopy[locale],
+		copy = sellerInventoryCopy[locale],
+		last = Math.min(10000, Math.max(1, Math.ceil(count / size))),
+		current = Math.min(page, last),
+		pages = [
+			...new Set([
+				1,
+				...[current - 1, current, current + 1].filter(
+					(n) => n > 0 && n <= last,
+				),
+				last,
+			]),
+		].sort((a, b) => a - b),
+		numberFormat = new Intl.NumberFormat(locale),
+		start = (current - 1) * size + 1,
+		end = Math.min(count, current * size);
+	const go = (n: number) => (event: MouseEvent<HTMLAnchorElement>) => {
+		event.preventDefault();
+		onPage(n);
+	};
+	const step = (n: number, label: string, icon: "back" | "next", off: boolean) => (
+		<PaginationLink
+			href={off ? undefined : href(n)}
+			aria-label={label}
+			aria-disabled={off || undefined}
+			tabIndex={off ? -1 : undefined}
+			title={label}
+			className={`size-10 rounded-xl border-border ${off ? "pointer-events-none opacity-35" : "cursor-pointer"}`}
+			onClick={(event) => {
+				event.preventDefault();
+				if (!off) onPage(n);
+			}}
+		>
+			{icon === "back" ? (
+				<ChevronLeft className="size-4 rtl:rotate-180" />
+			) : (
+				<ChevronRight className="size-4 rtl:rotate-180" />
+			)}
+		</PaginationLink>
+	);
+	return (
+		<div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-border pt-4 desktop:flex-row">
+			<p className="m-0 shrink-0 text-xs text-muted">
+				{copy.showing
+					.replace("{start}", numberFormat.format(start))
+					.replace("{end}", numberFormat.format(end))
+					.replace("{total}", numberFormat.format(count))}
+			</p>
+			<Pagination aria-label={t.page} className="mx-0 w-auto">
+				<PaginationContent className="m-0 list-none p-0">
+					<PaginationItem>
+						{step(Math.max(1, current - 1), t.previous, "back", current <= 1)}
+					</PaginationItem>
+					{pages.map((n, index) => (
+						<PaginationItem key={n} className="flex items-center gap-1">
+							{index > 0 && n - pages[index - 1] > 1 && (
+								<span
+									aria-hidden="true"
+									className="flex size-6 items-center justify-center text-muted"
+								>
+									<Ellipsis className="size-4" />
+								</span>
+							)}
+							<PaginationLink
+								href={href(n)}
+								isActive={n === current}
+								aria-label={`${t.page} ${numberFormat.format(n)}`}
+								className={`size-10 rounded-xl border-border ${n === current ? "bg-action text-on-primary hover:bg-action hover:text-on-primary" : ""}`}
+								onClick={go(n)}
+							>
+								{numberFormat.format(n)}
+							</PaginationLink>
+						</PaginationItem>
+					))}
+					<PaginationItem>
+						{step(
+							Math.min(last, current + 1),
+							t.next,
+							"next",
+							current >= last,
+						)}
+					</PaginationItem>
+				</PaginationContent>
+			</Pagination>
+		</div>
+	);
+}
+
+export function StockSummary({
+	locale,
+	counts,
+	href,
+}: {
+	locale: Locale;
+	counts: StockOverview["counts"];
+	href: (route: string, changes?: Record<string, string>) => string;
+}) {
+	const t = inventoryCopy[locale],
+		numberFormat = new Intl.NumberFormat(locale),
+		items = [
+			{
+				key: "variants",
+				state: "",
+				label: t.statOptions,
+				hint: t.statOptionsHint,
+				Icon: Package,
+				chip: "bg-info text-action",
+			},
+			{
+				key: "low",
+				state: "low",
+				label: t.statLow,
+				hint: t.statLowHint,
+				Icon: AlertTriangle,
+				chip: "bg-warning-surface text-warning",
+			},
+			{
+				key: "zero",
+				state: "zero",
+				label: t.statZero,
+				hint: t.statZeroHint,
+				Icon: PackageX,
+				chip: "bg-danger-surface text-danger",
+			},
+			{
+				key: "expiring",
+				state: "expiring",
+				label: t.statExpiring,
+				hint: t.statExpiringHint,
+				Icon: Clock,
+				chip: "bg-chip-accent-bg text-chip-accent",
+			},
+		] as const;
+	return (
+		<div className="grid grid-cols-2 gap-3 desktop:grid-cols-4 desktop:gap-4">
+			{items.map(({ key, state, label, hint, Icon: ItemIcon, chip }) => (
+				<Link
+					key={key}
+					href={href("inventory", { state, page: "1" })}
+					className="group min-w-0 rounded-2xl no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				>
+					<Card className="h-full gap-0 rounded-2xl border-border bg-surface p-4 shadow-xs transition-shadow duration-150 group-hover:shadow-md motion-reduce:transition-none desktop:p-5">
+						<div className="flex items-start justify-between gap-2">
+							<span className="text-xs font-medium text-muted">{label}</span>
+							<span
+								className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${chip}`}
+							>
+								<ItemIcon className="size-4" aria-hidden="true" />
+							</span>
+						</div>
+						<bdi className="mt-2 text-kpi font-bold tabular-nums text-foreground">
+							{numberFormat.format(counts[key] ?? 0)}
+						</bdi>
+						<p className="m-0 mt-1 text-caption leading-snug text-muted">
+							{hint}
+						</p>
+					</Card>
+				</Link>
+			))}
+		</div>
 	);
 }
