@@ -14479,12 +14479,16 @@
                     },
                     "history_count": {
                         "type": "integer"
+                    },
+                    "buyer": {
+                        "type": "string"
                     }
                 },
                 "required": [
                     "allocation",
                     "arrangement",
                     "blockers",
+                    "buyer",
                     "cancellation_hold",
                     "capabilities",
                     "cases",
@@ -14744,10 +14748,14 @@
                         "additionalProperties": {
                             "type": "boolean"
                         }
+                    },
+                    "buyer": {
+                        "type": "string"
                     }
                 },
                 "required": [
                     "allocation",
+                    "buyer",
                     "cancellation_hold",
                     "capabilities",
                     "charge",

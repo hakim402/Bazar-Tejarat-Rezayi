@@ -14,7 +14,10 @@ import {
 } from "../../../components/shadcn/dropdown-menu";
 import type { Locale } from "../../../lib/i18n/locales";
 import { cn } from "../../../lib/shadcn-utils";
-import { uuidPattern, type QueryReader } from "../../../lib/routes/account-routes";
+import {
+	uuidPattern,
+	type QueryReader,
+} from "../../../lib/routes/account-routes";
 import { SessionEntry } from "../../orders/components/session-entry";
 import { useCommerceGuard } from "../../orders/components/unsaved";
 import { commerce, type Profile } from "../../orders/api";
@@ -59,7 +62,9 @@ export function SellerNegotiationWorkspace({
 		t = sellerNegotiationCopy[locale];
 	if (session.loading) return <p role="status">{t.loading}</p>;
 	if (!session.session)
-		return <SessionEntry locale={locale} context="seller" error={session.error} />;
+		return (
+			<SessionEntry locale={locale} context="seller" error={session.error} />
+		);
 	const seller = q.get("seller") ?? "",
 		page = Number(q.get("page") ?? 1),
 		state = q.get("state") ?? "",
@@ -134,8 +139,13 @@ function Bootstrap({
 				setProfiles(allowed);
 				if (!seller && !id && allowed[0]) {
 					router.replace(
-						salesHref(locale, "negotiations", allowed[0].id, undefined, returnParams.current) +
-							(attempt ? `&negotiation_command=${attempt}` : ""),
+						salesHref(
+							locale,
+							"negotiations",
+							allowed[0].id,
+							undefined,
+							returnParams.current,
+						) + (attempt ? `&negotiation_command=${attempt}` : ""),
 					);
 				} else if (!seller && !id) {
 					setProfiles([]);
@@ -234,7 +244,10 @@ function StatusBadge({ locale, state }: { locale: Locale; state: string }) {
 						? "bg-page text-muted"
 						: "bg-info text-action";
 	return (
-		<Badge variant="secondary" className={cn("whitespace-normal border-0", tone)}>
+		<Badge
+			variant="secondary"
+			className={cn("whitespace-normal border-0", tone)}
+		>
 			{t[state as keyof typeof t] ?? state}
 		</Badge>
 	);
@@ -248,22 +261,23 @@ function nextLabel(locale: Locale, row: RequestRow) {
 	return s.viewRequest;
 }
 
-function ProductCell({
-	locale,
-	row,
-}: {
-	locale: Locale;
-	row: RequestRow;
-}) {
+function ProductCell({ locale, row }: { locale: Locale; row: RequestRow }) {
 	const line = (item: Line, index: number) => {
 		const product = productContext(row.proposal, item.variant, index),
 			text = productText(product, locale, item.variant),
 			sku = String(product?.sku ?? "");
 		return (
-			<div key={`${item.variant}:${item.tier}`} className="flex min-w-0 items-start gap-3">
+			<div
+				key={`${item.variant}:${item.tier}`}
+				className="flex min-w-0 items-start gap-3"
+			>
 				<ProductThumbnail src={productImage(product)} />
 				<div className="min-w-0 flex-1">
-					<p className="m-0 truncate text-sm font-semibold" title={text.title} dir="auto">
+					<p
+						className="m-0 truncate text-sm font-semibold"
+						title={text.title}
+						dir="auto"
+					>
 						{text.title}
 					</p>
 					<p className="m-0 mt-0.5 text-xs text-muted">
@@ -335,6 +349,7 @@ function RequestList({
 		[error, setError] = useState<unknown>(null),
 		[reload, setReload] = useState(0);
 	useEffect(() => {
+		void reload;
 		const controller = new AbortController();
 		let alive = true;
 		setRows(null);
@@ -454,7 +469,11 @@ function RequestList({
 					locale={locale}
 					filtered={!!filterQuery || !!filterState || page > 1}
 				>
-					<p className="text-sm text-muted">{t.emptyFiltered}</p>
+					<p className="text-sm text-muted">
+						{filterQuery || filterState || page > 1
+							? t.emptyFiltered
+							: negotiationCopy[locale].empty}
+					</p>
 				</SalesEmpty>
 			) : (
 				<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
@@ -506,7 +525,11 @@ function RequestList({
 												i === 5 && "text-end",
 											)}
 										>
-											{i === 5 ? <span className="sr-only">{label}</span> : label}
+											{i === 5 ? (
+												<span className="sr-only">{label}</span>
+											) : (
+												label
+											)}
 										</th>
 									))}
 								</tr>
@@ -639,7 +662,11 @@ function RequestMenu({
 					<MoreHorizontal className="size-5" aria-hidden="true" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" sideOffset={6} className="w-56 rounded-xl p-1.5">
+			<DropdownMenuContent
+				align="end"
+				sideOffset={6}
+				className="w-56 rounded-xl p-1.5"
+			>
 				<DropdownMenuItem asChild className="gap-2.5 no-underline">
 					<Link href={salesHref(locale, "negotiations", seller, row.id)}>
 						<Package aria-hidden="true" />

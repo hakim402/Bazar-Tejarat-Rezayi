@@ -45,7 +45,12 @@ type Kind =
 	| "refund_report"
 	| "delivery_refund"
 	| "dispute";
-type Tab = "attention" | "cancellations" | "corrections" | "refunds" | "disputes";
+type Tab =
+	| "attention"
+	| "cancellations"
+	| "corrections"
+	| "refunds"
+	| "disputes";
 type Issue = {
 	key: string;
 	kind: Kind;
@@ -76,7 +81,7 @@ export function SellerIssues({
 		clear = sellerSalesCopy[locale].clear,
 		params = useSearchParams(),
 		router = useRouter(),
-		[tab, setTab] = useState<Tab>(initialTab),
+		tab = initialTab,
 		[data, setData] = useState<Page<Detail> | null>(null),
 		[error, setError] = useState(false),
 		[denied, setDenied] = useState(false),
@@ -111,15 +116,6 @@ export function SellerIssues({
 	);
 	if (denied) return <p role="alert">{sales.noAccess}</p>;
 	const issues = (data?.results ?? []).flatMap((order) => orderIssues(order));
-	const counts: Record<Tab, number> = {
-		attention: issues.filter((x) => x.actionable).length,
-		cancellations: issues.filter((x) => x.kind === "cancellation").length,
-		corrections: issues.filter((x) => x.kind === "correction").length,
-		refunds: issues.filter((x) =>
-			["refund_due", "refund_report", "delivery_refund"].includes(x.kind),
-		).length,
-		disputes: issues.filter((x) => x.kind === "dispute").length,
-	};
 	const shown = issues.filter((issue) => {
 		if (tab === "attention") return issue.actionable;
 		if (tab === "cancellations") return issue.kind === "cancellation";
@@ -130,16 +126,24 @@ export function SellerIssues({
 			);
 		return issue.kind === "dispute";
 	});
-	const tabList: [Tab, string, number][] = [
-		["attention", t.attention, counts.attention],
-		["cancellations", t.cancellations, counts.cancellations],
-		["corrections", t.corrections, counts.corrections],
-		["refunds", t.refunds, counts.refunds],
-		["disputes", t.disputes, counts.disputes],
+	const tabList: [Tab, string][] = [
+		["attention", t.attention],
+		["cancellations", t.cancellations],
+		["corrections", t.corrections],
+		["refunds", t.refunds],
+		["disputes", t.disputes],
 	];
-	const nf = new Intl.NumberFormat(locale);
 	function orderIssues(order: Detail): Issue[] {
-		const base = (key: string, kind: Kind, amount: string | null, state: string, date: string, href: string, actionable = false, disputeId?: string): Issue => ({
+		const base = (
+			key: string,
+			kind: Kind,
+			amount: string | null,
+			state: string,
+			date: string,
+			href: string,
+			actionable = false,
+			disputeId?: string,
+		): Issue => ({
 			key,
 			kind,
 			order,
@@ -150,21 +154,68 @@ export function SellerIssues({
 			href,
 			disputeId,
 		});
-		const detailHref = salesHref(locale, "aftercare", seller, order.id, undefined, {
-			page: String(page),
-			q: search,
-		});
+		const detailHref = salesHref(
+			locale,
+			"aftercare",
+			seller,
+			order.id,
+			params,
+			{
+				page: String(page),
+				q: search,
+			},
+		);
 		const out: Issue[] = [];
 		for (const c of order.cancellations)
-			out.push(base(c.id, "cancellation", order.accepted_total, c.state, c.created_at, detailHref));
+			out.push(
+				base(
+					c.id,
+					"cancellation",
+					order.accepted_total,
+					c.state,
+					c.created_at,
+					detailHref,
+				),
+			);
 		for (const a of order.amendments)
-			out.push(base(a.id, "correction", a.after_total, a.state, a.created_at, detailHref));
+			out.push(
+				base(
+					a.id,
+					"correction",
+					a.after_total,
+					a.state,
+					a.created_at,
+					detailHref,
+				),
+			);
 		for (const d of order.refund_dues ?? [])
-			out.push(base(d.id, "refund_due", d.amount, d.state, d.created_at, detailHref, d.can_report));
+			out.push(
+				base(
+					d.id,
+					"refund_due",
+					d.amount,
+					d.state,
+					d.created_at,
+					detailHref,
+					d.can_report,
+				),
+			);
 		for (const r of order.refund_reports ?? [])
-			out.push(base(r.id, "refund_report", r.amount, r.state, r.sent_at, detailHref, r.can_withdraw));
+			out.push(
+				base(
+					r.id,
+					"refund_report",
+					r.amount,
+					r.state,
+					r.sent_at,
+					detailHref,
+					false,
+				),
+			);
 		for (const r of order.delivery_refunds ?? [])
-			out.push(base(r.id, "delivery_refund", r.amount, r.state, r.sent_at, detailHref));
+			out.push(
+				base(r.id, "delivery_refund", r.amount, r.state, r.sent_at, detailHref),
+			);
 		for (const d of order.disputes ?? [])
 			out.push(
 				base(
@@ -206,9 +257,12 @@ export function SellerIssues({
 		return aftercareState(locale, issue.state);
 	}
 	function actionLabel(issue: Issue) {
-		if (issue.kind === "dispute" && issue.actionable) return t.actionRespondDispute;
-		if (issue.kind === "refund_due" && issue.actionable) return t.actionReportRefund;
-		if (issue.kind === "refund_report" && issue.actionable) return t.actionWithdraw;
+		if (issue.kind === "dispute" && issue.actionable)
+			return t.actionRespondDispute;
+		if (issue.kind === "refund_due" && issue.actionable)
+			return t.actionReportRefund;
+		if (issue.kind === "refund_report" && issue.actionable)
+			return t.actionWithdraw;
 		if (
 			(issue.kind === "cancellation" || issue.kind === "correction") &&
 			issue.state === "pending"
@@ -225,9 +279,10 @@ export function SellerIssues({
 			<SalesHeader
 				locale={locale}
 				section="aftercare"
+				title={t.title}
 				seller={seller}
 				business={
-					<Link className={salesAction} href={salesHref(locale, "aftercare", seller)}>
+					<Link className={salesAction} href={salesHref(locale, "aftercare")}>
 						{sales.allBusinesses}
 					</Link>
 				}
@@ -247,26 +302,44 @@ export function SellerIssues({
 			>
 				<label className="grid min-w-0 flex-1 gap-2">
 					{t.search}
-					<input name="q" className={salesControl} maxLength={100} dir="auto" defaultValue={search} />
+					<input
+						name="q"
+						className={salesControl}
+						maxLength={100}
+						dir="auto"
+						defaultValue={search}
+					/>
 				</label>
 				<button type="submit" className={salesAction}>
 					{t.search}
 				</button>
 				{(search || page > 1) && (
-					<Link className={salesAction} href={salesHref(locale, "aftercare", seller)}>
+					<Link
+						className={salesAction}
+						href={salesHref(locale, "aftercare", seller)}
+					>
 						{clear}
 					</Link>
 				)}
 			</form>
-			<div role="tablist" className="flex flex-wrap gap-1 border-b border-solid border-border">
-				{tabList.map(([id, label, count]) => (
+			<p className="m-0 text-xs text-muted">{t.pageScope}</p>
+			<nav
+				aria-label={t.title}
+				className="flex flex-wrap gap-1 border-b border-solid border-border"
+			>
+				{tabList.map(([id, label]) => (
 					<button
 						key={id}
 						type="button"
-						role="tab"
-						aria-selected={tab === id}
-						tabIndex={tab === id ? 0 : -1}
-						onClick={() => setTab(id)}
+						aria-current={tab === id ? "page" : undefined}
+						onClick={() =>
+							router.push(
+								salesHref(locale, "aftercare", seller, undefined, params, {
+									issue_tab: id,
+									page: "1",
+								}),
+							)
+						}
 						className={cn(
 							"-mb-px inline-flex min-h-11 items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2 text-sm font-semibold transition-colors motion-reduce:transition-none",
 							tab === id
@@ -275,18 +348,19 @@ export function SellerIssues({
 						)}
 					>
 						{label}
-						{count > 0 && (
-							<Badge variant="secondary" className="rounded-full border-0 bg-page text-muted">
-								{nf.format(count)}
-							</Badge>
-						)}
 					</button>
 				))}
-			</div>
+			</nav>
 			{error ? (
-				<p role="alert" className={salesPanel}>
-					{t.error}
-				</p>
+				<section role="alert" className={salesPanel}>
+					<p className="m-0 text-sm">{t.error}</p>
+					<Button
+						variant="outline"
+						onClick={() => setRevision((value) => value + 1)}
+					>
+						{sales.refresh}
+					</Button>
+				</section>
 			) : !data ? (
 				<p role="status" className={salesPanel}>
 					{t.loading}
@@ -313,27 +387,44 @@ export function SellerIssues({
 							<caption className="sr-only">{t.title}</caption>
 							<thead>
 								<tr className="bg-page/70">
-									{[t.order, t.customer, t.type, t.amount, t.date, t.status, t.nextAction, ""].map(
-										(label, i) => (
-											<th
-												key={`${label}:${i}`}
-												scope="col"
-												className={cn(
-													"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
-													i === 7 && "text-end",
-												)}
-											>
-												{i === 7 ? <span className="sr-only">{label}</span> : label}
-											</th>
-										),
-									)}
+									{[
+										t.order,
+										t.customer,
+										t.type,
+										t.amount,
+										t.date,
+										t.status,
+										t.nextAction,
+										"",
+									].map((label, i) => (
+										<th
+											key={label}
+											scope="col"
+											className={cn(
+												"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
+												i === 7 && "text-end",
+											)}
+										>
+											{i === 7 ? (
+												<span className="sr-only">{label}</span>
+											) : (
+												label
+											)}
+										</th>
+									))}
 								</tr>
 							</thead>
 							<tbody>
 								{shown.map((issue) => (
-									<tr key={issue.key} className="border-b border-solid border-border last:border-b-0 hover:bg-page/40">
+									<tr
+										key={issue.key}
+										className="border-b border-solid border-border last:border-b-0 hover:bg-page/40"
+									>
 										<td className="px-4 py-4 align-top">
-											<Link href={issue.href} className="text-sm font-semibold text-action no-underline">
+											<Link
+												href={issue.href}
+												className="text-sm font-semibold text-action no-underline"
+											>
 												<bdi>{issue.order.number}</bdi>
 											</Link>
 										</td>
@@ -342,7 +433,9 @@ export function SellerIssues({
 												{issue.order.buyer_name}
 											</span>
 										</td>
-										<td className="px-4 py-4 align-top text-sm">{typeLabel(issue.kind)}</td>
+										<td className="px-4 py-4 align-top text-sm">
+											{typeLabel(issue.kind)}
+										</td>
 										<td className="px-4 py-4 align-top text-sm tabular-nums">
 											<bdi>{amountLabel(issue)}</bdi>
 										</td>
@@ -350,7 +443,13 @@ export function SellerIssues({
 											<bdi>{localTimestamp(issue.date, locale)}</bdi>
 										</td>
 										<td className="px-4 py-4 align-top">
-											<Badge variant="secondary" className={cn("whitespace-normal border-0", statusTone(issue.state))}>
+											<Badge
+												variant="secondary"
+												className={cn(
+													"whitespace-normal border-0",
+													statusTone(issue.state),
+												)}
+											>
 												{statusLabel(issue)}
 											</Badge>
 										</td>
@@ -360,7 +459,11 @@ export function SellerIssues({
 											</Link>
 										</td>
 										<td className="px-4 py-3 text-end align-top">
-											<IssueMenu locale={locale} seller={seller} issue={issue} />
+											<IssueMenu
+												locale={locale}
+												seller={seller}
+												issue={issue}
+											/>
 										</td>
 									</tr>
 								))}
@@ -372,7 +475,10 @@ export function SellerIssues({
 							<li key={issue.key} className="space-y-3 p-4">
 								<div className="flex items-start justify-between gap-3">
 									<div className="space-y-1">
-										<Link href={issue.href} className="text-sm font-semibold text-action no-underline">
+										<Link
+											href={issue.href}
+											className="text-sm font-semibold text-action no-underline"
+										>
 											<bdi>{issue.order.number}</bdi>
 										</Link>
 										<p className="m-0 text-sm" dir="auto">
@@ -383,7 +489,13 @@ export function SellerIssues({
 								</div>
 								<div className="flex flex-wrap items-center gap-2 text-sm">
 									<span className="font-medium">{typeLabel(issue.kind)}</span>
-									<Badge variant="secondary" className={cn("whitespace-normal border-0", statusTone(issue.state))}>
+									<Badge
+										variant="secondary"
+										className={cn(
+											"whitespace-normal border-0",
+											statusTone(issue.state),
+										)}
+									>
 										{statusLabel(issue)}
 									</Badge>
 									<span className="tabular-nums">
@@ -396,15 +508,21 @@ export function SellerIssues({
 							</li>
 						))}
 					</ul>
-					<SalesPagination
-						locale={locale}
-						page={page}
-						count={data.count}
-						onPage={(next) =>
-							router.push(salesHref(locale, "aftercare", seller, undefined, params, { page: String(next) }))
-						}
-					/>
 				</Card>
+			)}
+			{data && !error && (
+				<SalesPagination
+					locale={locale}
+					page={page}
+					count={data.count}
+					onPage={(next) =>
+						router.push(
+							salesHref(locale, "aftercare", seller, undefined, params, {
+								page: String(next),
+							}),
+						)
+					}
+				/>
 			)}
 		</SalesFrame>
 	);
@@ -420,7 +538,15 @@ function statusTone(state: string) {
 				: "bg-info text-action";
 }
 
-function IssueMenu({ locale, seller, issue }: { locale: Locale; seller: string; issue: Issue }) {
+function IssueMenu({
+	locale,
+	seller,
+	issue,
+}: {
+	locale: Locale;
+	seller: string;
+	issue: Issue;
+}) {
 	const t = sellerAftercareCopy[locale],
 		sales = aftercareCopy[locale];
 	return (
@@ -435,7 +561,11 @@ function IssueMenu({ locale, seller, issue }: { locale: Locale; seller: string; 
 					<MoreHorizontal className="size-5" aria-hidden="true" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" sideOffset={6} className="w-56 rounded-xl p-1.5">
+			<DropdownMenuContent
+				align="end"
+				sideOffset={6}
+				className="w-56 rounded-xl p-1.5"
+			>
 				<DropdownMenuItem asChild className="gap-2.5 no-underline">
 					<Link href={issue.href}>
 						<FileText aria-hidden="true" />

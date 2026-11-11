@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { MoreHorizontal } from "lucide-react";
+import { Button } from "../../../components/shadcn/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "../../../components/shadcn/dropdown-menu";
 import { SellerSelect } from "../../../app/[locale]/(seller)/account/seller/components/seller-select";
 import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/seller/components/seller-navigation";
 import { Icon, type IconName } from "../../../components/ui/icon";
@@ -31,7 +38,7 @@ const sections: { key: SalesSection; icon: IconName }[] = [
 const filters: Record<SalesSection, readonly string[]> = {
 	orders: ["page"],
 	invoices: ["page", "state", "q"],
-	aftercare: ["page", "q"],
+	aftercare: ["page", "q", "issue_tab"],
 	negotiations: ["page", "state", "q"],
 	fulfilment: ["page", "state", "q"],
 	payments: ["page", "state", "q"],
@@ -103,7 +110,6 @@ export function SalesFrame({
 export function SalesHeader({
 	locale,
 	section,
-	seller = "",
 	title,
 	business,
 	back,
@@ -115,16 +121,7 @@ export function SalesHeader({
 	business?: ReactNode;
 	back?: string;
 }) {
-	const t = sellerSalesCopy[locale],
-		destinations = useSellerNavigation(),
-		params = useSearchParams(),
-		pathname = usePathname();
-	const returnParams: QueryReader = {
-		get: (key) =>
-			pathname.endsWith(`/${section}`) || key.startsWith("list_")
-				? params.get(key)
-				: null,
-	};
+	const t = sellerSalesCopy[locale];
 	return (
 		<header className="min-w-0 space-y-5">
 			{back && (
@@ -137,18 +134,12 @@ export function SalesHeader({
 				</Link>
 			)}
 			<div
-				className={`grid items-start gap-4 ${business ? "lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]" : ""}`}
+				className={`grid items-start gap-4 ${business ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : ""}`}
 			>
 				<div className="min-w-0 space-y-2">
-					<p className="text-xs font-semibold uppercase tracking-wide text-muted">
-						{t.sales}
-					</p>
-					<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+					<h1 className="m-0 text-2xl font-bold tracking-tight">
 						{title ?? t[section]}
 					</h1>
-					<p className="max-w-2xl text-sm leading-relaxed text-muted">
-						{t[`${section}Description`]}
-					</p>
 				</div>
 				{business && (
 					<div className="min-w-0 rounded-2xl border border-border bg-surface p-4 shadow-sm">
@@ -160,34 +151,6 @@ export function SalesHeader({
 					</div>
 				)}
 			</div>
-			<nav
-				aria-label={t.related}
-				className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"
-			>
-				{sections
-					.filter(
-						(item) =>
-							item.key === section ||
-							destinations?.some((link) => link.route === item.key),
-					)
-					.map((item) => (
-						<Link
-							key={item.key}
-							href={salesHref(
-								locale,
-								item.key,
-								seller,
-								undefined,
-								item.key === section ? returnParams : undefined,
-							)}
-							aria-current={item.key === section ? "page" : undefined}
-							className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none ${item.key === section ? "border-action bg-info text-action" : "border-border bg-surface text-muted hover:border-action hover:text-action"}`}
-						>
-							<Icon name={item.icon} className="size-4" />
-							{t[item.key]}
-						</Link>
-					))}
-			</nav>
 		</header>
 	);
 }
@@ -246,13 +209,15 @@ export function SalesEmpty({
 			<h2 className="text-lg font-semibold">
 				{noBusiness ? t.noBusiness : filtered ? t.noMatches : t.empty}
 			</h2>
-			<p className="mx-auto max-w-lg text-sm leading-relaxed text-muted">
-				{noBusiness
-					? t.noBusinessHelp
-					: filtered
-						? t.noMatchesHelp
-						: t.emptyHelp}
-			</p>
+			{!children && (
+				<p className="mx-auto max-w-lg text-sm leading-relaxed text-muted">
+					{noBusiness
+						? t.noBusinessHelp
+						: filtered
+							? t.noMatchesHelp
+							: t.emptyHelp}
+				</p>
+			)}
 			{children}
 		</section>
 	);
@@ -318,6 +283,37 @@ export function SalesRelated({
 	const visible = links.filter((link) =>
 		destinations?.some((item) => item.route === link.section),
 	);
+	if (visible.length > 2)
+		return (
+			<DropdownMenu dir={locale === "en" ? "ltr" : "rtl"}>
+				<DropdownMenuTrigger asChild>
+					<Button variant="outline" size="sm" className="rounded-lg">
+						<MoreHorizontal className="size-4" aria-hidden="true" />
+						{t.actions}
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5">
+					{visible.map((link) => (
+						<DropdownMenuItem
+							key={link.section}
+							asChild
+							className="gap-2 no-underline"
+						>
+							<Link href={salesHref(locale, link.section, seller, link.id)}>
+								<Icon
+									name={
+										sections.find((item) => item.key === link.section)?.icon ??
+										"file"
+									}
+									className="size-4"
+								/>
+								{t[link.section]}
+							</Link>
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		);
 	return visible.length ? (
 		<nav aria-label={t.details} className="flex flex-wrap gap-2">
 			{visible.map((link) => (

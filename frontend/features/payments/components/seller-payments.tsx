@@ -25,7 +25,11 @@ import { uuidPattern } from "../../../lib/routes/account-routes";
 import { SessionEntry } from "../../orders/components/session-entry";
 import { useCommerceGuard } from "../../orders/components/unsaved";
 import { invoiceHref } from "../../orders/api";
-import { useCommunicationSession, accessLost, useOnlineState } from "../../messaging/hooks";
+import {
+	useCommunicationSession,
+	accessLost,
+	useOnlineState,
+} from "../../messaging/hooks";
 import { localTimestamp } from "../../messaging/api";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import {
@@ -66,13 +70,21 @@ import toast from "react-hot-toast";
 
 type Tab = "overview" | "claims" | "activity";
 
-export function SellerPayments({ locale, id }: { locale: Locale; id?: string }) {
+export function SellerPayments({
+	locale,
+	id,
+}: {
+	locale: Locale;
+	id?: string;
+}) {
 	const session = useCommunicationSession("seller"),
-		q = useSearchParams(),
-		s = sellerPaymentCopy[locale];
-	if (session.loading) return <p role="status">{paymentCopy[locale].loading}</p>;
+		q = useSearchParams();
+	if (session.loading)
+		return <p role="status">{paymentCopy[locale].loading}</p>;
 	if (!session.session)
-		return <SessionEntry locale={locale} context="seller" error={session.error} />;
+		return (
+			<SessionEntry locale={locale} context="seller" error={session.error} />
+		);
 	const seller = q.get("seller") ?? "",
 		page = Number(q.get("page") ?? 1),
 		state = q.get("state") ?? "",
@@ -120,7 +132,9 @@ function Workspace({
 		params = useSearchParams(),
 		router = useRouter(),
 		online = useOnlineState(),
-		[list, setList] = useState<{ count: number; results: Payment[] } | null>(null),
+		[list, setList] = useState<{ count: number; results: Payment[] } | null>(
+			null,
+		),
 		[row, setRow] = useState<Detail | null>(null),
 		[profiles, setProfiles] = useState<Profile[] | null>(null),
 		[selection, setSelection] = useState<Selection | null>(null),
@@ -129,7 +143,9 @@ function Workspace({
 		[denied, setDenied] = useState(false),
 		[busy, setBusy] = useState(false),
 		[dirty, setDirty] = useState(false),
-		[intent, setIntent] = useState<Intent | undefined>(() => pendingPayment(scope)),
+		[intent, setIntent] = useState<Intent | undefined>(() =>
+			pendingPayment(scope),
+		),
 		[reference, setReference] = useState(attempt),
 		[modal, setModal] = useState<ReviewedAction | null>(null),
 		[evidence, setEvidence] = useState<string[]>([]),
@@ -167,6 +183,7 @@ function Workspace({
 		[scope, s.failed],
 	);
 	useEffect(() => {
+		void reload;
 		const mine = {};
 		live.current = mine;
 		const controller = new AbortController();
@@ -183,7 +200,9 @@ function Workspace({
 				if (p.results[0]) {
 					const href = salesHref(locale, "payments", p.results[0].id);
 					router.replace(
-						attempt ? `${href}${href.includes("?") ? "&" : "?"}payment_attempt=${attempt}` : href,
+						attempt
+							? `${href}${href.includes("?") ? "&" : "?"}payment_attempt=${attempt}`
+							: href,
 					);
 				}
 				return;
@@ -198,7 +217,11 @@ function Workspace({
 				if (live.current !== mine || controller.signal.aborted) return;
 				if (!seller) {
 					const href = salesHref(locale, "payments", value.seller, id);
-					router.replace(attempt ? `${href}${href.includes("?") ? "&" : "?"}payment_attempt=${attempt}` : href);
+					router.replace(
+						attempt
+							? `${href}${href.includes("?") ? "&" : "?"}payment_attempt=${attempt}`
+							: href,
+					);
 					return;
 				}
 				setRow(value);
@@ -229,7 +252,8 @@ function Workspace({
 		// scope identity + request + filters own this load.
 	}, [reload, id, seller, locale, page, state, search, attempt, router, fail]);
 	useEffect(() => {
-		if (!id || !row?.capabilities.selection || row.selection?.allocation) return;
+		if (!id || !row?.capabilities.selection || row.selection?.allocation)
+			return;
 		const mine = live.current,
 			c = new AbortController();
 		void payment<Selection>(
@@ -245,7 +269,13 @@ function Workspace({
 				if (mine && !c.signal.aborted) fail(e, mine);
 			});
 		return () => c.abort();
-	}, [id, row?.capabilities.selection, row?.selection?.allocation, selectionPage, fail]);
+	}, [
+		id,
+		row?.capabilities.selection,
+		row?.selection?.allocation,
+		selectionPage,
+		fail,
+	]);
 	function review(path: string, body: Record<string, unknown>, label: string) {
 		if (blocked || !row) return;
 		opener.current = document.activeElement as HTMLElement;
@@ -294,7 +324,11 @@ function Workspace({
 					? retained.body
 					: { ...retained.body, command_id: retained.key };
 			if (retained.upload) {
-				const result = await payment<{ id: string }>("seller", retained.path, body);
+				const result = await payment<{ id: string }>(
+					"seller",
+					retained.path,
+					body,
+				);
 				if (live.current === mine && owned.current === token) {
 					settlePayment(scope);
 					setIntent(undefined);
@@ -325,8 +359,13 @@ function Workspace({
 		owned.current = token;
 		setBusy(true);
 		try {
-			const result = await payment<Outcome>("seller", `orders/${id}/commands/${key}/reconcile/`, {});
-			if (live.current === mine && owned.current === token) finished(result.outcome, result.current);
+			const result = await payment<Outcome>(
+				"seller",
+				`orders/${id}/commands/${key}/reconcile/`,
+				{},
+			);
+			if (live.current === mine && owned.current === token)
+				finished(result.outcome, result.current);
 		} catch (e) {
 			fail(e, mine);
 		} finally {
@@ -352,7 +391,9 @@ function Workspace({
 	const back = salesHref(locale, "orders", seller, id);
 	const goto = (changes: Record<string, string>) =>
 		guard.choose(() =>
-			router.push(salesHref(locale, "payments", seller, undefined, params, changes)),
+			router.push(
+				salesHref(locale, "payments", seller, undefined, params, changes),
+			),
 		);
 	if (denied) return <p role="alert">{t.noAccess}</p>;
 	const business =
@@ -361,7 +402,9 @@ function Workspace({
 				locale={locale}
 				value={seller}
 				profiles={profiles}
-				onChange={(chosen) => router.push(salesHref(locale, "payments", chosen))}
+				onChange={(chosen) =>
+					router.push(salesHref(locale, "payments", chosen))
+				}
 			/>
 		) : undefined;
 	return (
@@ -386,7 +429,12 @@ function Workspace({
 					<p>{t.unresolved}</p>
 					<div className="flex flex-wrap gap-3">
 						{intent && (
-							<button type="button" className={salesAction} disabled={busy} onClick={() => void send(intent)}>
+							<button
+								type="button"
+								className={salesAction}
+								disabled={busy}
+								onClick={() => void send(intent)}
+							>
 								{t.retry}
 							</button>
 						)}
@@ -433,7 +481,8 @@ function Workspace({
 									{t.title} · <bdi>{row.number}</bdi>
 								</h1>
 								<p className="m-0 text-sm text-muted">
-									{paymentRole(locale, "buyer")}: <span dir="auto">{row.buyer_name}</span>
+									{paymentRole(locale, "buyer")}:{" "}
+									<span dir="auto">{row.buyer_name}</span>
 								</p>
 								<div className="flex flex-wrap items-center gap-2 pt-1">
 									<StatusPill locale={locale} row={row} />
@@ -551,12 +600,18 @@ function StatusPill({ locale, row }: { locale: Locale; row: Payment }) {
 				{paymentState(locale, row.financial)}
 			</Badge>
 			{row.overdue && (
-				<Badge variant="secondary" className="border-0 bg-warning-surface text-warning">
+				<Badge
+					variant="secondary"
+					className="border-0 bg-warning-surface text-warning"
+				>
 					{t.overdue}
 				</Badge>
 			)}
 			{row.pending_claims > 0 && (
-				<Badge variant="secondary" className="border-0 bg-warning-surface text-warning">
+				<Badge
+					variant="secondary"
+					className="border-0 bg-warning-surface text-warning"
+				>
 					{s.reviewClaim}
 				</Badge>
 			)}
@@ -597,7 +652,11 @@ function PaymentList({
 		sales = sellerSalesCopy[locale],
 		nf = new Intl.NumberFormat(locale),
 		detailHref = (row: Payment) =>
-			salesHref(locale, "payments", seller, row.id, undefined, { page: String(page), state, q: search });
+			salesHref(locale, "payments", seller, row.id, undefined, {
+				page: String(page),
+				state,
+				q: search,
+			});
 	if (profileCount === 0) return <SalesEmpty locale={locale} noBusiness />;
 	return (
 		<>
@@ -605,7 +664,11 @@ function PaymentList({
 				onSubmit={(e) => {
 					e.preventDefault();
 					const data = new FormData(e.currentTarget);
-					goto({ page: "1", q: String(data.get("q") ?? ""), state: String(data.get("state") ?? "") });
+					goto({
+						page: "1",
+						q: String(data.get("q") ?? ""),
+						state: String(data.get("state") ?? ""),
+					});
 				}}
 				className={cn(
 					salesPanel,
@@ -614,13 +677,21 @@ function PaymentList({
 			>
 				<label className="grid min-w-0 gap-2">
 					{s.search}
-					<input name="q" className={salesControl} maxLength={100} dir="auto" defaultValue={search} />
+					<input
+						name="q"
+						className={salesControl}
+						maxLength={100}
+						dir="auto"
+						defaultValue={search}
+					/>
 				</label>
 				<label className="grid min-w-0 gap-2">
 					{s.status}
 					<select name="state" className={salesControl} defaultValue={state}>
 						<option value="">{t.all}</option>
-						{(["unpaid", "partial", "paid", "overpaid", "overdue"] as const).map((v) => (
+						{(
+							["unpaid", "partial", "paid", "overpaid", "overdue"] as const
+						).map((v) => (
 							<option key={v} value={v}>
 								{paymentState(locale, v)}
 							</option>
@@ -632,7 +703,10 @@ function PaymentList({
 						{t.refresh}
 					</button>
 					{(search || state || page > 1) && (
-						<Link className={salesAction} href={salesHref(locale, "payments", seller)}>
+						<Link
+							className={salesAction}
+							href={salesHref(locale, "payments", seller)}
+						>
 							{sales.clear}
 						</Link>
 					)}
@@ -655,11 +729,19 @@ function PaymentList({
 					<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-4 sm:px-5">
 						<h2 className="m-0 flex items-center gap-2 text-base font-semibold">
 							{t.title}
-							<Badge variant="secondary" className="rounded-full border-0 bg-page text-muted">
+							<Badge
+								variant="secondary"
+								className="rounded-full border-0 bg-page text-muted"
+							>
 								{nf.format(list.count)}
 							</Badge>
 						</h2>
-						<Button variant="outline" size="sm" className="h-9 rounded-lg text-xs" onClick={onReload}>
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-9 rounded-lg text-xs"
+							onClick={onReload}
+						>
 							<RefreshCw className="size-3.5" aria-hidden="true" />
 							{t.refresh}
 						</Button>
@@ -674,27 +756,45 @@ function PaymentList({
 							<caption className="sr-only">{t.title}</caption>
 							<thead>
 								<tr className="bg-page/70">
-									{[sales.invoices, t.title, s.status, t.total, t.confirmed, t.remaining, t.method, t.effectiveDue, ""].map(
-										(label, i) => (
-											<th
-												key={`${label}:${i}`}
-												scope="col"
-												className={cn(
-													"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
-													i === 8 && "text-end",
-												)}
-											>
-												{i === 8 ? <span className="sr-only">{label}</span> : label}
-											</th>
-										),
-									)}
+									{[
+										sales.invoices,
+										t.title,
+										s.status,
+										t.total,
+										t.confirmed,
+										t.remaining,
+										t.method,
+										t.effectiveDue,
+										"",
+									].map((label, i) => (
+										<th
+											key={label}
+											scope="col"
+											className={cn(
+												"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
+												i === 8 && "text-end",
+											)}
+										>
+											{i === 8 ? (
+												<span className="sr-only">{label}</span>
+											) : (
+												label
+											)}
+										</th>
+									))}
 								</tr>
 							</thead>
 							<tbody>
 								{list.results.map((row) => (
-									<tr key={row.id} className="border-b border-solid border-border last:border-b-0 hover:bg-page/40">
+									<tr
+										key={row.id}
+										className="border-b border-solid border-border last:border-b-0 hover:bg-page/40"
+									>
 										<td className="px-4 py-4 align-top">
-											<Link href={detailHref(row)} className="text-sm font-semibold text-action no-underline">
+											<Link
+												href={detailHref(row)}
+												className="text-sm font-semibold text-action no-underline"
+											>
 												<bdi>{row.number}</bdi>
 											</Link>
 										</td>
@@ -709,18 +809,28 @@ function PaymentList({
 											</div>
 										</td>
 										<td className="px-4 py-4 align-top text-sm tabular-nums">
-											<bdi>{row.goods_total} {row.currency}</bdi>
+											<bdi>
+												{row.goods_total} {row.currency}
+											</bdi>
 										</td>
 										<td className="px-4 py-4 align-top text-sm tabular-nums">
-											<bdi>{row.confirmed_total} {row.currency}</bdi>
+											<bdi>
+												{row.confirmed_total} {row.currency}
+											</bdi>
 										</td>
 										<td className="px-4 py-4 align-top text-sm font-semibold tabular-nums">
-											<bdi>{row.remaining} {row.currency}</bdi>
+											<bdi>
+												{row.remaining} {row.currency}
+											</bdi>
 										</td>
-										<td className="px-4 py-4 align-top text-sm">{paymentState(locale, row.payment_method)}</td>
+										<td className="px-4 py-4 align-top text-sm">
+											{paymentState(locale, row.payment_method)}
+										</td>
 										<td className="px-4 py-4 align-top text-xs text-muted">
 											<bdi>
-												{row.effective_due_at ? localTimestamp(row.effective_due_at, locale) : "—"}
+												{row.effective_due_at
+													? localTimestamp(row.effective_due_at, locale)
+													: "—"}
 											</bdi>
 										</td>
 										<td className="px-4 py-3 text-end align-top">
@@ -736,7 +846,10 @@ function PaymentList({
 							<li key={row.id} className="space-y-3 p-4">
 								<div className="flex items-start justify-between gap-3">
 									<div className="space-y-1">
-										<Link href={detailHref(row)} className="text-sm font-semibold text-action no-underline">
+										<Link
+											href={detailHref(row)}
+											className="text-sm font-semibold text-action no-underline"
+										>
 											<bdi>{row.number}</bdi>
 										</Link>
 										<p className="m-0 break-words text-sm" dir="auto">
@@ -752,7 +865,9 @@ function PaymentList({
 									<div>
 										<dt className="text-xs text-muted">{t.total}</dt>
 										<dd className="m-0 tabular-nums">
-											<bdi>{row.goods_total} {row.currency}</bdi>
+											<bdi>
+												{row.goods_total} {row.currency}
+											</bdi>
 										</dd>
 									</div>
 									<div>
@@ -783,7 +898,15 @@ function PaymentList({
 	);
 }
 
-function RowMenu({ locale, seller, row }: { locale: Locale; seller: string; row: Payment }) {
+function RowMenu({
+	locale,
+	seller,
+	row,
+}: {
+	locale: Locale;
+	seller: string;
+	row: Payment;
+}) {
 	const s = sellerPaymentCopy[locale],
 		t = paymentCopy[locale];
 	return (
@@ -798,7 +921,11 @@ function RowMenu({ locale, seller, row }: { locale: Locale; seller: string; row:
 					<MoreHorizontal className="size-5" aria-hidden="true" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" sideOffset={6} className="w-56 rounded-xl p-1.5">
+			<DropdownMenuContent
+				align="end"
+				sideOffset={6}
+				className="w-56 rounded-xl p-1.5"
+			>
 				<DropdownMenuItem asChild className="gap-2.5 no-underline">
 					<Link href={salesHref(locale, "payments", seller, row.id)}>
 						<Wallet aria-hidden="true" />
@@ -834,9 +961,17 @@ function MoneyCards({ locale, row }: { locale: Locale; row: Detail }) {
 		<section className={salesPanel}>
 			<dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 				{cards.map(([label, value], i) => (
-					<div key={label} className="min-w-0 rounded-xl border border-border bg-page p-3">
+					<div
+						key={label}
+						className="min-w-0 rounded-xl border border-border bg-page p-3"
+					>
 						<dt className="text-xs text-muted">{label}</dt>
-						<dd className={cn("mt-1 break-all tabular-nums", i === 2 ? "text-xl font-bold" : "text-lg font-semibold")}>
+						<dd
+							className={cn(
+								"mt-1 break-all tabular-nums",
+								i === 2 ? "text-xl font-bold" : "text-lg font-semibold",
+							)}
+						>
 							<bdi>
 								{value} {row.currency}
 							</bdi>
@@ -887,12 +1022,17 @@ function PrimaryAction({
 	const t = paymentCopy[locale],
 		s = sellerPaymentCopy[locale],
 		pendingClaim = row.claims.find((c) => c.state === "pending");
-	let action: { label: string; onClick?: () => void; href?: string } | null = null;
-	if (row.capabilities.receipt && pendingClaim) action = { label: s.reviewClaim, onClick: onOpenClaims };
+	let action: { label: string; onClick?: () => void; href?: string } | null =
+		null;
+	if (row.capabilities.receipt && pendingClaim)
+		action = { label: s.reviewClaim, onClick: onOpenClaims };
 	else if (row.capabilities.receipt && row.remaining !== "0.00")
 		action = { label: s.recordPayment, onClick: onOpenClaims };
 	else if (row.financial === "paid")
-		action = { label: s.openInvoice, href: invoiceHref(locale, "seller", row.invoice, seller) };
+		action = {
+			label: s.openInvoice,
+			href: invoiceHref(locale, "seller", row.invoice, seller),
+		};
 	return (
 		<section className={cn(salesPanel, "space-y-2")}>
 			<p className="m-0 text-sm font-semibold">{s.nextAction}</p>
@@ -915,7 +1055,15 @@ function PrimaryAction({
 	);
 }
 
-function Tabs({ locale, tab, onChange }: { locale: Locale; tab: Tab; onChange: (t: Tab) => void }) {
+function Tabs({
+	locale,
+	tab,
+	onChange,
+}: {
+	locale: Locale;
+	tab: Tab;
+	onChange: (t: Tab) => void;
+}) {
 	const s = sellerPaymentCopy[locale];
 	const tabs: [Tab, string][] = [
 		["overview", s.overview],
@@ -923,7 +1071,11 @@ function Tabs({ locale, tab, onChange }: { locale: Locale; tab: Tab; onChange: (
 		["activity", s.activity],
 	];
 	return (
-		<div role="tablist" aria-label={s.overview} className="flex flex-wrap gap-1 border-b border-solid border-border">
+		<div
+			role="tablist"
+			aria-label={s.overview}
+			className="flex flex-wrap gap-1 border-b border-solid border-border"
+		>
 			{tabs.map(([id, label]) => (
 				<button
 					key={id}
@@ -950,7 +1102,6 @@ function Overview({
 	locale,
 	row,
 	selection,
-	selectionPage,
 	onSelectionPage,
 	review,
 	blocked,
@@ -981,91 +1132,126 @@ function Overview({
 			<dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
 				<div>
 					<dt className="text-xs text-muted">{t.method}</dt>
-					<dd className="m-0 font-medium">{paymentState(locale, row.payment_method)}</dd>
+					<dd className="m-0 font-medium">
+						{paymentState(locale, row.payment_method)}
+					</dd>
 				</div>
 				<div>
 					<dt className="text-xs text-muted">{t.allocation}</dt>
-					<dd className="m-0 font-medium">{paymentState(locale, row.allocation)}</dd>
+					<dd className="m-0 font-medium">
+						{paymentState(locale, row.allocation)}
+					</dd>
 				</div>
 				<div>
 					<dt className="text-xs text-muted">{t.originalDue}</dt>
 					<dd className="m-0">
-						<bdi>{row.original_due_at ? localTimestamp(row.original_due_at, locale) : "—"}</bdi>
+						<bdi>
+							{row.original_due_at
+								? localTimestamp(row.original_due_at, locale)
+								: "—"}
+						</bdi>
 					</dd>
 				</div>
 				<div>
 					<dt className="text-xs text-muted">{t.effectiveDue}</dt>
 					<dd className="m-0">
-						<bdi>{row.effective_due_at ? localTimestamp(row.effective_due_at, locale) : "—"}</bdi> ·{" "}
-						<bdi>v{row.deadline_generation}</bdi>
+						<bdi>
+							{row.effective_due_at
+								? localTimestamp(row.effective_due_at, locale)
+								: "—"}
+						</bdi>{" "}
+						· <bdi>v{row.deadline_generation}</bdi>
 					</dd>
 				</div>
 			</dl>
-			{row.capabilities.selection && selection && !row.selection?.allocation && (
-				<SelectionForm
-					{...{ locale, row, selection, disabled: blocked, onReview: review, onPage: onSelectionPage }}
-					onDirty={() => setDirty(true)}
-				/>
-			)}
+			{row.capabilities.selection &&
+				selection &&
+				!row.selection?.allocation && (
+					<details className="rounded-xl border border-solid border-border p-4">
+						<summary className="cursor-pointer text-sm font-medium">
+							{t.selection}
+						</summary>
+						<div className="mt-4">
+							<SelectionForm
+								{...{
+									locale,
+									row,
+									selection,
+									disabled: blocked,
+									onReview: review,
+									onPage: onSelectionPage,
+								}}
+								onDirty={() => setDirty(true)}
+							/>
+						</div>
+					</details>
+				)}
 			{row.capabilities.extension && (
-				<form
-					className="space-y-3 rounded-xl border border-border p-4"
-					onSubmit={(e) => {
-						e.preventDefault();
-						const parsed = Date.parse(due);
-						if (
-							!Number.isFinite(parsed) ||
-							parsed <= Date.parse(row.effective_due_at ?? "") ||
-							reason.trim().length < 3
-						) {
-							setError(true);
-							return;
-						}
-						review(
-							`orders/${row.id}/extensions/`,
-							{
-								deadline_generation: row.deadline_generation,
-								due_at: new Date(parsed).toISOString(),
-								reason: reason.trim(),
-							},
-							t.extend,
-						);
-					}}
-				>
-					<h3 className="text-sm font-semibold">{t.extend}</h3>
-					<fieldset disabled={blocked} className="grid gap-3 sm:grid-cols-2">
-						<label className="grid gap-1.5">
-							{t.laterDue}
-							<input
-								type="datetime-local"
-								required
-								className={salesControl}
-								value={due}
-								onChange={(e) => {
-									setDue(e.target.value);
-									setDirty(true);
-								}}
-							/>
-						</label>
-						<label className="grid gap-1.5">
-							{t.reason}
-							<textarea
-								required
-								minLength={3}
-								maxLength={1000}
-								className={salesControl}
-								value={reason}
-								onChange={(e) => {
-									setReason(e.target.value);
-									setDirty(true);
-								}}
-							/>
-						</label>
-						<button type="submit" className={cn(salesAction, "justify-self-start sm:col-span-2")}>
-							{t.exact}
-						</button>
-					</fieldset>
-				</form>
+				<details className="rounded-xl border border-solid border-border p-4">
+					<summary className="cursor-pointer text-sm font-medium">
+						{t.extend}
+					</summary>
+					<form
+						className="mt-4 space-y-3"
+						onSubmit={(e) => {
+							e.preventDefault();
+							const parsed = Date.parse(due);
+							if (
+								!Number.isFinite(parsed) ||
+								parsed <= Date.parse(row.effective_due_at ?? "") ||
+								reason.trim().length < 3
+							) {
+								setError(true);
+								return;
+							}
+							review(
+								`orders/${row.id}/extensions/`,
+								{
+									deadline_generation: row.deadline_generation,
+									due_at: new Date(parsed).toISOString(),
+									reason: reason.trim(),
+								},
+								t.extend,
+							);
+						}}
+					>
+						<fieldset disabled={blocked} className="grid gap-3 sm:grid-cols-2">
+							<label className="grid gap-1.5">
+								{t.laterDue}
+								<input
+									type="datetime-local"
+									required
+									className={salesControl}
+									value={due}
+									onChange={(e) => {
+										setDue(e.target.value);
+										setDirty(true);
+									}}
+								/>
+							</label>
+							<label className="grid gap-1.5">
+								{t.reason}
+								<textarea
+									required
+									minLength={3}
+									maxLength={1000}
+									className={salesControl}
+									value={reason}
+									onChange={(e) => {
+										setReason(e.target.value);
+										setDirty(true);
+									}}
+								/>
+							</label>
+							<button
+								type="submit"
+								className={cn(salesAction, "justify-self-start sm:col-span-2")}
+							>
+								{t.exact}
+							</button>
+						</fieldset>
+					</form>
+				</details>
 			)}
 		</section>
 	);
@@ -1127,7 +1313,12 @@ function ClaimsReceipts({
 						onRemove={onRemove}
 					/>
 					{(correction || replacement) && (
-						<button type="button" className={salesAction} disabled={blocked} onClick={cancelDraft}>
+						<button
+							type="button"
+							className={salesAction}
+							disabled={blocked}
+							onClick={cancelDraft}
+						>
 							{t.cancel}
 						</button>
 					)}
@@ -1137,9 +1328,14 @@ function ClaimsReceipts({
 				<>
 					<section className={salesPanel}>
 						<h3 className="text-sm font-semibold">{t.claims}</h3>
-						{row.claims.length === 0 && <p className="text-sm text-muted">{s.emptyHelp}</p>}
+						{row.claims.length === 0 && (
+							<p className="text-sm text-muted">{s.emptyHelp}</p>
+						)}
 						{row.claims.map((c) => (
-							<article key={c.id} className="space-y-2 rounded-xl border border-border p-3 text-sm">
+							<article
+								key={c.id}
+								className="space-y-2 rounded-xl border border-border p-3 text-sm"
+							>
 								<p className="m-0 flex flex-wrap items-center gap-2 font-medium">
 									<bdi>
 										{c.amount} {c.currency}
@@ -1162,11 +1358,17 @@ function ClaimsReceipts({
 								<p className="m-0 text-muted">
 									<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
 								</p>
-								<p className="m-0 whitespace-pre-wrap break-words">{c.description}</p>
+								<p className="m-0 whitespace-pre-wrap break-words">
+									{c.description}
+								</p>
 								{row.capabilities.evidence && (
 									<div className="flex flex-wrap gap-2">
 										{c.evidence.map((e) => (
-											<PaymentEvidence key={e} id={e} {...{ locale, context: "seller" as const }} />
+											<PaymentEvidence
+												key={e}
+												id={e}
+												{...{ locale, context: "seller" as const }}
+											/>
 										))}
 									</div>
 								)}
@@ -1187,7 +1389,10 @@ function ClaimsReceipts({
 											/>
 										</label>
 										<div className="flex flex-wrap gap-2">
-											{(row.capabilities.receipt ? ["confirm", "reject"] : ["withdraw"]).map((a) => (
+											{(row.capabilities.receipt
+												? ["confirm", "reject"]
+												: ["withdraw"]
+											).map((a) => (
 												<button
 													key={a}
 													type="button"
@@ -1196,12 +1401,23 @@ function ClaimsReceipts({
 													onClick={() =>
 														review(
 															`claims/${c.id}/${a}/`,
-															{ claim_version: c.version, reason: reason.trim() },
-															a === "confirm" ? t.confirmClaim : a === "reject" ? t.rejectClaim : t.withdrawClaim,
+															{
+																claim_version: c.version,
+																reason: reason.trim(),
+															},
+															a === "confirm"
+																? t.confirmClaim
+																: a === "reject"
+																	? t.rejectClaim
+																	: t.withdrawClaim,
 														)
 													}
 												>
-													{a === "confirm" ? t.confirmClaim : a === "reject" ? t.rejectClaim : t.withdrawClaim}
+													{a === "confirm"
+														? t.confirmClaim
+														: a === "reject"
+															? t.rejectClaim
+															: t.withdrawClaim}
 												</button>
 											))}
 										</div>
@@ -1213,20 +1429,37 @@ function ClaimsReceipts({
 					<section className={salesPanel}>
 						<h3 className="text-sm font-semibold">{t.receipts}</h3>
 						{row.receipts.map((r) => (
-							<article key={r.id} className="space-y-2 rounded-xl border border-border p-3 text-sm">
+							<article
+								key={r.id}
+								className="space-y-2 rounded-xl border border-border p-3 text-sm"
+							>
 								<p className="m-0">
-									{t.originalAmount}: <bdi>{r.original_amount} {r.currency}</bdi> · {t.effectiveAmount}:{" "}
-									<bdi>{r.amount} {r.currency}</bdi> · v{r.version}
+									{t.originalAmount}:{" "}
+									<bdi>
+										{r.original_amount} {r.currency}
+									</bdi>{" "}
+									· {t.effectiveAmount}:{" "}
+									<bdi>
+										{r.amount} {r.currency}
+									</bdi>{" "}
+									· v{r.version}
 								</p>
 								<p className="m-0 text-muted">
-									{t.review}: {paymentState(locale, r.review)} · {paymentRole(locale, "seller")} ·{" "}
+									{t.review}: {paymentState(locale, r.review)} ·{" "}
+									{paymentRole(locale, "seller")} ·{" "}
 									<bdi>{localTimestamp(r.paid_at, locale)}</bdi>
 								</p>
-								<p className="m-0 whitespace-pre-wrap break-words">{r.description}</p>
+								<p className="m-0 whitespace-pre-wrap break-words">
+									{r.description}
+								</p>
 								{row.capabilities.evidence && (
 									<div className="flex flex-wrap gap-2">
 										{r.evidence.map((e) => (
-											<PaymentEvidence key={e} id={e} {...{ locale, context: "seller" as const }} />
+											<PaymentEvidence
+												key={e}
+												id={e}
+												{...{ locale, context: "seller" as const }}
+											/>
 										))}
 									</div>
 								)}
@@ -1235,7 +1468,10 @@ function ClaimsReceipts({
 										type="button"
 										className={salesAction}
 										disabled={
-											blocked || row.corrections.some((c) => c.receipt === r.id && c.state === "open")
+											blocked ||
+											row.corrections.some(
+												(c) => c.receipt === r.id && c.state === "open",
+											)
 										}
 										onClick={() => startCorrection(r)}
 									>
@@ -1249,10 +1485,23 @@ function ClaimsReceipts({
 						<h3 className="text-sm font-semibold">{t.corrections}</h3>
 						<p className="m-0 text-xs text-muted">{t.correctionNote}</p>
 						{row.corrections.map((c) => (
-							<article key={c.id} className="space-y-1 rounded-xl border border-border p-3 text-sm">
+							<article
+								key={c.id}
+								className="space-y-1 rounded-xl border border-border p-3 text-sm"
+							>
 								<p className="m-0 flex flex-wrap items-center gap-2">
-									<bdi>{c.amount} {row.currency}</bdi>
-									<Badge variant="secondary" className={cn("border-0", c.state === "open" ? "bg-warning-surface text-warning" : "bg-page text-muted")}>
+									<bdi>
+										{c.amount} {row.currency}
+									</bdi>
+									<Badge
+										variant="secondary"
+										className={cn(
+											"border-0",
+											c.state === "open"
+												? "bg-warning-surface text-warning"
+												: "bg-page text-muted",
+										)}
+									>
 										{paymentState(locale, c.state)}
 									</Badge>
 								</p>
@@ -1286,15 +1535,21 @@ function Activity({
 	return (
 		<section className={salesPanel}>
 			<p className="m-0 text-sm text-muted">
-				{sales.results}: <bdi>{new Intl.NumberFormat(locale).format(row.history_count)}</bdi> · {sales.page}{" "}
-				<bdi>{new Intl.NumberFormat(locale).format(page)}</bdi>
+				{sales.results}:{" "}
+				<bdi>{new Intl.NumberFormat(locale).format(row.history_count)}</bdi> ·{" "}
+				{sales.page} <bdi>{new Intl.NumberFormat(locale).format(page)}</bdi>
 			</p>
 			<div className="space-y-1">
 				{row.history.map((e) => (
-					<p key={e.id} className="m-0 border-s-2 border-border ps-3 text-sm leading-relaxed">
-						v{e.version} · {paymentState(locale, e.action.replace(/^case_/, ""))} ·{" "}
+					<p
+						key={e.id}
+						className="m-0 border-s-2 border-border ps-3 text-sm leading-relaxed"
+					>
+						v{e.version} ·{" "}
+						{paymentState(locale, e.action.replace(/^case_/, ""))} ·{" "}
 						<bdi>
-							{localTimestamp(e.created_at, locale)} · {paymentRole(locale, e.context)}
+							{localTimestamp(e.created_at, locale)} ·{" "}
+							{paymentRole(locale, e.context)}
 						</bdi>
 					</p>
 				))}

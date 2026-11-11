@@ -39,6 +39,7 @@ import { negotiationCopy } from "../../negotiations/copy";
 import { salesHref } from "../../sales/components/seller-sales-ui";
 import { commerceCopy } from "../copy";
 import { orderListCopy } from "../list-copy";
+import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import { orderDetailCopy } from "../detail-copy";
 import { invoiceHref, type Order, type OrderLine } from "../api";
 import { DetailCard, DetailField, Money, ProductThumbnail } from "./order-ui";
@@ -61,8 +62,7 @@ function deriveNextAction(
 ): NextAction {
 	const t = orderDetailCopy[locale],
 		d = order.dimensions,
-		stage = d.fulfilment,
-		dispatched = stage === "dispatched" || stage === "delivered";
+		stage = d.fulfilment;
 	if (d.cancellation === "pending")
 		return {
 			label: t.reviewCancellation,
@@ -81,7 +81,7 @@ function deriveNextAction(
 		};
 	if (
 		order.payment_method === "advance" &&
-		!dispatched &&
+		stage === "prepared" &&
 		(d.financial === "unpaid" || d.financial === "partial")
 	)
 		return {
@@ -167,19 +167,6 @@ export function SellerOrderDetail({
 				can={can}
 			/>
 			<ProgressCard order={order} locale={locale} />
-			<div className="grid gap-5 lg:grid-cols-3">
-				<ProductsCard
-					order={order}
-					locale={locale}
-					className="lg:col-span-2"
-				/>
-				<CustomerCard
-					order={order}
-					locale={locale}
-					seller={seller}
-					canFulfilment={can("fulfilment")}
-				/>
-			</div>
 			<DetailTabs
 				locale={locale}
 				label={t.summary}
@@ -187,7 +174,24 @@ export function SellerOrderDetail({
 					{
 						id: "overview",
 						label: t.overview,
-						panel: <OverviewPanel order={order} locale={locale} />,
+						panel: (
+							<div className="space-y-5">
+								<div className="grid gap-5 lg:grid-cols-3">
+									<ProductsCard
+										order={order}
+										locale={locale}
+										className="lg:col-span-2"
+									/>
+									<CustomerCard
+										order={order}
+										locale={locale}
+										seller={seller}
+										canFulfilment={can("fulfilment")}
+									/>
+								</div>
+								<OverviewPanel order={order} locale={locale} />
+							</div>
+						),
 					},
 					{
 						id: "payment",
@@ -527,7 +531,11 @@ function ProgressCard({ order, locale }: { order: Order; locale: Locale }) {
 								)}
 								{label}
 								<span className="sr-only">
-									{done ? t.stageDone : current ? t.stageCurrent : t.stageUpcoming}
+									{done
+										? t.stageDone
+										: current
+											? t.stageCurrent
+											: t.stageUpcoming}
 								</span>
 							</span>
 						</li>
@@ -536,7 +544,9 @@ function ProgressCard({ order, locale }: { order: Order; locale: Locale }) {
 			</ol>
 			<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-solid border-border pt-3">
 				<Wallet className="size-4 text-muted" aria-hidden="true" />
-				<span className="text-xs font-medium text-muted">{c.method}:</span>
+				<span className="text-xs font-medium text-muted">
+					{c.method}: {c[order.payment_method]}
+				</span>
 				<Badge
 					variant="secondary"
 					className={cn(
@@ -571,8 +581,7 @@ function ProductsCard({
 	locale: Locale;
 	className?: string;
 }) {
-	const list = orderListCopy[locale],
-		c = commerceCopy[locale];
+	const list = orderListCopy[locale];
 	return (
 		<DetailCard title={list.products} icon="box" className={className}>
 			<div className="space-y-4">
@@ -593,7 +602,6 @@ function ProductsCard({
 					className="text-lg font-bold"
 				/>
 			</div>
-			<p className="m-0 mt-3 text-xs text-muted">{c.frozen}</p>
 		</DetailCard>
 	);
 }
@@ -667,10 +675,7 @@ function ProductLine({
 					</DetailField>
 				</dl>
 				{line.snapshot.price_changed && (
-					<p
-						role="status"
-						className="m-0 text-xs font-medium text-action"
-					>
+					<p role="status" className="m-0 text-xs font-medium text-action">
 						{c.priceChanged}
 						{line.snapshot.shown_price != null && (
 							<>
@@ -722,17 +727,8 @@ function CustomerCard({
 					<bdi>{dest.country}</bdi> · <span dir="auto">{dest.city}</span>
 				</DetailField>
 			</dl>
-			<p className="m-0 mt-3 flex items-start gap-1.5 text-xs text-muted">
-				<Icon name="lock" className="size-3.5 shrink-0" />
-				<span>{t.recipientNote}</span>
-			</p>
 			{canFulfilment && (
-				<Button
-					asChild
-					variant="outline"
-					size="sm"
-					className="mt-3 rounded-lg"
-				>
+				<Button asChild variant="outline" size="sm" className="mt-3 rounded-lg">
 					<Link href={salesHref(locale, "fulfilment", seller, order.id)}>
 						<Truck className="size-3.5" aria-hidden="true" />
 						{list.delivery}
@@ -755,42 +751,46 @@ function OverviewPanel({ order, locale }: { order: Order; locale: Locale }) {
 					? fulfilmentCopy[locale].unsettled
 					: fulfilmentCopy[locale].unknownCharge;
 	return (
-		<div className="space-y-4">
-			{order.snapshot.origin === "negotiated" && (
-				<p className="m-0 rounded-xl bg-info p-3 text-sm">
-					{negotiationCopy[locale].acceptedNotice}
-				</p>
-			)}
-			<dl className="m-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				<DetailField label={c.method}>{c[order.payment_method]}</DetailField>
-				<DetailField label={t.origin}>
-					{order.snapshot.origin === "negotiated"
-						? t.originNegotiated
-						: t.originDirect}
-				</DetailField>
-				<DetailField label={t.termsVersion}>
-					<bdi>{order.snapshot.terms.version}</bdi>
-				</DetailField>
-				<DetailField label={c.issued}>
-					<bdi>{localTimestamp(order.issued_at, locale)}</bdi>
-				</DetailField>
-				<DetailField label={c.due}>
-					{order.due_at ? (
-						<bdi>{localTimestamp(order.due_at, locale)}</bdi>
-					) : (
-						list.unknown
-					)}
-				</DetailField>
-				<DetailField label={paymentCopy[locale].allocation}>
-					{paymentState(locale, d.allocation)}
-				</DetailField>
-				<DetailField label={t.deliveryCharge}>{chargeLabel}</DetailField>
-				<DetailField label={fulfilmentCopy[locale].completion}>
-					{fulfilmentState(locale, d.completion)}
-				</DetailField>
-			</dl>
-			<p className="m-0 text-xs text-muted">{c.frozen}</p>
-		</div>
+		<details className="rounded-xl border border-solid border-border bg-surface p-4">
+			<summary className="cursor-pointer text-sm font-medium">
+				{sellerSalesCopy[locale].details}
+			</summary>
+			<div className="mt-4 space-y-4">
+				{order.snapshot.origin === "negotiated" && (
+					<p className="m-0 rounded-xl bg-info p-3 text-sm">
+						{negotiationCopy[locale].acceptedNotice}
+					</p>
+				)}
+				<dl className="m-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					<DetailField label={c.method}>{c[order.payment_method]}</DetailField>
+					<DetailField label={t.origin}>
+						{order.snapshot.origin === "negotiated"
+							? t.originNegotiated
+							: t.originDirect}
+					</DetailField>
+					<DetailField label={t.termsVersion}>
+						<bdi>{order.snapshot.terms.version}</bdi>
+					</DetailField>
+					<DetailField label={c.issued}>
+						<bdi>{localTimestamp(order.issued_at, locale)}</bdi>
+					</DetailField>
+					<DetailField label={c.due}>
+						{order.due_at ? (
+							<bdi>{localTimestamp(order.due_at, locale)}</bdi>
+						) : (
+							list.unknown
+						)}
+					</DetailField>
+					<DetailField label={paymentCopy[locale].allocation}>
+						{paymentState(locale, d.allocation)}
+					</DetailField>
+					<DetailField label={t.deliveryCharge}>{chargeLabel}</DetailField>
+					<DetailField label={fulfilmentCopy[locale].completion}>
+						{fulfilmentState(locale, d.completion)}
+					</DetailField>
+				</dl>
+			</div>
+		</details>
 	);
 }
 
@@ -1024,6 +1024,7 @@ function DetailTabs({
 					id={`${baseId}-panel-${i}`}
 					aria-labelledby={`${baseId}-tab-${i}`}
 					hidden={active !== i}
+					// biome-ignore lint/a11y/noNoninteractiveTabindex: Named tab panels support focus for keyboard navigation.
 					tabIndex={0}
 					className="min-w-0 rounded-b-2xl border border-t-0 border-border bg-surface p-4 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action sm:p-6"
 				>

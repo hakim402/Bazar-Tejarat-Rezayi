@@ -136,6 +136,7 @@ class DispatchCommand(DispatchReviewCommand):
 
 @extend_schema_serializer(component_name="FulfilmentSummary")
 class Summary(s.Serializer):
+    buyer = s.CharField(allow_blank=True)
     id = s.UUIDField()
     seller = s.UUIDField()
     number = s.CharField()

@@ -37,7 +37,7 @@ import { workflowCopy } from "../workflow-copy";
 import { availableModes } from "../modes";
 import type { Mode, Draft } from "../draft";
 import type { Detail, Reviewed } from "../types";
-import { useFulfilmentCommand } from "../use-command";
+import type { useFulfilmentCommand } from "../use-command";
 import { DeliveryActionForm } from "./action-form";
 import { DeliveryReview } from "./review";
 import { DeliveryHistory } from "./history";
@@ -129,9 +129,7 @@ export function SellerFulfilment({
 				proposal.state === "pending" &&
 				proposal.provider_id === row.arrangement?.provider_id,
 		),
-		exceptionModes = modes.filter(([mode]) =>
-			EXCEPTION_MODES.includes(mode),
-		),
+		exceptionModes = modes.filter(([mode]) => EXCEPTION_MODES.includes(mode)),
 		[exception, setException] = useState<Mode | null>(null),
 		drafts = useRef<Drafts>({});
 
@@ -179,9 +177,9 @@ export function SellerFulfilment({
 		disputesHref = sellerHref(locale, "disputes", seller);
 
 	const title = (g: Detail["goods"][number]) =>
-		g.titles[locale] ?? g.titles[g.source_locale] ?? g.sku;
+		g.titles?.[locale] ?? g.titles?.[g.source_locale] ?? g.sku;
 	const unit = (g: Detail["goods"][number]) =>
-		g.unit_labels[locale] ?? g.unit;
+		g.unit_labels?.[locale] ?? g.unit;
 
 	function primary(): PrimaryAction {
 		if (stage === 1)
@@ -428,31 +426,23 @@ export function SellerFulfilment({
 				</div>
 			</details>
 
-			{review &&
-				row.capabilities[review.capability] && (
-					<DeliveryReview
-						{...{ locale, context: "seller" as const, review, row }}
-						busy={command.locked}
-						opener={opener.current}
-						cancel={() => setReview(null)}
-						confirm={() => {
-							if (command.locked || !row.capabilities[review.capability])
-								return;
-							void command.send(review.intent).then(() => setReview(null));
-						}}
-					/>
-				)}
+			{review && row.capabilities[review.capability] && (
+				<DeliveryReview
+					{...{ locale, context: "seller" as const, review, row }}
+					busy={command.locked}
+					opener={opener.current}
+					cancel={() => setReview(null)}
+					confirm={() => {
+						if (command.locked || !row.capabilities[review.capability]) return;
+						void command.send(review.intent).then(() => setReview(null));
+					}}
+				/>
+			)}
 		</div>
 	);
 }
 
-function ProgressSteps({
-	locale,
-	stage,
-}: {
-	locale: Locale;
-	stage: number;
-}) {
+function ProgressSteps({ locale, stage }: { locale: Locale; stage: number }) {
 	const w = workflowCopy[locale],
 		stages = [w.stagePreparation, w.stageDispatch, w.stageDelivery];
 	return (
@@ -684,7 +674,12 @@ function StageOne({
 		</div>
 	);
 	return (
-		<StageCard locale={locale} index={1} title={w.stagePreparation} state={done ? "done" : "current"}>
+		<StageCard
+			locale={locale}
+			index={1}
+			title={w.stagePreparation}
+			state={done ? "done" : "current"}
+		>
 			{content}
 		</StageCard>
 	);
@@ -871,9 +866,7 @@ function StageThree({
 						</div>
 						{row.capabilities.tracking && (
 							<div className="space-y-2">
-								<p className="m-0 text-sm font-semibold">
-									{t.recordTracking}
-								</p>
+								<p className="m-0 text-sm font-semibold">{t.recordTracking}</p>
 								{renderForm("tracking")}
 							</div>
 						)}

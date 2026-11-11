@@ -4274,6 +4274,7 @@ export interface components {
             history: unknown[];
             history_page: number;
             history_count: number;
+            buyer: string;
         };
         FulfilmentOutcome: {
             result: unknown;
@@ -4340,6 +4341,7 @@ export interface components {
             capabilities: {
                 [key: string]: boolean;
             };
+            buyer: string;
         };
         /**
          * @description * `advance` - advance

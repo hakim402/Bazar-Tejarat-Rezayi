@@ -2,6 +2,7 @@ import type { Locale } from "../../lib/i18n/locales";
 const copy = {
 	en: {
 		title: "Order issues",
+		pageScope: "Filters apply to this page of orders.",
 		backToIssues: "Back to issues",
 		openOrder: "Open order",
 		openIssue: "View issue",
@@ -45,6 +46,7 @@ const copy = {
 	},
 	"fa-AF": {
 		title: "مشکلات سفارش",
+		pageScope: "فیلترها روی همین صفحهٔ سفارش‌ها اعمال می‌شود.",
 		backToIssues: "بازگشت به مشکلات",
 		openOrder: "باز کردن سفارش",
 		openIssue: "مشاهدهٔ مشکل",
@@ -88,6 +90,7 @@ const copy = {
 	},
 	ps: {
 		title: "د فرمایش ستونزې",
+		pageScope: "چاڼونه د سپارښتنو پر همدې پاڼه پلي کېږي.",
 		backToIssues: "ستونزو ته ستون",
 		openOrder: "فرمایش خلاصول",
 		openIssue: "ستونزه کتل",
@@ -131,6 +134,7 @@ const copy = {
 	},
 	ar: {
 		title: "مشكلات الطلب",
+		pageScope: "تُطبّق المرشحات على صفحة الطلبات الحالية.",
 		backToIssues: "العودة إلى المشكلات",
 		openOrder: "فتح الطلب",
 		openIssue: "عرض المشكلة",
