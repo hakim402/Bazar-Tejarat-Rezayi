@@ -48,6 +48,7 @@ import {
 	failure,
 } from "./catalogue-fields";
 import { CatalogueOverview } from "./catalogue-overview";
+import { ProductPagination } from "./product-pagination";
 import { ProductEditor } from "./product-editor";
 import { LivePrices } from "./live-prices";
 import { productStepForIssue } from "./product-steps";
@@ -717,40 +718,13 @@ export function CatalogueWorkspace({
 							onDelete={askDelete}
 							onAction={askCardAction}
 						/>
-						<nav
-							aria-label={copy.page}
-							className="flex flex-wrap items-center justify-between gap-3"
-						>
-							<Button
-								variant="secondary"
-								disabled={page === 1}
-								onClick={() =>
-									router.push(
-										productHref(locale, "catalogue", seller, query, {
-											page: String(page - 1),
-										}),
-									)
-								}
-							>
-								{t.back}
-							</Button>
-							<p className="text-sm text-muted">
-								{copy.page} <bdi>{page}</bdi>
-							</p>
-							<Button
-								variant="secondary"
-								disabled={page * 30 >= list.count || page >= 10000}
-								onClick={() =>
-									router.push(
-										productHref(locale, "catalogue", seller, query, {
-											page: String(page + 1),
-										}),
-									)
-								}
-							>
-								{t.next}
-							</Button>
-						</nav>
+						<ProductPagination
+							locale={locale}
+							page={page}
+							count={list.count}
+							seller={seller}
+							filters={query}
+						/>
 					</>
 				)}
 				{id && item && body && taxonomy && (

@@ -48,7 +48,7 @@ class Products(CatalogueView):
                     continue
                 sellers.append({"id": profile.pk, "name": profile.display_name})
         rows = []
-        for item in base.order_by("-created_at")[(page - 1) * 30 : page * 30]:
+        for item in base.order_by("-created_at")[(page - 1) * 8 : page * 8]:
             if context == "seller":
                 try:
                     access.seller(actor, item.seller_id)

@@ -1,5 +1,27 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import {
+	Eye,
+	EyeOff,
+	Heart,
+	MoreHorizontal,
+	PencilLine,
+	Send,
+	Trash2,
+	Package,
+} from "lucide-react";
+import { Card, CardContent, CardFooter } from "../../../components/shadcn/card";
+import { Badge } from "../../../components/shadcn/badge";
+import { Button } from "../../../components/shadcn/button";
+import {
+	DropdownMenu,
+	DropdownMenuTrigger,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "../../../components/shadcn/dropdown-menu";
 import type { Locale } from "../../../lib/i18n/locales";
 import { catalogueCopy, catalogueStatuses } from "../../../lib/i18n/catalogue";
 import {
@@ -9,12 +31,7 @@ import {
 } from "../../../lib/i18n/seller-products";
 import type { QueryReader } from "../../../lib/routes/account-routes";
 import type { ProductList } from "../types";
-import { Icon } from "../../../components/ui/icon";
 import { apiOrigin } from "../../../lib/api/client";
-import {
-	StatusBadge,
-	statusVariant,
-} from "../../../components/ui/status-badge";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { productHref } from "./seller-products-ui";
 
@@ -33,13 +50,13 @@ export function CatalogueOverview({
 	onDelete: (id: string, title: string) => void;
 	onAction: (id: string, action: "publish" | "unpublish") => void;
 }) {
-	const t = sellerProductsCopy[locale];
-	const a = productActionsCopy[locale];
+	const t = sellerProductsCopy[locale],
+		a = productActionsCopy[locale];
 	return (
 		<section className="min-w-0 space-y-4" aria-label={t.title}>
-			<p className="text-sm text-muted">
+			<p className="text-xs text-muted">
 				{t.onPage}{" "}
-				<span className="ms-1 font-semibold tabular-nums text-foreground">
+				<span className="font-semibold text-foreground">
 					{new Intl.NumberFormat(locale).format(list.results.length)}
 				</span>
 			</p>
@@ -50,158 +67,193 @@ export function CatalogueOverview({
 					description={t.listHelp}
 				/>
 			)}
-			<ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+			<ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{list.results.map((product) => {
-					const href = productHref(
-						locale,
-						`catalogue/${product.id}`,
-						seller,
-						filters,
-					);
+					const title = product.title || t.untitled,
+						href = productHref(
+							locale,
+							`catalogue/${product.id}`,
+							seller,
+							filters,
+						);
 					return (
-						<li
-							key={product.id}
-							className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-border/70 bg-surface p-3 shadow-sm transition-shadow hover:shadow-card motion-reduce:transition-none"
-						>
-							<Link
-								href={href}
-								tabIndex={-1}
-								aria-hidden="true"
-								className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-2xl bg-info/60 text-action no-underline"
-							>
-								{product.image ? (
-									<Image
-										unoptimized
-										fill
-										sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
-										className="object-cover transition-transform group-hover:scale-[1.03] motion-reduce:transform-none"
-										src={
-											apiOrigin(process.env.NEXT_PUBLIC_API_URL) + product.image
-										}
-										alt={product.title || t.untitled}
-									/>
-								) : (
-									<>
-										<span className="absolute inset-6 rounded-2xl border border-action/10 rotate-6" />
-										<Icon
-											name="box"
-											className="size-14 opacity-60 transition-transform group-hover:scale-105 motion-reduce:transform-none"
+						<li key={product.id} className="min-w-0">
+							<Card className="group h-full gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs transition-shadow hover:shadow-md">
+								<Link
+									href={href}
+									tabIndex={-1}
+									aria-hidden="true"
+									className="relative m-2 mb-0 flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl bg-info/60 text-action"
+								>
+									{product.image ? (
+										<Image
+											unoptimized
+											fill
+											sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
+											src={
+												apiOrigin(process.env.NEXT_PUBLIC_API_URL) +
+												product.image
+											}
+											alt=""
+											className="object-cover transition-transform group-hover:scale-[1.03] motion-reduce:transform-none"
 										/>
-									</>
-								)}
-							</Link>
-							<div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
-								<div className="min-w-0 flex-1 space-y-2">
-									<h2 className="text-base font-semibold leading-snug wrap-anywhere">
+									) : (
+										<Package className="size-10 opacity-40" />
+									)}
+								</Link>
+								<CardContent className="flex flex-1 flex-col gap-2.5 px-3.5 pt-3 pb-2">
+									<div className="flex flex-wrap gap-1.5">
+										<Badge
+											variant="secondary"
+											className={
+												product.state === "rejected"
+													? "bg-danger-surface text-danger"
+													: product.state === "submitted"
+														? "bg-warning-surface text-warning"
+														: "bg-info text-action"
+											}
+										>
+											{catalogueStatuses[locale][product.state]}
+										</Badge>
+										{product.published && (
+											<Badge
+												variant="outline"
+												className="border-success/20 bg-success-surface text-success"
+											>
+												<span
+													aria-hidden="true"
+													className="size-1.5 rounded-full bg-current"
+												/>
+												{t.live}
+											</Badge>
+										)}
+									</div>
+									<h2
+										className="m-0 line-clamp-1 text-sm font-semibold leading-snug"
+										title={title}
+									>
 										<Link
 											href={href}
 											className="text-foreground no-underline hover:text-action"
 										>
-											{product.title || t.untitled}
+											{title}
 										</Link>
 									</h2>
-									<p className="text-sm text-muted wrap-anywhere">
-										<bdi>{product.seller}</bdi>
-									</p>
-									<p className="line-clamp-2 text-sm leading-relaxed text-muted">
+									<p className="m-0 line-clamp-2 min-h-9 text-xs leading-4.5 text-muted">
 										{product.description || a.noDescription}
 									</p>
-								</div>
-								<div className="flex min-w-0 flex-wrap items-center gap-2">
-									<StatusBadge variant={statusVariant(product.state)}>
-										{catalogueStatuses[locale][product.state]}
-									</StatusBadge>
-									<span className="text-xs text-muted">
-										{product.published ? t.live : t.notLive}
-									</span>
-								</div>
-								<div className="flex items-end justify-between gap-2" dir="ltr">
-									<div
-										className="flex flex-wrap gap-3 text-xs text-muted"
-										dir={locale === "en" ? "ltr" : "rtl"}
-									>
-										<span>
-											{a.views}: {a.unavailable}
+									<p className="m-0 truncate text-[11px] text-muted">
+										<bdi>{product.seller}</bdi>
+									</p>
+								</CardContent>
+								<CardFooter
+									className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2"
+									dir="ltr"
+								>
+									<div className="flex gap-3 text-xs text-muted">
+										<span
+											className="inline-flex items-center gap-1"
+											title={`${a.views}: ${a.unavailable}`}
+										>
+											<Eye aria-hidden="true" className="size-3.5" />
+											<span aria-hidden="true">—</span>
+											<span className="sr-only">
+												{a.views}: {a.unavailable}
+											</span>
 										</span>
-										<span>
-											{a.likes}: {a.unavailable}
+										<span
+											className="inline-flex items-center gap-1"
+											title={`${a.likes}: ${a.unavailable}`}
+										>
+											<Heart aria-hidden="true" className="size-3.5" />
+											<span aria-hidden="true">—</span>
+											<span className="sr-only">
+												{a.likes}: {a.unavailable}
+											</span>
 										</span>
 									</div>
-									<details
-										className="relative shrink-0"
-										dir={locale === "en" ? "ltr" : "rtl"}
-									>
-										<summary
-											aria-label={a.menu}
-											className="flex size-10 cursor-pointer list-none items-center justify-center rounded-xl border border-border bg-surface text-xl hover:bg-info [&::-webkit-details-marker]:hidden"
+									<div className="flex gap-1">
+										<Button
+											asChild
+											size="icon"
+											variant="ghost"
+											className="size-9 rounded-lg text-action"
 										>
-											⋯
-										</summary>
-										<div className="absolute bottom-full right-0 z-20 mb-2 grid w-56 max-w-[75vw] gap-1 rounded-xl border border-border bg-surface p-2 text-sm shadow-lifted">
 											<Link
-												className="rounded-lg px-3 py-2 text-foreground no-underline hover:bg-info"
 												href={href}
+												aria-label={`${t.edit}: ${title}`}
+												title={t.edit}
 											>
-												{t.edit}
+												<PencilLine />
 											</Link>
-											{product.published ? (
-												<button
-													type="button"
-													className="rounded-lg border-0 bg-transparent px-3 py-2 text-start hover:bg-info"
-													onClick={(event) => {
-														event.currentTarget
-															.closest("details")
-															?.removeAttribute("open");
-														onAction(product.id, "unpublish");
-													}}
+										</Button>
+										<DropdownMenu dir={locale === "en" ? "ltr" : "rtl"}>
+											<DropdownMenuTrigger asChild>
+												<Button
+													size="icon"
+													variant="ghost"
+													className="size-9 rounded-lg"
+													aria-label={`${a.menu}: ${title}`}
+													title={a.menu}
 												>
-													{a.unpublish}
-												</button>
-											) : (
-												<button
-													type="button"
-													disabled={product.state === "submitted"}
-													className="rounded-lg border-0 bg-transparent px-3 py-2 text-start hover:bg-info disabled:opacity-50"
-													onClick={(event) => {
-														event.currentTarget
-															.closest("details")
-															?.removeAttribute("open");
-														onAction(product.id, "publish");
-													}}
-												>
-													{a.publish}
-												</button>
-											)}
-											{product.published ? (
-												<Link
-													className="rounded-lg px-3 py-2 text-foreground no-underline hover:bg-info"
-													href={`/${locale}/products/${product.id}`}
-													target="_blank"
-													rel="noopener noreferrer"
-												>
-													{t.viewPublic}
-												</Link>
-											) : (
-												<span className="px-3 py-2 text-muted opacity-60">
-													{t.viewPublic} · {t.notLive}
-												</span>
-											)}
-											<button
-												type="button"
-												className="rounded-lg border-0 bg-transparent px-3 py-2 text-start text-danger hover:bg-danger-surface"
-												onClick={(event) => {
-													event.currentTarget
-														.closest("details")
-														?.removeAttribute("open");
-													onDelete(product.id, product.title || t.untitled);
-												}}
+													<MoreHorizontal />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent
+												align="end"
+												sideOffset={6}
+												className="w-52 rounded-xl border-border p-1.5"
 											>
-												{productFlowCopy[locale].delete}
-											</button>
-										</div>
-									</details>
-								</div>
-							</div>
+												<DropdownMenuItem asChild>
+													<Link href={href}>
+														<PencilLine />
+														{t.edit}
+													</Link>
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													disabled={
+														!product.published && product.state === "submitted"
+													}
+													onSelect={() =>
+														onAction(
+															product.id,
+															product.published ? "unpublish" : "publish",
+														)
+													}
+												>
+													{product.published ? <EyeOff /> : <Send />}
+													{product.published ? a.unpublish : a.publish}
+												</DropdownMenuItem>
+												{product.published ? (
+													<DropdownMenuItem asChild>
+														<Link
+															href={`/${locale}/products/${product.id}`}
+															target="_blank"
+															rel="noopener noreferrer"
+														>
+															<Eye />
+															{t.viewPublic}
+														</Link>
+													</DropdownMenuItem>
+												) : (
+													<DropdownMenuItem disabled>
+														<Eye />
+														{t.viewPublic}
+													</DropdownMenuItem>
+												)}
+												<DropdownMenuSeparator />
+												<DropdownMenuItem
+													variant="destructive"
+													onSelect={() => onDelete(product.id, title)}
+												>
+													<Trash2 />
+													{productFlowCopy[locale].delete}
+												</DropdownMenuItem>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</div>
+								</CardFooter>
+							</Card>
 						</li>
 					);
 				})}
