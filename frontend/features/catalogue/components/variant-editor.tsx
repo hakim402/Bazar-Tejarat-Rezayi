@@ -5,7 +5,10 @@ import { Toggle } from "../../../components/ui/form-field";
 import { Icon } from "../../../components/ui/icon";
 import type { Locale } from "../../../lib/i18n/locales";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
-import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
+import {
+	productFlowCopy,
+	sellerProductsCopy,
+} from "../../../lib/i18n/seller-products";
 import type { Variant, Category, Taxonomy } from "../types";
 import {
 	CatalogueValidation,
@@ -134,6 +137,7 @@ export function VariantEditor({
 								<div className="grid gap-4 desktop:grid-cols-2">
 									<Control
 										path={`body.variants.${index}.sku`}
+										required
 										label={s.sku}
 										maxLength={64}
 										hint={s.skuHelp}
@@ -144,6 +148,7 @@ export function VariantEditor({
 									/>
 									<Control
 										path={`body.variants.${index}.unit`}
+										required
 										label={t.unit}
 										value={variant.unit}
 										disabled={!!variant.id}
@@ -158,28 +163,45 @@ export function VariantEditor({
 										]}
 										onChange={(unit) => change(index, { unit })}
 									/>
-									{(["increment", "minimum", "contents"] as const).map(
-										(keyName) => (
-											<Control
-												key={keyName}
-												path={`body.variants.${index}.${keyName}`}
-												label={t[keyName]}
-												value={variant[keyName]}
-												decimal={keyName !== "contents"}
-												isolated={keyName !== "contents"}
-												maxLength={keyName === "contents" ? 200 : 20}
-												hint={
-													keyName === "increment"
-														? s.quantityHelp
-														: keyName === "minimum"
-															? s.minimumHelp
-															: s.contentsHelp
-												}
-												disabled={!!variant.id}
-												onChange={(v) => change(index, { [keyName]: v })}
-											/>
-										),
-									)}
+									<details
+										className="rounded-xl border border-border p-3 desktop:col-span-2"
+										open={
+											issues.some((issue) =>
+												["increment", "minimum", "contents"].some(
+													(key) =>
+														issue.path === `body.variants.${index}.${key}`,
+												),
+											) || undefined
+										}
+									>
+										<summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">
+											{productFlowCopy[locale].advanced}
+										</summary>
+										<div className="grid gap-4 pt-3 desktop:grid-cols-2">
+											{(["increment", "minimum", "contents"] as const).map(
+												(keyName) => (
+													<Control
+														key={keyName}
+														path={`body.variants.${index}.${keyName}`}
+														label={t[keyName]}
+														value={variant[keyName]}
+														decimal={keyName !== "contents"}
+														isolated={keyName !== "contents"}
+														maxLength={keyName === "contents" ? 200 : 20}
+														hint={
+															keyName === "increment"
+																? s.quantityHelp
+																: keyName === "minimum"
+																	? s.minimumHelp
+																	: s.contentsHelp
+														}
+														disabled={!!variant.id}
+														onChange={(v) => change(index, { [keyName]: v })}
+													/>
+												),
+											)}
+										</div>
+									</details>
 								</div>
 								<Attributes
 									fields={category?.attributes.filter((a) => a.variant) ?? []}

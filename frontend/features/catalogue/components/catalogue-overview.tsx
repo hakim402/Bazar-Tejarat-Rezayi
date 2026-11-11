@@ -26,12 +26,12 @@ export function CatalogueOverview({
 	const t = sellerProductsCopy[locale];
 	return (
 		<section className="min-w-0 space-y-4" aria-label={t.title}>
-			<div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-				<span>{t.onPage}</span>
-				<span className="rounded-lg bg-info px-2.5 py-1 font-semibold tabular-nums text-action">
+			<p className="text-sm text-muted">
+				{t.onPage}{" "}
+				<span className="ms-1 font-semibold tabular-nums text-foreground">
 					{new Intl.NumberFormat(locale).format(list.results.length)}
 				</span>
-			</div>
+			</p>
 			{!list.results.length && (
 				<EmptyState
 					icon="box"
@@ -39,64 +39,65 @@ export function CatalogueOverview({
 					description={t.listHelp}
 				/>
 			)}
-			<ul className="m-0 grid list-none gap-3 p-0">
-				{list.results.map((product) => (
-					<li
-						key={product.id}
-						className="flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"
-					>
-						<div className="flex min-w-0 flex-1 items-start gap-3">
-							<span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-info text-action">
-								<Icon name="box" />
-							</span>
-							<div className="min-w-0 space-y-1">
-								<Link
-									href={productHref(
-										locale,
-										`catalogue/${product.id}`,
-										seller,
-										filters,
-									)}
-									className="inline-flex min-h-11 items-center text-base font-semibold text-foreground no-underline hover:text-action wrap-anywhere"
-								>
-									{product.title || t.untitled}
-								</Link>
-								<p className="text-sm text-muted wrap-anywhere">
-									<bdi>{product.seller}</bdi>
-								</p>
-							</div>
-						</div>
-						<div className="grid min-w-0 grid-cols-2 gap-3 sm:w-64">
-							<div className="min-w-0 space-y-1.5">
-								<p className="text-xs text-muted">{t.latestStatus}</p>
-								<StatusBadge variant={statusVariant(product.state)}>
-									{catalogueStatuses[locale][product.state]}
-								</StatusBadge>
-							</div>
-							<div className="min-w-0 space-y-1.5">
-								<p className="text-xs text-muted">{t.publicStatus}</p>
-								<StatusBadge
-									variant={product.published ? "success" : "neutral"}
-								>
-									{product.published ? t.live : t.notLive}
-								</StatusBadge>
-							</div>
-						</div>
-						<Link
-							href={productHref(
-								locale,
-								`catalogue/${product.id}`,
-								seller,
-								filters,
-							)}
-							className={productLink}
-							aria-label={`${t.edit}: ${product.title || t.untitled}`}
+			<ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+				{list.results.map((product) => {
+					const href = productHref(
+						locale,
+						`catalogue/${product.id}`,
+						seller,
+						filters,
+					);
+					return (
+						<li
+							key={product.id}
+							className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-border/70 bg-surface p-3 shadow-sm transition-shadow hover:shadow-card motion-reduce:transition-none"
 						>
-							{t.edit}
-							<Icon name="arrow" className="size-4 rtl:rotate-180" />
-						</Link>
-					</li>
-				))}
+							<Link
+								href={href}
+								tabIndex={-1}
+								aria-hidden="true"
+								className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-2xl bg-info/60 text-action no-underline"
+							>
+								<span className="absolute inset-6 rounded-2xl border border-action/10 rotate-6" />
+								<Icon
+									name="box"
+									className="size-14 opacity-60 transition-transform group-hover:scale-105 motion-reduce:transform-none"
+								/>
+							</Link>
+							<div className="flex flex-1 flex-col gap-4 px-2 pb-2 pt-5">
+								<div className="min-w-0 flex-1 space-y-2">
+									<h2 className="text-base font-semibold leading-snug wrap-anywhere">
+										<Link
+											href={href}
+											className="text-foreground no-underline hover:text-action"
+										>
+											{product.title || t.untitled}
+										</Link>
+									</h2>
+									<p className="text-sm text-muted wrap-anywhere">
+										<bdi>{product.seller}</bdi>
+									</p>
+								</div>
+								<div className="flex min-w-0 flex-wrap items-center gap-2">
+									<StatusBadge variant={statusVariant(product.state)}>
+										{catalogueStatuses[locale][product.state]}
+									</StatusBadge>
+									<span className="text-xs text-muted">
+										{product.published ? t.live : t.notLive}
+									</span>
+								</div>
+								<Link
+									href={href}
+									className={`${productLink} w-full border-action! bg-action! text-on-primary! hover:bg-action-hover!`}
+									aria-label={`${t.edit}: ${product.title || t.untitled}`}
+								>
+									{t.edit}
+									<Icon name="arrow" className="size-4 rtl:rotate-180" />
+								</Link>
+							</div>
+						</li>
+					);
+				})}
 			</ul>
 		</section>
 	);

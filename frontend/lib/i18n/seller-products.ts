@@ -426,3 +426,95 @@ export const sellerProductsCopy: Record<Locale, Copy> = {
 		busy: "جارٍ العمل…",
 	},
 };
+
+export const productFlowCopy: Record<
+	Locale,
+	{
+		steps: string[];
+		next: string;
+		previous: string;
+		submit: string;
+		submitHelp: string;
+		listHelp: string;
+		filters: string;
+		all: string;
+		filterNote: string;
+		history: string;
+		step: string;
+		advanced: string;
+		submitted: string;
+	}
+> = {
+	en: {
+		steps: ["Selling setup", "Product details", "Options & prices", "Photos"],
+		next: "Next",
+		previous: "Previous",
+		submit: "Submit product",
+		submitHelp:
+			"Submit when everything is ready. Your product will be sent for approval before it appears in the marketplace.",
+		listHelp: "Your products, all in one place.",
+		filters: "Filter products",
+		all: "All products",
+		filterNote:
+			"All businesses you can manage. Status filters also match saved history.",
+		history: "Saved versions & listing settings",
+		step: "Step",
+		advanced: "Quantity & pack settings",
+		submitted:
+			"A version of this product is awaiting approval. You can save further changes as a new draft.",
+	},
+	"fa-AF": {
+		steps: ["تنظیم فروش", "معلومات محصول", "گزینه‌ها و قیمت‌ها", "عکس‌ها"],
+		next: "بعدی",
+		previous: "قبلی",
+		submit: "ارسال محصول",
+		submitHelp:
+			"پس از تکمیل معلومات، محصول را ارسال کنید. پیش از نمایش در بازار، محصول باید تأیید شود.",
+		listHelp: "همه محصولات شما در یک‌جا.",
+		filters: "فیلتر محصولات",
+		all: "همه محصولات",
+		filterNote:
+			"همه کسب‌وکارهای قابل مدیریت شما. فیلتر وضعیت شامل سابقه ذخیره‌شده نیز است.",
+		history: "نسخه‌های ذخیره‌شده و تنظیم نمایش",
+		step: "مرحله",
+		advanced: "تنظیم مقدار و بسته",
+		submitted:
+			"یک نسخه این محصول در انتظار تأیید است. تغییرات بعدی را می‌توانید به‌صورت پیش‌نویس جدید ذخیره کنید.",
+	},
+	ps: {
+		steps: ["د پلور تنظیم", "د محصول معلومات", "بڼې او بیې", "انځورونه"],
+		next: "بل",
+		previous: "مخکینی",
+		submit: "محصول واستوئ",
+		submitHelp:
+			"کله چې معلومات بشپړ شي، محصول واستوئ. په بازار کې له ښکاره کېدو مخکې باید تایید شي.",
+		listHelp: "ستاسو ټول محصولات په یوه ځای کې.",
+		filters: "د محصولاتو چاڼ",
+		all: "ټول محصولات",
+		filterNote:
+			"ستاسو ټول د مدیریت وړ کاروبارونه. د حالت چاڼ خوندي شوې مخینه هم رانغاړي.",
+		history: "خوندي بڼې او د ښودلو تنظیمات",
+		step: "پړاو",
+		advanced: "د مقدار او بستې تنظیمات",
+		submitted:
+			"د دې محصول یوه بڼه د تایید په تمه ده. نور بدلونونه د نوې مسودې په توګه خوندي کولای شئ.",
+	},
+	ar: {
+		steps: ["إعداد البيع", "تفاصيل المنتج", "الخيارات والأسعار", "الصور"],
+		next: "التالي",
+		previous: "السابق",
+		submit: "إرسال المنتج",
+		submitHelp:
+			"أرسل المنتج بعد إكمال المعلومات. يحتاج إلى الموافقة قبل ظهوره في السوق.",
+		listHelp: "جميع منتجاتك في مكان واحد.",
+		filters: "تصفية المنتجات",
+		all: "جميع المنتجات",
+		filterNote:
+			"جميع الأنشطة التي يمكنك إدارتها. تشمل تصفية الحالة السجل المحفوظ أيضاً.",
+		history: "الإصدارات المحفوظة وإعدادات العرض",
+		step: "الخطوة",
+		advanced: "إعدادات الكمية والعبوة",
+		submitted:
+			"هناك إصدار من هذا المنتج بانتظار الموافقة. يمكنك حفظ التغييرات الإضافية كمسودة جديدة.",
+	},
+};

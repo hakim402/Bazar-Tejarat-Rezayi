@@ -11,7 +11,10 @@ import {
 	ACCOUNT_SESSION_CHANGED,
 } from "../../identity/api/accounts";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
-import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
+import {
+	productFlowCopy,
+	sellerProductsCopy,
+} from "../../../lib/i18n/seller-products";
 import type { Locale } from "../../../lib/i18n/locales";
 import { catalogueRequest as api } from "../api/catalogue";
 import type { Operation, ProductList } from "../types";
@@ -27,6 +30,8 @@ import {
 	productLink,
 	useProductGuard,
 } from "./seller-products-ui";
+
+import { ProductSteps } from "./product-steps";
 
 export function CatalogueCreate({
 	locale,
@@ -144,11 +149,13 @@ export function CatalogueCreate({
 			value={{ locale, issues: feedback?.issues ?? [] }}
 		>
 			<ProductsPage
+				narrow
 				locale={locale}
 				title={copy.setupTitle}
-				description={copy.setupHelp}
+				description={productFlowCopy[locale].steps[0]}
 				back={productHref(locale, "catalogue", query.get("seller"), query)}
 			>
+				<ProductSteps locale={locale} current={0} />
 				{guard.feedback}
 				{feedback && <Feedback locale={locale} value={feedback} />}
 				{blocked && (
@@ -171,7 +178,10 @@ export function CatalogueCreate({
 					</p>
 				)}
 				{list ? (
-					<SectionCard className="max-w-3xl rounded-2xl" title={copy.add}>
+					<SectionCard
+						className="mx-auto max-w-4xl rounded-2xl"
+						title={productFlowCopy[locale].steps[0]}
+					>
 						<form
 							noValidate
 							onSubmit={(event) => {
@@ -228,15 +238,7 @@ export function CatalogueCreate({
 										{copy.creationDenied}
 									</p>
 								)}
-								<div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row">
-									<Button
-										type="submit"
-										className="mt-0!"
-										disabled={busy || blocked || !seller || !!created}
-									>
-										{busy || created ? copy.busy : copy.continue}
-										<Icon name="arrow" className="size-4 rtl:rotate-180" />
-									</Button>
+								<div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
 									<Link
 										className={productLink}
 										href={productHref(
@@ -248,6 +250,14 @@ export function CatalogueCreate({
 									>
 										{copy.cancel}
 									</Link>
+									<Button
+										type="submit"
+										className="mt-0!"
+										disabled={busy || blocked || !seller || !!created}
+									>
+										{busy || created ? copy.busy : productFlowCopy[locale].next}
+										<Icon name="arrow" className="size-4 rtl:rotate-180" />
+									</Button>
 								</div>
 							</fieldset>
 						</form>

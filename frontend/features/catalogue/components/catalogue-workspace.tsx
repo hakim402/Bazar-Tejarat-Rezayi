@@ -2,14 +2,17 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Icon } from "../../../components/ui/icon";
 import { Button } from "../../../components/ui/button";
-import { SectionCard } from "../../../components/ui/section-card";
 import {
 	StatusBadge,
 	statusVariant,
 } from "../../../components/ui/status-badge";
-import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
-import { languageNames, locales } from "../../../lib/i18n/locales";
+import {
+	productFlowCopy,
+	sellerProductsCopy,
+} from "../../../lib/i18n/seller-products";
+import { languageNames } from "../../../lib/i18n/locales";
 import { AccountError } from "../../../lib/api/private-client";
 import {
 	accountSession,
@@ -44,8 +47,9 @@ import {
 } from "./catalogue-fields";
 import { CatalogueOverview } from "./catalogue-overview";
 import { ProductEditor } from "./product-editor";
-import { ProductRevisionPreview } from "./product-revision-preview";
 import { LivePrices } from "./live-prices";
+import { productStepForIssue } from "./product-steps";
+
 const filterStates = ["draft", "submitted", "rejected", "withdrawn", "live"];
 function blank(locale: Locale): ProductBody {
 	return {
@@ -96,7 +100,19 @@ export function CatalogueWorkspace({
 		/^\d+$/.test(rawPage) && Number(rawPage) >= 1 && Number(rawPage) <= 10000
 			? Number(rawPage)
 			: 1;
-	const [filter, setFilter] = useState(state);
+	const statusChoices = [
+		"",
+		"live",
+		...(state && state !== "live" ? [state] : []),
+	].map((value) => ({
+		value,
+		label:
+			value === "live"
+				? copy.live
+				: value
+					? catalogueStatuses[locale][value]
+					: productFlowCopy[locale].all,
+	}));
 	const [list, setList] = useState<ProductList | null>(null),
 		[item, setItem] = useState<ProductDetail | null>(null),
 		[taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
@@ -109,6 +125,7 @@ export function CatalogueWorkspace({
 		[busy, setBusy] = useState(false),
 		[success, setSuccess] = useState(false),
 		[blocked, setBlocked] = useState(false);
+	const [step, setStep] = useState(1);
 	const [epoch, setEpoch] = useState(0),
 		[priceDirty, setPriceDirty] = useState(false),
 		[stockAccess, setStockAccess] = useState(false),
@@ -123,6 +140,7 @@ export function CatalogueWorkspace({
 	const setPrice = useCallback((value: boolean) => setPriceDirty(value), []);
 	const clear = useCallback(() => {
 		setList(null);
+		setStep(1);
 		setItem(null);
 		setBody(null);
 		setTaxonomy(null);
@@ -162,9 +180,6 @@ export function CatalogueWorkspace({
 		},
 		[clear, locale],
 	);
-	useEffect(() => {
-		setFilter(state);
-	}, [state]);
 	useEffect(() => {
 		let current = true;
 		const load = () => {
@@ -341,15 +356,66 @@ export function CatalogueWorkspace({
 		);
 		if (accepted) removeDialog.current?.close();
 	}
+	async function saveDraft(
+		after?: (fresh: ProductDetail, revision: string) => void,
+	) {
+		if (!item || !body) return false;
+		return run(
+			() =>
+				api<Operation>(context, `products/${item.id}/`, {
+					version: item.version,
+					body,
+				}),
+			(fresh, result) => {
+				install(fresh, result.revision);
+				if (typeof result.revision === "string")
+					after?.(fresh, result.revision);
+			},
+		);
+	}
+	async function submitProduct() {
+		if (
+			!item ||
+			!body ||
+			busy ||
+			blocked ||
+			priceDirty ||
+			item.revisions.some((row) => row.state === "submitted")
+		)
+			return;
+		const target: { current: { version: number; revision: string } | null } = {
+			current:
+				selected?.state === "draft" && !sourceDirty
+					? { version: item.version, revision: selected.id }
+					: null,
+		};
+		if (!target.current) {
+			const accepted = await saveDraft((fresh, revision) => {
+				target.current = { version: fresh.version, revision };
+			});
+			if (!accepted || !target.current) return;
+		}
+		const packet = target.current;
+		await run(
+			() =>
+				api<Operation>(context, `products/${item.id}/actions/`, {
+					...packet,
+					action: "submit",
+					reason: "",
+				}),
+			(fresh) => install(fresh, packet.revision),
+		);
+	}
 	const back = productHref(locale, "catalogue", seller, query);
 	return (
 		<CatalogueValidation.Provider
 			value={{ locale, issues: feedback?.issues ?? [] }}
 		>
 			<ProductsPage
+				narrow={!!id}
 				locale={locale}
 				title={id ? body?.title || copy.untitled : copy.title}
-				description={id ? item?.seller_name : copy.listHelp}
+				description={id ? item?.seller_name : productFlowCopy[locale].listHelp}
 				back={id ? back : undefined}
 				actions={
 					!id && list?.sellers.length ? (
@@ -357,6 +423,7 @@ export function CatalogueWorkspace({
 							className={`${productLink} border-primary! bg-primary! text-on-primary!`}
 							href={productHref(locale, "catalogue/new", seller, query)}
 						>
+							<Icon name="plus" className="size-4" />
 							{copy.add}
 						</Link>
 					) : id && item?.published ? (
@@ -371,7 +438,16 @@ export function CatalogueWorkspace({
 					) : undefined
 				}
 			>
-				{feedback && <Feedback value={feedback} locale={locale} />}{" "}
+				{feedback && (
+					<Feedback
+						value={feedback}
+						locale={locale}
+						onIssue={(path) => {
+							const target = productStepForIssue(path);
+							if (target !== undefined) setStep(target);
+						}}
+					/>
+				)}{" "}
 				{success && (
 					<p
 						role="status"
@@ -400,45 +476,56 @@ export function CatalogueWorkspace({
 				)}
 				{!id && list && (
 					<>
-						<section
-							className="rounded-2xl border border-border bg-surface p-5"
-							aria-label={t.filter}
-						>
-							<form
-								onSubmit={(event) => {
-									event.preventDefault();
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<nav
+								className="hidden flex-wrap gap-2 sm:flex"
+								aria-label={productFlowCopy[locale].filters}
+							>
+								{statusChoices.map(({ value, label }) => (
+									<Link
+										key={value}
+										aria-current={state === value ? "page" : undefined}
+										href={productHref(locale, "catalogue", seller, query, {
+											state: value,
+											page: "1",
+										})}
+										className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium no-underline transition-colors ${state === value ? "bg-action text-on-primary" : "bg-surface text-muted hover:bg-info hover:text-foreground"}`}
+									>
+										{label}
+									</Link>
+								))}
+							</nav>
+							<select
+								aria-label={productFlowCopy[locale].filters}
+								className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-surface px-4 text-sm text-foreground sm:hidden"
+								value={state}
+								onChange={(event) =>
 									router.push(
 										productHref(locale, "catalogue", seller, query, {
-											state: filter,
+											state: event.target.value,
 											page: "1",
 										}),
-									);
-								}}
-								className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-end"
+									)
+								}
 							>
-								<div className="min-w-0 sm:w-72">
-									<Control
-										path="state"
-										label={t.state}
-										value={filter}
-										options={[
-											{ value: "", label: t.all },
-											...filterStates.map((value) => ({
-												value,
-												label: catalogueStatuses[locale][value],
-											})),
-										]}
-										onChange={setFilter}
-									/>
-								</div>
-								<Button type="submit" variant="secondary" className="mt-0!">
-									{t.filter}
-								</Button>
-							</form>
-							<p className="mt-4 text-sm leading-relaxed text-muted">
-								{copy.filterHelp}
-							</p>
-						</section>
+								{statusChoices.map((choice) => (
+									<option key={choice.value} value={choice.value}>
+										{choice.label}
+									</option>
+								))}
+							</select>
+							<details className="relative text-xs text-muted">
+								<summary className="flex size-11 cursor-pointer list-none items-center justify-center rounded-full hover:bg-info [&::-webkit-details-marker]:hidden">
+									<Icon name="help" className="size-4" />
+									<span className="sr-only">
+										{productFlowCopy[locale].filterNote}
+									</span>
+								</summary>
+								<p className="absolute end-0 top-full z-20 w-60 max-w-[75vw] rounded-xl border border-border bg-surface p-4 shadow-card leading-relaxed">
+									{productFlowCopy[locale].filterNote}
+								</p>
+							</details>
+						</div>
 						<CatalogueOverview
 							locale={locale}
 							list={list}
@@ -483,83 +570,84 @@ export function CatalogueWorkspace({
 				)}
 				{id && item && body && taxonomy && (
 					<>
-						<section className="space-y-4 rounded-2xl border border-border bg-surface p-5">
-							<div className="flex flex-wrap items-center justify-between gap-4">
-								<div className="flex flex-wrap gap-4 text-sm">
-									<span>
-										{copy.savedVersion}:{" "}
-										<StatusBadge
-											variant={
-												selected ? statusVariant(selected.state) : "neutral"
-											}
-										>
-											{selected
-												? catalogueStatuses[locale][selected.state]
-												: copy.notSaved}{" "}
-											{selected && <bdi>#{selected.number}</bdi>}
-										</StatusBadge>
-									</span>
-									<span>
-										{copy.publicStatus}:{" "}
-										<StatusBadge
-											variant={item.published ? "success" : "neutral"}
-										>
-											{item.published ? copy.live : copy.notLive}
-										</StatusBadge>
-									</span>
-								</div>
-								<StatusBadge
-									variant={sourceDirty || priceDirty ? "warning" : "neutral"}
-								>
-									{sourceDirty || priceDirty ? copy.unsaved : copy.unchanged}
-								</StatusBadge>
-							</div>
-							<p className="text-sm text-muted">
-								<bdi dir="ltr">{item.currency}</bdi> ·{" "}
-								{item.pricing_mode === "fixed" ? t.fixed : t.negotiable} ·{" "}
-								{copy.productVersion} <bdi>{item.version}</bdi>
+						<div className="flex flex-wrap items-center gap-3 text-sm text-muted">
+							<bdi>{item.currency}</bdi>
+							<span>·</span>
+							<span>
+								{item.pricing_mode === "fixed" ? t.fixed : t.negotiable}
+							</span>
+							<StatusBadge
+								variant={selected ? statusVariant(selected.state) : "neutral"}
+							>
+								{selected
+									? catalogueStatuses[locale][selected.state]
+									: copy.notSaved}
+							</StatusBadge>
+							{selected?.state === "rejected" && selected.reason && (
+								<p className="w-full rounded-xl bg-warning-surface p-3 text-warning">
+									{selected.reason}
+								</p>
+							)}
+						</div>
+						{item.revisions.some((row) => row.state === "submitted") && (
+							<p
+								role="status"
+								className="mx-auto w-full max-w-4xl rounded-xl bg-info p-4 text-sm text-foreground"
+							>
+								{productFlowCopy[locale].submitted}
 							</p>
-							<p className="text-sm leading-relaxed text-muted">
-								{copy.publicHelp}
-							</p>
-							<nav aria-label={copy.edit} className="flex flex-wrap gap-2">
-								{[
-									["product-details", copy.details],
-									["product-options", copy.options],
-									[
-										item.prices.length
-											? "product-prices-live"
-											: "product-prices-new",
-										copy.prices,
-									],
-									["product-photos", copy.photos],
-									["product-review", copy.review],
-								].map(([anchor, label]) => (
-									<a key={anchor} href={`#${anchor}`} className={productLink}>
-										{label}
-									</a>
-								))}
-							</nav>
-						</section>
+						)}
 						<ProductEditor
+							step={step}
+							onStepChange={setStep}
 							locale={locale}
 							body={body}
 							item={item}
 							taxonomy={taxonomy}
+							onSubmit={() => void submitProduct()}
+							canSubmit={
+								!item.revisions.some((row) => row.state === "submitted") &&
+								(sourceDirty || !selected || selected.state === "draft")
+							}
+							prices={
+								item.prices.length ? (
+									<LivePrices
+										key={`${identity}-${epoch}`}
+										item={item}
+										locale={locale}
+										disabled={busy || sourceDirty || blocked}
+										onDirty={setPrice}
+										onEdit={(path) =>
+											setFeedback((current) => {
+												if (!current) return current;
+												const group = path.slice(0, path.lastIndexOf(".")),
+													issues = current.issues.filter(
+														(issue) =>
+															issue.path !== path && issue.path !== group,
+													);
+												return issues.length
+													? { ...current, issues }
+													: blocked
+														? current
+														: null;
+											})
+										}
+										onSave={(prices) =>
+											run(() =>
+												api<Operation>(context, `products/${item.id}/prices/`, {
+													version: item.version,
+													prices,
+												}),
+											)
+										}
+									/>
+								) : undefined
+							}
 							busy={busy || priceDirty || blocked}
 							dirty={sourceDirty || !selected}
 							onReload={() => guard.choose(() => void refresh())}
 							onChange={setBody}
-							onSave={() =>
-								void run(
-									() =>
-										api<Operation>(context, `products/${item.id}/`, {
-											version: item.version,
-											body,
-										}),
-									(fresh, result) => install(fresh, result.revision),
-								)
-							}
+							onSave={() => void saveDraft()}
 							onUpload={(file) => {
 								if (file.size > 8 * 1024 * 1024) {
 									setFeedback({
@@ -576,230 +664,83 @@ export function CatalogueWorkspace({
 								);
 							}}
 						/>
-						<details className="rounded-2xl border border-border bg-surface p-5">
-							<summary className="min-h-11 cursor-pointer text-base font-semibold">
-								{sourceDirty ? t.working : t.preview}
+						<details className="mx-auto w-full max-w-4xl rounded-2xl border border-border bg-surface p-5">
+							<summary className="min-h-11 cursor-pointer text-sm font-semibold">
+								{productFlowCopy[locale].history}
 							</summary>
-							<div className="mt-4">
-								<ProductRevisionPreview
-									sellerPreview
-									locale={locale}
-									body={body}
-									item={item}
-									label={sourceDirty ? t.working : t.preview}
-								/>
-							</div>
-						</details>
-						{!!item.prices.length && (
-							<LivePrices
-								key={`${identity}-${epoch}`}
-								item={item}
-								locale={locale}
-								disabled={busy || sourceDirty || blocked}
-								onDirty={setPrice}
-								onEdit={(path) =>
-									setFeedback((current) => {
-										if (!current) return current;
-										const group = path.slice(0, path.lastIndexOf(".")),
-											issues = current.issues.filter(
-												(issue) => issue.path !== path && issue.path !== group,
-											);
-										return issues.length
-											? { ...current, issues }
-											: blocked
-												? current
-												: null;
-									})
-								}
-								onSave={(prices) =>
-									run(() =>
-										api<Operation>(context, `products/${item.id}/prices/`, {
-											version: item.version,
-											prices,
-										}),
-									)
-								}
-							/>
-						)}
-						{stockAccess && !!item.prices.length && (
-							<SectionCard
-								title={copy.manageStock}
-								description={copy.stockHelp}
-							>
-								<div className="flex flex-wrap gap-3">
-									{item.prices.map((variant) => (
-										<Link
-											key={variant.id}
-											className={productLink}
-											href={productHref(
-												locale,
-												`inventory/${variant.id}`,
-												item.seller,
-											)}
-										>
-											<bdi dir="ltr" className="wrap-anywhere">
-												{variant.sku}
-											</bdi>
-										</Link>
-									))}
-								</div>
-							</SectionCard>
-						)}
-						<SectionCard
-							id="product-review"
-							className="scroll-mt-28"
-							title={copy.review}
-							description={copy.reviewHelp}
-						>
-							<div className="space-y-5">
-								{selected ? (
-									<>
-										<Control
-											path="revision"
-											label={t.revision}
-											disabled={busy || blocked}
-											value={selected.id}
-											options={item.revisions.map((revision) => ({
-												value: revision.id,
-												label: `#${revision.number} · ${catalogueStatuses[locale][revision.state]} · ${languageNames[revision.body.locale]}`,
-											}))}
-											onChange={(revision) =>
-												guard.choose(() => {
-													install(item, revision);
-													setFeedback(null);
-												})
-											}
-										/>
-										<p className="text-sm text-muted">{copy.historyLimit}</p>
-										{selected.reason && (
-											<p className="rounded-xl bg-warning-surface p-4 text-sm text-warning wrap-anywhere">
-												{selected.reason}
-											</p>
-										)}
-										<details className="rounded-xl border border-border p-4">
-											<summary className="min-h-11 cursor-pointer text-base font-semibold">
-												{t.saved} <bdi>#{selected.number}</bdi>
-											</summary>
-											<p className="mt-2 text-sm text-muted">
-												{copy.savedHint}
-											</p>
-											<div className="mt-4">
-												<ProductRevisionPreview
-													key={selected.id}
-													sellerPreview
-													locale={locale}
-													body={selected.body}
-													item={item}
-													revision={selected.id}
-													label={`${t.saved} #${selected.number}`}
-												/>
-											</div>
-										</details>
+							<div className="mt-4 space-y-4">
+								{stockAccess && !!item.prices.length && (
+									<section
+										className="space-y-3 border-t border-border pt-4"
+										aria-label={copy.manageStock}
+									>
+										<h3 className="text-sm font-semibold">
+											{copy.manageStock}
+										</h3>
+										<p className="text-sm text-muted">{copy.stockHelp}</p>
 										<div className="flex flex-wrap gap-3">
-											<Button
-												disabled={
-													busy ||
-													blocked ||
-													sourceDirty ||
-													priceDirty ||
-													selected.state !== "draft" ||
-													item.revisions.some(
-														(revision) => revision.state === "submitted",
-													)
-												}
-												onClick={() => void transition("submit", selected.id)}
-											>
-												{t.submit}
-											</Button>
-											{selected.state === "submitted" && (
-												<Button
-													variant="secondary"
-													disabled={
-														busy || blocked || sourceDirty || priceDirty
-													}
-													onClick={() =>
-														void transition("withdraw", selected.id)
-													}
+											{item.prices.map((variant) => (
+												<Link
+													key={variant.id}
+													className={productLink}
+													href={productHref(
+														locale,
+														`inventory/${variant.id}`,
+														item.seller,
+													)}
 												>
-													{t.withdraw}
-												</Button>
-											)}
+													<bdi dir="ltr" className="wrap-anywhere">
+														{variant.sku}
+													</bdi>
+												</Link>
+											))}
 										</div>
-										<div className="space-y-3 border-t border-border pt-5">
-											<h3 className="text-base font-semibold">
-												{copy.languages}
-											</h3>
-											<p className="text-sm leading-relaxed text-muted">
-												{copy.languageHelp}
-											</p>
-											<dl className="grid gap-3 sm:grid-cols-2">
-												{locales.map((language) => {
-													const translation = item.translations.find(
-														(row) =>
-															row.locale === language &&
-															row.revision === selected.id,
-													);
-													const source = language === selected.body.locale;
-													return (
-														<div
-															key={language}
-															className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-page p-3"
-														>
-															<dt lang={language}>{languageNames[language]}</dt>
-															<dd className="m-0">
-																<StatusBadge
-																	variant={
-																		source
-																			? "info"
-																			: translation?.has_approved
-																				? "success"
-																				: translation
-																					? "warning"
-																					: "neutral"
-																	}
-																>
-																	{source
-																		? t.language
-																		: translation?.has_approved
-																			? copy.approved
-																			: translation
-																				? copy.awaiting
-																				: copy.noTranslation}
-																</StatusBadge>
-															</dd>
-														</div>
-													);
-												})}
-											</dl>
-										</div>
-									</>
-								) : (
-									<p className="text-base text-muted">{copy.noRevision}</p>
+									</section>
+								)}
+
+								{selected && (
+									<Control
+										path="revision"
+										label={t.revision}
+										disabled={busy || blocked}
+										value={selected.id}
+										options={item.revisions.map((revision) => ({
+											value: revision.id,
+											label: `#${revision.number} · ${catalogueStatuses[locale][revision.state]} · ${languageNames[revision.body.locale]}`,
+										}))}
+										onChange={(revision) =>
+											guard.choose(() => {
+												install(item, revision);
+												setFeedback(null);
+											})
+										}
+									/>
+								)}
+								<p className="text-sm text-muted">{copy.historyLimit}</p>
+								{selected?.state === "submitted" && (
+									<Button
+										variant="secondary"
+										disabled={busy || blocked || sourceDirty || priceDirty}
+										onClick={() => void transition("withdraw", selected.id)}
+									>
+										{t.withdraw}
+									</Button>
 								)}
 								{item.published && (
-									<div className="space-y-2 border-t border-border pt-5">
-										<h3 className="text-base font-semibold">
-											{copy.removePublic}
-										</h3>
-										<p className="text-sm leading-relaxed text-muted">
-											{copy.removeHelp}
-										</p>
-										<Button
-											variant="secondary"
-											className="text-danger!"
-											disabled={busy || blocked || sourceDirty || priceDirty}
-											onClick={() => {
-												removeFocus.current =
-													document.activeElement as HTMLElement;
-												removeDialog.current?.showModal();
-											}}
-										>
-											{copy.removePublic}
-										</Button>
-									</div>
+									<Button
+										variant="secondary"
+										disabled={busy || blocked || sourceDirty || priceDirty}
+										onClick={() => {
+											removeFocus.current =
+												document.activeElement as HTMLElement;
+											removeDialog.current?.showModal();
+										}}
+									>
+										{copy.removePublic}
+									</Button>
 								)}
 							</div>
-						</SectionCard>
+						</details>
 						<dialog
 							ref={removeDialog}
 							aria-labelledby="product-remove-title"

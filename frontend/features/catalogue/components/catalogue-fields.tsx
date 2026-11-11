@@ -36,9 +36,11 @@ function rule(code: string, locale: Locale) {
 export function Feedback({
 	value,
 	locale,
+	onIssue,
 }: {
 	value: { message: string; issues: ValidationIssue[] };
 	locale: Locale;
+	onIssue?: (path: string) => void;
 }) {
 	const ref = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -59,16 +61,20 @@ export function Feedback({
 							type="button"
 							className="min-h-11 border-0 bg-transparent p-0 text-start text-inherit underline cursor-pointer"
 							onClick={() => {
-								const target = document.getElementById(fieldId(issue.path));
-								for (
-									let parent = target?.parentElement;
-									parent;
-									parent = parent.parentElement
-								) {
-									if (parent instanceof HTMLDetailsElement) parent.open = true;
-								}
-								target?.scrollIntoView({ block: "nearest" });
-								target?.focus();
+								onIssue?.(issue.path);
+								requestAnimationFrame(() => {
+									const target = document.getElementById(fieldId(issue.path));
+									for (
+										let parent = target?.parentElement;
+										parent;
+										parent = parent.parentElement
+									) {
+										if (parent instanceof HTMLDetailsElement)
+											parent.open = true;
+									}
+									target?.scrollIntoView({ block: "nearest" });
+									target?.focus();
+								});
 							}}
 						>
 							{rule(issue.code, locale)}
@@ -157,6 +163,11 @@ export function Control({
 		<div className="min-w-0 space-y-2">
 			<label className="block font-bold" htmlFor={id}>
 				{label}
+				{required && (
+					<span aria-hidden="true" className="ms-1 text-danger">
+						*
+					</span>
+				)}
 			</label>
 			{options ? (
 				<Select {...props} onChange={(e) => onChange(e.target.value)}>

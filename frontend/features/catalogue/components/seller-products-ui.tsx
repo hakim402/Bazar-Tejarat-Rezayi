@@ -60,6 +60,7 @@ export function ProductsPage({
 	description,
 	back,
 	actions,
+	narrow = false,
 	children,
 }: {
 	locale: Locale;
@@ -67,11 +68,15 @@ export function ProductsPage({
 	description?: string;
 	back?: string;
 	actions?: ReactNode;
+	narrow?: boolean;
 	children: ReactNode;
 }) {
 	const t = sellerProductsCopy[locale];
 	return (
-		<div className="min-w-0 space-y-6" data-testid="seller-products-page">
+		<div
+			className={`min-w-0 space-y-6 ${narrow ? "mx-auto w-full max-w-4xl" : ""}`}
+			data-testid="seller-products-page"
+		>
 			<header className="space-y-4">
 				{back && (
 					<Link
@@ -84,7 +89,6 @@ export function ProductsPage({
 				)}
 				<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0 space-y-2">
-						<p className="text-xs font-semibold text-action">{t.title}</p>
 						<h1 className="text-page-title font-bold text-foreground wrap-anywhere">
 							{title}
 						</h1>

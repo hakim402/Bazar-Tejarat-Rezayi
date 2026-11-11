@@ -12,8 +12,6 @@ import { commerceCopy } from "../../../../../../features/orders/copy";
 import { communicationCopy } from "../../../../../../features/messaging/copy";
 import { sellerSettingsCopy } from "../../../../../../lib/i18n/seller-settings";
 import { sellerProductsCopy } from "../../../../../../lib/i18n/seller-products";
-import { catalogueRequest } from "../../../../../../features/catalogue/api/catalogue";
-import type { ProductList } from "../../../../../../features/catalogue/types";
 import { settingsDestinations } from "../../../../../../components/accounts/seller-settings-ui";
 import {
 	createContext,
@@ -190,7 +188,6 @@ export function SellerNavigation({
 		null,
 	);
 	const [delivery, setDelivery] = useState<boolean | null>(null);
-	const [catalogueSellers, setCatalogueSellers] = useState<string[]>([]);
 	const [orderCaps, setOrderCaps] = useState<{
 		orders: boolean;
 		invoices: boolean;
@@ -204,15 +201,6 @@ export function SellerNavigation({
 			setCaps(null);
 			setOrderCaps(null);
 			setDelivery(null);
-			setCatalogueSellers([]);
-			void catalogueRequest<ProductList>("seller", "products/?page=1")
-				.then((value) => {
-					if (current && mine === generation)
-						setCatalogueSellers(value.sellers.map((profile) => profile.id));
-				})
-				.catch(() => {
-					if (current && mine === generation) setCatalogueSellers([]);
-				});
 			void fulfilment<{ count: number }>(
 				"seller",
 				`profiles/${seller ? `?seller=${seller}` : ""}`,
@@ -285,18 +273,7 @@ export function SellerNavigation({
 			key: "products",
 			label: t.products,
 			icon: "box",
-			collapsible: true,
-			links: [
-				["catalogue", sellerProductsCopy[locale].title, "box"],
-				[
-					"catalogue/new",
-					sellerProductsCopy[locale].add,
-					"plus",
-					seller
-						? catalogueSellers.includes(seller)
-						: catalogueSellers.length > 0,
-				],
-			],
+			links: [["catalogue", sellerProductsCopy[locale].title, "box"]],
 		},
 		{
 			key: "inventory",
@@ -328,7 +305,12 @@ export function SellerNavigation({
 				],
 				["fulfilment", fulfilmentCopy[locale].sellerTitle, "truck", !!delivery],
 				["aftercare", aftercareCopy[locale].sellerTitle, "return"],
-				["disputes", aftercareCopy[locale].disputes, "shield", !!orderCaps?.orders],
+				[
+					"disputes",
+					aftercareCopy[locale].disputes,
+					"shield",
+					!!orderCaps?.orders,
+				],
 				[
 					"invoices",
 					commerceCopy[locale].invoices,
@@ -395,10 +377,7 @@ export function SellerNavigation({
 			"aftercare",
 			"disputes",
 		].includes(route) &&
-			path.startsWith(`${sellerHref(locale, route)}/`) &&
-			!(
-				route === "catalogue" && path === sellerHref(locale, "catalogue/new")
-			)) ||
+			path.startsWith(`${sellerHref(locale, route)}/`)) ||
 		(route === "inventory" &&
 			path.includes("/inventory/") &&
 			!path.endsWith("/movements"));
