@@ -1,6 +1,7 @@
 "use client";
 import toast from "react-hot-toast";
 import { SellerOrdersTable } from "./seller-orders-table";
+import { SellerOrderDetail } from "./seller-order-detail";
 import { orderListCopy } from "../list-copy";
 import { SessionEntry } from "./session-entry";
 import {
@@ -246,11 +247,17 @@ function Reader({
 	const title = mode === "checkouts" ? t.history : t[mode];
 	if (context === "seller" && mode !== "checkouts") {
 		const section = mode,
-			copy = sellerSalesCopy[locale];
+			copy = sellerSalesCopy[locale],
+			orderDetail =
+				section === "orders" &&
+				!!id &&
+				!!data &&
+				!("results" in data) &&
+				!("outcomes" in data);
 		return (
 			<SalesFrame seller>
 				<section className="min-w-0 space-y-6" data-testid="orders-workspace">
-					<SalesHeader
+					{!orderDetail && <SalesHeader
 						locale={locale}
 						section={section}
 						seller={seller}
@@ -276,7 +283,7 @@ function Reader({
 								}
 							/>
 						}
-					/>
+					/>}
 					<Failure locale={locale} error={error} />
 					{!data && !error && (
 						<div className={`${salesPanel} min-h-40`} role="status">
@@ -416,7 +423,20 @@ function Reader({
 									/>
 								</>
 							)
-						) : "outcomes" in data ? null : (
+						) : "outcomes" in data ? null : section === "orders" ? (
+								<SellerOrderDetail
+									order={data}
+									locale={locale}
+									seller={data.seller}
+									canInvoice={profiles.some(
+										(profile) => profile.id === data.seller && profile.invoices,
+									)}
+									busy={busy}
+									onDownload={() => void pdf(data)}
+									onRefresh={() => setReload((value) => value + 1)}
+									backHref={salesHref(locale, "orders", seller, undefined, search)}
+								/>
+							) : (
 							<>
 								<SalesRelated
 									locale={locale}
@@ -446,7 +466,7 @@ function Reader({
 								/>
 							</>
 						))}
-					{(id || section !== "orders") && (
+					{(id || section !== "orders") && !orderDetail && (
 						<button
 							type="button"
 							className={salesAction}

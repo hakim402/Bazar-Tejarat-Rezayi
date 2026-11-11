@@ -12,9 +12,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
 import { Card } from "../../../components/shadcn/card";
@@ -32,7 +30,6 @@ import {
 	PaginationLink,
 } from "../../../components/shadcn/pagination";
 import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/seller/components/seller-navigation";
-import { apiOrigin } from "../../../lib/api/client";
 import type { Locale } from "../../../lib/i18n/locales";
 import { localTimestamp } from "../../messaging/api";
 import { paymentState } from "../../payments/copy";
@@ -41,27 +38,8 @@ import { salesHref } from "../../sales/components/seller-sales-ui";
 import { commerceCopy } from "../copy";
 import { orderListCopy } from "../list-copy";
 import type { Order, OrderLine } from "../api";
+import { ProductThumbnail } from "./order-ui";
 
-function ProductThumbnail({ src }: { src?: string | null }) {
-	const [failed, setFailed] = useState(false);
-	return (
-		<span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-solid border-border bg-page text-muted">
-			{src && !failed ? (
-				<Image
-					src={apiOrigin(process.env.NEXT_PUBLIC_API_URL) + src}
-					alt=""
-					fill
-					sizes="48px"
-					unoptimized
-					className="object-cover"
-					onError={() => setFailed(true)}
-				/>
-			) : (
-				<Package className="size-5" aria-hidden="true" />
-			)}
-		</span>
-	);
-}
 function OrderProducts({ order, locale }: { order: Order; locale: Locale }) {
 	const t = orderListCopy[locale];
 	const line = (item: OrderLine) => (

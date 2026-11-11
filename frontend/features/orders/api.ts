@@ -110,6 +110,23 @@ export type OrderLine = {
 		shown_price?: string | null;
 	};
 };
+export type OrderPayment = {
+	accepted_total: string;
+	confirmed_total: string;
+	received: string;
+	refunded: string;
+	refund_due: string;
+	refundable_excess: string;
+	remaining: string;
+	overpayment: string;
+	financial: string;
+	allocation: string;
+	original_due_at: string | null;
+	effective_due_at: string | null;
+	deadline_generation: number;
+	version: number;
+	overdue: boolean;
+};
 export type Order = {
 	customer?: { name: string; email: string };
 	id: string;
@@ -128,6 +145,7 @@ export type Order = {
 		origin?: "negotiated";
 		terms: Terms & { destination: { country: string; city: string } };
 	};
+	payment: OrderPayment;
 	dimensions: Record<string, string>;
 	capabilities: Record<string, boolean>;
 	lines: OrderLine[];

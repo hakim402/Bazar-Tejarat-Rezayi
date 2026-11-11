@@ -134,7 +134,8 @@ class OrderDetail(OrderView):
     def get(self, request, context, pk):
         actor = self.actor(context)
         query(request, c.DocumentQuery)
-        return Response(c.OrderRow(queries.order_data(get_object_or_404(queries.order_queryset(actor), pk=pk))).data)
+        row = get_object_or_404(queries.order_queryset(actor), pk=pk)
+        return Response(c.OrderRow(queries.order_data(row, seller_list=actor.context == "seller")).data)
 
 
 class InvoiceDetail(OrderView):
