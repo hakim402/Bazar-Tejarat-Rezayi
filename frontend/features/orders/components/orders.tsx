@@ -1,4 +1,7 @@
 "use client";
+import toast from "react-hot-toast";
+import { SellerOrdersTable } from "./seller-orders-table";
+import { orderListCopy } from "../list-copy";
 import { SessionEntry } from "./session-entry";
 import {
 	SalesFrame,
@@ -224,8 +227,12 @@ function Reader({
 		setBusy(true);
 		try {
 			await downloadInvoice(context, order.invoice, locale, c.signal);
+			if (live.current === mine && context === "seller" && mode === "orders")
+				toast.success(orderListCopy[locale].downloaded);
 		} catch (e) {
 			if (live.current === mine && owned.current === write) {
+				if (context === "seller" && mode === "orders")
+					toast.error(orderListCopy[locale].downloadError);
 				if (accessLost(e)) setData(null);
 				setError(e);
 			}
@@ -278,108 +285,137 @@ function Reader({
 					)}
 					{data &&
 						("results" in data ? (
-							<>
-								{data.results.length === 0 ? (
-									<SalesEmpty
-										locale={locale}
-										noBusiness={profiles.length === 0}
-									/>
-								) : (
-									<div className="space-y-3">
-										{data.results.map((row) =>
-											"outcomes" in row ? null : (
-												<article key={row.id} className={salesPanel}>
-													<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-														<div className="min-w-0 space-y-2">
-															<h2 className="text-lg font-semibold">
-																<Link
-																	className="inline-flex min-h-11 items-center gap-2 text-action"
-																	href={salesHref(
-																		locale,
-																		section,
-																		row.seller,
-																		section === "invoices"
-																			? row.invoice
-																			: row.id,
-																		search,
-																	)}
-																>
-																	<Icon
-																		name={
-																			section === "invoices"
-																				? "receipt"
-																				: "shopping-bag"
-																		}
-																		className="size-5"
-																	/>
-																	<bdi>{row.number}</bdi>
-																</Link>
-															</h2>
-															<p dir="auto" className="text-sm text-muted">
-																{row.snapshot.buyer}
-															</p>
-															<p className="text-sm text-muted">
-																<bdi>
-																	{localTimestamp(row.accepted_at, locale)}
-																</bdi>
-															</p>
-														</div>
-														<div className="min-w-0 space-y-3">
-															<p className="text-xs font-medium text-muted">
-																{t.goods}
-															</p>
-															<p className="text-xl font-semibold tabular-nums">
-																<bdi>
-																	{row.goods_total} {row.currency}
-																</bdi>
-															</p>
-															<div className="flex flex-wrap gap-2">
-																<StatusBadge dot={false}>
-																	{paymentState(
-																		locale,
-																		row.dimensions.financial,
-																	)}
-																</StatusBadge>
-																<StatusBadge dot={false}>
-																	{fulfilmentState(
-																		locale,
-																		row.dimensions.fulfilment,
-																	)}
-																</StatusBadge>
-															</div>
-														</div>
-														<Link
-															className={salesAction}
-															href={salesHref(
-																locale,
-																section,
-																row.seller,
-																section === "invoices" ? row.invoice : row.id,
-																search,
-															)}
-														>
-															{copy.view}
-															<Icon name="arrow" className="size-4" />
-														</Link>
-													</div>
-												</article>
-											),
-										)}
-									</div>
-								)}
-								<SalesPagination
+							section === "orders" && profiles.length > 0 ? (
+								<SellerOrdersTable
+									orders={data.results.filter(
+										(row): row is Order => !("outcomes" in row),
+									)}
 									locale={locale}
-									page={page}
 									count={data.count}
+									page={page}
+									canInvoice={profiles.some(
+										(profile) => profile.id === seller && profile.invoices,
+									)}
+									busy={busy}
+									onDownload={(order) => void pdf(order)}
+									onRefresh={() => setReload((value) => value + 1)}
+									pageHref={(next) =>
+										salesHref(locale, "orders", seller, undefined, search, {
+											page: String(next),
+										})
+									}
 									onPage={(next) =>
 										router.push(
-											salesHref(locale, section, seller, undefined, search, {
+											salesHref(locale, "orders", seller, undefined, search, {
 												page: String(next),
 											}),
 										)
 									}
 								/>
-							</>
+							) : (
+								<>
+									{data.results.length === 0 ? (
+										<SalesEmpty
+											locale={locale}
+											noBusiness={profiles.length === 0}
+										/>
+									) : (
+										<div className="space-y-3">
+											{data.results.map((row) =>
+												"outcomes" in row ? null : (
+													<article key={row.id} className={salesPanel}>
+														<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+															<div className="min-w-0 space-y-2">
+																<h2 className="text-lg font-semibold">
+																	<Link
+																		className="inline-flex min-h-11 items-center gap-2 text-action"
+																		href={salesHref(
+																			locale,
+																			section,
+																			row.seller,
+																			section === "invoices"
+																				? row.invoice
+																				: row.id,
+																			search,
+																		)}
+																	>
+																		<Icon
+																			name={
+																				section === "invoices"
+																					? "receipt"
+																					: "shopping-bag"
+																			}
+																			className="size-5"
+																		/>
+																		<bdi>{row.number}</bdi>
+																	</Link>
+																</h2>
+																<p dir="auto" className="text-sm text-muted">
+																	{row.snapshot.buyer}
+																</p>
+																<p className="text-sm text-muted">
+																	<bdi>
+																		{localTimestamp(row.accepted_at, locale)}
+																	</bdi>
+																</p>
+															</div>
+															<div className="min-w-0 space-y-3">
+																<p className="text-xs font-medium text-muted">
+																	{t.goods}
+																</p>
+																<p className="text-xl font-semibold tabular-nums">
+																	<bdi>
+																		{row.goods_total} {row.currency}
+																	</bdi>
+																</p>
+																<div className="flex flex-wrap gap-2">
+																	<StatusBadge dot={false}>
+																		{paymentState(
+																			locale,
+																			row.dimensions.financial,
+																		)}
+																	</StatusBadge>
+																	<StatusBadge dot={false}>
+																		{fulfilmentState(
+																			locale,
+																			row.dimensions.fulfilment,
+																		)}
+																	</StatusBadge>
+																</div>
+															</div>
+															<Link
+																className={salesAction}
+																href={salesHref(
+																	locale,
+																	section,
+																	row.seller,
+																	section === "invoices" ? row.invoice : row.id,
+																	search,
+																)}
+															>
+																{copy.view}
+																<Icon name="arrow" className="size-4" />
+															</Link>
+														</div>
+													</article>
+												),
+											)}
+										</div>
+									)}
+									<SalesPagination
+										locale={locale}
+										page={page}
+										count={data.count}
+										onPage={(next) =>
+											router.push(
+												salesHref(locale, section, seller, undefined, search, {
+													page: String(next),
+												}),
+											)
+										}
+									/>
+								</>
+							)
 						) : "outcomes" in data ? null : (
 							<>
 								<SalesRelated
@@ -410,15 +446,17 @@ function Reader({
 								/>
 							</>
 						))}
-					<button
-						type="button"
-						className={salesAction}
-						disabled={busy}
-						onClick={() => setReload((value) => value + 1)}
-					>
-						<Icon name="history" className="size-4" />
-						{t.reload}
-					</button>
+					{(id || section !== "orders") && (
+						<button
+							type="button"
+							className={salesAction}
+							disabled={busy}
+							onClick={() => setReload((value) => value + 1)}
+						>
+							<Icon name="history" className="size-4" />
+							{t.reload}
+						</button>
+					)}
 				</section>
 			</SalesFrame>
 		);
@@ -538,7 +576,7 @@ function Reader({
 							pdf={() => void pdf(data)}
 						/>
 						<AftercareSection
-									interactive={mode === "orders"}
+							interactive={mode === "orders"}
 							locale={locale}
 							context={context}
 							orderId={data.id}

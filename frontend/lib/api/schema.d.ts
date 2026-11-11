@@ -2932,6 +2932,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/seller/orders/{id}/lines/{line_id}/image/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orders_line_image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4829,6 +4845,7 @@ export interface components {
                 [key: string]: boolean;
             };
             lines: unknown[];
+            customer?: components["schemas"]["OrderCustomer"];
         };
         Outcome: {
             /** Format: uuid */
@@ -5753,6 +5770,11 @@ export interface components {
             opening_quantity?: string;
             /** Format: date */
             expires_on?: string | null;
+        };
+        OrderCustomer: {
+            name: string;
+            /** Format: email */
+            email: string;
         };
     };
     responses: never;
@@ -10883,6 +10905,28 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    orders_line_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
         };

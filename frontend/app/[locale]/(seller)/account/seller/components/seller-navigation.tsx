@@ -270,6 +270,19 @@ export function SellerNavigation({
 			links: [["", t.overview, "home"]],
 		},
 		{
+			key: "reports",
+			label: reportCopy[locale].sellerTitle,
+			icon: "trending-up",
+			links: [
+				[
+					"reports",
+					reportCopy[locale].sellerTitle,
+					"trending-up",
+					!!(orderCaps?.orders || orderCaps?.invoices || delivery),
+				],
+			],
+		},
+		{
 			key: "products",
 			label: t.products,
 			icon: "box",
@@ -318,12 +331,6 @@ export function SellerNavigation({
 					paymentCopy[locale].title,
 					"wallet",
 					!!orderCaps?.invoices,
-				],
-				[
-					"reports",
-					reportCopy[locale].sellerTitle,
-					"trending-up",
-					!!(orderCaps?.orders || orderCaps?.invoices || delivery),
 				],
 			],
 		},

@@ -510,3 +510,10 @@ class ReviewStatusView(OrderView):
         return Response(
             c.ReviewStatus(aftercare_queries.review_status(actor, pk), allow_null=True).data
         )
+
+
+class OrderImage(ProtectedDocumentView):
+    @extend_schema(operation_id="orders_line_image", responses={(200, "image/jpeg"): bytes})
+    def get(self, request, pk, line_id):
+        from apps.catalogue.views import image_response
+        return image_response(queries.order_line_image(self.actor("seller"), pk, line_id), request)

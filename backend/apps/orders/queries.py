@@ -42,7 +42,7 @@ def submission_row(row):
     }
 
 
-def order_data(row):
+def order_data(row, *, seller_list=False):
     from apps.payments.queries import projection
 
     financial = projection(row)
@@ -52,6 +52,7 @@ def order_data(row):
     return {
         "id": str(row.pk),
         "seller": str(row.seller_id),
+        **({"customer": {"name": row.snapshot["buyer"], "email": row.buyer.user.email}} if seller_list else {}),
         "currency": row.currency,
         "goods_total": format(row.goods_total, ".2f"),
         "payment_method": row.payment_method,
@@ -90,6 +91,7 @@ def order_data(row):
                 "unit_price": format(x.unit_price, ".2f"),
                 "goods_amount": format(x.goods_amount, ".2f"),
                 "snapshot": x.snapshot,
+                **({"image": f"/api/v1/orders/seller/orders/{row.pk}/lines/{x.pk}/image/"} if seller_list else {}),
             }
             for x in row.lines.all()
         ],
@@ -101,7 +103,7 @@ def order_queryset(actor, *, seller=None, invoices=False):
 
     return (
         annotate(access.scope(actor, invoices=invoices, seller=seller))
-        .select_related("invoice")
+        .select_related("invoice", "buyer__user")
         .prefetch_related("lines")
         .order_by("-accepted_at", "pk")
     )
@@ -109,7 +111,7 @@ def order_queryset(actor, *, seller=None, invoices=False):
 
 def order_page(actor, *, seller=None, page=1, invoices=False):
     qs = order_queryset(actor, seller=seller, invoices=invoices)
-    return {"count": qs.count(), "page": page, "results": [order_data(x) for x in qs[(page - 1) * 20 : page * 20]]}
+    return {"count": qs.count(), "page": page, "results": [order_data(x, seller_list=actor.context == "seller" and not invoices) for x in qs[(page - 1) * 20 : page * 20]]}
 
 
 def document(actor, pk, *, action="invoice_read", native=False):
@@ -144,3 +146,20 @@ def document(actor, pk, *, action="invoice_read", native=False):
             state={},
         )
     return row
+
+
+def order_line_image(actor, pk, line_id):
+    # Order access outlives catalogue publication and never grants catalogue editing rights.
+    from apps.catalogue.models import SourceRevision, ProductImage
+    from rest_framework.exceptions import NotFound
+
+    order = get_object_or_404(access.scope(actor), pk=pk)
+    line = get_object_or_404(order.lines.select_related("variant"), pk=line_id)
+    revision = SourceRevision.objects.filter(pk=line.snapshot.get("revision"), product_id=line.variant.product_id).first()
+    if revision is None:
+        raise NotFound()
+    images = revision.body.get("images", [])
+    images = [image for image in images if image.get("variant") in (None, "", str(line.variant_id))]
+    if not images:
+        raise NotFound()
+    return get_object_or_404(ProductImage, pk=images[0]["id"], product_id=line.variant.product_id)

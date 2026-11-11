@@ -18,6 +18,7 @@ urlpatterns = [
     path("seller/negotiations/<uuid:pk>/reject/", n.Reject.as_view()),
     path("seller/negotiations/<uuid:pk>/finalize/", n.Finalize.as_view()),
     path("seller/negotiations/<uuid:pk>/finalize/review/", n.FinalPreview.as_view()),
+    path("seller/orders/<uuid:pk>/lines/<uuid:line_id>/image/", v.OrderImage.as_view()),
     path("seller/profiles/", v.Profiles.as_view()),
     path("seller/checkout-terms/<uuid:pk>/", v.Terms.as_view()),
     path("buyer/review/", v.Review.as_view()),

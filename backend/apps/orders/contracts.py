@@ -86,7 +86,13 @@ class SubmissionPage(s.Serializer):
     count = s.IntegerField()
 
 
+class OrderCustomer(s.Serializer):
+    name = s.CharField()
+    email = s.EmailField()
+
+
 class OrderRow(s.Serializer):
+    customer = OrderCustomer(required=False)
     id = s.UUIDField()
     seller = s.UUIDField()
     currency = s.CharField()

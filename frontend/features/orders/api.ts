@@ -82,6 +82,7 @@ export type Packet = {
 	locale: string;
 };
 export type OrderLine = {
+	image?: string | null;
 	id: string;
 	variant: string;
 	tier: "retail" | "wholesale";
@@ -110,6 +111,7 @@ export type OrderLine = {
 	};
 };
 export type Order = {
+	customer?: { name: string; email: string };
 	id: string;
 	seller: string;
 	currency: string;

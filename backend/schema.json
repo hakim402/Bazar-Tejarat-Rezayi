@@ -10484,6 +10484,53 @@
                     }
                 }
             }
+        },
+        "/api/v1/orders/seller/orders/{id}/lines/{line_id}/image/": {
+            "get": {
+                "operationId": "orders_line_image",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "line_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -16462,6 +16509,9 @@
                     "lines": {
                         "type": "array",
                         "items": {}
+                    },
+                    "customer": {
+                        "$ref": "#/components/schemas/OrderCustomer"
                     }
                 },
                 "required": [
@@ -19698,6 +19748,22 @@
                     "token",
                     "tracking",
                     "version"
+                ]
+            },
+            "OrderCustomer": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    }
+                },
+                "required": [
+                    "email",
+                    "name"
                 ]
             }
         },
