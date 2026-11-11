@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.db.models import Prefetch, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from apps.catalogue.models import Variant, SourceRevision, Product
+from apps.catalogue.queries import image_url
 from apps.catalogue.validation import fail
 from apps.verification.models import ReviewCase
 from apps.organizations.access import visible_profiles
@@ -37,7 +38,12 @@ def variants(profile):
                 SourceRevision.objects.filter(product_id=OuterRef("product_id"))
                 .order_by("-number")
                 .values("body__title")[:1]
-            )
+            ),
+            stock_cover=Subquery(
+                SourceRevision.objects.filter(product_id=OuterRef("product_id"))
+                .order_by("-number")
+                .values("body__images__0__id")[:1]
+            ),
         )
         .prefetch_related(
             Prefetch("stock_position__buckets", queryset=Bucket.objects.select_related("batch").order_by("pk"))
@@ -78,6 +84,9 @@ def position_data(variant, caps, *, detail=False, now=None):
         )
         or variant.sku,
         "sku": variant.sku,
+        "image": image_url(variant.stock_cover, "seller")
+        if caps["write"] and variant.stock_cover
+        else None,
         "unit": variant.unit.code,
         "unit_labels": variant.unit.labels,
         "increment": format(variant.quantity_increment, ".3f"),

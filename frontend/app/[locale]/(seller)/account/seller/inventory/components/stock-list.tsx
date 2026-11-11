@@ -1,5 +1,6 @@
 "use client";
-import { History, Info, Search, SlidersHorizontal } from "lucide-react";
+import { History, Info, Package, Search, SlidersHorizontal } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useId, useState } from "react";
 import { Button } from "../../../../../../../components/shadcn/button";
@@ -14,6 +15,7 @@ import type {
 	StockOverview,
 	StockPosition,
 } from "../../../../../../../features/inventory/api/inventory";
+import { apiOrigin } from "../../../../../../../lib/api/client";
 import { inventoryCopy } from "../../../../../../../lib/i18n/inventory";
 import type { Locale } from "../../../../../../../lib/i18n/locales";
 import { sellerInventoryCopy } from "../../../../../../../lib/i18n/seller-inventory";
@@ -25,6 +27,49 @@ import {
 import { SellerOverview } from "../../components/seller-overview";
 import { StockBadge, StockRowActions } from "./stock-parts";
 import { StockPagination, StockSummary, stockHref } from "./stock-ui";
+function shortTitle(value: string) {
+	const chars = Array.from(value);
+	return chars.length > 10 ? `${chars.slice(0, 10).join("")}…` : value;
+}
+function StockIdentity({
+	position,
+	href,
+}: {
+	position: StockPosition;
+	href: string;
+}) {
+	return (
+		<div className="flex min-w-0 items-center gap-3">
+			<span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-info/60 text-action">
+				{position.image ? (
+					<Image
+						unoptimized
+						fill
+						sizes="40px"
+						src={apiOrigin(process.env.NEXT_PUBLIC_API_URL) + position.image}
+						alt=""
+						className="object-cover"
+					/>
+				) : (
+					<Package className="size-5 opacity-50" aria-hidden="true" />
+				)}
+			</span>
+			<span className="min-w-0">
+				<Link
+					href={href}
+					title={position.title}
+					aria-label={position.title}
+					className="block truncate text-sm font-semibold text-foreground no-underline hover:text-action"
+				>
+					<bdi>{shortTitle(position.title)}</bdi>
+				</Link>
+				<span className="mt-0.5 block truncate text-xs text-muted">
+					<bdi>{position.sku}</bdi>
+				</span>
+			</span>
+		</div>
+	);
+}
 export function StockList({
 	locale,
 	seller,
@@ -463,15 +508,10 @@ export function StockList({
 													className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-page/60 motion-reduce:transition-none"
 												>
 													<td className="px-4 py-4 align-middle ps-6">
-														<Link
+														<StockIdentity
+															position={position}
 															href={href(`inventory/${position.id}`)}
-															className="font-semibold text-foreground no-underline wrap-anywhere hover:text-action"
-														>
-															<bdi>{position.title}</bdi>
-														</Link>
-														<p className="m-0 mt-1 text-xs text-muted">
-															<bdi>{position.sku}</bdi>
-														</p>
+														/>
 													</td>
 													<td className="px-4 py-4 align-middle">
 														{quantity(position, position.available, true)}
@@ -507,20 +547,11 @@ export function StockList({
 											key={position.id}
 											className="min-w-0 rounded-xl border border-border bg-surface p-4"
 										>
-											<div className="flex min-w-0 items-start justify-between gap-3">
-												<div className="min-w-0">
-													<h3 className="m-0 text-sm font-semibold leading-snug wrap-anywhere">
-														<Link
-															href={href(`inventory/${position.id}`)}
-															className="text-foreground no-underline hover:text-action"
-														>
-															<bdi>{position.title}</bdi>
-														</Link>
-													</h3>
-													<p className="m-0 mt-1 text-xs text-muted wrap-anywhere">
-														{t.sku}: <bdi>{position.sku}</bdi>
-													</p>
-												</div>
+											<div className="flex min-w-0 items-center justify-between gap-3">
+												<StockIdentity
+													position={position}
+													href={href(`inventory/${position.id}`)}
+												/>
 												<StockBadge locale={locale} state={position.state} />
 											</div>
 											<dl className="m-0 mt-3 grid min-w-0 grid-cols-3 gap-2 rounded-xl bg-page p-3">

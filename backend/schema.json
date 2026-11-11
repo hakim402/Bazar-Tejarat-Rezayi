@@ -16950,6 +16950,10 @@
                     "sku": {
                         "type": "string"
                     },
+                    "image": {
+                        "type": "string",
+                        "nullable": true
+                    },
                     "unit": {
                         "type": "string"
                     },
@@ -17027,6 +17031,7 @@
                     "expiry_required",
                     "held",
                     "id",
+                    "image",
                     "increment",
                     "physical",
                     "product",

@@ -4976,6 +4976,7 @@ export interface components {
             product: string;
             title: string;
             sku: string;
+            image: string | null;
             unit: string;
             unit_labels: {
                 [key: string]: string;

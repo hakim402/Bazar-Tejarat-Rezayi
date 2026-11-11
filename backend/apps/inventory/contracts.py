@@ -93,6 +93,7 @@ class Position(s.Serializer):
     product = s.UUIDField()
     title = s.CharField()
     sku = s.CharField()
+    image = s.CharField(allow_null=True)
     unit = s.CharField()
     unit_labels = s.DictField(child=s.CharField())
     increment = s.CharField()
