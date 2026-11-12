@@ -5,7 +5,8 @@ import { accountSession } from "../../identity/api/accounts";
 import { AccountError } from "../../../lib/api/private-client";
 import type { Locale } from "../../../lib/i18n/locales";
 import { communicationCopy } from "../copy";
-import { primaryAction, Failure } from "./controls";
+import { action, Failure } from "./controls";
+import { Icon } from "../../../components/ui/icon";
 export function EnquiryEntry({
 	locale,
 	product,
@@ -29,7 +30,7 @@ export function EnquiryEntry({
 		<div className="space-y-3">
 			<button
 				type="button"
-				className={`${primaryAction} w-full`}
+				className={`${action} w-full gap-2`}
 				disabled={busy}
 				onClick={() => {
 					if (lock.current) return;
@@ -59,9 +60,10 @@ export function EnquiryEntry({
 						});
 				}}
 			>
+				<Icon name="mail" className="size-4" />
 				{busy ? t.loading : t.enquire}
 			</button>
-			<p className="text-sm text-muted">{t.enquiryNote}</p>
+			<p className="text-xs text-muted">{t.enquiryNote}</p>
 			{!!error && <Failure locale={locale} error={error} />}
 		</div>
 	);

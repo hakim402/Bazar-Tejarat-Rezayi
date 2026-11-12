@@ -16,12 +16,9 @@ import type { PublicProduct } from "../../marketplace/types";
 import { useCommunicationSession, accessLost } from "../../messaging/hooks";
 import { commerce, cartPath, addQuantity, type Cart } from "../../orders/api";
 import { commerceCopy } from "../../orders/copy";
-import {
-	action,
-	control,
-	Failure,
-	panel,
-} from "../../orders/components/controls";
+import { marketplaceCopy } from "../../marketplace/copy";
+import { Icon } from "../../../components/ui/icon";
+import { action, Failure } from "../../orders/components/controls";
 export function ProductCartAction({
 	locale,
 	product,
@@ -135,7 +132,7 @@ function ProductCartEditor({
 				if (!v || !validCartQuantity(quantity, v.increment))
 					throw new AccountError(400, ["quantity"], "invalid_quantity");
 				const cart = await commerce<Cart>(
-					cartPath(context) + `?locale=${locale}`,
+					`${cartPath(context)}?locale=${locale}`,
 				);
 				const old = cart.lines.find(
 					(x) => x.variant === variant && x.tier === tier,
@@ -235,8 +232,33 @@ function ProductCartEditor({
 		}
 	}
 	if (!v) return null;
+	const market = marketplaceCopy[locale],
+		unit = v.unit_labels[locale] || v.unit,
+		price = tier === "retail" ? v.retail : v.wholesale,
+		total =
+			price != null && validCartQuantity(quantity, v.increment)
+				? subtotal(price, quantity)
+				: null,
+		locked = busy || !!pending.current,
+		stepQuantity = (delta: 1 | -1) => {
+			setSaved(false);
+			if (!/^\d{1,9}(\.\d{1,3})?$/.test(quantity)) {
+				setQuantity(initialCartQuantity(v.increment));
+				return;
+			}
+			const step = milli(v.increment);
+			let n = milli(quantity) + (delta === 1 ? step : -step);
+			if (n < step) n = step;
+			if (n > BigInt("999999999999")) n = BigInt("999999999999");
+			setQuantity(
+				`${n / BigInt(1000)}.${String(n % BigInt(1000)).padStart(3, "0")}`,
+			);
+		};
 	return (
-		<section className={panel} data-testid="product-cart-action">
+		<section
+			className="space-y-3 rounded-card border border-border bg-page p-3 sm:p-4"
+			data-testid="product-cart-action"
+		>
 			<form
 				className="space-y-3"
 				onSubmit={(e) => {
@@ -244,76 +266,151 @@ function ProductCartEditor({
 					void add();
 				}}
 			>
-				<label className="block space-y-2">
-					{t.tier}
-					<select
-						aria-label={t.tier}
-						className={control}
-						value={tier}
-						disabled={busy || !!pending.current}
-						onChange={(e) => {
-							setTier(e.target.value as typeof tier);
-							setSaved(false);
-						}}
+				<fieldset className="m-0 grid min-w-0 grid-cols-2 gap-1 rounded-control border border-border bg-surface p-1">
+					<legend className="sr-only">{t.tier}</legend>
+					{(["retail", "wholesale"] as const).map((row) => (
+						<button
+							key={row}
+							type="button"
+							aria-pressed={tier === row}
+							disabled={locked || (row === "wholesale" && v.wholesale === null)}
+							onClick={() => {
+								setTier(row);
+								setSaved(false);
+							}}
+							className={`min-h-9 rounded-control px-3 text-sm font-bold transition-colors active:scale-[0.98] motion-reduce:active:scale-100 disabled:opacity-50 ${
+								tier === row
+									? "bg-primary text-on-primary shadow-sm"
+									: "text-muted hover:bg-page hover:text-foreground"
+							}`}
+						>
+							{t[row]}
+						</button>
+					))}
+				</fieldset>
+				<div className="space-y-1.5">
+					<span
+						id={`quantity-label-${v.id}`}
+						className="block text-sm font-semibold"
 					>
-						<option value="retail">{t.retail}</option>
-						<option value="wholesale">{t.wholesale}</option>
-					</select>
-				</label>
-				<label className="block space-y-2">
-					{t.quantity} · {v.unit_labels[locale] || v.unit}
-					<input
-						inputMode="decimal"
-						dir="ltr"
-						className={control}
-						value={quantity}
-						maxLength={20}
-						disabled={busy || !!pending.current}
-						onChange={(e) => {
-							setQuantity(e.target.value);
-							setSaved(false);
-						}}
-						required
-					/>
-				</label>
-				<p className="text-sm text-muted">
+						{t.quantity} · {unit}
+					</span>
+					<div className="flex items-stretch overflow-hidden rounded-control border border-border bg-surface focus-within:border-action">
+						<button
+							type="button"
+							aria-label={market.decreaseQuantity}
+							title={market.decreaseQuantity}
+							disabled={locked}
+							onClick={() => stepQuantity(-1)}
+							className="flex w-11 shrink-0 items-center justify-center border-e border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
+						>
+							<Icon name="minus" className="size-4" />
+						</button>
+						<input
+							inputMode="decimal"
+							dir="ltr"
+							aria-labelledby={`quantity-label-${v.id}`}
+							className="min-h-11 w-full min-w-0 border-0 bg-transparent px-2 text-center font-bold text-foreground"
+							value={quantity}
+							maxLength={20}
+							disabled={locked}
+							onChange={(e) => {
+								setQuantity(e.target.value);
+								setSaved(false);
+							}}
+							required
+						/>
+						<button
+							type="button"
+							aria-label={market.increaseQuantity}
+							title={market.increaseQuantity}
+							disabled={locked}
+							onClick={() => stepQuantity(1)}
+							className="flex w-11 shrink-0 items-center justify-center border-s border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
+						>
+							<Icon name="plus" className="size-4" />
+						</button>
+					</div>
+				</div>
+				{total !== null && (
+					<p className="flex items-baseline justify-between gap-3 text-sm">
+						<span className="text-muted">{market.subtotal}</span>
+						<bdi dir="ltr" className="text-base font-extrabold">
+							{total} {product.currency}
+						</bdi>
+					</p>
+				)}
+				<p className="text-xs text-muted">
 					{t.increment}: <bdi>{v.increment}</bdi> · {t.minimum}:{" "}
 					<bdi>{v.minimum}</bdi>
 				</p>
 				{tier === "wholesale" && (
-					<p className="text-sm text-muted">{t.wholesaleHelp}</p>
+					<p className="text-xs text-muted">{t.wholesaleHelp}</p>
 				)}
-				{product.pricing_mode === "negotiable" && <p>{t.negotiable}</p>}
+				{product.pricing_mode === "negotiable" && (
+					<p className="text-xs text-muted">{t.negotiable}</p>
+				)}
 				<Failure locale={locale} error={error} />
 
 				{pending.current && (
 					<div className="space-y-2">
-						<p role="status">
+						<p role="status" className="text-sm">
 							{guestChanged ? t.guestCartChanged : t.retryHelp}
 						</p>
 						<button
 							type="button"
-							className={action}
+							className={`${action} w-full gap-2`}
 							disabled={busy}
 							onClick={() => void reconcile(guestChanged)}
 						>
+							<Icon name="history" className="size-4" />
 							{guestChanged ? t.useCurrentCart : t.reconcile}
 						</button>
 					</div>
 				)}
 				<button
-					className={action}
+					className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-5 text-sm font-bold text-on-primary shadow-sm transition-opacity hover:opacity-90 active:scale-[0.99] motion-reduce:active:scale-100 disabled:opacity-60"
 					disabled={busy || guestChanged}
 					type="submit"
 				>
+					<Icon name="cart" className="size-4" />
 					{busy ? t.loading : pending.current ? t.retry : t.add}
 				</button>
-				{saved && <p role="status">{t.saved}</p>}
-				{usingCurrentGuest && <p role="status">{t.guestCartReady}</p>}
+				{saved && (
+					<p
+						role="status"
+						className="flex items-center gap-1.5 text-sm font-semibold text-success"
+					>
+						<Icon name="check-circle" className="size-4" />
+						{t.saved}
+					</p>
+				)}
+				{usingCurrentGuest && (
+					<p role="status" className="text-sm text-muted">
+						{t.guestCartReady}
+					</p>
+				)}
 			</form>
-			<Link className={action} href={`/${locale}/cart`}>
+			<Link
+				className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-border bg-surface text-sm font-bold text-foreground no-underline transition-colors hover:border-action/50 hover:text-action"
+				href={`/${locale}/cart`}
+			>
+				<Icon name="shopping-bag" className="size-4" />
 				{t.cart}
 			</Link>
 		</section>
 	);
+}
+function milli(value: string) {
+	const [w, f = ""] = value.split(".");
+	return BigInt(w) * BigInt(1000) + BigInt(f.padEnd(3, "0"));
+}
+function subtotal(price: string, quantity: string) {
+	if (
+		!/^\d{1,9}(\.\d{1,3})?$/.test(price) ||
+		!/^\d{1,9}(\.\d{1,3})?$/.test(quantity)
+	)
+		return null;
+	const cents = (milli(price) * milli(quantity) + BigInt(5000)) / BigInt(10000);
+	return `${cents / BigInt(100)}.${String(cents % BigInt(100)).padStart(2, "0")}`;
 }

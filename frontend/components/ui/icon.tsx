@@ -69,6 +69,17 @@ const paths = {
 	more: "M5 12h.01 M12 12h.01 M19 12h.01",
 	"alert-triangle": "M12 3 22 20H2Z M12 9v4.5 M12 17h.01",
 	"check-circle": "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 m-14 1 3 3 5.5-6",
+	"map-pin":
+		"M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+	headset:
+		"M3 11a9 9 0 0 1 18 0 M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z M21 11h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-5Z M21 16v2a4 4 0 0 1-4 4h-5",
+	award:
+		"M18 8a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z M15.5 12.5 17 22l-5-3-5 3 1.5-9.5",
+	crown: "m3 6 4.5 4L12 4l4.5 6L21 6l-2 12H5Z M5 21h14",
+	trash: "M4 7h16 M9 7V4h6v3 M6 7l1 14h10l1-14 M10 11v6 M14 11v6",
+	minus: "M5 12h14",
+	share: "M12 3v12 m-4-8 4-4 4 4 M5 12v8h14v-8",
+	"zoom-in": "M20 20l-5-5 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0 M10 7v6 M7 10h6",
 } as const;
 export type IconName = keyof typeof paths;
 export function Icon({

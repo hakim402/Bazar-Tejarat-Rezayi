@@ -4,6 +4,7 @@ export type PublicStore = components["schemas"]["MarketplaceStore"];
 export type ProductPage = components["schemas"]["MarketplaceProducts"];
 export type StorePage = components["schemas"]["MarketplaceStores"];
 export type CategoryPage = components["schemas"]["MarketplaceCategories"];
+export type ReviewSummary = components["schemas"]["MarketplaceReviewSummary"];
 export type Home = components["schemas"]["MarketplaceHome"];
 export type PrivateStore = components["schemas"]["StorePrivate"];
 export type StoreProfiles = components["schemas"]["StoreProfiles"];

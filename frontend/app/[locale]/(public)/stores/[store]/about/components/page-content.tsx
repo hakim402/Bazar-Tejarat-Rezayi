@@ -44,7 +44,7 @@ export async function PageContent({
 		),
 		s = result.data;
 	return (
-		<StoreShell locale={locale} id={params.store}>
+		<StoreShell locale={locale} id={params.store} tab="about">
 			<section className="space-y-4 rounded-card border border-border bg-surface p-5">
 				<h2 className="text-2xl">{t.about}</h2>
 				{s?.source_fallback && (

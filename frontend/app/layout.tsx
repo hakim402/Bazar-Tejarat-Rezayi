@@ -52,7 +52,7 @@ export default async function RootLayout({
 			<head>
 				<script id="theme-init">{themeScript}</script>
 			</head>
-			<body>
+			<body suppressHydrationWarning>
 				<ToastHost />
 				<ReviewOriginRedirect />
 				<SiteProvider site={site}>{children}</SiteProvider>

@@ -42,15 +42,19 @@ export async function PageContent({
 }) {
 	const t = marketplaceCopy[locale];
 	return (
-		<NavigationGuard guardHistory><StoreShell locale={locale} id={params.store}>
-			<Discovery
-				locale={locale}
-				path={`/${locale}/stores/${params.store}`}
-				apiPath={`stores/${params.store}/products/`}
-				search={search}
-				title={t.products}
-			/>
-			<TargetReport locale={locale} id={params.store} target="store" />
-		</StoreShell></NavigationGuard>
+		<NavigationGuard guardHistory>
+			<StoreShell locale={locale} id={params.store} tab="products">
+				<section id="store-products" className="scroll-mt-16">
+					<Discovery
+						locale={locale}
+						path={`/${locale}/stores/${params.store}`}
+						apiPath={`stores/${params.store}/products/`}
+						search={search}
+						title={t.products}
+					/>
+				</section>
+				<TargetReport locale={locale} id={params.store} target="store" />
+			</StoreShell>
+		</NavigationGuard>
 	);
 }
