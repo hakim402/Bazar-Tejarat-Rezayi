@@ -25,6 +25,8 @@ import { localTimestamp } from "../../messaging/api";
 import {
 	SalesFrame,
 	SalesHeader,
+	salesFilterPanel,
+	salesTableCard,
 	SalesEmpty,
 	SalesPagination,
 	salesAction,
@@ -175,6 +177,7 @@ export function SellerIssues({
 			<SalesHeader
 				locale={locale}
 				section="aftercare"
+				description={sellerSalesCopy[locale].aftercareDescription}
 				title={t.title}
 				seller={seller}
 				business={
@@ -194,7 +197,7 @@ export function SellerIssues({
 						}),
 					);
 				}}
-				className={cn(salesPanel, "flex flex-wrap items-end gap-3")}
+				className={cn(salesFilterPanel, "flex flex-wrap items-end gap-3")}
 			>
 				<label className="grid min-w-0 flex-1 gap-2">
 					{t.search}
@@ -220,7 +223,7 @@ export function SellerIssues({
 			</form>
 			<nav
 				aria-label={t.title}
-				className="flex flex-wrap gap-1 border-b border-solid border-border"
+				className="flex flex-wrap gap-1 border-0 border-b border-solid border-border"
 			>
 				{tabList.map(([id, label]) => (
 					<button
@@ -271,7 +274,7 @@ export function SellerIssues({
 					</p>
 				</SalesEmpty>
 			) : (
-				<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
+				<Card className={salesTableCard}>
 					<section
 						aria-label={t.title}
 						// biome-ignore lint/a11y/noNoninteractiveTabindex: named overflow region
@@ -281,7 +284,7 @@ export function SellerIssues({
 						<table className="w-full min-w-[60rem] border-collapse text-start">
 							<caption className="sr-only">{t.title}</caption>
 							<thead>
-								<tr className="bg-page/70">
+								<tr className="bg-transparent">
 									{[
 										t.order,
 										t.customer,
@@ -296,7 +299,7 @@ export function SellerIssues({
 											key={label}
 											scope="col"
 											className={cn(
-												"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
+												"border-0 border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
 												i === 7 && "text-end",
 											)}
 										>
@@ -313,7 +316,7 @@ export function SellerIssues({
 								{shown.map((issue) => (
 									<tr
 										key={issue.key}
-										className="border-b border-solid border-border last:border-b-0 hover:bg-page/40"
+										className="border-0 border-b border-solid border-border last:border-b-0 hover:bg-transparent"
 									>
 										<td className="px-4 py-4 align-top">
 											<Link

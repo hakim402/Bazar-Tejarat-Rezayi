@@ -216,7 +216,7 @@ function InventoryContext({
 					<h1 className="text-page-title font-bold text-foreground">
 						{t[screen]}
 					</h1>
-					{screen === "overview" && (
+					{(screen === "overview" || screen === "inventory") && (
 						<p className="mt-1 max-w-2xl text-body text-muted">{description}</p>
 					)}
 				</div>

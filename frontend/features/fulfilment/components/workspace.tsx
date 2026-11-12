@@ -177,6 +177,7 @@ function DeliveryList({
 				<SalesHeader
 					locale={locale}
 					section="fulfilment"
+					description={sellerSalesCopy[locale].fulfilmentDescription}
 					title={l.title}
 					seller={seller}
 					business={

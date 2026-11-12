@@ -257,33 +257,36 @@ function Reader({
 		return (
 			<SalesFrame seller>
 				<section className="min-w-0 space-y-6" data-testid="orders-workspace">
-					{!orderDetail && <SalesHeader
-						locale={locale}
-						section={section}
-						seller={seller}
-						title={
-							id && data && "number" in data ? (
-								<>
-									{copy[section]} · <bdi>{data.number}</bdi>
-								</>
-							) : undefined
-						}
-						back={
-							id
-								? salesHref(locale, section, seller, undefined, search)
-								: undefined
-						}
-						business={
-							<SalesBusinessSelect
-								locale={locale}
-								value={seller}
-								profiles={profiles}
-								onChange={(next) =>
-									router.push(salesHref(locale, section, next))
-								}
-							/>
-						}
-					/>}
+					{!orderDetail && (
+						<SalesHeader
+							locale={locale}
+							section={section}
+							description={!id ? copy[`${section}Description`] : undefined}
+							seller={seller}
+							title={
+								id && data && "number" in data ? (
+									<>
+										{copy[section]} · <bdi>{data.number}</bdi>
+									</>
+								) : undefined
+							}
+							back={
+								id
+									? salesHref(locale, section, seller, undefined, search)
+									: undefined
+							}
+							business={
+								<SalesBusinessSelect
+									locale={locale}
+									value={seller}
+									profiles={profiles}
+									onChange={(next) =>
+										router.push(salesHref(locale, section, next))
+									}
+								/>
+							}
+						/>
+					)}
 					<Failure locale={locale} error={error} />
 					{!data && !error && (
 						<div className={`${salesPanel} min-h-40`} role="status">
@@ -424,19 +427,25 @@ function Reader({
 								</>
 							)
 						) : "outcomes" in data ? null : section === "orders" ? (
-								<SellerOrderDetail
-									order={data}
-									locale={locale}
-									seller={data.seller}
-									canInvoice={profiles.some(
-										(profile) => profile.id === data.seller && profile.invoices,
-									)}
-									busy={busy}
-									onDownload={() => void pdf(data)}
-									onRefresh={() => setReload((value) => value + 1)}
-									backHref={salesHref(locale, "orders", seller, undefined, search)}
-								/>
-							) : (
+							<SellerOrderDetail
+								order={data}
+								locale={locale}
+								seller={data.seller}
+								canInvoice={profiles.some(
+									(profile) => profile.id === data.seller && profile.invoices,
+								)}
+								busy={busy}
+								onDownload={() => void pdf(data)}
+								onRefresh={() => setReload((value) => value + 1)}
+								backHref={salesHref(
+									locale,
+									"orders",
+									seller,
+									undefined,
+									search,
+								)}
+							/>
+						) : (
 							<>
 								<SalesRelated
 									locale={locale}

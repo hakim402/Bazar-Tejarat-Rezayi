@@ -29,6 +29,8 @@ import { localTimestamp } from "../../messaging/api";
 import {
 	SalesFrame,
 	SalesHeader,
+	salesFilterPanel,
+	salesTableCard,
 	SalesBusinessSelect,
 	SalesEmpty,
 	SalesPagination,
@@ -394,6 +396,7 @@ function RequestList({
 			<SalesHeader
 				locale={locale}
 				section="negotiations"
+				description={sellerSalesCopy[locale].negotiationsDescription}
 				seller={seller}
 				business={business}
 			/>
@@ -407,7 +410,7 @@ function RequestList({
 					});
 				}}
 				className={cn(
-					salesPanel,
+					salesFilterPanel,
 					"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,13rem)_auto]",
 				)}
 			>
@@ -476,8 +479,8 @@ function RequestList({
 					</p>
 				</SalesEmpty>
 			) : (
-				<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
-					<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-4 sm:px-5">
+				<Card className={salesTableCard}>
+					<div className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
 						<h2 className="m-0 flex items-center gap-2 text-base font-semibold">
 							{negotiationCopy[locale].title}
 							<Badge
@@ -508,7 +511,7 @@ function RequestList({
 								{negotiationCopy[locale].title}
 							</caption>
 							<thead>
-								<tr className="bg-page/70">
+								<tr className="bg-transparent">
 									{[
 										negotiationCopy[locale].request,
 										t.products,
@@ -521,7 +524,7 @@ function RequestList({
 											key={label}
 											scope="col"
 											className={cn(
-												"border-b border-solid border-border px-5 py-3 text-start text-xs font-medium text-muted",
+												"border-0 border-b border-solid border-border px-5 py-3 text-start text-xs font-medium text-muted",
 												i === 5 && "text-end",
 											)}
 										>
@@ -538,7 +541,7 @@ function RequestList({
 								{rows.results.map((row) => (
 									<tr
 										key={row.id}
-										className="border-b border-solid border-border last:border-b-0 hover:bg-page/40"
+										className="border-0 border-b border-solid border-border last:border-b-0 hover:bg-transparent"
 									>
 										<td className="px-5 py-5 align-top">
 											<div className="space-y-1.5">

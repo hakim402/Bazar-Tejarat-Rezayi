@@ -49,7 +49,7 @@ export function SellerDeliveryList({
 							<th
 								key={label}
 								scope="col"
-								className="border-0 border-b border-solid border-border bg-page/60 px-4 py-3 text-start text-xs font-medium text-muted"
+								className="border-0 border-b border-solid border-border bg-transparent px-4 py-3 text-start text-xs font-medium text-muted"
 							>
 								{label}
 							</th>

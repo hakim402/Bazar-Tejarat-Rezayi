@@ -85,6 +85,11 @@ export const salesAction =
 	"inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-action shadow-sm transition-colors hover:border-action hover:bg-info disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none";
 export const salesControl =
 	"min-h-11 w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-base text-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-50";
+export const salesFilterPanel =
+	"min-w-0 rounded-xl border border-solid border-border bg-transparent p-4 shadow-none [&_label]:text-xs [&_label]:text-muted [&_input]:h-10 [&_input]:min-h-10! [&_input]:rounded-lg! [&_input]:text-sm! [&_input]:shadow-none [&_input]:border-solid [&_select]:h-10 [&_select]:min-h-10! [&_select]:rounded-lg! [&_select]:text-sm! [&_select]:shadow-none [&_select]:border-solid [&_a]:shadow-none [&_a]:min-h-10 [&_a]:rounded-lg [&_button]:min-h-10 [&_button]:rounded-lg [&_button]:shadow-none";
+export const salesTableCard =
+	"gap-0 overflow-hidden rounded-xl border-solid border-border bg-surface py-0 shadow-none";
+
 export const salesPanel =
 	"min-w-0 space-y-4 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6";
 
@@ -112,6 +117,7 @@ export function SalesHeader({
 	section,
 	seller = "",
 	title,
+	description,
 	business,
 	back,
 }: {
@@ -119,6 +125,7 @@ export function SalesHeader({
 	section: SalesSection;
 	seller?: string;
 	title?: ReactNode;
+	description?: ReactNode;
 	business?: ReactNode;
 	back?: string;
 }) {
@@ -148,6 +155,11 @@ export function SalesHeader({
 										? t.issues
 										: t[section])}
 					</h1>
+					{description && (
+						<p className="m-0 max-w-2xl text-sm leading-relaxed text-muted">
+							{description}
+						</p>
+					)}
 				</div>
 				{business && (
 					<div className="min-w-0 rounded-2xl border border-border bg-surface p-4 shadow-sm">

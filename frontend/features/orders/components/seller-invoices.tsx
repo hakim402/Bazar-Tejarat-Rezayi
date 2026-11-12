@@ -15,7 +15,10 @@ import {
 import { Icon } from "../../../components/ui/icon";
 import type { Locale } from "../../../lib/i18n/locales";
 import { cn } from "../../../lib/shadcn-utils";
-import { uuidPattern, type QueryReader } from "../../../lib/routes/account-routes";
+import {
+	uuidPattern,
+	type QueryReader,
+} from "../../../lib/routes/account-routes";
 import { SessionEntry } from "./session-entry";
 import { commerce, downloadInvoice, invoiceHref, type Order } from "../api";
 import { commerceCopy } from "../copy";
@@ -27,6 +30,8 @@ import { localTimestamp } from "../../messaging/api";
 import {
 	SalesFrame,
 	SalesHeader,
+	salesFilterPanel,
+	salesTableCard,
 	SalesBusinessSelect,
 	SalesEmpty,
 	SalesPagination,
@@ -40,13 +45,21 @@ import toast from "react-hot-toast";
 
 type InvoiceProfile = { id: string; name: string; invoices: boolean };
 
-export function SellerInvoices({ locale, id }: { locale: Locale; id?: string }) {
+export function SellerInvoices({
+	locale,
+	id,
+}: {
+	locale: Locale;
+	id?: string;
+}) {
 	const session = useCommunicationSession("seller"),
 		q = useSearchParams(),
 		t = commerceCopy[locale];
 	if (session.loading) return <p role="status">{t.loading}</p>;
 	if (!session.session)
-		return <SessionEntry locale={locale} context="seller" error={session.error} />;
+		return (
+			<SessionEntry locale={locale} context="seller" error={session.error} />
+		);
 	const seller = q.get("seller") ?? "",
 		page = Number(q.get("page") ?? 1),
 		state = q.get("state") ?? "",
@@ -91,7 +104,12 @@ function Bootstrap({
 	useEffect(() => {
 		const controller = new AbortController();
 		let alive = true;
-		void commerce<{ results: InvoiceProfile[] }>("orders/seller/profiles/", undefined, "GET", controller.signal)
+		void commerce<{ results: InvoiceProfile[] }>(
+			"orders/seller/profiles/",
+			undefined,
+			"GET",
+			controller.signal,
+		)
 			.then((p) => {
 				if (!alive) return;
 				const allowed = p.results.filter((row) => row.invoices);
@@ -210,13 +228,17 @@ function InvoiceList({
 		sales = sellerSalesCopy[locale],
 		nf = new Intl.NumberFormat(locale),
 		router = useRouter(),
-		[data, setData] = useState<{ count: number; results: Order[] } | null>(null),
+		[data, setData] = useState<{ count: number; results: Order[] } | null>(
+			null,
+		),
 		[error, setError] = useState(false),
 		[downloading, setDownloading] = useState(false);
 	const detailHref = (order: Order) =>
 		salesHref(locale, "invoices", seller, order.invoice, params);
 	const change = (changes: Record<string, string>) =>
-		router.push(salesHref(locale, "invoices", seller, undefined, params, changes));
+		router.push(
+			salesHref(locale, "invoices", seller, undefined, params, changes),
+		);
 	useEffect(() => {
 		const controller = new AbortController();
 		let alive = true;
@@ -256,24 +278,45 @@ function InvoiceList({
 	}
 	return (
 		<>
-			<SalesHeader locale={locale} section="invoices" seller={seller} business={business} />
+			<SalesHeader
+				locale={locale}
+				section="invoices"
+				description={sales.invoicesDescription}
+				seller={seller}
+				business={business}
+			/>
 			<form
 				onSubmit={(e) => {
 					e.preventDefault();
 					const form = new FormData(e.currentTarget);
-					change({ page: "1", q: String(form.get("q") ?? ""), state: String(form.get("state") ?? "") });
+					change({
+						page: "1",
+						q: String(form.get("q") ?? ""),
+						state: String(form.get("state") ?? ""),
+					});
 				}}
-				className={cn(salesPanel, "grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,13rem)_auto]")}
+				className={cn(
+					salesFilterPanel,
+					"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,13rem)_auto]",
+				)}
 			>
 				<label className="grid min-w-0 gap-2">
 					{list.customer} / {t.invoices}
-					<input name="q" className={salesControl} maxLength={100} dir="auto" defaultValue={search} />
+					<input
+						name="q"
+						className={salesControl}
+						maxLength={100}
+						dir="auto"
+						defaultValue={search}
+					/>
 				</label>
 				<label className="grid min-w-0 gap-2">
 					{paymentCopy[locale].title}
 					<select name="state" className={salesControl} defaultValue={state}>
 						<option value="">{paymentCopy[locale].all}</option>
-						{(["unpaid", "partial", "paid", "overpaid", "overdue"] as const).map((v) => (
+						{(
+							["unpaid", "partial", "paid", "overpaid", "overdue"] as const
+						).map((v) => (
 							<option key={v} value={v}>
 								{paymentState(locale, v)}
 							</option>
@@ -285,7 +328,10 @@ function InvoiceList({
 						{paymentCopy[locale].refresh}
 					</button>
 					{(search || state || page > 1) && (
-						<Link className={salesAction} href={salesHref(locale, "invoices", seller)}>
+						<Link
+							className={salesAction}
+							href={salesHref(locale, "invoices", seller)}
+						>
 							{sales.clear}
 						</Link>
 					)}
@@ -300,13 +346,19 @@ function InvoiceList({
 					{t.loading}
 				</p>
 			) : !data.results.length ? (
-				<SalesEmpty locale={locale} filtered={!!search || !!state || page > 1} />
+				<SalesEmpty
+					locale={locale}
+					filtered={!!search || !!state || page > 1}
+				/>
 			) : (
-				<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
-					<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-4 sm:px-5">
+				<Card className={salesTableCard}>
+					<div className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
 						<h2 className="m-0 flex items-center gap-2 text-base font-semibold">
 							{t.invoices}
-							<Badge variant="secondary" className="rounded-full border-0 bg-page text-muted">
+							<Badge
+								variant="secondary"
+								className="rounded-full border-0 bg-page text-muted"
+							>
 								{nf.format(data.count)}
 							</Badge>
 						</h2>
@@ -320,29 +372,49 @@ function InvoiceList({
 						<table className="w-full min-w-[58rem] border-collapse text-start">
 							<caption className="sr-only">{t.invoices}</caption>
 							<thead>
-								<tr className="bg-page/70">
-									{[t.invoices, list.customer, list.order, list.total, list.status, ""].map((label, i) => (
+								<tr className="bg-transparent">
+									{[
+										t.invoices,
+										list.customer,
+										list.order,
+										list.total,
+										list.status,
+										"",
+									].map((label, i) => (
 										<th
-											key={`${label}:${i}`}
+											key={label}
 											scope="col"
 											className={cn(
-												"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
+												"border-0 border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
 												i === 5 && "text-end",
 											)}
 										>
-											{i === 5 ? <span className="sr-only">{label}</span> : label}
+											{i === 5 ? (
+												<span className="sr-only">{label}</span>
+											) : (
+												label
+											)}
 										</th>
 									))}
 								</tr>
 							</thead>
 							<tbody>
 								{data.results.map((order) => (
-									<tr key={order.id} className="border-b border-solid border-border last:border-b-0 hover:bg-page/40">
+									<tr
+										key={order.id}
+										className="border-0 border-b border-solid border-border last:border-b-0 hover:bg-transparent"
+									>
 										<td className="px-4 py-4 align-top">
-											<Link href={detailHref(order)} className="text-sm font-semibold text-action no-underline">
+											<Link
+												href={detailHref(order)}
+												className="text-sm font-semibold text-action no-underline"
+											>
 												<bdi>{order.number}</bdi>
 											</Link>
-											<time dateTime={order.issued_at} className="mt-1 block max-w-36 text-xs text-muted">
+											<time
+												dateTime={order.issued_at}
+												className="mt-1 block max-w-36 text-xs text-muted"
+											>
 												{localTimestamp(order.issued_at, locale)}
 											</time>
 										</td>
@@ -352,7 +424,10 @@ function InvoiceList({
 											</span>
 										</td>
 										<td className="px-4 py-4 align-top">
-											<Link className="text-xs font-medium text-action no-underline" href={salesHref(locale, "orders", seller, order.id)}>
+											<Link
+												className="text-xs font-medium text-action no-underline"
+												href={salesHref(locale, "orders", seller, order.id)}
+											>
 												<bdi>{order.id.slice(0, 8)}</bdi>
 											</Link>
 										</td>
@@ -365,7 +440,13 @@ function InvoiceList({
 											<StatusPill locale={locale} order={order} />
 										</td>
 										<td className="px-4 py-3 text-end align-top">
-											<RowMenu locale={locale} order={order} seller={seller} busy={downloading} onDownload={() => void download(order)} />
+											<RowMenu
+												locale={locale}
+												order={order}
+												seller={seller}
+												busy={downloading}
+												onDownload={() => void download(order)}
+											/>
 										</td>
 									</tr>
 								))}
@@ -377,14 +458,23 @@ function InvoiceList({
 							<li key={order.id} className="space-y-3 p-4">
 								<div className="flex items-start justify-between gap-3">
 									<div className="space-y-1">
-										<Link href={detailHref(order)} className="text-sm font-semibold text-action no-underline">
+										<Link
+											href={detailHref(order)}
+											className="text-sm font-semibold text-action no-underline"
+										>
 											<bdi>{order.number}</bdi>
 										</Link>
 										<p className="m-0 break-words text-sm" dir="auto">
 											{order.snapshot.buyer}
 										</p>
 									</div>
-									<RowMenu locale={locale} order={order} seller={seller} busy={downloading} onDownload={() => void download(order)} />
+									<RowMenu
+										locale={locale}
+										order={order}
+										seller={seller}
+										busy={downloading}
+										onDownload={() => void download(order)}
+									/>
 								</div>
 								<div className="flex items-center justify-between gap-3">
 									<StatusPill locale={locale} order={order} />
@@ -436,8 +526,16 @@ function RowMenu({
 					<MoreHorizontal className="size-5" aria-hidden="true" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" sideOffset={6} className="w-56 rounded-xl p-1.5">
-				<DropdownMenuItem disabled={busy} className="gap-2.5" onSelect={onDownload}>
+			<DropdownMenuContent
+				align="end"
+				sideOffset={6}
+				className="w-56 rounded-xl p-1.5"
+			>
+				<DropdownMenuItem
+					disabled={busy}
+					className="gap-2.5"
+					onSelect={onDownload}
+				>
 					<Download aria-hidden="true" />
 					{list.pdf}
 				</DropdownMenuItem>
@@ -477,7 +575,12 @@ function InvoiceWorkspace({
 	useEffect(() => {
 		const controller = new AbortController();
 		let alive = true;
-		void commerce<Order>(`orders/seller/invoices/${id}/?locale=${locale}`, undefined, "GET", controller.signal)
+		void commerce<Order>(
+			`orders/seller/invoices/${id}/?locale=${locale}`,
+			undefined,
+			"GET",
+			controller.signal,
+		)
 			.then((value) => {
 				if (!alive) return;
 				setOrder(value);
@@ -490,8 +593,7 @@ function InvoiceWorkspace({
 			alive = false;
 			controller.abort();
 		};
-		// id/locale own this load; onSeller is a stable redirect callback.
-	}, [id, locale]);
+	}, [id, locale, onSeller]);
 	async function download(item: Order) {
 		if (downloading) return;
 		const controller = new AbortController();
@@ -542,12 +644,21 @@ function InvoiceWorkspace({
 						</p>
 					</div>
 					<div className="flex flex-wrap gap-2">
-						<Button variant="outline" className="rounded-xl" disabled={downloading} onClick={() => void download(order)}>
+						<Button
+							variant="outline"
+							className="rounded-xl"
+							disabled={downloading}
+							onClick={() => void download(order)}
+						>
 							<Download className="size-4" aria-hidden="true" />
 							{list.pdf}
 						</Button>
 						<Button asChild variant="outline" className="rounded-xl">
-							<Link href={printHref(locale, order, seller)} target="_blank" rel="noreferrer">
+							<Link
+								href={printHref(locale, order, seller)}
+								target="_blank"
+								rel="noreferrer"
+							>
 								<Printer className="size-4" aria-hidden="true" />
 								{t.print}
 							</Link>
@@ -559,17 +670,26 @@ function InvoiceWorkspace({
 			<DetailCard title={t.invoices} icon="receipt">
 				<div className="space-y-4">
 					{order.lines.map((line) => {
-						const source = line.snapshot.titles[locale] ? locale : line.snapshot.source_locale;
+						const source = line.snapshot.titles[locale]
+							? locale
+							: line.snapshot.source_locale;
 						return (
-							<div key={line.id} className="min-w-0 space-y-1 border-b border-solid border-border pb-3 last:border-0 last:pb-0">
+							<div
+								key={line.id}
+								className="min-w-0 space-y-1 border-0 border-b border-solid border-border pb-3 last:border-0 last:pb-0"
+							>
 								<p className="m-0 break-words text-sm font-semibold" dir="auto">
 									{line.snapshot.titles[source] ?? line.snapshot.sku}
 								</p>
 								<p className="m-0 text-xs text-muted">
 									{list.sku}: <bdi>{line.snapshot.sku}</bdi>
-									<span className="mx-1.5" aria-hidden="true">·</span>
+									<span className="mx-1.5" aria-hidden="true">
+										·
+									</span>
 									{t[line.tier]}
-									<span className="mx-1.5" aria-hidden="true">·</span>
+									<span className="mx-1.5" aria-hidden="true">
+										·
+									</span>
 									{line.snapshot.unit_labels[locale] ?? line.snapshot.unit}
 								</p>
 								<dl className="m-0 grid grid-cols-3 gap-3">
@@ -580,7 +700,11 @@ function InvoiceWorkspace({
 										<Money amount={line.unit_price} currency={order.currency} />
 									</DetailField>
 									<DetailField label={t.total}>
-										<Money amount={line.goods_amount} currency={order.currency} className="font-semibold" />
+										<Money
+											amount={line.goods_amount}
+											currency={order.currency}
+											className="font-semibold"
+										/>
 									</DetailField>
 								</dl>
 							</div>
@@ -588,28 +712,40 @@ function InvoiceWorkspace({
 					})}
 					<div className="flex items-center justify-between gap-3 border-t border-solid border-border pt-3">
 						<span className="text-sm font-medium text-muted">{t.total}</span>
-						<Money amount={order.goods_total} currency={order.currency} className="text-lg font-bold" />
+						<Money
+							amount={order.goods_total}
+							currency={order.currency}
+							className="text-lg font-bold"
+						/>
 					</div>
 				</div>
 			</DetailCard>
 
 			<section className={salesPanel}>
-				<h2 className="m-0 text-sm font-semibold">{paymentCopy[locale].title}</h2>
-				<p className="m-0 text-xs text-muted">{paymentCopy[locale].claimNote}</p>
+				<h2 className="m-0 text-sm font-semibold">
+					{paymentCopy[locale].title}
+				</h2>
+				<p className="m-0 text-xs text-muted">
+					{paymentCopy[locale].claimNote}
+				</p>
 				<dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
 					<DetailField label={t.method}>{t[order.payment_method]}</DetailField>
 					<DetailField label={t.destination}>
 						<bdi>{dest.country}</bdi> · <span dir="auto">{dest.city}</span>
 					</DetailField>
 					<DetailField label={paymentCopy[locale].confirmed}>
-						<Money amount={order.payment.confirmed_total} currency={order.currency} />
+						<Money
+							amount={order.payment.confirmed_total}
+							currency={order.currency}
+						/>
 					</DetailField>
 					<DetailField label={paymentCopy[locale].remaining}>
 						<Money amount={order.payment.remaining} currency={order.currency} />
 					</DetailField>
 				</dl>
 				<p className="m-0 text-xs text-muted">
-					{paymentCopy[locale].title}: {paymentState(locale, order.payment.financial)}
+					{paymentCopy[locale].title}:{" "}
+					{paymentState(locale, order.payment.financial)}
 				</p>
 			</section>
 		</div>

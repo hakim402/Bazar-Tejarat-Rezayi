@@ -31,10 +31,13 @@ import {
 	useOnlineState,
 } from "../../messaging/hooks";
 import { localTimestamp } from "../../messaging/api";
+import { orderListCopy } from "../../orders/list-copy";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import {
 	SalesFrame,
 	SalesHeader,
+	salesFilterPanel,
+	salesTableCard,
 	SalesBusinessSelect,
 	SalesEmpty,
 	SalesPagination,
@@ -413,6 +416,7 @@ function Workspace({
 				<SalesHeader
 					locale={locale}
 					section="payments"
+					description={sellerSalesCopy[locale].paymentsDescription}
 					seller={seller}
 					business={business}
 				/>
@@ -671,7 +675,7 @@ function PaymentList({
 					});
 				}}
 				className={cn(
-					salesPanel,
+					salesFilterPanel,
 					"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,13rem)_auto]",
 				)}
 			>
@@ -725,8 +729,8 @@ function PaymentList({
 					<p className="text-sm text-muted">{s.emptyFiltered}</p>
 				</SalesEmpty>
 			) : (
-				<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
-					<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-4 sm:px-5">
+				<Card className={salesTableCard}>
+					<div className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
 						<h2 className="m-0 flex items-center gap-2 text-base font-semibold">
 							{t.title}
 							<Badge
@@ -755,10 +759,10 @@ function PaymentList({
 						<table className="w-full min-w-[62rem] border-collapse text-start">
 							<caption className="sr-only">{t.title}</caption>
 							<thead>
-								<tr className="bg-page/70">
+								<tr className="bg-transparent">
 									{[
 										sales.invoices,
-										t.title,
+										orderListCopy[locale].customer,
 										s.status,
 										t.total,
 										t.confirmed,
@@ -771,7 +775,7 @@ function PaymentList({
 											key={label}
 											scope="col"
 											className={cn(
-												"border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
+												"border-0 border-b border-solid border-border px-4 py-3 text-start text-xs font-medium text-muted",
 												i === 8 && "text-end",
 											)}
 										>
@@ -788,7 +792,7 @@ function PaymentList({
 								{list.results.map((row) => (
 									<tr
 										key={row.id}
-										className="border-b border-solid border-border last:border-b-0 hover:bg-page/40"
+										className="border-0 border-b border-solid border-border last:border-b-0 hover:bg-transparent"
 									>
 										<td className="px-4 py-4 align-top">
 											<Link
@@ -915,7 +919,7 @@ function RowMenu({
 				<Button
 					variant="ghost"
 					size="icon"
-					aria-label={t.refresh}
+					aria-label={sellerSalesCopy[locale].actions}
 					className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action dark:hover:bg-transparent"
 				>
 					<MoreHorizontal className="size-5" aria-hidden="true" />
@@ -1074,7 +1078,7 @@ function Tabs({
 		<div
 			role="tablist"
 			aria-label={s.overview}
-			className="flex flex-wrap gap-1 border-b border-solid border-border"
+			className="flex flex-wrap gap-1 border-0 border-b border-solid border-border"
 		>
 			{tabs.map(([id, label]) => (
 				<button

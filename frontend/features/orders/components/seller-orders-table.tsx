@@ -34,7 +34,10 @@ import type { Locale } from "../../../lib/i18n/locales";
 import { localTimestamp } from "../../messaging/api";
 import { paymentState } from "../../payments/copy";
 import { fulfilmentState } from "../../fulfilment/copy";
-import { salesHref } from "../../sales/components/seller-sales-ui";
+import {
+	salesHref,
+	salesTableCard,
+} from "../../sales/components/seller-sales-ui";
 import { commerceCopy } from "../copy";
 import { orderListCopy } from "../list-copy";
 import type { Order, OrderLine } from "../api";
@@ -333,8 +336,8 @@ export function SellerOrdersTable({
 		</PaginationLink>
 	);
 	return (
-		<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-none">
-			<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-4 sm:px-5">
+		<Card className={salesTableCard}>
+			<div className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
 				<h2 className="m-0 flex items-center gap-2 text-base font-semibold">
 					{commerceCopy[locale].orders}
 					<Badge
@@ -382,7 +385,7 @@ export function SellerOrdersTable({
 								{commerceCopy[locale].orders}
 							</caption>
 							<thead>
-								<tr className="bg-page/70">
+								<tr className="bg-transparent">
 									{[
 										t.order,
 										t.products,
@@ -394,7 +397,7 @@ export function SellerOrdersTable({
 										<th
 											key={label}
 											scope="col"
-											className={`border-b border-solid border-border px-5 py-3 text-start text-xs font-medium text-muted ${i === 5 ? "text-end" : ""}`}
+											className={`border-0 border-b border-solid border-border px-5 py-3 text-start text-xs font-medium text-muted ${i === 5 ? "text-end" : ""}`}
 										>
 											{i === 5 ? (
 												<span className="sr-only">{label}</span>
@@ -409,7 +412,7 @@ export function SellerOrdersTable({
 								{orders.map((order) => (
 									<tr
 										key={order.id}
-										className="border-b border-solid border-border last:border-b-0 hover:bg-page/40"
+										className="border-0 border-b border-solid border-border last:border-b-0 hover:bg-transparent"
 									>
 										<td className="px-5 py-5 align-top">{identity(order)}</td>
 										<td className="min-w-72 px-5 py-5 align-top">
@@ -436,7 +439,7 @@ export function SellerOrdersTable({
 									{menu(order)}
 								</div>
 								<OrderProducts order={order} locale={locale} />
-								<div className="grid grid-cols-1 gap-3 rounded-xl bg-page p-3 sm:grid-cols-2">
+								<div className="grid grid-cols-1 gap-3 rounded-xl border border-solid border-border bg-transparent p-3 sm:grid-cols-2">
 									{customer(order)}
 									{amount(order)}
 								</div>
@@ -447,7 +450,7 @@ export function SellerOrdersTable({
 				</>
 			)}
 			{count > 0 && (
-				<div className="flex flex-wrap items-center justify-between gap-3 border-t border-solid border-border px-4 py-4 sm:px-5">
+				<div className="flex flex-wrap items-center justify-between gap-3 border-0 border-t border-solid border-border px-4 py-4 sm:px-5">
 					<p className="m-0 text-xs text-muted">
 						{orders.length
 							? t.showing
