@@ -1,5 +1,10 @@
 "use client";
 import Link from "next/link";
+import { Search, RotateCw } from "lucide-react";
+import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import { deliveryListCopy } from "../list-copy";
+import { SellerDeliveryList } from "./seller-delivery-list";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -25,7 +30,6 @@ import {
 	SalesPagination,
 	salesHref,
 	salesAction,
-	salesControl,
 	salesPanel,
 } from "../../sales/components/seller-sales-ui";
 export function FulfilmentWorkspace({
@@ -96,6 +100,7 @@ function DeliveryList({
 		),
 		[searchDraft, setSearchDraft] = useState(search),
 		[error, setError] = useState(false),
+		[revision, setRevision] = useState(0),
 		[denied, setDenied] = useState(false),
 		[profiles, setProfiles] = useState<{ id: string; name: string }[]>([]),
 		[profilePage, setProfilePage] = useState(1),
@@ -150,16 +155,17 @@ function DeliveryList({
 				throw error;
 			}
 		},
-		[context, seller, page, state, search, denied],
+		[context, seller, page, state, search, denied, revision],
 	);
 	if (denied) return <p role="alert">{t.noAccess}</p>;
 	if (context === "seller") {
 		const s = sellerSalesCopy[locale],
+			l = deliveryListCopy[locale],
 			filtered = Boolean(state || search),
 			listFilters = { page: String(page), state, q: search },
 			visibleProfiles =
 				seller && !profiles.some((profile) => profile.id === seller)
-					? [...profiles, { id: seller, name: seller }]
+					? [...profiles, { id: seller, name: s.business }]
 					: profiles;
 		const href = (changes: Record<string, string> = {}) =>
 			salesHref(locale, "fulfilment", seller, undefined, undefined, {
@@ -171,6 +177,7 @@ function DeliveryList({
 				<SalesHeader
 					locale={locale}
 					section="fulfilment"
+					title={l.title}
 					seller={seller}
 					business={
 						<div className="space-y-3">
@@ -196,102 +203,92 @@ function DeliveryList({
 						</div>
 					}
 				/>
-				<p className="text-sm leading-relaxed text-muted">{t.intro}</p>
-				<form
-					className={`${salesPanel} grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,15rem)]`}
-					onSubmit={(event) => {
-						event.preventDefault();
-						router.push(href({ page: "1", q: searchDraft.trim() }));
-					}}
-				>
-					<label className="min-w-0 space-y-2">
-						<span>{t.search}</span>
-						<input
-							type="search"
-							className={salesControl}
-							value={searchDraft}
-							maxLength={100}
-							onChange={(event) => setSearchDraft(event.target.value)}
-						/>
-					</label>
-					<label className="min-w-0 space-y-2">
-						<span>{t.filter}</span>
-						<select
-							className={salesControl}
-							value={state}
-							onChange={(event) =>
-								router.push(href({ page: "1", state: event.target.value }))
-							}
-						>
-							{[
-								["", t.all],
-								["not_dispatched", t.not_dispatched],
-								["dispatched", t.dispatched],
-								["delivered", t.delivered],
-								["blocked", t.blockers],
-							].map(([value, label]) => (
-								<option key={value} value={value}>
-									{label}
-								</option>
-							))}
-						</select>
-					</label>
-					<div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-						<button type="submit" className={salesAction}>
-							{t.search}
-						</button>
+				<section className="min-w-0 space-y-4">
+					<form
+						className="flex flex-wrap items-center gap-2"
+						onSubmit={(event) => {
+							event.preventDefault();
+							router.push(href({ page: "1", q: searchDraft.trim() }));
+						}}
+					>
+						<div className="relative min-w-0 flex-1 sm:max-w-md">
+							<Search
+								className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+								aria-hidden="true"
+							/>
+							<Input
+								type="search"
+								aria-label={l.search}
+								placeholder={l.search}
+								value={searchDraft}
+								maxLength={100}
+								dir="auto"
+								onChange={(event) => setSearchDraft(event.target.value)}
+								className="h-10 rounded-xl bg-surface ps-9"
+							/>
+						</div>
+						<Button type="submit" variant="outline" className="h-10 rounded-xl">
+							{l.searchAction}
+						</Button>
 						{(filtered || searchDraft) && (
-							<button
+							<Button
 								type="button"
-								className={salesAction}
+								variant="ghost"
+								className="h-10 rounded-xl"
 								onClick={() => {
 									setSearchDraft("");
 									router.push(href({ page: "1", state: "", q: "" }));
 								}}
 							>
 								{s.clear}
-							</button>
+							</Button>
 						)}
-						{data && (
-							<p className="text-sm text-muted" role="status">
-								{s.results}:{" "}
-								<bdi className="font-semibold tabular-nums text-foreground">
-									{new Intl.NumberFormat(locale).format(data.count)}
-								</bdi>
-							</p>
-						)}
-					</div>
-				</form>
+					</form>
+					<nav
+						aria-label={l.status}
+						className="flex max-w-full gap-1 overflow-x-auto border-0 border-b border-solid border-border"
+					>
+						{[
+							["", l.all],
+							["not_dispatched", l.pending],
+							["dispatched", l.transit],
+							["delivered", l.delivered],
+							["blocked", l.blocked],
+						].map(([value, label]) => (
+							<Link
+								key={value}
+								href={href({ page: "1", state: value })}
+								aria-current={state === value ? "page" : undefined}
+								className={`shrink-0 border-0 border-b-2 border-solid px-3 py-3 text-sm no-underline focus-visible:outline-2 focus-visible:outline-action ${state === value ? "border-action font-semibold text-action" : "border-transparent text-muted hover:text-foreground"}`}
+							>
+								{label}
+							</Link>
+						))}
+					</nav>
+				</section>
 				{error ? (
-					<p role="alert">{t.error}</p>
+					<section role="alert" className={salesPanel}>
+						<p className="m-0 text-sm">{t.error}</p>
+						<Button
+							variant="outline"
+							onClick={() => setRevision((value) => value + 1)}
+						>
+							<RotateCw className="size-4" aria-hidden="true" />
+							{t.refresh}
+						</Button>
+					</section>
 				) : !data ? (
 					<p role="status">{t.loading}</p>
 				) : data.results.length ? (
-					<ul className="grid min-w-0 gap-4 desktop:grid-cols-2">
-						{data.results.map((row) => (
-							<li key={row.id} className="min-w-0 space-y-3">
-								<DeliverySummary {...{ locale, row }} seller compact />
-								<Link
-									className={salesAction}
-									prefetch={false}
-									href={salesHref(
-										locale,
-										"fulfilment",
-										row.seller,
-										row.id,
-										undefined,
-										listFilters,
-									)}
-								>
-									{s.view} · <bdi>{row.number}</bdi>
-								</Link>
-							</li>
-						))}
-					</ul>
+					<SellerDeliveryList
+						locale={locale}
+						rows={data.results}
+						filters={listFilters}
+					/>
 				) : (
 					<SalesEmpty locale={locale} filtered={filtered} />
 				)}
-				{data && (
+				{data && !error && (
 					<SalesPagination
 						locale={locale}
 						page={page}
