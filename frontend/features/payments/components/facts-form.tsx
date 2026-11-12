@@ -1,5 +1,10 @@
 "use client";
 import { useId, useState } from "react";
+import toast from "react-hot-toast";
+import { Input } from "../../../components/shadcn/input";
+import { Textarea } from "../../../components/shadcn/textarea";
+import { cn } from "../../../lib/shadcn-utils";
+import { sellerPaymentCopy } from "../seller-copy";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Detail, Receipt, Claim } from "../api";
 import { PaymentEvidence } from "./evidence";
@@ -14,8 +19,15 @@ import {
 import {
 	salesAction,
 	salesControl,
-	salesPanel,
 } from "../../sales/components/seller-sales-ui";
+// Normalize user input as a decimal string; never round or use floating point.
+function paymentAmount(raw: string, zero: boolean) {
+	const value = raw.trim();
+	if (!/^(0|[1-9]\d{0,21})(?:\.\d{1,2})?$/.test(value)) return null;
+	const [whole, fraction = ""] = value.split(".");
+	const normalized = `${whole}.${fraction.padEnd(2, "0")}`;
+	return moneyUnits(normalized, zero) === null ? null : normalized;
+}
 export function FactsForm({
 	locale,
 	row,
@@ -47,6 +59,9 @@ export function FactsForm({
 }) {
 	const initial = receipt ?? prior;
 	const errorId = useId(),
+		amountId = useId(),
+		paidId = useId(),
+		fileId = useId(),
 		descriptionId = useId(),
 		reasonId = useId();
 	const t = paymentCopy[locale],
@@ -69,24 +84,37 @@ export function FactsForm({
 	const correction = !!receipt,
 		claim = row.capabilities.claim && !correction,
 		seller = context === "seller",
-		action = seller ? salesAction : defaultAction,
-		control = seller ? salesControl : defaultControl,
-		panel = seller ? salesPanel : defaultPanel;
+		action = seller
+			? cn(salesAction, "min-h-10 rounded-lg shadow-none")
+			: defaultAction,
+		control = seller
+			? cn(
+					salesControl,
+					"min-h-10! h-10 rounded-lg! border-solid text-sm! shadow-none",
+				)
+			: defaultControl,
+		FieldInput = seller ? Input : "input",
+		FieldTextarea = seller ? Textarea : "textarea",
+		panel = seller
+			? "min-w-0 space-y-4 rounded-xl border border-solid border-border bg-surface p-4 shadow-none sm:p-5"
+			: defaultPanel;
 	return (
 		<form
 			className={panel}
 			onChange={onDirty}
 			onSubmit={(e) => {
 				e.preventDefault();
-				const at = actualTime(paidAt);
+				const at = actualTime(paidAt),
+					normalizedAmount = paymentAmount(amount, correction);
 				if (
-					moneyUnits(amount, correction) === null ||
+					normalizedAmount === null ||
 					!at ||
 					!description.trim() ||
 					description.length > 500 ||
 					(correction && reason.trim().length < 3)
 				) {
 					setInvalid(true);
+					toast.error(t.error);
 					return;
 				}
 				onReview(
@@ -94,7 +122,7 @@ export function FactsForm({
 						? `receipts/${receipt.id}/corrections/`
 						: `orders/${row.id}/${claim ? "claims" : "receipts"}/`,
 					{
-						amount,
+						amount: normalizedAmount,
 						currency: row.currency,
 						paid_at: at,
 						description: description.trim(),
@@ -110,13 +138,27 @@ export function FactsForm({
 		>
 			<h3
 				className={
-					seller ? "text-lg font-semibold tracking-tight" : "font-semibold"
+					seller
+						? "m-0 text-base font-semibold tracking-tight"
+						: "font-semibold"
 				}
 			>
-				{correction ? t.correction : claim ? t.claim : t.receipt}
+				{correction
+					? t.correction
+					: claim
+						? t.claim
+						: seller
+							? sellerPaymentCopy[locale].recordPayment
+							: t.receipt}
 			</h3>
-			<p className="text-sm text-muted">
-				{correction ? t.correctionNote : claim ? t.claimNote : t.receiptNote}
+			<p className="m-0 text-sm leading-relaxed text-muted">
+				{correction
+					? t.correctionNote
+					: claim
+						? t.claimNote
+						: seller
+							? sellerPaymentCopy[locale].recordHelp
+							: t.receiptNote}
 			</p>
 			{receipt && (
 				<p>
@@ -133,34 +175,45 @@ export function FactsForm({
 			)}
 			<fieldset
 				disabled={disabled}
-				className={seller ? "grid min-w-0 gap-4 sm:grid-cols-2" : "space-y-3"}
+				className={
+					seller
+						? "m-0 grid min-w-0 gap-4 border-0 p-0 sm:grid-cols-2"
+						: "space-y-3"
+				}
 			>
 				<label
 					className={
 						seller ? "block min-w-0 space-y-2 text-sm font-medium" : "block"
 					}
+					htmlFor={amountId}
 				>
 					{t.amount} <bdi>{row.currency}</bdi>
-					<input
+					<FieldInput
+						id={amountId}
 						required
 						dir="ltr"
 						inputMode="decimal"
 						placeholder="0.00"
-						aria-invalid={invalid && moneyUnits(amount, correction) === null}
+						aria-invalid={invalid && paymentAmount(amount, correction) === null}
 						aria-describedby={invalid ? errorId : undefined}
 						className={control}
 						value={amount}
 						onChange={(e) => setAmount(e.target.value)}
 						maxLength={25}
 					/>
+					<span className="block text-xs font-normal leading-relaxed text-muted">
+						{seller ? sellerPaymentCopy[locale].amountHelp : ""}
+					</span>
 				</label>
 				<label
 					className={
 						seller ? "block min-w-0 space-y-2 text-sm font-medium" : "block"
 					}
+					htmlFor={paidId}
 				>
 					{t.paidAt}
-					<input
+					<FieldInput
+						id={paidId}
 						required
 						type="datetime-local"
 						aria-invalid={invalid && !actualTime(paidAt)}
@@ -172,13 +225,15 @@ export function FactsForm({
 				</label>
 				<div className={seller ? "min-w-0 space-y-2 sm:col-span-2" : "block"}>
 					<label htmlFor={descriptionId}>{t.description}</label>
-					<textarea
+					<FieldTextarea
 						id={descriptionId}
 						required
 						maxLength={500}
 						aria-invalid={invalid && !description.trim()}
 						aria-describedby={invalid ? errorId : undefined}
-						className={control}
+						className={
+							seller ? cn(control, "h-auto min-h-24! resize-y") : control
+						}
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
@@ -186,14 +241,16 @@ export function FactsForm({
 				{correction && (
 					<div className={seller ? "min-w-0 space-y-2 sm:col-span-2" : "block"}>
 						<label htmlFor={reasonId}>{t.reason}</label>
-						<textarea
+						<FieldTextarea
 							id={reasonId}
 							required
 							minLength={3}
 							aria-invalid={invalid && reason.trim().length < 3}
 							aria-describedby={invalid ? errorId : undefined}
 							maxLength={1000}
-							className={control}
+							className={
+								seller ? cn(control, "h-auto min-h-24! resize-y") : control
+							}
 							value={reason}
 							onChange={(e) => setReason(e.target.value)}
 						/>
@@ -205,9 +262,11 @@ export function FactsForm({
 							? "block min-w-0 space-y-2 border-t border-border pt-4 text-sm font-semibold sm:col-span-2"
 							: "block"
 					}
+					htmlFor={fileId}
 				>
 					{t.evidence}
-					<input
+					<FieldInput
+						id={fileId}
 						type="file"
 						accept="image/jpeg,image/png,image/webp"
 						disabled={evidence.length >= 3}
@@ -280,7 +339,12 @@ export function FactsForm({
 					type="submit"
 					data-payment-facts-review
 					className={
-						seller ? `${action} justify-self-start sm:col-span-2` : action
+						seller
+							? cn(
+									action,
+									"justify-self-start border-action bg-action text-white hover:bg-action/90 hover:text-white sm:col-span-2",
+								)
+							: action
 					}
 				>
 					{t.exact}

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
 	FileText,
@@ -45,7 +45,7 @@ import {
 	salesAction,
 	salesControl,
 	salesHref,
-	salesPanel,
+	salesPanel as sharedSalesPanel,
 } from "../../sales/components/seller-sales-ui";
 import { paymentCopy, paymentState, paymentRole } from "../copy";
 import { sellerPaymentCopy } from "../seller-copy";
@@ -72,6 +72,8 @@ import { PaymentEvidence } from "./evidence";
 import toast from "react-hot-toast";
 
 type Tab = "overview" | "claims" | "activity";
+
+const salesPanel = cn(sharedSalesPanel, "rounded-xl border-solid shadow-none");
 
 export function SellerPayments({
 	locale,
@@ -130,6 +132,7 @@ function Workspace({
 	attempt: string | null;
 	scope: string;
 }) {
+	const tabId = useId();
 	const t = paymentCopy[locale],
 		s = sellerPaymentCopy[locale],
 		params = useSearchParams(),
@@ -159,12 +162,34 @@ function Workspace({
 		[formKey, setFormKey] = useState(0),
 		[notice, setNotice] = useState(""),
 		[tab, setTab] = useState<Tab>("overview"),
-		[reload, setReload] = useState(0);
-	const live = useRef<object | null>(null),
+		[reload, setReload] = useState(0),
+		[claimsVisited, setClaimsVisited] = useState(false),
+		[claimsFocus, setClaimsFocus] = useState(0),
+		[focusClaim, setFocusClaim] = useState<string | null>(null);
+	const claimsRef = useRef<HTMLDivElement>(null),
+		live = useRef<object | null>(null),
 		owned = useRef<object | null>(null),
 		opener = useRef<HTMLElement | null>(null);
 	const guard = useCommerceGuard(locale, dirty || !!intent || !!reference),
 		blocked = busy || !!intent || !!reference || denied;
+	function changeTab(next: Tab) {
+		if (next === "claims") setClaimsVisited(true);
+		setTab(next);
+	}
+	useEffect(() => {
+		if (!claimsFocus || tab !== "claims") return;
+		const target = focusClaim
+			? claimsRef.current?.querySelector<HTMLElement>(
+					`[data-payment-claim="${focusClaim}"]`,
+				)
+			: claimsRef.current;
+		target?.scrollIntoView({ block: "start", behavior: "auto" });
+		target
+			?.querySelector<HTMLElement>(
+				"input:not([type=file]):not(:disabled),textarea:not(:disabled),button:not(:disabled)",
+			)
+			?.focus({ preventScroll: true });
+	}, [claimsFocus, tab, focusClaim]);
 	const fail = useCallback(
 		(e: unknown, mine: object) => {
 			if (live.current !== mine) return;
@@ -280,7 +305,7 @@ function Workspace({
 		fail,
 	]);
 	function review(path: string, body: Record<string, unknown>, label: string) {
-		if (blocked || !row) return;
+		if (blocked || !online || !row) return;
 		opener.current = document.activeElement as HTMLElement;
 		setModal({
 			row: structuredClone(row),
@@ -310,7 +335,7 @@ function Workspace({
 		toast.success(s.recorded);
 	}
 	async function send(packet: Intent) {
-		if (owned.current || !live.current) return;
+		if (owned.current || !live.current || !online) return;
 		const mine = live.current,
 			token = {};
 		owned.current = token;
@@ -474,18 +499,26 @@ function Workspace({
 					<header className="min-w-0 space-y-3">
 						<Link
 							href={back}
-							className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-action"
+							className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-muted no-underline hover:text-action"
 						>
 							<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 							{s.backToOrder}
 						</Link>
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 							<div className="min-w-0 space-y-1.5">
-								<h1 className="text-xl font-bold tracking-tight" tabIndex={-1}>
-									{t.title} · <bdi>{row.number}</bdi>
+								<h1
+									className="m-0 text-2xl font-bold tracking-tight"
+									tabIndex={-1}
+								>
+									{t.title}
 								</h1>
 								<p className="m-0 text-sm text-muted">
-									{paymentRole(locale, "buyer")}:{" "}
+									<bdi className="font-medium text-foreground">
+										{row.number}
+									</bdi>
+									<span className="mx-1.5" aria-hidden="true">
+										·
+									</span>
 									<span dir="auto">{row.buyer_name}</span>
 								</p>
 								<div className="flex flex-wrap items-center gap-2 pt-1">
@@ -508,72 +541,106 @@ function Workspace({
 						locale={locale}
 						row={row}
 						seller={seller}
-						onOpenClaims={() => setTab("claims")}
+						disabled={blocked || !online}
+						onOpenClaims={() => {
+							setFocusClaim(
+								row.claims.find((claim) => claim.state === "pending")?.id ??
+									null,
+							);
+							changeTab("claims");
+							setClaimsFocus((value) => value + 1);
+						}}
 					/>
-					<Tabs locale={locale} tab={tab} onChange={setTab} />
+					<Tabs locale={locale} tab={tab} onChange={changeTab} baseId={tabId} />
 					{tab === "overview" && (
-						<Overview
-							locale={locale}
-							row={row}
-							selection={selection}
-							selectionPage={selectionPage}
-							onSelectionPage={setSelectionPage}
-							review={review}
-							blocked={blocked}
-							due={due}
-							setDue={setDue}
-							reason={reason}
-							setReason={setReason}
-							setDirty={setDirty}
-							setError={setError}
-						/>
+						<section
+							role="tabpanel"
+							id={`${tabId}-panel-overview`}
+							aria-labelledby={`${tabId}-tab-overview`}
+						>
+							<Overview
+								locale={locale}
+								row={row}
+								selection={selection}
+								selectionPage={selectionPage}
+								onSelectionPage={setSelectionPage}
+								review={review}
+								blocked={blocked || !online}
+								due={due}
+								setDue={setDue}
+								reason={reason}
+								setReason={setReason}
+								setDirty={setDirty}
+								setError={setError}
+							/>
+						</section>
 					)}
-					{tab === "claims" && (
-						<ClaimsReceipts
-							locale={locale}
-							row={row}
-							blocked={blocked}
-							evidence={evidence}
-							onEvidence={upload}
-							onRemove={(eid) => setEvidence((e) => e.filter((x) => x !== eid))}
-							correction={correction}
-							replacement={replacement}
-							formKey={formKey}
-							reason={reason}
-							setReason={setReason}
-							setDirty={setDirty}
-							review={review}
-							startCorrection={(r) => {
-								setCorrection(r);
-								setReplacement(undefined);
-								setEvidence([]);
-								setFormKey((v) => v + 1);
-							}}
-							cancelDraft={() => {
-								setCorrection(undefined);
-								setReplacement(undefined);
-								setEvidence([]);
-								setDirty(false);
-							}}
-						/>
-					)}
+					<div
+						role="tabpanel"
+						id={`${tabId}-panel-claims`}
+						aria-labelledby={`${tabId}-tab-claims`}
+						hidden={tab !== "claims"}
+						ref={claimsRef}
+						className="scroll-mt-28"
+					>
+						{claimsVisited && (
+							<ClaimsReceipts
+								locale={locale}
+								row={row}
+								blocked={blocked || !online}
+								evidence={evidence}
+								onEvidence={upload}
+								onRemove={(eid) =>
+									setEvidence((e) => e.filter((x) => x !== eid))
+								}
+								correction={correction}
+								replacement={replacement}
+								formKey={formKey}
+								reason={reason}
+								setReason={setReason}
+								setDirty={setDirty}
+								review={review}
+								startCorrection={(r) => {
+									setCorrection(r);
+									setReplacement(undefined);
+									setEvidence([]);
+									setFormKey((v) => v + 1);
+								}}
+								cancelDraft={() => {
+									setCorrection(undefined);
+									setReplacement(undefined);
+									setEvidence([]);
+									setDirty(false);
+								}}
+							/>
+						)}
+					</div>
 					{tab === "activity" && (
-						<Activity
-							locale={locale}
-							row={row}
-							page={page}
-							onPage={(next) =>
-								guard.choose(() =>
-									router.push(paymentHref(locale, "seller", id, seller, next)),
-								)
-							}
-						/>
+						<section
+							role="tabpanel"
+							id={`${tabId}-panel-activity`}
+							aria-labelledby={`${tabId}-tab-activity`}
+						>
+							<Activity
+								locale={locale}
+								row={row}
+								page={page}
+								onPage={(next) =>
+									guard.choose(() =>
+										router.push(
+											paymentHref(locale, "seller", id, seller, next),
+										),
+									)
+								}
+							/>
+						</section>
 					)}
 				</>
 			)}
 			{modal && (
 				<ActionReview
-					{...{ locale, context: "seller" as const, selection, busy }}
+					{...{ locale, context: "seller" as const, selection }}
+					busy={busy || !online}
 					review={modal}
 					opener={opener.current}
 					cancel={() => setModal(null)}
@@ -962,17 +1029,20 @@ function MoneyCards({ locale, row }: { locale: Locale; row: Detail }) {
 		[t.remaining, row.remaining],
 	] as const;
 	return (
-		<section className={salesPanel}>
-			<dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+		<section className="min-w-0 space-y-3">
+			<dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-3">
 				{cards.map(([label, value], i) => (
 					<div
 						key={label}
-						className="min-w-0 rounded-xl border border-border bg-page p-3"
+						className={cn(
+							"min-w-0 rounded-xl border border-solid border-border bg-surface p-4",
+							i === 2 && "col-span-2 sm:col-span-1",
+						)}
 					>
 						<dt className="text-xs text-muted">{label}</dt>
 						<dd
 							className={cn(
-								"mt-1 break-all tabular-nums",
+								"m-0 mt-2 break-all tabular-nums",
 								i === 2 ? "text-xl font-bold" : "text-lg font-semibold",
 							)}
 						>
@@ -1017,11 +1087,13 @@ function PrimaryAction({
 	row,
 	seller,
 	onOpenClaims,
+	disabled,
 }: {
 	locale: Locale;
 	row: Detail;
 	seller: string;
 	onOpenClaims: () => void;
+	disabled: boolean;
 }) {
 	const t = paymentCopy[locale],
 		s = sellerPaymentCopy[locale],
@@ -1038,15 +1110,24 @@ function PrimaryAction({
 			href: invoiceHref(locale, "seller", row.invoice, seller),
 		};
 	return (
-		<section className={cn(salesPanel, "space-y-2")}>
-			<p className="m-0 text-sm font-semibold">{s.nextAction}</p>
+		<section className="flex flex-col gap-3 rounded-xl border border-solid border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="min-w-0 space-y-1">
+				<p className="m-0 text-sm font-semibold">{s.nextAction}</p>
+				<p className="m-0 max-w-xl text-xs leading-relaxed text-muted">
+					{action?.onClick ? s.recordHelp : s.deliverySeparate}
+				</p>
+			</div>
 			{action ? (
 				action.href ? (
 					<Button asChild className="rounded-xl">
 						<Link href={action.href}>{action.label}</Link>
 					</Button>
 				) : (
-					<Button className="rounded-xl" onClick={action.onClick}>
+					<Button
+						className="h-auto min-h-10 w-full shrink-0 rounded-lg px-4 py-2.5 text-sm whitespace-normal shadow-none sm:w-auto"
+						disabled={disabled}
+						onClick={action.onClick}
+					>
 						<Wallet className="size-4" aria-hidden="true" />
 						{action.label}
 					</Button>
@@ -1054,7 +1135,6 @@ function PrimaryAction({
 			) : (
 				<p className="m-0 text-sm text-muted">{t.noAutomatic}</p>
 			)}
-			<p className="m-0 text-xs text-muted">{s.recordHelp}</p>
 		</section>
 	);
 }
@@ -1063,10 +1143,12 @@ function Tabs({
 	locale,
 	tab,
 	onChange,
+	baseId,
 }: {
 	locale: Locale;
 	tab: Tab;
 	onChange: (t: Tab) => void;
+	baseId: string;
 }) {
 	const s = sellerPaymentCopy[locale];
 	const tabs: [Tab, string][] = [
@@ -1078,20 +1160,37 @@ function Tabs({
 		<div
 			role="tablist"
 			aria-label={s.overview}
-			className="flex flex-wrap gap-1 border-0 border-b border-solid border-border"
+			className="flex gap-1 overflow-x-auto border-0 border-b border-solid border-border"
+			onKeyDown={(event) => {
+				const current = tabs.findIndex(([id]) => id === tab);
+				let next = current;
+				if (event.key === "ArrowRight") next += locale === "en" ? 1 : -1;
+				else if (event.key === "ArrowLeft") next += locale === "en" ? -1 : 1;
+				else if (event.key === "Home") next = 0;
+				else if (event.key === "End") next = tabs.length - 1;
+				else return;
+				event.preventDefault();
+				next = (next + tabs.length) % tabs.length;
+				onChange(tabs[next][0]);
+				event.currentTarget
+					.querySelectorAll<HTMLButtonElement>("button")
+					[next]?.focus();
+			}}
 		>
 			{tabs.map(([id, label]) => (
 				<button
 					key={id}
 					type="button"
 					role="tab"
+					id={`${baseId}-tab-${id}`}
+					aria-controls={`${baseId}-panel-${id}`}
 					aria-selected={tab === id}
 					tabIndex={tab === id ? 0 : -1}
 					onClick={() => onChange(id)}
 					className={cn(
-						"-mb-px inline-flex min-h-11 items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2 text-sm font-semibold transition-colors motion-reduce:transition-none",
+						"inline-flex min-h-11 shrink-0 cursor-pointer appearance-none items-center gap-2 border-0 border-b-2 border-solid bg-transparent px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-action motion-reduce:transition-none",
 						tab === id
-							? "border-border bg-surface text-action"
+							? "border-action font-semibold text-action"
 							: "border-transparent bg-transparent text-muted hover:text-foreground",
 					)}
 				>
@@ -1299,7 +1398,7 @@ function ClaimsReceipts({
 	return (
 		<div className="space-y-5">
 			{(row.capabilities.receipt || row.capabilities.claim) && (
-				<section className={salesPanel}>
+				<section className="min-w-0">
 					<FactsForm
 						key={`${formKey}:${correction?.id ?? replacement?.id ?? "new"}`}
 						{...{
@@ -1330,194 +1429,205 @@ function ClaimsReceipts({
 			)}
 			{row.capabilities.details && (
 				<>
-					<section className={salesPanel}>
-						<h3 className="text-sm font-semibold">{t.claims}</h3>
-						{row.claims.length === 0 && (
-							<p className="text-sm text-muted">{s.emptyHelp}</p>
-						)}
-						{row.claims.map((c) => (
-							<article
-								key={c.id}
-								className="space-y-2 rounded-xl border border-border p-3 text-sm"
-							>
-								<p className="m-0 flex flex-wrap items-center gap-2 font-medium">
-									<bdi>
-										{c.amount} {c.currency}
-									</bdi>
-									<Badge
-										variant="secondary"
-										className={cn(
-											"border-0",
-											c.state === "pending"
-												? "bg-warning-surface text-warning"
-												: c.state === "confirmed"
-													? "bg-success-surface text-success"
-													: "bg-page text-muted",
-										)}
-									>
-										{paymentState(locale, c.state)}
-									</Badge>
-									{paymentRole(locale, "buyer")}
-								</p>
-								<p className="m-0 text-muted">
-									<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
-								</p>
-								<p className="m-0 whitespace-pre-wrap break-words">
-									{c.description}
-								</p>
-								{row.capabilities.evidence && (
-									<div className="flex flex-wrap gap-2">
-										{c.evidence.map((e) => (
-											<PaymentEvidence
-												key={e}
-												id={e}
-												{...{ locale, context: "seller" as const }}
-											/>
-										))}
-									</div>
-								)}
-								{c.state === "pending" && (
-									<div className="space-y-2">
-										<p className="m-0 text-xs text-muted">{s.confirmNote}</p>
-										<label className="grid gap-1.5">
-											{t.reason}
-											<textarea
-												className={salesControl}
-												maxLength={1000}
-												disabled={blocked}
-												value={reason}
-												onChange={(e) => {
-													setReason(e.target.value);
-													setDirty(true);
-												}}
-											/>
-										</label>
+					{row.claims.length > 0 && (
+						<section className={salesPanel}>
+							<h3 className="text-sm font-semibold">{t.claims}</h3>
+
+							{row.claims.map((c) => (
+								<article
+									key={c.id}
+									data-payment-claim={c.id}
+									className="space-y-2 rounded-xl border border-border p-3 text-sm"
+								>
+									<p className="m-0 flex flex-wrap items-center gap-2 font-medium">
+										<bdi>
+											{c.amount} {c.currency}
+										</bdi>
+										<Badge
+											variant="secondary"
+											className={cn(
+												"border-0",
+												c.state === "pending"
+													? "bg-warning-surface text-warning"
+													: c.state === "confirmed"
+														? "bg-success-surface text-success"
+														: "bg-page text-muted",
+											)}
+										>
+											{paymentState(locale, c.state)}
+										</Badge>
+										{paymentRole(locale, "buyer")}
+									</p>
+									<p className="m-0 text-muted">
+										<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
+									</p>
+									<p className="m-0 whitespace-pre-wrap break-words">
+										{c.description}
+									</p>
+									{row.capabilities.evidence && (
 										<div className="flex flex-wrap gap-2">
-											{(row.capabilities.receipt
-												? ["confirm", "reject"]
-												: ["withdraw"]
-											).map((a) => (
-												<button
-													key={a}
-													type="button"
-													className={salesAction}
-													disabled={blocked || reason.trim().length < 3}
-													onClick={() =>
-														review(
-															`claims/${c.id}/${a}/`,
-															{
-																claim_version: c.version,
-																reason: reason.trim(),
-															},
-															a === "confirm"
-																? t.confirmClaim
-																: a === "reject"
-																	? t.rejectClaim
-																	: t.withdrawClaim,
-														)
-													}
-												>
-													{a === "confirm"
-														? t.confirmClaim
-														: a === "reject"
-															? t.rejectClaim
-															: t.withdrawClaim}
-												</button>
+											{c.evidence.map((e) => (
+												<PaymentEvidence
+													key={e}
+													id={e}
+													{...{ locale, context: "seller" as const }}
+												/>
 											))}
 										</div>
-									</div>
-								)}
-							</article>
-						))}
-					</section>
-					<section className={salesPanel}>
-						<h3 className="text-sm font-semibold">{t.receipts}</h3>
-						{row.receipts.map((r) => (
-							<article
-								key={r.id}
-								className="space-y-2 rounded-xl border border-border p-3 text-sm"
-							>
-								<p className="m-0">
-									{t.originalAmount}:{" "}
-									<bdi>
-										{r.original_amount} {r.currency}
-									</bdi>{" "}
-									· {t.effectiveAmount}:{" "}
-									<bdi>
-										{r.amount} {r.currency}
-									</bdi>{" "}
-									· v{r.version}
-								</p>
-								<p className="m-0 text-muted">
-									{t.review}: {paymentState(locale, r.review)} ·{" "}
-									{paymentRole(locale, "seller")} ·{" "}
-									<bdi>{localTimestamp(r.paid_at, locale)}</bdi>
-								</p>
-								<p className="m-0 whitespace-pre-wrap break-words">
-									{r.description}
-								</p>
-								{row.capabilities.evidence && (
-									<div className="flex flex-wrap gap-2">
-										{r.evidence.map((e) => (
-											<PaymentEvidence
-												key={e}
-												id={e}
-												{...{ locale, context: "seller" as const }}
-											/>
-										))}
-									</div>
-								)}
-								{row.capabilities.correction && (
-									<button
-										type="button"
-										className={salesAction}
-										disabled={
-											blocked ||
-											row.corrections.some(
-												(c) => c.receipt === r.id && c.state === "open",
-											)
-										}
-										onClick={() => startCorrection(r)}
-									>
-										{t.correction}
-									</button>
-								)}
-							</article>
-						))}
-					</section>
-					<section className={salesPanel}>
-						<h3 className="text-sm font-semibold">{t.corrections}</h3>
-						<p className="m-0 text-xs text-muted">{t.correctionNote}</p>
-						{row.corrections.map((c) => (
-							<article
-								key={c.id}
-								className="space-y-1 rounded-xl border border-border p-3 text-sm"
-							>
-								<p className="m-0 flex flex-wrap items-center gap-2">
-									<bdi>
-										{c.amount} {row.currency}
-									</bdi>
-									<Badge
-										variant="secondary"
-										className={cn(
-											"border-0",
-											c.state === "open"
-												? "bg-warning-surface text-warning"
-												: "bg-page text-muted",
-										)}
-									>
-										{paymentState(locale, c.state)}
-									</Badge>
-								</p>
-								<p className="m-0">{c.reason}</p>
-								<p className="m-0 text-muted">
-									<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
-								</p>
-							</article>
-						))}
-					</section>
+									)}
+									{c.state === "pending" && (
+										<div className="space-y-2">
+											<p className="m-0 text-xs text-muted">{s.confirmNote}</p>
+											<label className="grid gap-1.5">
+												{t.reason}
+												<textarea
+													className={salesControl}
+													maxLength={1000}
+													disabled={blocked}
+													value={reason}
+													onChange={(e) => {
+														setReason(e.target.value);
+														setDirty(true);
+													}}
+												/>
+											</label>
+											<div className="flex flex-wrap gap-2">
+												{(row.capabilities.receipt
+													? ["confirm", "reject"]
+													: ["withdraw"]
+												).map((a) => (
+													<button
+														key={a}
+														type="button"
+														className={salesAction}
+														disabled={blocked || reason.trim().length < 3}
+														onClick={() =>
+															review(
+																`claims/${c.id}/${a}/`,
+																{
+																	claim_version: c.version,
+																	reason: reason.trim(),
+																},
+																a === "confirm"
+																	? t.confirmClaim
+																	: a === "reject"
+																		? t.rejectClaim
+																		: t.withdrawClaim,
+															)
+														}
+													>
+														{a === "confirm"
+															? t.confirmClaim
+															: a === "reject"
+																? t.rejectClaim
+																: t.withdrawClaim}
+													</button>
+												))}
+											</div>
+										</div>
+									)}
+								</article>
+							))}
+						</section>
+					)}
+					{row.receipts.length > 0 && (
+						<section className={salesPanel}>
+							<h3 className="text-sm font-semibold">{t.receipts}</h3>
+							{row.receipts.map((r) => (
+								<article
+									key={r.id}
+									className="space-y-2 rounded-xl border border-border p-3 text-sm"
+								>
+									<p className="m-0">
+										{t.originalAmount}:{" "}
+										<bdi>
+											{r.original_amount} {r.currency}
+										</bdi>{" "}
+										· {t.effectiveAmount}:{" "}
+										<bdi>
+											{r.amount} {r.currency}
+										</bdi>{" "}
+										· v{r.version}
+									</p>
+									<p className="m-0 text-muted">
+										{t.review}: {paymentState(locale, r.review)} ·{" "}
+										{paymentRole(locale, "seller")} ·{" "}
+										<bdi>{localTimestamp(r.paid_at, locale)}</bdi>
+									</p>
+									<p className="m-0 whitespace-pre-wrap break-words">
+										{r.description}
+									</p>
+									{row.capabilities.evidence && (
+										<div className="flex flex-wrap gap-2">
+											{r.evidence.map((e) => (
+												<PaymentEvidence
+													key={e}
+													id={e}
+													{...{ locale, context: "seller" as const }}
+												/>
+											))}
+										</div>
+									)}
+									{row.capabilities.correction && (
+										<button
+											type="button"
+											className={salesAction}
+											disabled={
+												blocked ||
+												row.corrections.some(
+													(c) => c.receipt === r.id && c.state === "open",
+												)
+											}
+											onClick={() => startCorrection(r)}
+										>
+											{t.correction}
+										</button>
+									)}
+								</article>
+							))}
+						</section>
+					)}
+					{row.corrections.length > 0 && (
+						<section className={salesPanel}>
+							<h3 className="text-sm font-semibold">{t.corrections}</h3>
+							<p className="m-0 text-xs text-muted">{t.correctionNote}</p>
+							{row.corrections.map((c) => (
+								<article
+									key={c.id}
+									className="space-y-1 rounded-xl border border-border p-3 text-sm"
+								>
+									<p className="m-0 flex flex-wrap items-center gap-2">
+										<bdi>
+											{c.amount} {row.currency}
+										</bdi>
+										<Badge
+											variant="secondary"
+											className={cn(
+												"border-0",
+												c.state === "open"
+													? "bg-warning-surface text-warning"
+													: "bg-page text-muted",
+											)}
+										>
+											{paymentState(locale, c.state)}
+										</Badge>
+									</p>
+									<p className="m-0">{c.reason}</p>
+									<p className="m-0 text-muted">
+										<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
+									</p>
+								</article>
+							))}
+						</section>
+					)}
 				</>
 			)}
+			{row.capabilities.details &&
+				!row.claims.length &&
+				!row.receipts.length &&
+				!row.corrections.length && (
+					<p className="m-0 text-sm text-muted">{s.emptyRecords}</p>
+				)}
 		</div>
 	);
 }

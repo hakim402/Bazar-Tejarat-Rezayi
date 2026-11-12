@@ -1,4 +1,7 @@
 "use client";
+import { Button } from "../../../components/shadcn/button";
+import { cn } from "../../../lib/shadcn-utils";
+import { salesAction } from "../../sales/components/seller-sales-ui";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Context } from "../../messaging/api";
 import { localTimestamp } from "../../messaging/api";
@@ -34,6 +37,11 @@ export function ActionReview({
 	cancel: () => void;
 	confirm: () => void;
 }) {
+	const ReviewButton = context === "seller" ? Button : "button";
+	const buttonClass =
+		context === "seller"
+			? cn(salesAction, "min-h-10 rounded-lg shadow-none")
+			: action;
 	const t = paymentCopy[locale],
 		body = review.packet.body as Record<string, unknown>,
 		row = review.row,
@@ -62,7 +70,8 @@ export function ActionReview({
 		: [];
 	const path = review.packet.path,
 		addsMoney = /\/receipts\/$/.test(path) || /\/confirm\/$/.test(path),
-		amountUnits = typeof facts.amount === "string" ? moneyUnits(facts.amount) : null,
+		amountUnits =
+			typeof facts.amount === "string" ? moneyUnits(facts.amount) : null,
 		confirmedUnits = moneyUnits(row.confirmed_total, true),
 		remainingUnits = moneyUnits(row.remaining, true),
 		overUnits = moneyUnits(row.overpayment, true),
@@ -73,7 +82,8 @@ export function ActionReview({
 			remainingUnits !== null &&
 			overUnits !== null
 				? (() => {
-						const applied = amountUnits > remainingUnits ? remainingUnits : amountUnits,
+						const applied =
+								amountUnits > remainingUnits ? remainingUnits : amountUnits,
 							fmt = (n: bigint) =>
 								`${n / BigInt(100)}.${String(n % BigInt(100)).padStart(2, "0")}`;
 						return {
@@ -240,17 +250,24 @@ export function ActionReview({
 			</div>
 			<p>{t.receiptNote}</p>
 			<div className="flex flex-wrap gap-3">
-				<button type="button" className={action} onClick={cancel}>
+				<ReviewButton type="button" className={buttonClass} onClick={cancel}>
 					{t.cancel}
-				</button>
-				<button
+				</ReviewButton>
+				<ReviewButton
 					type="button"
-					className={action}
+					className={
+						context === "seller"
+							? cn(
+									buttonClass,
+									"border-action bg-action text-white hover:bg-action/90 hover:text-white",
+								)
+							: action
+					}
 					disabled={busy || staleReceipt}
 					onClick={confirm}
 				>
 					{t.confirm}
-				</button>
+				</ReviewButton>
 			</div>
 		</Confirmation>
 	);

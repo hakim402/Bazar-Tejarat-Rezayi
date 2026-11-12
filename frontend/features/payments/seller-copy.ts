@@ -1,6 +1,8 @@
 import type { Locale } from "../../lib/i18n/locales";
 const copy = {
 	en: {
+		emptyRecords: "No payment records yet.",
+		amountHelp: "Use up to two decimal places, for example 60 or 60.50.",
 		backToOrder: "Back to order",
 		overview: "Overview",
 		claimsReceipts: "Claims & receipts",
@@ -27,6 +29,8 @@ const copy = {
 		noBusiness: "No payable business",
 	},
 	"fa-AF": {
+		emptyRecords: "هنوز پرداختی ثبت نشده است.",
+		amountHelp: "حداکثر دو رقم اعشار وارد کنید؛ مانند 60 یا 60.50.",
 		backToOrder: "بازگشت به سفارش",
 		overview: "نمای کلی",
 		claimsReceipts: "ادعاها و رسیدها",
@@ -53,6 +57,8 @@ const copy = {
 		noBusiness: "کسب‌وکار قابل پرداختی نیست",
 	},
 	ps: {
+		emptyRecords: "تر اوسه تادیه نه ده ثبت شوې.",
+		amountHelp: "تر دوو اعشاري شمېرو پورې ولیکئ، لکه 60 یا 60.50.",
 		backToOrder: "فرمایش ته ستون",
 		overview: "لنډه کتنه",
 		claimsReceipts: "ادعاوې او رسیدونه",
@@ -60,8 +66,7 @@ const copy = {
 		nextAction: "بل عمل",
 		recordPayment: "ترلاسه شوې تادیه ثبتول",
 		reviewClaim: "د پېرودونکي ادعا کتل",
-		recordHelp:
-			"ترلاسه شوې پیسې ثبتوي؛ پیسې نه لېږدوي او سپارنه نه ثبتوي.",
+		recordHelp: "ترلاسه شوې پیسې ثبتوي؛ پیسې نه لېږدوي او سپارنه نه ثبتوي.",
 		deliverySeparate:
 			"یوازې د توکو تادیه. د سپارلو د چمتو کوونکي لګښت جلا دی او په سپارنه کې تصفیېږي.",
 		refundDue: "پېرودونکي ته بېرته تادیه",
@@ -79,6 +84,8 @@ const copy = {
 		noBusiness: "د تادیې وړ سوداګري نشته",
 	},
 	ar: {
+		emptyRecords: "لا توجد سجلات دفع بعد.",
+		amountHelp: "أدخل منزلتين عشريتين كحد أقصى، مثل 60 أو 60.50.",
 		backToOrder: "العودة إلى الطلب",
 		overview: "نظرة عامة",
 		claimsReceipts: "الادعاءات والإيصالات",
@@ -86,14 +93,12 @@ const copy = {
 		nextAction: "الإجراء التالي",
 		recordPayment: "تسجيل دفعة مستلمة",
 		reviewClaim: "مراجعة ادعاء العميل",
-		recordHelp:
-			"يسجل أموالاً استُلمت فعلاً؛ لا يحوّل الأموال ولا يسجل التسليم.",
+		recordHelp: "يسجل أموالاً استُلمت فعلاً؛ لا يحوّل الأموال ولا يسجل التسليم.",
 		deliverySeparate:
 			"خصوص مدفوعات البضائع. رسوم مقدم التوصيل منفصلة وتُسوّى في التوصيل.",
 		refundDue: "مبلغ مستحق للعميل",
 		pendingClaim: "أبلغ العميل عن دفعة — بانتظار قرارك",
-		confirmNote:
-			"التأكيد يسجل مبلغ الادعاء كمستلم ويحدّث رصيد الطلب.",
+		confirmNote: "التأكيد يسجل مبلغ الادعاء كمستلم ويحدّث رصيد الطلب.",
 		openInvoice: "فتح الفاتورة",
 		search: "بحث الفاتورة أو العميل",
 		status: "حالة الدفع",
