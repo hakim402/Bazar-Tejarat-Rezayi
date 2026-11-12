@@ -55,18 +55,18 @@ export function DetailCard({
 	return (
 		<Card
 			className={cn(
-				"gap-0 rounded-2xl border-border bg-surface py-0 shadow-xs",
+				"gap-0 rounded-xl border-solid border-border bg-surface py-0 shadow-none",
 				className,
 			)}
 		>
-			<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-3.5 sm:px-5">
+			<div className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-3.5 sm:px-5">
 				<h2 className="m-0 flex items-center gap-2 text-sm font-semibold">
 					{icon && <Icon name={icon} className="size-4 text-muted" />}
 					{title}
 				</h2>
 				{action}
 			</div>
-			<div className="px-4 py-4 sm:px-5">{children}</div>
+			<div className="space-y-4 px-4 py-4 sm:px-5">{children}</div>
 		</Card>
 	);
 }

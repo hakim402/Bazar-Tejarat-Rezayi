@@ -4,6 +4,7 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import {
 	AlertTriangle,
 	Check,
+	Clock3,
 	ChevronRight,
 	Download,
 	FileText,
@@ -40,6 +41,7 @@ import { salesHref } from "../../sales/components/seller-sales-ui";
 import { commerceCopy } from "../copy";
 import { orderListCopy } from "../list-copy";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
+import { orderViewCopy } from "../view-copy";
 import { orderDetailCopy } from "../detail-copy";
 import { invoiceHref, type Order, type OrderLine } from "../api";
 import { DetailCard, DetailField, Money, ProductThumbnail } from "./order-ui";
@@ -175,7 +177,10 @@ export function SellerOrderDetail({
 						id: "overview",
 						label: t.overview,
 						panel: (
-							<div className="space-y-5">
+							<div className="space-y-4">
+								<p className="m-0 text-sm text-muted">
+									{orderViewCopy[locale].overview}
+								</p>
 								<div className="grid gap-5 lg:grid-cols-3">
 									<ProductsCard
 										order={order}
@@ -195,16 +200,22 @@ export function SellerOrderDetail({
 					},
 					{
 						id: "payment",
-						label: t.paymentInvoice,
+						label: orderViewCopy[locale].paymentsLabel,
 						panel: (
 							<PaymentPanel
 								order={order}
 								locale={locale}
 								seller={seller}
-								canInvoice={canInvoice}
-								busy={busy}
-								onDownload={onDownload}
 								canPayments={can("payments")}
+							/>
+						),
+					},
+					{
+						id: "invoice",
+						label: orderViewCopy[locale].invoiceLabel,
+						panel: (
+							<InvoicePanel
+								{...{ order, locale, seller, canInvoice, busy, onDownload }}
 							/>
 						),
 					},
@@ -262,17 +273,20 @@ function OrderHeader({
 		<header className="min-w-0 space-y-4">
 			<Link
 				href={backHref}
-				className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-action"
+				className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-muted no-underline hover:text-action"
 			>
 				<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 				{t.backToOrders}
 			</Link>
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div className="min-w-0 space-y-2">
-					<h1 className="text-2xl font-bold tracking-tight">
-						{c.orders} · <bdi>{order.number}</bdi>
+					<h1 className="m-0 text-2xl font-bold tracking-tight">
+						{list.order} · <bdi>{order.number}</bdi>
 					</h1>
-					<p className="m-0 text-sm text-muted">
+					<p className="m-0 max-w-xl text-sm leading-relaxed text-muted">
+						{orderViewCopy[locale].subtitle}
+					</p>
+					<p className="m-0 text-xs text-muted">
 						{c.accepted}: <bdi>{localTimestamp(order.accepted_at, locale)}</bdi>
 					</p>
 					<div className="flex flex-wrap items-center gap-2">
@@ -475,7 +489,6 @@ function OrderMenu({
 
 function ProgressCard({ order, locale }: { order: Order; locale: Locale }) {
 	const t = orderDetailCopy[locale],
-		c = commerceCopy[locale],
 		stage = order.dimensions.fulfilment,
 		active =
 			stage === "delivered"
@@ -490,13 +503,10 @@ function ProgressCard({ order, locale }: { order: Order; locale: Locale }) {
 			t.stagePreparation,
 			t.stageDispatch,
 			t.stageDelivered,
-		],
-		paid =
-			order.dimensions.financial === "paid" ||
-			order.dimensions.financial === "overpaid";
+		];
 	return (
 		<DetailCard title={t.progress} icon="shopping-bag">
-			<ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+			<ol className="m-0 grid grid-cols-2 list-none gap-2 p-0 sm:flex sm:flex-wrap sm:items-center">
 				{stages.map((label, i) => {
 					const done = i < active,
 						current = i === active;
@@ -504,7 +514,7 @@ function ProgressCard({ order, locale }: { order: Order; locale: Locale }) {
 						<li key={label} className="flex items-center gap-2">
 							{i > 0 && (
 								<ChevronRight
-									className="size-4 text-muted rtl:rotate-180"
+									className="hidden size-4 text-muted sm:block rtl:rotate-180"
 									aria-hidden="true"
 								/>
 							)}
@@ -542,32 +552,6 @@ function ProgressCard({ order, locale }: { order: Order; locale: Locale }) {
 					);
 				})}
 			</ol>
-			<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-solid border-border pt-3">
-				<Wallet className="size-4 text-muted" aria-hidden="true" />
-				<span className="text-xs font-medium text-muted">
-					{c.method}: {c[order.payment_method]}
-				</span>
-				<Badge
-					variant="secondary"
-					className={cn(
-						"border-0",
-						paid ? "bg-success-surface text-success" : "bg-info text-action",
-					)}
-				>
-					{paymentState(locale, order.dimensions.financial)}
-				</Badge>
-				<span className="text-xs text-muted">
-					{order.payment_method === "advance" ? t.advanceTiming : t.codTiming}
-				</span>
-				{order.payment.overdue && (
-					<Badge
-						variant="secondary"
-						className="border-0 bg-danger-surface text-danger"
-					>
-						{paymentCopy[locale].overdue}
-					</Badge>
-				)}
-			</div>
 		</DetailCard>
 	);
 }
@@ -594,7 +578,7 @@ function ProductsCard({
 					/>
 				))}
 			</div>
-			<div className="mt-4 flex items-center justify-between gap-3 border-t border-solid border-border pt-3">
+			<div className="mt-4 flex items-center justify-between gap-3 border-0 border-t border-solid border-border pt-3">
 				<span className="text-sm font-medium text-muted">{list.total}</span>
 				<Money
 					amount={order.goods_total}
@@ -798,17 +782,11 @@ function PaymentPanel({
 	order,
 	locale,
 	seller,
-	canInvoice,
-	busy,
-	onDownload,
 	canPayments,
 }: {
 	order: Order;
 	locale: Locale;
 	seller: string;
-	canInvoice: boolean;
-	busy: boolean;
-	onDownload: () => void;
 	canPayments: boolean;
 }) {
 	const t = orderDetailCopy[locale],
@@ -818,54 +796,101 @@ function PaymentPanel({
 		zero = (value: string) => value === "0.00" || value === "0";
 	return (
 		<div className="space-y-4">
-			<dl className="m-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				<DetailField label={t.acceptedTotal}>
-					<Money amount={p.accepted_total} currency={order.currency} />
-				</DetailField>
-				<DetailField label={paymentCopy[locale].confirmed}>
-					<Money amount={p.confirmed_total} currency={order.currency} />
-				</DetailField>
-				<DetailField label={paymentCopy[locale].remaining}>
-					<Money amount={p.remaining} currency={order.currency} />
-				</DetailField>
-				{!zero(p.overpayment) && (
-					<DetailField label={paymentCopy[locale].overpayment}>
-						<Money amount={p.overpayment} currency={order.currency} />
+			<p className="m-0 text-sm text-muted">{orderViewCopy[locale].payment}</p>
+			<DetailCard title={t.paymentSummary} icon="wallet">
+				<dl className="m-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					<DetailField label={t.acceptedTotal}>
+						<Money amount={p.accepted_total} currency={order.currency} />
 					</DetailField>
-				)}
-				{!zero(p.refunded) && (
-					<DetailField label={aftercareCopy[locale].refunded}>
-						<Money amount={p.refunded} currency={order.currency} />
+					<DetailField label={paymentCopy[locale].confirmed}>
+						<Money amount={p.confirmed_total} currency={order.currency} />
 					</DetailField>
-				)}
-				{!zero(p.refund_due) && (
-					<DetailField label={aftercareCopy[locale].refundDue}>
-						<Money amount={p.refund_due} currency={order.currency} />
+					<DetailField label={paymentCopy[locale].remaining}>
+						<Money amount={p.remaining} currency={order.currency} />
 					</DetailField>
-				)}
-				<DetailField label={paymentCopy[locale].allocation}>
-					{paymentState(locale, p.allocation)}
-				</DetailField>
-				<DetailField label={c.due}>
-					{p.effective_due_at ? (
-						<bdi>{localTimestamp(p.effective_due_at, locale)}</bdi>
-					) : (
-						list.unknown
+					{!zero(p.overpayment) && (
+						<DetailField label={paymentCopy[locale].overpayment}>
+							<Money amount={p.overpayment} currency={order.currency} />
+						</DetailField>
 					)}
-					{p.overdue && (
-						<Badge
-							variant="secondary"
-							className="ms-2 border-0 bg-danger-surface text-danger"
-						>
-							{paymentCopy[locale].overdue}
-						</Badge>
+					{!zero(p.refunded) && (
+						<DetailField label={aftercareCopy[locale].refunded}>
+							<Money amount={p.refunded} currency={order.currency} />
+						</DetailField>
 					)}
-				</DetailField>
-			</dl>
-			<p className="m-0 text-xs text-muted">
-				{order.payment_method === "advance" ? t.advanceTiming : t.codTiming}
-			</p>
-			<div className="space-y-3 rounded-xl border border-solid border-border bg-page p-3">
+					{!zero(p.refund_due) && (
+						<DetailField label={aftercareCopy[locale].refundDue}>
+							<Money amount={p.refund_due} currency={order.currency} />
+						</DetailField>
+					)}
+					<DetailField label={paymentCopy[locale].allocation}>
+						{paymentState(locale, p.allocation)}
+					</DetailField>
+					<DetailField label={c.due}>
+						{p.effective_due_at ? (
+							<bdi>{localTimestamp(p.effective_due_at, locale)}</bdi>
+						) : (
+							list.unknown
+						)}
+						{p.overdue && (
+							<Badge
+								variant="secondary"
+								className="ms-2 border-0 bg-danger-surface text-danger"
+							>
+								{paymentCopy[locale].overdue}
+							</Badge>
+						)}
+					</DetailField>
+				</dl>
+				<p className="m-0 text-xs text-muted">
+					{order.payment_method === "advance" ? t.advanceTiming : t.codTiming}
+				</p>
+			</DetailCard>
+			{canPayments && (
+				<Button asChild size="sm" className="rounded-lg">
+					<Link href={salesHref(locale, "payments", seller, order.id)}>
+						<Wallet className="size-3.5" aria-hidden="true" />
+						{list.payments}
+					</Link>
+				</Button>
+			)}
+		</div>
+	);
+}
+
+function InvoicePanel({
+	order,
+	locale,
+	seller,
+	canInvoice,
+	busy,
+	onDownload,
+}: {
+	order: Order;
+	locale: Locale;
+	seller: string;
+	canInvoice: boolean;
+	busy: boolean;
+	onDownload: () => void;
+}) {
+	const t = orderDetailCopy[locale],
+		list = orderListCopy[locale],
+		c = commerceCopy[locale];
+	return (
+		<div className="space-y-4">
+			<p className="m-0 text-sm text-muted">{orderViewCopy[locale].invoice}</p>
+			<DetailCard title={orderViewCopy[locale].invoiceLabel} icon="file">
+				<dl className="m-0 mb-4 grid gap-4 sm:grid-cols-3">
+					<DetailField label={orderViewCopy[locale].invoiceNumber}>
+						<bdi>{order.number}</bdi>
+					</DetailField>
+					<DetailField label={c.issued}>
+						<bdi>{localTimestamp(order.issued_at, locale)}</bdi>
+					</DetailField>
+					<DetailField label={list.total}>
+						<Money amount={order.goods_total} currency={order.currency} />
+					</DetailField>
+				</dl>
 				<p className="m-0 text-xs text-muted">{t.invoiceHelp}</p>
 				{canInvoice ? (
 					<div className="flex flex-wrap gap-2">
@@ -895,15 +920,7 @@ function PaymentPanel({
 				) : (
 					<p className="m-0 text-xs text-muted">{t.noInvoice}</p>
 				)}
-			</div>
-			{canPayments && (
-				<Button asChild variant="outline" size="sm" className="rounded-lg">
-					<Link href={salesHref(locale, "payments", seller, order.id)}>
-						<Wallet className="size-3.5" aria-hidden="true" />
-						{list.payments}
-					</Link>
-				</Button>
-			)}
+			</DetailCard>
 		</div>
 	);
 }
@@ -919,10 +936,34 @@ function ActivityPanel({
 	seller: string;
 	can: (route: string) => boolean;
 }) {
-	const t = orderDetailCopy[locale];
+	const t = orderDetailCopy[locale],
+		[issuesOpened, setIssuesOpened] = useState(false);
 	return (
 		<div className="space-y-4">
-			<p className="m-0 text-xs text-muted">{t.activityHelp}</p>
+			<p className="m-0 text-sm text-muted">{orderViewCopy[locale].activity}</p>
+			<DetailCard title={t.activity} icon="history">
+				<ol className="m-0 list-none p-0">
+					{[
+						{
+							id: "accepted",
+							label: commerceCopy[locale].accepted,
+							at: order.accepted_at,
+						},
+					].map((event) => (
+						<li key={event.id} className="flex items-start gap-3">
+							<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info text-action">
+								<Clock3 className="size-4" aria-hidden="true" />
+							</span>
+							<div className="space-y-1">
+								<p className="m-0 text-sm font-medium">{event.label}</p>
+								<time dateTime={event.at} className="text-xs text-muted">
+									<bdi>{localTimestamp(event.at, locale)}</bdi>
+								</time>
+							</div>
+						</li>
+					))}
+				</ol>
+			</DetailCard>
 			<nav aria-label={t.activity} className="flex flex-wrap gap-2">
 				{can("payments") && (
 					<Button asChild variant="outline" size="sm" className="rounded-lg">
@@ -949,13 +990,31 @@ function ActivityPanel({
 					</Button>
 				)}
 			</nav>
-			<AftercareSection
-				interactive
-				locale={locale}
-				context="seller"
-				orderId={order.id}
-				seller={seller}
-			/>
+			<details
+				onToggle={(event) => {
+					if (event.currentTarget.open) setIssuesOpened(true);
+				}}
+				className="group/issues rounded-xl border border-solid border-border bg-surface p-4"
+			>
+				<summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+					<span>{orderViewCopy[locale].issues}</span>
+					<ChevronRight
+						className="size-4 text-muted group-open/issues:rotate-90"
+						aria-hidden="true"
+					/>
+				</summary>
+				<div className="mt-4">
+					{issuesOpened && (
+						<AftercareSection
+							interactive
+							locale={locale}
+							context="seller"
+							orderId={order.id}
+							seller={seller}
+						/>
+					)}
+				</div>
+			</details>
 		</div>
 	);
 }
@@ -970,9 +1029,14 @@ function DetailTabs({
 	tabs: { id: string; label: string; panel: ReactNode }[];
 }) {
 	const [active, setActive] = useState(0),
+		[visited, setVisited] = useState(() => new Set([0])),
 		refs = useRef<(HTMLButtonElement | null)[]>([]),
 		baseId = useId(),
 		rtl = locale !== "en";
+	function activate(index: number) {
+		setActive(index);
+		setVisited((previous) => new Set([...previous, index]));
+	}
 	function onKeyDown(event: React.KeyboardEvent) {
 		let next = active;
 		if (event.key === "ArrowRight") next = rtl ? active - 1 : active + 1;
@@ -982,7 +1046,7 @@ function DetailTabs({
 		else return;
 		event.preventDefault();
 		next = (next + tabs.length) % tabs.length;
-		setActive(next);
+		activate(next);
 		refs.current[next]?.focus();
 	}
 	return (
@@ -991,7 +1055,7 @@ function DetailTabs({
 				role="tablist"
 				aria-label={label}
 				onKeyDown={onKeyDown}
-				className="flex flex-wrap gap-1 border-b border-solid border-border"
+				className="flex gap-1 overflow-x-auto border-0 border-b border-solid border-border"
 			>
 				{tabs.map((tab, i) => (
 					<button
@@ -1005,11 +1069,11 @@ function DetailTabs({
 						aria-selected={active === i}
 						aria-controls={`${baseId}-panel-${i}`}
 						tabIndex={active === i ? 0 : -1}
-						onClick={() => setActive(i)}
+						onClick={() => activate(i)}
 						className={cn(
-							"-mb-px inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none",
+							"inline-flex min-h-11 shrink-0 cursor-pointer appearance-none items-center gap-2 border-0 border-b-2 border-solid bg-transparent px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-action motion-reduce:transition-none",
 							active === i
-								? "border-border bg-surface text-action"
+								? "border-action font-semibold text-action"
 								: "border-transparent bg-transparent text-muted hover:text-foreground",
 						)}
 					>
@@ -1026,9 +1090,9 @@ function DetailTabs({
 					hidden={active !== i}
 					// biome-ignore lint/a11y/noNoninteractiveTabindex: Named tab panels support focus for keyboard navigation.
 					tabIndex={0}
-					className="min-w-0 rounded-b-2xl border border-t-0 border-border bg-surface p-4 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action sm:p-6"
+					className="min-w-0 pt-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
 				>
-					{active === i ? tab.panel : null}
+					{visited.has(i) ? tab.panel : null}
 				</div>
 			))}
 		</div>
