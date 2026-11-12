@@ -333,7 +333,7 @@ export function SellerOrdersTable({
 		</PaginationLink>
 	);
 	return (
-		<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-xs">
+		<Card className="gap-0 overflow-hidden rounded-2xl border-border bg-surface py-0 shadow-none">
 			<div className="flex items-center justify-between gap-3 border-b border-solid border-border px-4 py-4 sm:px-5">
 				<h2 className="m-0 flex items-center gap-2 text-base font-semibold">
 					{commerceCopy[locale].orders}

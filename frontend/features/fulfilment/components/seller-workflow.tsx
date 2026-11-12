@@ -413,9 +413,13 @@ export function SellerFulfilment({
 				next={next}
 			/>
 
-			<details className="rounded-2xl border border-border bg-surface shadow-xs">
-				<summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold sm:px-5">
-					{w.activity}
+			<details className="group/activity rounded-xl border border-solid border-border bg-surface shadow-none">
+				<summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-action [&::-webkit-details-marker]:hidden">
+					<span>{w.activity}</span>
+					<ChevronRight
+						className="size-4 text-muted transition-transform group-open/activity:rotate-90 motion-reduce:transition-none rtl:rotate-180"
+						aria-hidden="true"
+					/>
 				</summary>
 				<div className="px-4 pb-4 sm:px-5">
 					<DeliveryHistory

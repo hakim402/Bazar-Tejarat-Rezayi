@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { cn } from "../../../lib/shadcn-utils";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Context, DisplayLine, StockOptions } from "../types";
 import { fulfilment } from "../api";
@@ -39,8 +40,17 @@ export function StockSelection({
 	change: (lines: DisplayLine[]) => void;
 }) {
 	const t = fulfilmentCopy[locale],
-		action = context === "seller" ? salesAction : buyerAction,
-		control = context === "seller" ? salesControl : buyerControl,
+		action =
+			context === "seller"
+				? cn(salesAction, "min-h-10 rounded-lg text-sm shadow-none")
+				: buyerAction,
+		control =
+			context === "seller"
+				? cn(
+						salesControl,
+						"h-10 min-h-10 rounded-lg border-solid text-sm shadow-none",
+					)
+				: buyerControl,
 		[options, setOptions] = useState<StockOptions | null>(null),
 		[query, setQuery] = useState(""),
 		[page, setPage] = useState(1),
@@ -73,7 +83,10 @@ export function StockSelection({
 	for (const row of options?.results ?? []) choices.set(row.bucket, row);
 
 	const demand = useMemo(() => {
-		const map = new Map<string, { required: bigint; unit: string; sku: string }>();
+		const map = new Map<
+			string,
+			{ required: bigint; unit: string; sku: string }
+		>();
 		for (const row of options?.results ?? []) {
 			const required = units(row.required);
 			if (required > BigInt(0) && !map.has(row.variant))
@@ -88,7 +101,10 @@ export function StockSelection({
 	const selectedTotals = useMemo(() => {
 		const map = new Map<string, bigint>();
 		for (const line of lines)
-			map.set(line.variant, (map.get(line.variant) ?? BigInt(0)) + units(line.quantity));
+			map.set(
+				line.variant,
+				(map.get(line.variant) ?? BigInt(0)) + units(line.quantity),
+			);
 		return map;
 	}, [lines]);
 	const availableTotals = useMemo(() => {
@@ -143,10 +159,17 @@ export function StockSelection({
 		change(next);
 	}
 	return (
-		<fieldset disabled={disabled} className="space-y-4">
+		<fieldset
+			disabled={disabled}
+			className={
+				context === "seller"
+					? "m-0 min-w-0 space-y-4 rounded-xl border border-solid border-border p-4 text-sm [&_label]:space-y-1.5"
+					: "space-y-4"
+			}
+		>
 			<legend className="font-bold">{t.selection}</legend>
 			<p>{t.stockNote}</p>
-			<ul className="m-0 space-y-2 p-0">
+			<ul className="m-0 list-none space-y-2 p-0">
 				{[...demand].map(([variant, value]) => (
 					<li key={variant} className="text-sm">
 						<bdi>{value.sku}</bdi>
@@ -161,16 +184,12 @@ export function StockSelection({
 							·
 						</span>
 						{t.selected}{" "}
-						<bdi>
-							{fmtUnits(selectedTotals.get(variant) ?? BigInt(0))}
-						</bdi>
+						<bdi>{fmtUnits(selectedTotals.get(variant) ?? BigInt(0))}</bdi>
 						<span className="mx-1.5" aria-hidden="true">
 							·
 						</span>
 						{t.available}{" "}
-						<bdi>
-							{fmtUnits(availableTotals.get(variant) ?? BigInt(0))}
-						</bdi>
+						<bdi>{fmtUnits(availableTotals.get(variant) ?? BigInt(0))}</bdi>
 					</li>
 				))}
 			</ul>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Clock3 } from "lucide-react";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Context, Detail } from "../types";
 import { fulfilmentCopy, fulfilmentState } from "../copy";
@@ -13,7 +14,6 @@ import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import type { QueryReader } from "../../../lib/routes/account-routes";
 import {
 	salesAction,
-	salesPanel,
 	salesHistoryHref,
 } from "../../sales/components/seller-sales-ui";
 import { DeliveryEvidence } from "./evidence";
@@ -39,7 +39,9 @@ export function DeliveryHistory({
 		s = sellerSalesCopy[locale],
 		isSeller = context === "seller",
 		action = isSeller ? salesAction : buyerAction,
-		panel = isSeller ? salesPanel : buyerPanel;
+		panel = isSeller
+			? "min-w-0 space-y-3 rounded-xl border border-solid border-border bg-surface p-4 shadow-none [&_h2]:m-0 [&_h2]:text-sm [&_h2]:font-semibold [&_p]:m-0 [&_p]:text-sm [&_article]:text-sm [&_article]:leading-relaxed"
+			: buyerPanel;
 	const historyHref = (next: number) => {
 		const href = fulfilmentHref(locale, context, row.id, seller, next);
 		return isSeller && returnParams
@@ -64,8 +66,10 @@ export function DeliveryHistory({
 		completed: t.completed,
 	};
 	return (
-		<>
-			{isSeller && !embedded && <h2 className="text-lg font-semibold">{s.history}</h2>}
+		<div className={isSeller ? "space-y-4" : undefined}>
+			{isSeller && !embedded && (
+				<h2 className="text-lg font-semibold">{s.history}</h2>
+			)}
 			{row.proposals.length > 0 && (
 				<section className={panel}>
 					<h2 className="text-xl font-bold">{t.proposeCharge}</h2>
@@ -128,124 +132,177 @@ export function DeliveryHistory({
 				)}
 			{row.capabilities.financial_details && (
 				<>
-					<section className={panel}>
-						<h2 className="text-xl font-bold">{t.claims}</h2>
-						<p>{t.claimNote}</p>
-						{row.claims.map((claim) => (
-							<article
-								key={claim.id}
-								className="space-y-2 rounded-control border border-border p-3"
-							>
-								<p>
-									<bdi>
-										{claim.amount} {claim.currency}
-									</bdi>{" "}
-									· {fulfilmentState(locale, claim.state)}
-								</p>
-								<p>
-									<bdi>{localTimestamp(claim.paid_at, locale)}</bdi>
-								</p>
-								<p className="break-words whitespace-pre-wrap">
-									{claim.description}
-								</p>
-								{row.capabilities.evidence && (
-									<div className="flex flex-wrap gap-3">
-										{claim.evidence.map((id) => (
-											<DeliveryEvidence key={id} {...{ id, context, locale }} />
-										))}
-									</div>
-								)}
-							</article>
-						))}
-					</section>
-					<section className={panel}>
-						<h2 className="text-xl font-bold">{t.receipts}</h2>
-						{row.receipts.map((receipt) => (
-							<article
-								key={receipt.id}
-								className="space-y-2 rounded-control border border-border p-3"
-							>
-								<p>
-									{t.effectiveAmount}:{" "}
-									<bdi>
-										{receipt.amount} {row.currency}
-									</bdi>{" "}
-									· v{receipt.version}
-								</p>
-								<p>
-									{t.originalAmount}:{" "}
-									<bdi>
-										{receipt.original_amount} {row.currency}
-									</bdi>
-								</p>
-								<p>
-									<bdi>{localTimestamp(receipt.paid_at, locale)}</bdi>
-								</p>
-								<p className="break-words whitespace-pre-wrap">
-									{receipt.description}
-								</p>
-							</article>
-						))}
-					</section>
-					<section className={panel}>
-						<h2 className="text-xl font-bold">{t.corrections}</h2>
-						{row.corrections.map((correction) => (
-							<article key={correction.id} className="space-y-2">
-								<p>
-									<bdi>
-										{correction.amount} {row.currency}
-									</bdi>{" "}
-									· {fulfilmentState(locale, correction.state)} ·{" "}
-									{correction.reason}
-								</p>
-								{row.capabilities.evidence && (
-									<div className="flex flex-wrap gap-3">
-										{correction.evidence.map((id) => (
-											<DeliveryEvidence key={id} {...{ id, context, locale }} />
-										))}
-									</div>
-								)}
-							</article>
-						))}
-					</section>
+					{(!isSeller || row.claims.length > 0) && (
+						<section className={panel}>
+							<h2 className="text-xl font-bold">{t.claims}</h2>
+							<p>{t.claimNote}</p>
+							{row.claims.map((claim) => (
+								<article
+									key={claim.id}
+									className="space-y-2 rounded-control border border-border p-3"
+								>
+									<p>
+										<bdi>
+											{claim.amount} {claim.currency}
+										</bdi>{" "}
+										· {fulfilmentState(locale, claim.state)}
+									</p>
+									<p>
+										<bdi>{localTimestamp(claim.paid_at, locale)}</bdi>
+									</p>
+									<p className="break-words whitespace-pre-wrap">
+										{claim.description}
+									</p>
+									{row.capabilities.evidence && (
+										<div className="flex flex-wrap gap-3">
+											{claim.evidence.map((id) => (
+												<DeliveryEvidence
+													key={id}
+													{...{ id, context, locale }}
+												/>
+											))}
+										</div>
+									)}
+								</article>
+							))}
+						</section>
+					)}
+					{(!isSeller || row.receipts.length > 0) && (
+						<section className={panel}>
+							<h2 className="text-xl font-bold">{t.receipts}</h2>
+							{row.receipts.map((receipt) => (
+								<article
+									key={receipt.id}
+									className="space-y-2 rounded-control border border-border p-3"
+								>
+									<p>
+										{t.effectiveAmount}:{" "}
+										<bdi>
+											{receipt.amount} {row.currency}
+										</bdi>{" "}
+										· v{receipt.version}
+									</p>
+									<p>
+										{t.originalAmount}:{" "}
+										<bdi>
+											{receipt.original_amount} {row.currency}
+										</bdi>
+									</p>
+									<p>
+										<bdi>{localTimestamp(receipt.paid_at, locale)}</bdi>
+									</p>
+									<p className="break-words whitespace-pre-wrap">
+										{receipt.description}
+									</p>
+								</article>
+							))}
+						</section>
+					)}
+					{(!isSeller || row.corrections.length > 0) && (
+						<section className={panel}>
+							<h2 className="text-xl font-bold">{t.corrections}</h2>
+							{row.corrections.map((correction) => (
+								<article key={correction.id} className="space-y-2">
+									<p>
+										<bdi>
+											{correction.amount} {row.currency}
+										</bdi>{" "}
+										· {fulfilmentState(locale, correction.state)} ·{" "}
+										{correction.reason}
+									</p>
+									{row.capabilities.evidence && (
+										<div className="flex flex-wrap gap-3">
+											{correction.evidence.map((id) => (
+												<DeliveryEvidence
+													key={id}
+													{...{ id, context, locale }}
+												/>
+											))}
+										</div>
+									)}
+								</article>
+							))}
+						</section>
+					)}
 				</>
 			)}
-			<section className={panel}>
-				<h2 className="text-xl font-bold">{t.tracking}</h2>
-				{row.tracking.map((tracking) => (
-					<article key={tracking.id}>
+			{(!isSeller || row.tracking.length > 0 || row.delivery) && (
+				<section className={panel}>
+					<h2 className="text-xl font-bold">{t.tracking}</h2>
+					{row.tracking.map((tracking) => (
+						<article key={tracking.id}>
+							<p>
+								<bdi>{tracking.reference}</bdi> ·{" "}
+								<bdi>{localTimestamp(tracking.occurred_at, locale)}</bdi> ·{" "}
+								{fulfilmentState(locale, tracking.source)}
+							</p>
+							<p>{tracking.reason}</p>
+						</article>
+					))}
+					{row.delivery && (
 						<p>
-							<bdi>{tracking.reference}</bdi> ·{" "}
-							<bdi>{localTimestamp(tracking.occurred_at, locale)}</bdi> ·{" "}
-							{fulfilmentState(locale, tracking.source)}
+							{t.actualDelivery}: {fulfilmentState(locale, row.delivery.source)}{" "}
+							· <bdi>{localTimestamp(row.delivery.occurred_at, locale)}</bdi> ·{" "}
+							{row.delivery.reason}
 						</p>
-						<p>{tracking.reason}</p>
-					</article>
-				))}
-				{row.delivery && (
-					<p>
-						{t.actualDelivery}: {fulfilmentState(locale, row.delivery.source)} ·{" "}
-						<bdi>{localTimestamp(row.delivery.occurred_at, locale)}</bdi> ·{" "}
-						{row.delivery.reason}
-					</p>
+					)}
+				</section>
+			)}
+			<section className={isSeller && embedded ? "space-y-3" : panel}>
+				{(!isSeller || !embedded) && (
+					<h2 className="text-xl font-bold">{t.history}</h2>
 				)}
-			</section>
-			<section className={panel}>
-				<h2 className="text-xl font-bold">{t.history}</h2>
 				{isSeller && (
-					<p className="text-sm text-muted">
+					<p className="m-0 text-xs text-muted">
 						{s.results}:{" "}
 						<bdi>{new Intl.NumberFormat(locale).format(row.history_count)}</bdi>{" "}
 						· {s.page} <bdi>{new Intl.NumberFormat(locale).format(page)}</bdi>
 					</p>
 				)}
-				{row.history.map((event) => (
-					<p key={event.id}>
-						<bdi>v{event.version}</bdi> · {events[event.action] ?? t.review} ·{" "}
-						{fulfilmentState(locale, event.context)} ·{" "}
-						<bdi>{localTimestamp(event.created_at, locale)}</bdi>
-					</p>
-				))}
+				{isSeller ? (
+					row.history.length ? (
+						<ol className="m-0 list-none p-0">
+							{row.history.map((event, index) => (
+								<li
+									key={event.id}
+									className="relative flex gap-3 pb-5 last:pb-0"
+								>
+									{index < row.history.length - 1 && (
+										<span
+											aria-hidden="true"
+											className="absolute start-3.5 top-7 bottom-0 w-px bg-border"
+										/>
+									)}
+									<span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-info text-action">
+										<Clock3 className="size-3.5" aria-hidden="true" />
+									</span>
+									<div className="min-w-0 flex-1 space-y-1 pt-0.5">
+										<p className="font-medium text-foreground">
+											{events[event.action] ?? t.review}
+										</p>
+										<div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted">
+											<time dateTime={event.created_at}>
+												<bdi>{localTimestamp(event.created_at, locale)}</bdi>
+											</time>
+											<span aria-hidden="true">·</span>
+											<span>{fulfilmentState(locale, event.context)}</span>
+										</div>
+									</div>
+								</li>
+							))}
+						</ol>
+					) : (
+						<p className="text-muted">{s.empty}</p>
+					)
+				) : (
+					row.history.map((event) => (
+						<p key={event.id}>
+							<bdi>v{event.version}</bdi> · {events[event.action] ?? t.review} ·{" "}
+							{fulfilmentState(locale, event.context)} ·{" "}
+							<bdi>{localTimestamp(event.created_at, locale)}</bdi>
+						</p>
+					))
+				)}
 				<div className="flex flex-wrap gap-3">
 					{page > 1 && (
 						<Link className={action} href={historyHref(page - 1)}>
@@ -259,6 +316,6 @@ export function DeliveryHistory({
 					)}
 				</div>
 			</section>
-		</>
+		</div>
 	);
 }

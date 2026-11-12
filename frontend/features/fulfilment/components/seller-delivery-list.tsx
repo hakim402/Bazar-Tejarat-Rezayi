@@ -93,7 +93,7 @@ export function SellerDeliveryList({
 						return (
 							<tr
 								key={row.id}
-								className="grid grid-cols-2 rounded-xl border border-solid border-border bg-surface shadow-xs lg:table-row lg:rounded-none lg:border-0 lg:border-b lg:shadow-none"
+								className="grid grid-cols-2 rounded-xl border border-solid border-border bg-surface shadow-none lg:table-row lg:rounded-none lg:border-0 lg:border-b lg:shadow-none"
 							>
 								<td
 									className={cn(
