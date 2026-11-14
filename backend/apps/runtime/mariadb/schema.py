@@ -129,6 +129,13 @@ def ready():
             return False
         # The marker alone cannot bless a partial DDL upgrade or missing guard.
         verify(record=False)
+        from .content_schema import verify as verify_content
+        required = {("site", "0002_contentpage_contentpagelocale"), ("site", "0003_contentpagelocale_cta_label_and_more"), ("catalogue", "0002_category_icon_category_image")}
+        applied = set(MigrationRecorder(connection).migration_qs.values_list("app", "name"))
+        if not required.issubset(applied):
+            return False
+        with connection.cursor() as cursor:
+            verify_content(cursor)
         return True
     except (DatabaseError, RuntimeError, OSError, ValueError):
         return False
@@ -175,7 +182,7 @@ def verify(*, record=True, version=5):
         Schema.objects.filter(pk=1).update(verified_at=timezone.now())
 
 
-def structural_inventory(cursor):
+def structural_inventory(cursor, *, include_content=False):
     queries = {
         "tables": "SELECT TABLE_NAME,ENGINE,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' AND TABLE_NAME<>'bazar_owned_run' ORDER BY TABLE_NAME",
         "indexes": "SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,SUB_PART FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME<>'bazar_owned_run' ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX",
@@ -185,5 +192,9 @@ def structural_inventory(cursor):
     result = {}
     for name, query in queries.items():
         cursor.execute(query)
-        result[name] = [list(row) for row in cursor.fetchall()]
+        rows = [list(row) for row in cursor.fetchall()]
+        if not include_content:
+            from .content_schema import financial_rows
+            rows = financial_rows(name, rows)
+        result[name] = rows
     return result
