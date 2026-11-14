@@ -2,6 +2,7 @@
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
+from unfold.widgets import UnfoldAdminPasswordToggleWidget
 
 from .copy import COPY as ADMIN_COPY
 from ..models import Account, User
@@ -38,6 +39,16 @@ class AddIdentityForm(StaffProvisioningFormMixin, UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ["email", "display_name", "is_staff", "is_superuser", "groups"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # UserCreationForm hardcodes Django's bare AdminPasswordWidget, which Unfold's
+        # model-field widget overrides never reach, leaving the inputs borderless.
+        # Swap in Unfold's styled toggle widget so they match the other fields.
+        for name in ("password1", "password2"):
+            field = self.fields.get(name)
+            if field is not None:
+                field.widget = UnfoldAdminPasswordToggleWidget(attrs=field.widget.attrs)
 
 
 class ChangeIdentityForm(StaffProvisioningFormMixin, UserChangeForm):

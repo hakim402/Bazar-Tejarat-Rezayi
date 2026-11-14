@@ -3,15 +3,21 @@
 {% block content %}
 {% get_current_language as lang %}
 <div class="flex min-w-0 flex-col gap-6 pb-8 {{ rz_theme.text }}" data-testid="owner-dashboard">
-  <header class="flex flex-wrap items-center justify-between gap-3">
-    <p class="text-sm {{ rz_theme.muted }}">{{ admin_copy.overview_body }}</p>
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex min-w-0 items-start gap-3">
+      <span class="{{ rz_theme.icon_tile }} h-10 w-10"><span data-admin-icon class="material-symbols-outlined text-xl" aria-hidden="true">space_dashboard</span></span>
+      <div class="min-w-0">
+        <h2 class="{{ rz_theme.section_title }} text-lg">{{ admin_copy.workspace }}</h2>
+        <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.overview_body }}</p>
+      </div>
+    </div>
     <div class="flex flex-wrap items-center gap-3">
       <span class="inline-flex items-center gap-2 text-xs {{ rz_theme.muted }}"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">calendar_month</span><span dir="ltr">{% now 'M j, Y' %}</span></span>
       <a href="{{ frontend_url }}" class="inline-flex items-center gap-2 rounded-md border {{ rz_theme.divider }} bg-white px-3 py-2 text-sm font-medium {{ rz_theme.action }} transition-colors hover:border-primary-400 dark:bg-base-900"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>{{ admin_copy.open_marketplace }}</a>
     </div>
   </header>
 
-  <section aria-label="{% translate 'Commerce overview' %}" class="grid grid-cols-1 gap-4 md:grid-cols-3">
+  <section aria-label="{{ admin_copy.workspace }}" class="grid grid-cols-1 gap-4 md:grid-cols-3">
     {% for metric in metrics %}{% include 'accounts/admin/includes/kpi_card.html' with metric=metric %}{% endfor %}
   </section>
 
@@ -153,53 +159,32 @@
     </div>
   </section>
 
-  <section aria-labelledby="shortcuts-heading" class="flex flex-col gap-3">
-    <div>
-      <h2 id="shortcuts-heading" class="{{ rz_theme.section_title }}">{{ admin_copy.shortcuts }}</h2>
-      <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.shortcuts_body }}</p>
-    </div>
-    <ul class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {% for shortcut in shortcuts %}
-        <li><a href="{{ shortcut.url }}" class="group flex h-full min-w-0 items-start gap-3 p-4 {{ rz_theme.card }} {{ rz_theme.card_hover }}">
-          <span class="{{ rz_theme.icon_tile }} h-10 w-10"><span data-admin-icon class="material-symbols-outlined text-xl" aria-hidden="true">{{ shortcut.icon }}</span></span>
-          <span class="min-w-0 flex-1">
-            <span class="block text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ shortcut.label }}</span>
-            <span class="mt-0.5 block text-xs leading-5 {{ rz_theme.muted }}">{{ shortcut.description }}</span>
-          </span>
-          <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }} group-hover:text-primary-600" aria-hidden="true">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
-        </a></li>
-      {% endfor %}
-      <li><a href="{% url 'admin:accounts_account_changelist' %}?context__exact=staff" class="group flex h-full min-w-0 items-start gap-3 p-4 {{ rz_theme.card }} {{ rz_theme.card_hover }}">
-        <span class="{{ rz_theme.icon_tile }} h-10 w-10"><span data-admin-icon class="material-symbols-outlined text-xl" aria-hidden="true">admin_panel_settings</span></span>
-        <span class="min-w-0 flex-1"><span class="block text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ admin_copy.manage_staff }}</span></span>
-        <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }} group-hover:text-primary-600" aria-hidden="true">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
-      </a></li>
-    </ul>
-  </section>
-
   <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-    <section class="min-w-0 overflow-hidden {{ rz_theme.card }}" aria-labelledby="queue-heading">
+    <section class="min-w-0 overflow-hidden {{ rz_theme.card }}" aria-labelledby="shortcuts-heading">
       <div class="border-b {{ rz_theme.divider }} px-5 py-4">
-        <div class="flex items-center justify-between gap-3">
-          <h2 id="queue-heading" class="{{ rz_theme.section_title }}">{{ admin_copy.attention }}</h2>
-          <span class="rounded-md border {{ rz_theme.divider }} px-2 py-0.5 text-xs font-semibold {{ rz_theme.muted }}" style="font-variant-numeric:tabular-nums" data-testid="pending-total"><bdi dir="ltr">{{ pending_total }}</bdi></span>
-        </div>
-        <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.attention_body }}</p>
+        <h2 id="shortcuts-heading" class="{{ rz_theme.section_title }}">{{ admin_copy.shortcuts }}</h2>
+        <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.shortcuts_body }}</p>
       </div>
       <ul class="px-5">
-        {% for queue in queues %}
+        {% for shortcut in shortcuts %}
           <li class="{% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
-            <a href="{{ queue.url }}" class="group flex items-center gap-3 py-3" aria-label="{{ queue.label }}: {{ queue.count }} {{ admin_copy.pending }}">
-              <span data-admin-icon class="material-symbols-outlined text-xl {% if queue.count %}{{ rz_theme.action }}{% else %}{{ rz_theme.muted }}{% endif %}" aria-hidden="true">{{ queue.icon }}</span>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ queue.label }}</p>
-                <p class="mt-0.5 text-xs {{ rz_theme.muted }}">{% if queue.count %}{{ queue.detail }}{% else %}{{ admin_copy.queue_empty }}{% endif %}</p>
-              </div>
-              <span class="text-base font-semibold {% if queue.count %}{{ rz_theme.action }}{% else %}{{ rz_theme.muted }}{% endif %}" style="font-variant-numeric:tabular-nums"><bdi dir="ltr">{{ queue.count }}</bdi></span>
-              <span aria-hidden="true" data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }}">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
+            <a href="{{ shortcut.url }}" class="group flex items-center gap-3 py-3">
+              <span class="{{ rz_theme.icon_tile }} h-9 w-9"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">{{ shortcut.icon }}</span></span>
+              <span class="min-w-0 flex-1">
+                <span class="block text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ shortcut.label }}</span>
+                <span class="mt-0.5 block text-xs leading-5 {{ rz_theme.muted }}">{{ shortcut.description }}</span>
+              </span>
+              <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }} group-hover:text-primary-600" aria-hidden="true">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
             </a>
           </li>
         {% endfor %}
+        <li class="border-t {{ rz_theme.divider }}">
+          <a href="{% url 'admin:accounts_account_changelist' %}?context__exact=staff" class="group flex items-center gap-3 py-3">
+            <span class="{{ rz_theme.icon_tile }} h-9 w-9"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">admin_panel_settings</span></span>
+            <span class="min-w-0 flex-1"><span class="block text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ admin_copy.manage_staff }}</span></span>
+            <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }} group-hover:text-primary-600" aria-hidden="true">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
+          </a>
+        </li>
       </ul>
     </section>
 

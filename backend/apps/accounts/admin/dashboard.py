@@ -9,9 +9,9 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.catalogue.models import Product, SourceRevision
-from apps.fulfilment.models import Completion, ReviewCase as DeliveryReviewCase
-from apps.orders.models import CancellationRequest, SellerOrder
-from apps.payments.models import Receipt, ReviewCase as PaymentReviewCase
+from apps.fulfilment.models import ReviewCase as DeliveryReviewCase
+from apps.orders.models import CancellationRequest
+from apps.payments.models import ReviewCase as PaymentReviewCase
 from apps.verification.models import ReviewCase
 
 from .copy import COPY
@@ -78,38 +78,25 @@ def dashboard_context(request, context):
     get_grant(request, "owner")
     def link(name):
         return reverse("admin:" + name)
+    # Operational signals the Commerce report does not surface: identity/catalogue
+    # growth and the total of every open moderation queue. Commerce KPIs (orders,
+    # receipts, deliveries) and the per-queue breakdown live on the report page.
+    user_delta = week_delta(User, "date_joined")
+    product_delta = week_delta(Product, "created_at")
+    pending_total = (
+        ReviewCase.objects.filter(status__in=["submitted", "under_review"]).count()
+        + SourceRevision.objects.filter(state="submitted").count()
+        + PaymentReviewCase.objects.filter(state="open").count()
+        + DeliveryReviewCase.objects.filter(state="open").count()
+        + CancellationRequest.objects.filter(state="pending").count()
+    )
     metrics = [
-        {"label": _("Accepted orders"), "value": SellerOrder.objects.count(), "icon": "receipt_long",
-         "note": _("Confirmed buyer–seller agreements"), "url": link("orders_sellerorder_changelist"),
-         "delta": week_delta(SellerOrder, "accepted_at")},
-        {"label": _("Confirmed receipts"), "value": Receipt.objects.count(), "icon": "payments",
-         "note": _("Reviewed and confirmed funds"), "url": link("payments_receipt_changelist"),
-         "delta": week_delta(Receipt, "created_at")},
-        {"label": _("Completed deliveries"), "value": Completion.objects.count(), "icon": "task_alt",
-         "note": _("Whole orders confirmed delivered"), "url": link("fulfilment_completion_changelist"),
-         "delta": week_delta(Completion, "created_at")},
-    ]
-    queues = [
-        {"label": _("Business verification"), "icon": "verified_user",
-         "detail": _("Submitted and under review"),
-         "count": ReviewCase.objects.filter(status__in=["submitted", "under_review"]).count(),
-         "url": link("verification_reviewcase_changelist")},
-        {"label": _("Product source review"), "icon": "inventory_2",
-         "detail": _("Submitted source revisions"),
-         "count": SourceRevision.objects.filter(state="submitted").count(),
-         "url": link("catalogue_sourcerevision_changelist")},
-        {"label": _("Goods payment review"), "icon": "fact_check",
-         "detail": _("Open independent payment cases"),
-         "count": PaymentReviewCase.objects.filter(state="open").count(),
-         "url": link("payments_reviewcase_changelist")},
-        {"label": _("Delivery review"), "icon": "local_shipping",
-         "detail": _("Open delivery and charge cases"),
-         "count": DeliveryReviewCase.objects.filter(state="open").count(),
-         "url": link("fulfilment_reviewcase_changelist")},
-        {"label": _("Cancellation requests"), "icon": "cancel",
-         "detail": _("Pending buyer or seller requests"),
-         "count": CancellationRequest.objects.filter(state="pending").count(),
-         "url": link("orders_cancellationrequest_changelist")},
+        {"label": COPY["accounts"], "value": user_delta["current"], "icon": "person_add",
+         "note": COPY["new_this_week"], "url": link("accounts_user_changelist"), "delta": user_delta},
+        {"label": COPY["products"], "value": product_delta["current"], "icon": "inventory_2",
+         "note": COPY["new_this_week"], "url": link("catalogue_product_changelist"), "delta": product_delta},
+        {"label": COPY["pending"], "value": pending_total, "icon": "fact_check",
+         "note": COPY["review_queue"], "url": link("reports_commerce"), "chip": COPY["open_queue"]},
     ]
     events = [
         {"label": event.action.replace("_", " ").capitalize(),
@@ -123,8 +110,8 @@ def dashboard_context(request, context):
     # builds <html x-data="theme('…')"> from it, and a dict there breaks Alpine
     # (undefined sidebarOpen hides the whole sidebar on this page only).
     context.update(
-        admin_copy=COPY, rz_theme=THEME, metrics=metrics, queues=queues, recent_events=events,
-        pending_total=sum(queue["count"] for queue in queues), series=series,
+        admin_copy=COPY, rz_theme=THEME, metrics=metrics, recent_events=events,
+        pending_total=pending_total, series=series,
         frontend_url=settings.FRONTEND_ORIGIN + "/" + frontend_locale(getattr(request, "LANGUAGE_CODE", "en")),
         shortcuts=[
             {"label": _("Manage products"), "description": _("Catalogue and publication workflows"),

@@ -78,8 +78,8 @@ class OwnerDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Language"], "fa-af")
         self.assertContains(response, 'dir="rtl"')
-        self.assertContains(response, "رسیدهای تأییدشده")
-        self.assertContains(response, "سفارش‌های پذیرفته‌شده")
+        self.assertContains(response, "کاربران")
+        self.assertContains(response, "محصولات")
         self.assertContains(response, "تنظیمات سایت")
 
     def test_dashboard_denies_anonymous_password_only_and_staff(self):
@@ -112,14 +112,16 @@ class OwnerDashboardTests(TestCase):
         self.authorize()
         response = self.client.get("/admin/")
         self.assertEqual(response.status_code, 200)
-        # Only the three commerce KPIs remain; this fixture has no orders/receipts/deliveries.
+        # Only the three operational KPIs remain; commerce KPIs live on the report page.
         # Force English so the lazy labels are compared independently of any leaked active locale.
         with translation.override("en"):
             self.assertEqual(
                 [metric["label"] for metric in response.context["metrics"]],
-                ["Accepted orders", "Confirmed receipts", "Completed deliveries"],
+                ["Users", "Products", "Pending"],
             )
-        self.assertEqual([metric["value"] for metric in response.context["metrics"]], [0, 0, 0])
+        # Two users joined this week (owner + seller; the suspended user is 30 days old),
+        # one product was created, and one verification case is pending.
+        self.assertEqual([metric["value"] for metric in response.context["metrics"]], [2, 1, 1])
         self.assertEqual(response.context["pending_total"], 1)
         series = response.context["series"]
         self.assertEqual(len(series), 14)

@@ -8,10 +8,8 @@
     <p class="text-3xl font-bold tracking-tight" style="font-variant-numeric:tabular-nums" data-testid="metric-value"><bdi dir="ltr">{{ metric.value }}</bdi></p>
     <p class="mt-1 text-xs leading-5 {{ rz_theme.muted }}">{{ metric.note }}</p>
   </div>
-  {% if metric.delta %}
-    <div class="flex flex-wrap items-center gap-2 border-t {{ rz_theme.divider }} px-6 py-3 text-sm {{ rz_theme.muted }}">
-      {% include 'accounts/admin/includes/delta_chip.html' with delta=metric.delta %}
-      <span class="ms-auto {{ rz_theme.chip }}">{% translate 'Last 7 days' %}</span>
-    </div>
-  {% endif %}
+  <div class="flex flex-wrap items-center gap-2 border-t {{ rz_theme.divider }} px-6 py-3 text-sm {{ rz_theme.muted }}">
+    {% if metric.delta %}{% include 'accounts/admin/includes/delta_chip.html' with delta=metric.delta %}{% endif %}
+    <span class="ms-auto {{ rz_theme.chip }}">{% if metric.chip %}{{ metric.chip }}{% else %}{% translate 'Last 7 days' %}{% endif %}</span>
+  </div>
 </a>
