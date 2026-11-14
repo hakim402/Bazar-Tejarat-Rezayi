@@ -86,7 +86,7 @@ export function PaymentWorkspace({
 		return (
 			<SessionEntry locale={locale} context={context} error={session.error} />
 		);
-	const seller = context === "seller" ? (q.get("seller") ?? "") : "",
+	const seller = "",
 		page = Number(q.get("page") ?? 1),
 		state = q.get("state") ?? "",
 		attempt = q.get("payment_attempt");

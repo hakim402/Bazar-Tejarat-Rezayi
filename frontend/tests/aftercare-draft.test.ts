@@ -24,6 +24,7 @@ function workspace(): Workspace {
 	return {
 		order: {
 			id, invoice: "invoice", number: request.number, currency: "AFN", seller: "seller",
+			seller_name: "Synthetic seller", buyer_name: "Synthetic buyer",
 			goods_total: "37.50", accepted_total: "37.50", version: 3,
 			capabilities: ["cancel", "amend"], aftercare: {}, payment: money,
 			effective_lines: [{ line: "line", variant: "variant", tier: "retail", quantity: "3.000", unit_price: "12.50", goods_amount: "37.50", increment: "0.500" }],

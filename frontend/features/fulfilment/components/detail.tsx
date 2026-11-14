@@ -404,7 +404,7 @@ export function DeliveryDetail({
 					upload={(file, purpose) => {
 						if (
 							purpose === "refund" &&
-							(context !== "seller" || !row.capabilities.refund)
+							(!isSeller || !row.capabilities.refund)
 						)
 							return;
 						const key = crypto.randomUUID(),
@@ -421,7 +421,7 @@ export function DeliveryDetail({
 				/>
 				{review &&
 					row.capabilities[review.capability] &&
-					(review.capability !== "refund" || context === "seller") && (
+					(review.capability !== "refund" || isSeller) && (
 						<DeliveryReview
 							{...{ locale, context, review, row }}
 							busy={command.locked}
@@ -433,7 +433,7 @@ export function DeliveryDetail({
 								if (
 									command.locked ||
 									!row.capabilities[review.capability] ||
-									(review.capability === "refund" && context !== "seller")
+									(review.capability === "refund" && !isSeller)
 								)
 									return;
 								void command.send(review.intent).then(() => setReview(null));
