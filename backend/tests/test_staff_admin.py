@@ -95,7 +95,7 @@ class StaffAdminTests(TransactionTestCase):
             "/admin/auth/group/",
             "/admin/accounts/account/",
             "/admin/accounts/auditevent/",
-            "/admin/site-setting/general/",
+            "/admin/site/sitesettings/1/change/",
             "/admin/inventory/movement/",
         ]:
             self.assertIn(staff.get(url).status_code, [403, 404], url)

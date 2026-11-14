@@ -53,7 +53,7 @@ def code(device, offset=0):
 
 
 def token_from_mail():
-    from apps.accounts.delivery import sweep_mail
+    from apps.accounts.services.delivery import sweep_mail
     sweep_mail()
     return re.search(r"#token=([A-Za-z0-9_-]+)", mail.outbox[-1].body)[1]
 
@@ -152,10 +152,10 @@ class IdentityTests(TestCase):
         self.assertEqual(post(self.client, "verify/", {"token": raw}).status_code, 400)
         self.assertEqual(post(self.client, "verify/", {"token": new}).status_code, 200)
 
-    @patch("apps.accounts.delivery.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"private-provider-detail"))
+    @patch("apps.accounts.services.delivery.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"private-provider-detail"))
     def test_mail_failure_is_truthful_neutral_recorded_and_retryable(self, send):
         self.assertEqual(self.registration().status_code, 202)
-        from apps.accounts.delivery import sweep_mail
+        from apps.accounts.services.delivery import sweep_mail
         self.assertEqual(send.call_count, 0)
         sweep_mail()
         self.assertEqual(MailAttempt.objects.get().status, "failed")

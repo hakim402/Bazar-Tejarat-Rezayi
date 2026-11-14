@@ -60,7 +60,7 @@ class RepeatedContextLoginLogoutReview(TestCase):
         delayed.user = user
         signin(current, "buyer", user.email)
         signin(current, "buyer", user.email)
-        from apps.accounts.views import LogoutView
+        from apps.accounts.api.views import LogoutView
 
         self.assertEqual(LogoutView.as_view()(delayed, context="buyer").status_code, 200)
         from django.contrib.sessions.backends.base import UpdateError

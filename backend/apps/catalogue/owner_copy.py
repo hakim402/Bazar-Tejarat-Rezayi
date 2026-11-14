@@ -3,9 +3,11 @@
 from django import forms
 from unfold.widgets import (
     UnfoldAdminSelectWidget,
+    UnfoldAdminSelect2MultipleWidget,
     UnfoldAdminTextareaWidget,
     UnfoldAdminIntegerFieldWidget,
     UnfoldAdminTextInputWidget,
+    UnfoldAdminFileFieldWidget,
 )
 
 FIELDS = {
@@ -26,6 +28,9 @@ FIELDS = {
         parent="Parent category",
         units="Sale units",
         attributes="Advanced attributes (JSON)",
+        icon="Icon",
+        image_file="Cover image",
+        image_clear="Remove cover image",
         active="Active",
         fractional="Fractional quantities",
         label_fa_af="Dari name",
@@ -62,6 +67,9 @@ FIELDS = {
         parent="دستهٔ مادر",
         units="واحدهای فروش",
         attributes="ویژگی‌های پیشرفته (JSON)",
+        icon="نماد",
+        image_file="تصویر جلد",
+        image_clear="حذف تصویر جلد",
         active="فعال",
         fractional="مقدار کسری",
         label_fa_af="نام دری",
@@ -98,6 +106,9 @@ FIELDS = {
         parent="مور کټګوري",
         units="د پلور واحدونه",
         attributes="پرمختللي ځانګړتیاوې (JSON)",
+        icon="نښه",
+        image_file="د پوښ انځور",
+        image_clear="د پوښ انځور لرې کول",
         active="فعال",
         fractional="کسري مقدار",
         label_fa_af="دري نوم",
@@ -134,6 +145,9 @@ FIELDS = {
         parent="الفئة الأم",
         units="وحدات البيع",
         attributes="سمات متقدمة (JSON)",
+        icon="أيقونة",
+        image_file="صورة الغلاف",
+        image_clear="إزالة صورة الغلاف",
         active="نشط",
         fractional="كميات كسرية",
         label_fa_af="الاسم بالدارية",
@@ -159,10 +173,17 @@ FIELDS = {
 def localize(form, locale):
     copy = FIELDS[locale]
     for name, field in form.fields.items():
-        if not field.widget.is_hidden:
+        # Custom radio widgets (e.g. the icon glyph grid) keep their own rendering.
+        if not field.widget.is_hidden and not isinstance(field.widget, forms.RadioSelect):
             attrs = {**field.widget.attrs}
-            if isinstance(field, (forms.ModelChoiceField, forms.ChoiceField)):
+            if isinstance(field, forms.MultipleChoiceField):
+                # A searchable dropdown that accepts several values (category sale units).
+                field.widget = UnfoldAdminSelect2MultipleWidget(attrs=attrs, choices=field.choices)
+            elif isinstance(field, (forms.ModelChoiceField, forms.ChoiceField)):
                 field.widget = UnfoldAdminSelectWidget(attrs=attrs, choices=field.choices)
+            elif isinstance(field, forms.FileField):
+                # Keep a real file input; the text widgets below cannot upload.
+                field.widget = UnfoldAdminFileFieldWidget(attrs=attrs)
             elif isinstance(field, forms.BooleanField):
                 field.widget = forms.CheckboxInput(attrs=attrs)
             elif isinstance(field.widget, forms.Textarea):

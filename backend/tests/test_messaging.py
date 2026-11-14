@@ -244,7 +244,7 @@ class MessagingTests(MessagingFixture, TestCase):
 
     def test_four_language_branded_email_has_no_conversation_preview(self):
         room = self.room()
-        from apps.accounts.delivery import assemble_message
+        from apps.accounts.services.delivery import assemble_message
         from apps.accounts.models import ActionToken, AccountMail
 
         before = (ActionToken.objects.count(), AccountMail.objects.count())

@@ -19,15 +19,18 @@ from PIL import Image
 from apps.accounts.models import User, Account, Authenticator
 from apps.accounts.services import AuthFailure
 from apps.site.defaults import initialize
-from apps.site.models import SiteSettings, SiteMedia, HeroSlide, SiteLocale
-from apps.site.forms import SettingsForm, SlideForms, SEOForms, SITE_FIELDS, SITE_TEXT, HERO_TEXT
-from apps.site.services import save_settings
-from apps.site.sections import SECTION_MAP, SECTIONS
+from apps.site.models import SiteSettings, SiteMedia, HeroSlide, SiteLocale, PageSEO
+from apps.site.forms import SettingsForm, SlideForm, PostForm, SEOForms, SITE_FIELDS, SITE_TEXT
+from apps.site.services import save_settings, save_post
+from apps.site.sections import SECTIONS
 from apps.site.validation import destination, external_media
 from apps.site.media import inspect_upload, store_upload
 from tests.test_identity import PASSWORD, signin, code
 from tests.legacy_content import predecessor, fingerprints, TABLES
 from config.testing import assert_owned_database
+
+# The native Unfold singleton editor that replaced the sectioned custom pages.
+SETTINGS_URL = "/admin/site/sitesettings/1/change/"
 
 
 def image():
@@ -37,22 +40,29 @@ def image():
 
 
 def form_data():
+    """The complete settings payload the native form would submit, SEO rows empty."""
     instance = SiteSettings.objects.get(pk=1)
-    data = {"site-version": instance.version, **{"site-" + name: (getattr(instance, name) or "") for name in SITE_FIELDS}}
+    data = {"version": instance.version, **{name: (getattr(instance, name) or "") for name in SITE_FIELDS}}
     for row in instance.locales.all():
-        data.update({f"site-{row.locale}_{name}": getattr(row, name) for name in SITE_TEXT})
-    slides = list(instance.slides.all())
-    data.update({"slides-TOTAL_FORMS": len(slides), "slides-INITIAL_FORMS": len(slides), "seo-TOTAL_FORMS": 0, "seo-INITIAL_FORMS": 0})
-    for index, slide in enumerate(slides):
-        data.update({f"slides-{index}-" + name: getattr(slide, name) for name in ["id", "label", "enabled", "position", "kind", "bundled_image", "image_url", "video_url", "silent"]})
-        for row in slide.locales.all():
-            data.update({f"slides-{index}-{row.locale}_{name}": getattr(row, name) for name in HERO_TEXT})
+        data.update({f"{row.locale}_{name}": getattr(row, name) for name in SITE_TEXT})
+    data.update({"seo-TOTAL_FORMS": 0, "seo-INITIAL_FORMS": 0, "seo-MIN_NUM_FORMS": 0, "seo-MAX_NUM_FORMS": 48})
     return data
 
 
 def bound(data, files=None):
     instance = SiteSettings.objects.get(pk=1)
-    return (SettingsForm(data, files, instance=instance, prefix="site"), SlideForms(data, files, queryset=instance.slides.all(), prefix="slides"), SEOForms(data, files, queryset=instance.seo.all(), prefix="seo"))
+    return (SettingsForm(data, files, instance=instance), SEOForms(data, files, queryset=instance.seo.all(), prefix="seo"))
+
+
+def settings_form_data(client):
+    """Read the rendered change form back exactly as the browser would submit it."""
+    response = client.get(SETTINGS_URL)
+    data = {field.html_name: field.value() for field in response.context["adminform"].form if field.value() is not None}
+    for inline in response.context["inline_admin_formsets"]:
+        formset = inline.formset
+        for form in [formset.management_form, *formset.forms]:
+            data.update({field.html_name: field.value() for field in form if field.value() is not None})
+    return data
 
 
 class SiteTests(TestCase):
@@ -65,6 +75,10 @@ class SiteTests(TestCase):
         signin(self.client, "owner", self.owner.email)
         native_auth(self.client, "enroll", {})
         native_auth(self.client, "challenge", {"code": code(Authenticator.objects.get(user=self.owner))})
+
+    def save(self, data, action="publish"):
+        token = self.client.get("/api/v1/auth/csrf/").json()["csrf_token"]
+        return self.client.post(SETTINGS_URL, {f"site_sitesettings_{action}": "1", **data}, HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN=settings.FRONTEND_ORIGIN)
 
     def test_independent_cards_save_translate_and_hide_across_hero_modes(self):
         from apps.site.models import HeroLocale
@@ -89,7 +103,6 @@ class SiteTests(TestCase):
         self.assertEqual(HeroSlide.objects.count(), 3)
 
     def test_video_source_destination_is_validated(self):
-        from apps.site.forms import SlideForm
         data = {"label": "Video draft", "kind": "video", "position": 0, "source_url": "javascript:alert(1)"}
         self.assertFalse(SlideForm(data).is_valid())
         data["source_url"] = "https://example.com/product"
@@ -102,7 +115,7 @@ class SiteTests(TestCase):
             response = self.client.get(f"/api/v1/site/public/{locale}/")
             self.assertEqual(response.status_code, 200)
             data = response.json()
-            self.assertEqual(set(data), {"default_locale", "default_theme", "indexing", "identity", "contacts", "favicon", "og_image", "announcement", "maintenance", "hero", "seo", "media_hosts"})
+            self.assertEqual(set(data), {"default_locale", "default_theme", "indexing", "identity", "contacts", "favicon", "og_image", "announcement", "maintenance", "hero", "seo", "media_hosts", "pages"})
             self.assertNotIn("key", json.dumps(data))
             self.assertNotIn("version", data)
             self.assertEqual(response["Cache-Control"], "no-store")
@@ -149,131 +162,116 @@ class SiteTests(TestCase):
         self.assertFalse(SiteSettings.objects.exists())
 
     def test_owner_mfa_csrf_and_revocation(self):
-        url = "/admin/site-setting/general/"
-        self.assertEqual(self.client.get(url).status_code, 302)
+        self.assertEqual(self.client.get(SETTINGS_URL).status_code, 302)
         signin(self.client, "owner", self.owner.email)
-        self.assertEqual(self.client.get(url).status_code, 302)
+        self.assertEqual(self.client.get(SETTINGS_URL).status_code, 302)
         self.authorize()
-        self.assertContains(self.client.get(url), "Publish")
-        self.assertEqual(self.client.post(url, form_data()).status_code, 403)
+        self.assertContains(self.client.get(SETTINGS_URL), "Publish")
+        self.assertEqual(self.client.post(SETTINGS_URL, form_data()).status_code, 403)
         self.owner.owner_authority = False
         self.owner.save(update_fields=["owner_authority"])
-        self.assertEqual(self.client.get(url).status_code, 302)
-
-    def section_data(self, key):
-        form = SettingsForm(instance=SiteSettings.objects.get(pk=1), prefix="site", section=SECTION_MAP[key])
-        return {field.html_name: field.value() for field in form if field.value() is not None}
-
-    def save_section(self, key, data):
-        token = self.client.get("/api/v1/auth/csrf/").json()["csrf_token"]
-        return self.client.post(f"/admin/site-setting/{key}/", {"action": "publish", **data}, HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN=settings.FRONTEND_ORIGIN)
+        self.assertEqual(self.client.get(SETTINGS_URL).status_code, 302)
 
     @override_settings(LANGUAGE_CODE="en")
-    def test_settings_sections_have_one_navigation_and_legacy_root_redirect(self):
+    def test_settings_navigation_legacy_redirects_and_native_tabs(self):
         self.authorize()
         before = SiteSettings.objects.get().version
-        self.assertRedirects(self.client.get("/admin/site-setting/"), "/admin/site-setting/general/")
-        response = self.client.get("/admin/site-setting/general/")
-        from apps.accounts.admin_navigation import navigation
-        groups = navigation(response.wsgi_request)
-        self.assertEqual(str(groups[-1]["items"][0]["title"]), "Site Settings")
-        self.assertEqual(len(groups[-1]["items"][0]["items"]), len(SECTIONS))
-        self.assertNotContains(response, "All settings")
+        # Legacy sectioned URLs survive as redirects onto the native screens.
+        self.assertRedirects(self.client.get("/admin/site-setting/"), SETTINGS_URL)
+        self.assertRedirects(self.client.get("/admin/site-setting/general/"), SETTINGS_URL)
+        self.assertRedirects(self.client.get("/admin/site-setting/unknown/"), SETTINGS_URL)
+        self.assertRedirects(self.client.get("/admin/site-setting/hero/"), SETTINGS_URL + "?section=hero")
+        self.assertRedirects(self.client.get("/admin/site-setting/promotions/"), SETTINGS_URL + "?section=promotions")
+        self.assertRedirects(self.client.get("/admin/site/sitesettings/"), SETTINGS_URL)
+        response = self.client.get(SETTINGS_URL)
+        self.assertEqual(response.status_code, 200)
+        from apps.accounts.admin.navigation import navigation
+        group = navigation(response.wsgi_request)[-1]["items"][0]
+        self.assertEqual(str(group["title"]), "Site Settings")
+        self.assertEqual(len(group["items"]), 7)
+        # Main-page sections stay tabs; routed sections ride along as hidden inputs.
+        form = response.context["adminform"].form
         for section in SECTIONS:
-            response = self.client.get(f"/admin/site-setting/{section.key}/")
-            self.assertEqual(response.status_code, 200)
-            self.assertNotContains(response, 'aria-label="Settings sections"')
-            self.assertNotContains(response, 'data-testid="settings-overview"')
-            form = response.context["form"]
-            self.assertEqual(form.section, section)
-            self.assertEqual(response.context["posts"] is not None, section.key in {"hero", "promotions"})
-            self.assertEqual(bool(response.context["inline_admin_formsets"]), section.key == "seo")
-            if section.key == "hero":
-                editor = self.client.get("/admin/site-setting/hero/new/").context["form"]
-                for locale in ["fa-AF", "ps", "ar", "en"]:
-                    self.assertEqual(editor.fields[f"{locale}_cta_url"].widget.attrs["dir"], "ltr")
-            if section.key != "maintenance":
-                self.assertNotContains(response, 'name="site-maintenance_enabled"')
-            self.assertEqual(response["Cache-Control"], "max-age=0, no-cache, no-store, must-revalidate, private")
-        self.assertRedirects(self.client.get("/admin/site/sitesettings/"), "/admin/site-setting/general/")
-        self.assertRedirects(self.client.get("/admin/site/sitesettings/hero/"), "/admin/site-setting/hero/")
-        self.assertEqual(self.client.get("/admin/site-setting/unknown/").status_code, 404)
+            self.assertTrue(all(name in form.fields for name in section.fields))
+        self.assertFalse(response.context["inline_admin_formsets"])
+        seo_response = self.client.get(SETTINGS_URL + "?section=seo")
+        self.assertTrue(seo_response.context["inline_admin_formsets"])
+        self.assertEqual(response["Cache-Control"], "max-age=0, no-cache, no-store, must-revalidate, private")
         self.assertEqual(SiteSettings.objects.get().version, before)
 
-    def test_section_saves_preserve_unowned_settings_and_ignore_forged_fields(self):
+    def test_publish_saves_submitted_values_and_ignores_forged_fields(self):
         self.authorize()
         site = SiteSettings.objects.get()
         site.announcement_enabled = True
         site.save()
         SiteLocale.objects.filter(locale="fa-AF").update(announcement="اعلان آزمایشی")
-        original_locales = list(SiteLocale.objects.values().order_by("locale"))
         original_slides = list(HeroSlide.objects.values())
-        data = self.section_data("contacts")
-        data.update({"site-phone": "+1234567890", "site-default_locale": "ar", "site-maintenance_enabled": True,
-                     "site-en_name": "Forged unowned name", "slides-TOTAL_FORMS": "0", "seo-TOTAL_FORMS": "0"})
-        response = self.save_section("contacts", data)
-        self.assertEqual(response.status_code, 302)
+        data = settings_form_data(self.client)
+        data.update({"phone": "+1234567890", "default_locale": "ar", "maintenance_enabled": True, "en_name": "DEMO name", "forged_field": "x"})
+        response = self.save(data)
+        self.assertEqual(response.status_code, 302, response.context["adminform"].form.errors if response.status_code == 200 else "")
         site.refresh_from_db()
         self.assertEqual(site.phone, "+1234567890")
-        self.assertEqual(site.default_locale, "fa-AF")
-        self.assertTrue(site.announcement_enabled)
-        self.assertFalse(site.maintenance_enabled)
-        self.assertEqual(list(SiteLocale.objects.values().order_by("locale")), original_locales)
+        self.assertEqual(site.default_locale, "ar")
+        self.assertTrue(site.maintenance_enabled)
+        self.assertEqual(SiteLocale.objects.get(locale="en").name, "DEMO name")
+        # The settings form never touches homepage media rows.
         self.assertEqual(list(HeroSlide.objects.values()), original_slides)
-        self.assertFalse(site.seo.exists())
 
-    def test_section_save_conflicts_across_pages_and_retains_input(self):
+    def test_publish_conflict_retains_input(self):
         self.authorize()
-        stale = self.section_data("general")
-        stale["site-en_name"] = "DEMO retained conflict"
-        contact = self.section_data("contacts")
-        contact["site-phone"] = "+1234567890"
-        self.assertEqual(self.save_section("contacts", contact).status_code, 302)
-        response = self.save_section("general", stale)
+        stale = settings_form_data(self.client)
+        stale["en_name"] = "DEMO retained conflict"
+        contact = settings_form_data(self.client)
+        contact["phone"] = "+1234567890"
+        self.assertEqual(self.save(contact).status_code, 302)
+        response = self.save(stale)
         self.assertContains(response, "Settings changed in another session")
         self.assertContains(response, 'value="DEMO retained conflict"')
         self.assertNotEqual(SiteLocale.objects.get(locale="en").name, "DEMO retained conflict")
         self.assertEqual(SiteSettings.objects.get().phone, "+1234567890")
 
-    def test_section_uploads_and_missing_hero_management_remain_atomic(self):
+    def test_uploads_publish_and_failed_storage_remain_atomic(self):
         self.authorize()
-        data = self.section_data("branding")
-        data.update({"site-favicon_file": image(), "site-en_logo_light_file": image()})
-        self.assertEqual(self.save_section("branding", data).status_code, 302)
+        data = settings_form_data(self.client)
+        data.update({"favicon_file": image(), "en_logo_light_file": image()})
+        self.assertEqual(self.save(data).status_code, 302)
         self.assertIsNotNone(SiteSettings.objects.get().favicon_id)
         self.assertIsNotNone(SiteLocale.objects.get(locale="en").logo_light_id)
         self.assertIsNone(SiteSettings.objects.get().og_image_id)
         before = SiteSettings.objects.get().version
-        data = self.section_data("hero")
-        data["site-hero_mode"] = "invalid"
-        response = self.save_section("hero", data)
-        self.assertContains(response, "Settings not saved")
+        data = settings_form_data(self.client)
+        data["hero_mode"] = "invalid"
+        response = self.save(data)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(SiteSettings.objects.get().version, before)
-        data = self.section_data("branding")
-        data.update({"site-favicon_file": image(), "site-en_logo_dark_file": image()})
+        data = settings_form_data(self.client)
+        data.update({"favicon_file": image(), "en_logo_dark_file": image()})
         with patch.object(storages["site_local"], "save", side_effect=OSError("synthetic failure")):
-            response = self.save_section("branding", data)
-        self.assertContains(response, "Changes could not be saved")
+            response = self.save(data)
+        # Storage failure redirects safely; the message survives and nothing saved.
+        self.assertEqual(response.status_code, 302)
+        self.assertContains(self.client.get(SETTINGS_URL), "Changes could not be saved")
         self.assertEqual(SiteSettings.objects.get().version, before)
 
-    def test_invalid_section_field_has_one_accessible_error_target_and_keeps_value(self):
+    def test_invalid_field_has_one_accessible_error_target_and_keeps_value(self):
         self.authorize()
         before = SiteSettings.objects.get().version
-        data = self.section_data("contacts")
-        data["site-phone"] = "invalid"
-        response = self.save_section("contacts", data)
-        self.assertContains(response, 'id="id_site-phone_error"', count=1)
-        self.assertContains(response, 'id_site-phone_helptext id_site-phone_error')
+        data = settings_form_data(self.client)
+        data["phone"] = "invalid"
+        response = self.save(data)
+        self.assertContains(response, 'id="id_phone_error"', count=1)
+        self.assertContains(response, "id_phone_helptext id_phone_error")
         self.assertContains(response, 'value="invalid"')
         self.assertEqual(SiteSettings.objects.get().version, before)
 
-    def test_each_section_is_owner_mfa_and_csrf_protected(self):
-        paths = ["/admin/site-setting/", *[f"/admin/site-setting/{section.key}/" for section in SECTIONS]]
+    def test_settings_are_owner_mfa_and_csrf_protected(self):
+        paths = ["/admin/site/sitesettings/", SETTINGS_URL, "/admin/site/heroslide/", "/admin/site/heroslide/add/", "/admin/site/contentpage/"]
         for path in paths:
             self.assertEqual(self.client.get(path).status_code, 302)
         self.authorize()
-        for section in SECTIONS:
-            self.assertEqual(self.client.post(f"/admin/site-setting/{section.key}/", {}).status_code, 403)
+        for path in [SETTINGS_URL, "/admin/site/heroslide/add/", "/admin/site/contentpage/"]:
+            self.assertEqual(self.client.post(path, {}).status_code, 403)
         self.owner.owner_authority = False
         self.owner.save(update_fields=["owner_authority"])
         for path in paths:
@@ -287,7 +285,7 @@ class SiteTests(TestCase):
         signin(self.client, "staff", user.email)
         native_auth(self.client, "enroll", {})
         native_auth(self.client, "challenge", {"code": code(Authenticator.objects.get(user=user))})
-        for path in ["/admin/site-setting/", *[f"/admin/site-setting/{section.key}/" for section in SECTIONS]]:
+        for path in ["/admin/site/sitesettings/", SETTINGS_URL, "/admin/site/heroslide/", "/admin/site/contentpage/"]:
             self.assertEqual(self.client.get(path).status_code, 403)
         forms = bound(form_data())
         self.assertTrue(all(form.is_valid() for form in forms))
@@ -297,9 +295,9 @@ class SiteTests(TestCase):
 
     def test_atomic_save_stale_reject_and_next_get_visibility(self):
         self.authorize()
-        request = self.client.get("/admin/site/sitesettings/").wsgi_request
+        request = self.client.get(SETTINGS_URL).wsgi_request
         data = form_data()
-        data.update({"site-default_locale": "ps", "site-default_theme": "dark", "site-announcement_enabled": True, "site-fa-AF_announcement": "اعلان آزمایشی"})
+        data.update({"default_locale": "ps", "default_theme": "dark", "announcement_enabled": True, "fa-AF_announcement": "اعلان آزمایشی"})
         forms = bound(data)
         self.assertTrue(all(form.is_valid() for form in forms), [form.errors for form in forms])
         stale = bound(data)
@@ -312,36 +310,39 @@ class SiteTests(TestCase):
         self.assertTrue(value["announcement"]["enabled"])
         self.assertEqual(self.client.get("/api/v1/bootstrap/").json()["default_locale"], "ps")
 
-    def test_aggregate_enabled_limit_counts_unposted_slides_and_form_budget(self):
+    def test_publish_cap_counts_unposted_slides_and_form_budget(self):
         self.authorize()
-        request = self.client.get("/admin/site/sitesettings/").wsgi_request
-        data = form_data()
-        forms = bound(data)
-        self.assertTrue(all(form.is_valid() for form in forms))
-        # Even owner-crafted management counts cannot hide active rows from validation.
+        request = self.client.get(SETTINGS_URL).wsgi_request
+        HeroSlide.objects.all().delete()
+        site = SiteSettings.objects.get()
+        # Even rows the editor never posted count against the carousel cap.
         for index in range(8):
-            HeroSlide.objects.create(settings_id=1, enabled=True, bundled_image=True, position=index+1)
+            HeroSlide.objects.create(settings=site, enabled=True, bundled_image=True, position=index + 1)
+        data = {"version": site.version, "label": "DEMO ninth", "placement": "main", "kind": "image", "enabled": True, "position": 9, "bundled_image": True, "silent": True, "fa-AF_title": "DEMO", "fa-AF_alt": "DEMO"}
+        form = PostForm(data, instance=HeroSlide(), publishing=True)
+        self.assertTrue(form.is_valid(), form.errors)
         with self.assertRaises(ValidationError):
-            save_settings(request, *forms)
-        fields = len(forms[0].fields) + len(forms[1].empty_form.fields) * forms[1].max_num + len(forms[2].empty_form.fields) * forms[2].max_num + 8
+            save_post(request, form, form.instance, "main", publish=True)
+        seo = SEOForms(queryset=PageSEO.objects.none())
+        fields = len(bound(form_data())[0].fields) + len(seo.empty_form.fields) * seo.max_num
         self.assertLess(fields, 1000)  # Django's default multipart field boundary.
 
     def test_invalid_inputs_mode_and_failed_storage_preserve_previous_state(self):
         self.authorize()
-        request = self.client.get("/admin/site/sitesettings/").wsgi_request
+        request = self.client.get(SETTINGS_URL).wsgi_request
         data = form_data()
-        data["site-hero_mode"] = "invalid"
+        data["hero_mode"] = "invalid"
         self.assertFalse(bound(data)[0].is_valid())
         self.assertEqual(SiteSettings.objects.get().hero_mode, "image_carousel")
-        data["site-hero_mode"] = "image_carousel"
-        forms = bound(data, {"site-og_file": image()})
+        data["hero_mode"] = "image_carousel"
+        forms = bound(data, {"og_file": image()})
         self.assertTrue(all(form.is_valid() for form in forms))
         with patch.object(storages["site_local"], "save", side_effect=OSError("synthetic disk failure")):
             with self.assertRaises(OSError):
                 save_settings(request, *forms)
         self.assertIsNone(SiteSettings.objects.get().og_image_id)
         self.assertFalse(SiteMedia.objects.exists())
-        data.update({"site-fa-AF_name": "<script>bad</script>", "site-announcement_url": "//evil.example"})
+        data.update({"fa-AF_name": "<script>bad</script>", "announcement_url": "//evil.example"})
         self.assertFalse(bound(data)[0].is_valid())
 
     def test_inspected_media_range_head_and_private_boundaries(self):

@@ -82,6 +82,12 @@ const paths = {
 	"zoom-in": "M20 20l-5-5 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0 M10 7v6 M7 10h6",
 } as const;
 export type IconName = keyof typeof paths;
+export function iconName(
+	name: string | null | undefined,
+	fallback: IconName = "grid",
+): IconName {
+	return name && name in paths ? (name as IconName) : fallback;
+}
 export function Icon({
 	name,
 	className = "size-5",

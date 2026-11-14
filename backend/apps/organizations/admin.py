@@ -9,8 +9,8 @@ from rest_framework.exceptions import APIException
 from unfold.admin import ModelAdmin
 
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_access import admin_actor, permits
-from apps.accounts.admin_display import AdminDisplayMixin
+from apps.accounts.admin.access import admin_actor, permits
+from apps.accounts.admin.display import AdminDisplayMixin
 from .models import BusinessProfile, Invitation, Membership, OwnershipTransfer, InvitationMail
 from .profiles import PROFILE_FIELDS, update_profile
 from .contracts import BusinessProfileUpdate

@@ -1,4 +1,4 @@
-"""Fixed site settings and owner-managed homepage media; no page CMS."""
+"""Fixed site settings, owner-managed homepage media and content pages."""
 import uuid
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -18,6 +18,9 @@ class SiteMedia(models.Model):
     duration = models.FloatField(default=0)
     has_audio = models.BooleanField(default=False)
     pending_delete = models.BooleanField(default=False, editable=False)
+
+    def __str__(self):
+        return self.key
 
 
 class SiteSettings(models.Model):
@@ -142,3 +145,59 @@ class SiteDraftUpload(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["draft", "field"], name="site_one_draft_upload")]
+
+
+class ContentPage(models.Model):
+    """Owner-managed public information page; written content lives per locale."""
+    GROUPS = [("company", "Company"), ("help", "Help centre"), ("legal", "Legal"), ("hidden", "Not in navigation")]
+    KINDS = [("page", "Page"), ("article", "Help article"), ("contact", "Contact"), ("help-index", "Help index")]
+    STATUSES = [("draft", "Draft"), ("published", "Published")]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=80, unique=True, help_text="One URL segment shared by every language, e.g. about. Help articles are served under /help/.")
+    group = models.CharField(max_length=12, choices=GROUPS, default="company")
+    kind = models.CharField(max_length=12, choices=KINDS, default="page")
+    status = models.CharField(max_length=10, choices=STATUSES, default="draft")
+    position = models.PositiveSmallIntegerField(default=0, help_text="Order within the group; lower numbers appear first.")
+    show_in_footer = models.BooleanField(default=True)
+    is_system = models.BooleanField(default=False, editable=False, verbose_name="Core page (protected from deletion)")
+    cover = models.ForeignKey(SiteMedia, null=True, blank=True, on_delete=models.PROTECT, related_name="+", verbose_name="Cover image")
+    version = models.PositiveIntegerField(default=1, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["group", "position", "slug"]
+        verbose_name = "Content page"
+        verbose_name_plural = "Content pages"
+
+    def __str__(self):
+        return self.slug
+
+    @property
+    def path(self):
+        return f"/help/{self.slug}" if self.kind == "article" else f"/{self.slug}"
+
+
+class ContentPageLocale(models.Model):
+    """One language version of a content page; public only when published."""
+    page = models.ForeignKey(ContentPage, on_delete=models.CASCADE, related_name="locales")
+    locale = models.CharField(max_length=5, choices=LOCALES)
+    title = models.CharField(max_length=180)
+    intro = models.CharField(max_length=400, blank=True, help_text="Short summary shown under the title and in link cards.")
+    cta_label = models.CharField(max_length=80, blank=True, verbose_name="Hero button text", help_text="Primary button shown in the page hero. Leave blank to hide it.")
+    cta_url = models.CharField(max_length=200, blank=True, verbose_name="Hero button link")
+    cta_secondary_label = models.CharField(max_length=80, blank=True, verbose_name="Second button text (optional)")
+    cta_secondary_url = models.CharField(max_length=200, blank=True, verbose_name="Second button link")
+    body = models.TextField(blank=True, help_text="Rich HTML text. Sanitized before it is rendered publicly.")
+    is_draft = models.BooleanField(default=True, verbose_name="Keep this language as draft")
+    meta_description = models.CharField(max_length=400, blank=True, verbose_name="SEO description (optional)")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["page", "locale"], name="site_content_page_locale")]
+        verbose_name = "Content page translation"
+        verbose_name_plural = "Content page translations"
+
+    def __str__(self):
+        return f"{self.page_id} ({self.locale})"

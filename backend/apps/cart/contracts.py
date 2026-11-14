@@ -49,6 +49,18 @@ class MergeCommand(Strict):
     guest_version = s.IntegerField(min_value=0)
 
 
+class CartImage(s.Serializer):
+    url = s.CharField()
+    width = s.IntegerField()
+    height = s.IntegerField()
+    alt = s.CharField(allow_blank=True)
+
+
+class CartAttribute(s.Serializer):
+    label = s.CharField()
+    value = s.CharField(allow_blank=True)
+
+
 class CartLine(s.Serializer):
     id = s.UUIDField()
     version = s.IntegerField()
@@ -64,9 +76,15 @@ class CartLine(s.Serializer):
     unit = s.CharField()
     unit_label = s.CharField()
     title = s.CharField(allow_blank=True)
+    image = CartImage(allow_null=True)
+    attributes = CartAttribute(many=True)
+    contents = s.CharField(allow_blank=True)
     currency = s.CharField()
     mode = s.CharField()
     price = s.CharField(allow_null=True)
+    retail = s.CharField(allow_null=True)
+    wholesale = s.CharField(allow_null=True)
+    availability = s.ChoiceField(choices=["available", "unavailable", "unknown"])
     available = s.BooleanField()
 
 

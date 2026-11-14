@@ -1,5 +1,13 @@
 import { AccountError, privateRequest } from "../../lib/api/private-client.ts";
 
+/** Broadcast after a cart write succeeds so open surfaces (header badge and
+ * dropdown) refresh without waiting for their next poll. */
+export const CART_CHANGED = "rezayi:cart-changed";
+export function announceCartChange() {
+	if (typeof window !== "undefined")
+		window.dispatchEvent(new Event(CART_CHANGED));
+}
+
 /** Only the explicit initializer can emit the guest cookie. Coordinate it across
  * same-origin tabs, holding the lock until fetch/JSON completion applies cookies.
  * Component cancellation must not release a still-running cookie-writing fetch.

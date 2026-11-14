@@ -1,6 +1,7 @@
 from django.urls import path, re_path
 
-from . import views, google_views
+from .api import views
+from .api import google as google_views
 
 app_name = "accounts"
 urlpatterns = [

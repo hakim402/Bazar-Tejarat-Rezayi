@@ -29,7 +29,7 @@ def capabilities(actor, profile):
 
 def staff(actor, permission):
     account = actor.account
-    from apps.accounts.admin_access import permission_codes
+    from apps.accounts.admin.access import permission_codes
     if actor.context == "owner":
         return
     if actor.context != "staff" or permission not in permission_codes(account, "inventory"):

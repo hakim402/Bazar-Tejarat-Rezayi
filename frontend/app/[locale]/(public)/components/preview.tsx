@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../../lib/i18n/locales";
-import { pageCopy } from "../../../../features/pages/copy";
+import { useSite } from "../../../../features/site/context";
 import { Icon } from "../../../../components/ui/icon";
 import {
 	categories,
@@ -15,6 +15,7 @@ import {
 import { storefrontCopy } from "../../../../features/storefront/copy";
 export function DemoPreview({ locale }: { locale: Locale }) {
 	const t = storefrontCopy[locale],
+		how = useSite()?.pages.find((page) => page.slug === "how-it-works"),
 		dialog = useRef<HTMLDialogElement>(null),
 		opener = useRef<HTMLElement | null>(null);
 	const [selection, setSelection] = useState("");
@@ -118,13 +119,15 @@ export function DemoPreview({ locale }: { locale: Locale }) {
 					<p className="text-sm leading-8 text-muted">
 						{t.products[item].description}
 					</p>
-					<a
-						href={`/${locale}/how-it-works`}
-						className="inline-flex min-h-11 items-center gap-2 font-bold"
-					>
-						{pageCopy[locale]["how-it-works"].title}
-						<Icon name="arrow" className="size-4 rtl:rotate-180" />
-					</a>
+					{how && (
+						<a
+							href={`/${locale}/how-it-works`}
+							className="inline-flex min-h-11 items-center gap-2 font-bold"
+						>
+							{how.title}
+							<Icon name="arrow" className="size-4 rtl:rotate-180" />
+						</a>
+					)}
 				</div>
 			) : all ? (
 				<div className="mt-5 grid grid-cols-1 gap-2 desktop:grid-cols-2">

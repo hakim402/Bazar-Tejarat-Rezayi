@@ -1110,7 +1110,7 @@ class CatalogueReviewFixTests(CatalogueFixture, TestCase):
         from apps.catalogue.admin import ProductAdmin
         from apps.accounts.admin import owner_site
         request.user, request.account = self.reviewer.user, self.reviewer.account
-        with patch("apps.catalogue.admin.admin_actor", return_value=self.reviewer), patch("apps.catalogue.admin.permits", return_value=True), patch("apps.catalogue.admin.render", side_effect=lambda request, template, context: context), patch.object(owner_site, "each_context", return_value={}):
+        with patch("apps.catalogue.admin.products.admin_actor", return_value=self.reviewer), patch("apps.catalogue.admin.products.permits", return_value=True), patch("apps.catalogue.admin.products.render", side_effect=lambda request, template, context: context), patch.object(owner_site, "each_context", return_value={}):
             return ProductAdmin(Product, owner_site).workflow(request, self.product.pk)
 
     def test_owner_initial_and_selected_versions_never_use_product_version(self):

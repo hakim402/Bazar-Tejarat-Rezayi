@@ -5,10 +5,14 @@ import hashlib
 from datetime import timedelta
 from decimal import Decimal
 from django.db import transaction
+from django.db.models import F, Q
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError, PermissionDenied
-from apps.catalogue.models import Variant
+from apps.catalogue.models import ProductImage, Translation, Variant
+from apps.catalogue.queries import image_url
+from apps.inventory.models import Bucket, Position
+from apps.inventory.services import today
 from apps.inventory.validation import quantity
 from apps.messaging.services import digest, CommandConflict
 from apps.messaging.access import lock_actor
@@ -83,18 +87,70 @@ def public_variant(pk, locale="fa-AF"):
     return variant
 
 
+def line_image(body, alts, variant_id, images):
+    """Public thumbnail: the seller's variant image when set, else the first published image."""
+    refs = [r for r in body["images"] if r["id"] in images] if body else []
+    if not refs:
+        return None
+    ref = next((r for r in refs if str(r.get("variant") or "") == str(variant_id)), refs[0])
+    asset = images[ref["id"]]
+    return {
+        "url": image_url(ref["id"]),
+        "width": asset.width,
+        "height": asset.height,
+        "alt": (alts or {}).get(ref["id"]) or ref.get("alt", ""),
+    }
+
+
+def line_attributes(definition, locale):
+    """Resolved label/value pairs so the buyer never needs the category label maps."""
+    labels = (definition or {}).get("attribute_labels") or {}
+    return [
+        {
+            "label": (labels.get(key) or {}).get(locale) or (labels.get(key) or {}).get("fa-AF") or key,
+            "value": str(value),
+        }
+        for key, value in ((definition or {}).get("attributes") or {}).items()
+    ]
+
+
 def projection(row, locale="fa-AF"):
     if row is None:
         return {"id": None, "version": 0, "lines": [], "guest_version": 0}
     lines = list(row.lines.select_related("variant__unit", "variant__product__published").order_by("pk"))
     gate = PublicGate(locale, profile_ids={x.variant.product.seller_id for x in lines})
-    products = {p.pk: p for p in gate.products.filter(pk__in={x.variant.product_id for x in lines})}
+    products = {
+        p.pk: p for p in gate.products.select_related("published").filter(pk__in={x.variant.product_id for x in lines})
+    }
     seller_names = {p.pk: p.public_name for p in gate.profiles}
+    bodies = {pk: p.published.body for pk, p in products.items()}
+    # One bounded batch per concern for the whole cart; never a per-line query.
+    images = {
+        str(i.pk): i
+        for i in ProductImage.objects.filter(
+            pk__in={r["id"] for b in bodies.values() for r in b["images"]}, product_id__in=products.keys()
+        )
+    }
+    alts = {
+        t.revision_id: (t.approved_body or {}).get("image_alts", {})
+        for t in Translation.objects.filter(
+            revision_id__in=[p.published_id for p in products.values()], locale=locale, approved_body__isnull=False
+        )
+    }
+    positions = set(Position.objects.filter(pk__in={x.variant_id for x in lines}).values_list("pk", flat=True))
+    # Public stock signal only: the same three-state vocabulary the catalogue exposes, never counts.
+    stocked = set(
+        Bucket.objects.filter(position_id__in=positions, physical__gt=F("held"))
+        .filter(Q(batch__isnull=True) | Q(batch__expires_on__isnull=True) | Q(batch__expires_on__gte=today()))
+        .values_list("position_id", flat=True)
+    )
     result = []
     for x in lines:
         v = x.variant
         p = products.get(v.product_id)
-        available = bool(p and any(str(y["id"]) == str(v.pk) and y["active"] for y in p.published.body["variants"]))
+        body = bodies.get(v.product_id)
+        definition = next((y for y in body["variants"] if str(y["id"]) == str(v.pk)), None) if body else None
+        available = bool(definition and definition["active"])
         result.append(
             {
                 "id": str(x.pk),
@@ -111,9 +167,15 @@ def projection(row, locale="fa-AF"):
                 "unit": v.unit.code,
                 "unit_label": v.unit.labels.get(locale, v.unit.labels.get("fa-AF", v.unit.code)),
                 "title": p.public_title if available else "",
+                "image": line_image(body, alts.get(p.published_id), v.pk, images) if available else None,
+                "attributes": line_attributes(definition, locale) if available else [],
+                "contents": (definition.get("contents") or "") if available else "",
                 "currency": v.product.currency,
                 "mode": v.product.pricing_mode,
                 "price": format(getattr(v, x.tier), ".2f") if available and getattr(v, x.tier) is not None else None,
+                "retail": format(v.retail, ".2f") if available and v.retail is not None else None,
+                "wholesale": format(v.wholesale, ".2f") if available and v.wholesale is not None else None,
+                "availability": "unknown" if v.pk not in positions else "available" if v.pk in stocked else "unavailable",
                 "available": available,
             }
         )

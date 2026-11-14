@@ -6,7 +6,7 @@ from django.core.exceptions import SuspiciousFileOperation
 from django.db.models import Exists, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
-from apps.accounts.admin_access import permission_codes
+from apps.accounts.admin.access import permission_codes
 from apps.organizations.access import independent, manage_profile, visible_profiles
 from apps.organizations.models import BusinessProfile, Membership
 from apps.organizations.profiles import effective_entitlement

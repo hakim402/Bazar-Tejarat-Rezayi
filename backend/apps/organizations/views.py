@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.services import rate_limit
-from apps.accounts.views import AuthView
+from apps.accounts.api.views import AuthView
 from . import contracts as c
 from .access import Actor, membership, visible_profiles
 from .models import OwnershipTransfer

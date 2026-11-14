@@ -3,12 +3,15 @@ import { direction } from "../../../../lib/i18n/locales";
 import { siteCopy } from "../../../../lib/i18n/site";
 import type { Site } from "../../../../features/site/contract";
 import { Hero } from "./hero";
-import { Icon, type IconName } from "../../../../components/ui/icon";
+import { Icon, iconName, type IconName } from "../../../../components/ui/icon";
 import { heroHref } from "../../../../features/storefront/data";
 import { storefrontCopy } from "../../../../features/storefront/copy";
 import { PromotionalVideo } from "./promotional-video";
-import type { Home } from "../../../../features/marketplace/types";
-import { Asset } from "../../../../features/marketplace/components/cards";
+import type {
+	Home,
+	HomeCategory,
+} from "../../../../features/marketplace/types";
+import { CategoryMedia } from "../../../../features/marketplace/components/cards";
 import { marketplaceCopy } from "../../../../features/marketplace/copy";
 import { DemoPreview } from "./preview";
 export function HomeShowcase({
@@ -31,35 +34,18 @@ export function HomeShowcase({
 					<h2 className="mb-4 px-3 pt-3 text-base">{t.categories}</h2>
 					<div className="ms-3 mb-3 h-0.5 w-7 rounded-full bg-action" />
 					<nav aria-label={t.categories}>
-						{(home?.categories || []).map(({ code: id, name }) => (
-							<a
-								key={id}
-								href={`/${locale}/categories/${id}`}
-								className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground no-underline transition-colors hover:bg-info hover:text-action"
-							>
-								<Icon
-									name={
-										(
-											{
-												food: "leaf",
-												clothing: "dress",
-												cosmetics: "beauty",
-												furniture: "chair",
-												home: "home",
-												electronics: "phone",
-												crafts: "sparkle",
-												accessories: "store",
-												sports: "grid",
-												children: "team",
-												stationery: "file",
-											} as Record<string, IconName>
-										)[id] || "grid"
-									}
-									className="size-4"
-								/>
-								<span>{name}</span>
-							</a>
-						))}
+						{((home?.categories || []) as HomeCategory[]).map(
+							({ code: id, name, icon }) => (
+								<a
+									key={id}
+									href={`/${locale}/categories/${id}`}
+									className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground no-underline transition-colors hover:bg-info hover:text-action"
+								>
+									<Icon name={iconName(icon)} className="size-4" />
+									<span>{name}</span>
+								</a>
+							),
+						)}
 					</nav>
 				</aside>
 				<div className="min-h-[23rem] min-w-0">
@@ -146,15 +132,25 @@ export function HomeShowcase({
 						</a>
 					</div>
 					<div className="grid grid-cols-2 gap-3 desktop:grid-cols-4 desktop:gap-4">
-						{(home?.categories || [])
+						{((home?.categories || []) as HomeCategory[])
 							.slice(0, 4)
-							.map(({ code: id, name, count }, index) => (
+							.map(({ code: id, name, count, icon, image }, index) => (
 								<a
 									key={id}
 									href={`/${locale}/categories/${id}`}
 									className={`group flex min-w-0 flex-col items-center rounded-3xl border border-border/30 bg-linear-to-br from-surface p-4 text-center text-foreground no-underline transition-colors hover:border-action ${index === 0 ? "to-campaign-end" : index === 1 ? "to-campaign-lilac" : index === 2 ? "to-campaign-start" : "to-campaign-warm"}`}
 								>
-									<CategoryImage home={home} code={id} />
+									<span className="relative mb-2 block h-28 w-full desktop:h-32">
+										<CategoryMedia
+											category={{ icon, image }}
+											className="h-28 w-full transition-transform motion-safe:group-hover:scale-105 desktop:h-32"
+										/>
+										{image && (
+											<span className="absolute start-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-surface/85 text-action backdrop-blur-sm">
+												<Icon name={iconName(icon)} className="size-3.5" />
+											</span>
+										)}
+									</span>
 									<h3 className="text-sm">{name}</h3>
 									<span className="mt-1 text-xs text-muted">
 										{marketplaceCopy[locale].products}: <bdi>{count}</bdi>
@@ -188,22 +184,5 @@ export function HomeShowcase({
 			</div>
 			<DemoPreview locale={locale} />
 		</div>
-	);
-}
-function CategoryImage({ home, code }: { home: Home | null; code: string }) {
-	const image = home?.products.find((product) => product.body.category === code)
-		?.images[0];
-	return image ? (
-		<Asset
-			asset={image}
-			className="mb-2 h-28 w-full object-contain transition-transform motion-safe:group-hover:scale-105 desktop:h-32"
-		/>
-	) : (
-		<span
-			aria-hidden
-			className="mb-2 flex h-28 w-full items-center justify-center text-action desktop:h-32"
-		>
-			<Icon name="grid" className="size-12" />
-		</span>
 	);
 }

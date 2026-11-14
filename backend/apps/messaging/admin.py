@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_access import admin_actor, permits
+from apps.accounts.admin.access import admin_actor, permits
 from apps.organizations.admin import ReadOnlyAdmin
 from . import cases, media
 from .models import Conversation, Message, Attachment, ReadState, Command, Report, CaseEvent, CaseAccess, PERMISSIONS

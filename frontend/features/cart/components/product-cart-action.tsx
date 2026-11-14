@@ -10,6 +10,7 @@ import {
 	initialCartQuantity,
 	type CartIntent,
 } from "../recovery";
+import { announceCartChange } from "../transport";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { PublicProduct } from "../../marketplace/types";
@@ -157,6 +158,7 @@ function ProductCartEditor({
 				retainReference(null);
 				pending.current = null;
 				setSaved(true);
+				announceCartChange();
 			}
 		} catch (e) {
 			if (live.current) setError(e);
@@ -203,6 +205,7 @@ function ProductCartEditor({
 			retainReference(null);
 			pending.current = null;
 			setSaved(result.state === "applied");
+			if (result.state === "applied") announceCartChange();
 		} catch (e) {
 			if (!live.current) return;
 			setError(e);

@@ -16,7 +16,6 @@ type StorefrontCopy = {
 	close: string;
 	recommended: string;
 	notifications: string;
-	wishlist: string;
 	cart: string;
 	preferences: string;
 	soon: string;
@@ -57,7 +56,6 @@ export const storefrontCopy: Record<Locale, StorefrontCopy> = {
 		close: "Close preview",
 		recommended: "Featured inspiration",
 		notifications: "Notifications",
-		wishlist: "Wishlist",
 		cart: "Shopping cart",
 		preferences: "Language and appearance",
 		soon: "Coming soon",
@@ -138,7 +136,6 @@ export const storefrontCopy: Record<Locale, StorefrontCopy> = {
 		close: "بستن پیش‌نمایش",
 		recommended: "پیشنهادهای ویژه",
 		notifications: "اعلان‌ها",
-		wishlist: "پسندیده‌ها",
 		cart: "سبد خرید",
 		preferences: "زبان و ظاهر",
 		soon: "به‌زودی",
@@ -219,7 +216,6 @@ export const storefrontCopy: Record<Locale, StorefrontCopy> = {
 		close: "مخکتنه بنده کړئ",
 		recommended: "ځانګړي وړاندیزونه",
 		notifications: "خبرتیاوې",
-		wishlist: "خوښ شوي توکي",
 		cart: "د پېرلو ټوکرۍ",
 		preferences: "ژبه او بڼه",
 		soon: "ډېر ژر",
@@ -300,7 +296,6 @@ export const storefrontCopy: Record<Locale, StorefrontCopy> = {
 		close: "إغلاق المعاينة",
 		recommended: "اختيارات ملهمة",
 		notifications: "الإشعارات",
-		wishlist: "المفضلة",
 		cart: "سلة التسوق",
 		preferences: "اللغة والمظهر",
 		soon: "قريباً",

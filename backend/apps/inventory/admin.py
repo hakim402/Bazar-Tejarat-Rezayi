@@ -7,8 +7,8 @@ from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_access import permits
-from apps.accounts.admin_display import AdminDisplayMixin
+from apps.accounts.admin.access import permits
+from apps.accounts.admin.display import AdminDisplayMixin
 from .models import (
     Position,
     Batch,
@@ -151,7 +151,7 @@ owner_site.register(Shortage, ShortageAdmin)
 
 class StockTransitionAdmin(InventoryAuditAdmin):
     def has_view_permission(self, request, obj=None):
-        from apps.accounts.admin_access import is_owner
+        from apps.accounts.admin.access import is_owner
 
         return is_owner(request)
 

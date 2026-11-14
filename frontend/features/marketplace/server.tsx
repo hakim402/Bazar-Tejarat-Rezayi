@@ -18,7 +18,12 @@ import {
 import { SortSelect } from "./components/filter-controls";
 import { ProductGrid, StoreCard } from "./components/cards";
 import { Icon } from "../../components/ui/icon";
-import type { ProductPage, StorePage, CategoryPage } from "./types";
+import type {
+	ProductPage,
+	StorePage,
+	CategoryPage,
+	CategoryDetail,
+} from "./types";
 import { RetryButton } from "./components/retry-button";
 export type Search = Record<string, string | string[] | undefined>;
 export const readMarketplace = cache(
@@ -124,6 +129,10 @@ export async function Discovery({
 		).length,
 		hasFilters = activeCount > 0,
 		Heading = storeScope ? "h2" : "h1";
+	const categoryDetail =
+		category && data && "category" in data && data.category
+			? (data.category as CategoryDetail)
+			: null;
 	return (
 		<section className="space-y-6" data-testid="marketplace-list">
 			<form
@@ -164,21 +173,31 @@ export async function Discovery({
 					/>
 				</div>
 				<div className="contents desktop:block desktop:min-w-0 desktop:space-y-5">
-					<div className="order-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-						<Heading
-							className={
-								Heading === "h1" ? "text-3xl font-bold" : "text-2xl font-bold"
-							}
-						>
-							{category && data && "category" in data && data.category
-								? data.category.name
-								: title}
-						</Heading>
-						{data && (
+					<div className="order-1 space-y-1">
+						<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+							<Heading
+								className={
+									Heading === "h1" ? "text-3xl font-bold" : "text-2xl font-bold"
+								}
+							>
+								{categoryDetail ? categoryDetail.name : title}
+							</Heading>
+							{data && (
+								<p className="text-sm text-muted">
+									{t.results}: <bdi>{fmt.format(data.count)}</bdi>
+								</p>
+							)}
+						</div>
+						{categoryDetail?.units?.length ? (
 							<p className="text-sm text-muted">
-								{t.results}: <bdi>{fmt.format(data.count)}</bdi>
+								{t.categoryUnits}:{" "}
+								<bdi>
+									{new Intl.ListFormat(locale, { type: "unit" }).format(
+										categoryDetail.units.map((u) => u.name),
+									)}
+								</bdi>
 							</p>
-						)}
+						) : null}
 					</div>
 					<div className="order-2 flex flex-wrap gap-3">
 						<label className="relative min-w-0 flex-1 basis-64">

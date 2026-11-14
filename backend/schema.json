@@ -1381,15 +1381,8 @@
                     {}
                 ],
                 "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CatalogueDeleted"
-                                }
-                            }
-                        },
-                        "description": ""
+                    "204": {
+                        "description": "No response body"
                     }
                 }
             }
@@ -2706,6 +2699,62 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/FulfilmentDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fulfilment/{context}/orders/{id}/lines/{line_id}/image/": {
+            "get": {
+                "operationId": "fulfilment_line_image",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "line_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "fulfilment"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         },
@@ -5542,11 +5591,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -5675,11 +5751,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -5864,11 +5967,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -5997,11 +6127,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -6077,11 +6234,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -6157,11 +6341,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -6238,11 +6449,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -6615,6 +6853,61 @@
                 }
             }
         },
+        "/api/v1/orders/{context}/negotiations/{id}/products/{variant}/image/": {
+            "get": {
+                "operationId": "negotiation_product_image",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "variant",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/{context}/orders/": {
             "get": {
                 "operationId": "orders_list",
@@ -6656,11 +6949,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -7058,11 +7378,38 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "state",
+                        "schema": {
+                            "enum": [
+                                "",
+                                "unpaid",
+                                "partial",
+                                "paid",
+                                "overpaid",
+                                "overdue"
+                            ],
+                            "type": "string",
+                            "default": "",
+                            "minLength": 1
+                        },
+                        "description": "* `` - \n* `unpaid` - unpaid\n* `partial` - partial\n* `paid` - paid\n* `overpaid` - overpaid\n* `overdue` - overdue"
                     }
                 ],
                 "tags": [
@@ -7970,6 +8317,126 @@
                 }
             }
         },
+        "/api/v1/orders/seller/issues/": {
+            "get": {
+                "operationId": "seller_issues",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "tab",
+                        "schema": {
+                            "enum": [
+                                "attention",
+                                "cancellations",
+                                "corrections",
+                                "refunds",
+                                "disputes"
+                            ],
+                            "type": "string",
+                            "default": "attention",
+                            "minLength": 1
+                        },
+                        "description": "* `attention` - attention\n* `cancellations` - cancellations\n* `corrections` - corrections\n* `refunds` - refunds\n* `disputes` - disputes"
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SellerIssuePage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/seller/negotiations/{id}/conversation/": {
+            "post": {
+                "operationId": "negotiation_conversation",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConversationCommandRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/seller/negotiations/{id}/finalize/": {
             "post": {
                 "operationId": "negotiation_finalize",
@@ -8201,6 +8668,53 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AftercareOutcome"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/seller/orders/{id}/lines/{line_id}/image/": {
+            "get": {
+                "operationId": "orders_line_image",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "line_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         },
@@ -9003,6 +9517,15 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
@@ -9081,6 +9604,15 @@
                             "maximum": 10000,
                             "minimum": 1,
                             "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
                         }
                     },
                     {
@@ -9273,6 +9805,15 @@
                             "maximum": 10000,
                             "minimum": 1,
                             "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
                         }
                     },
                     {
@@ -9834,6 +10375,15 @@
                     },
                     {
                         "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "seller",
                         "schema": {
                             "type": "string",
@@ -9895,6 +10445,15 @@
                             "maximum": 10000,
                             "minimum": 1,
                             "default": 1
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "maxLength": 100
                         }
                     },
                     {
@@ -10477,125 +11036,6 @@
                                 "schema": {
                                     "type": "string",
                                     "format": "binary"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/orders/seller/orders/{id}/lines/{line_id}/image/": {
-            "get": {
-                "operationId": "orders_line_image",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "path",
-                        "name": "line_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "orders"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "image/jpeg": {
-                                "schema": {
-                                    "type": "string",
-                                    "format": "binary"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/orders/seller/issues/": {
-            "get": {
-                "operationId": "seller_issues",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "page",
-                        "schema": {
-                            "type": "integer",
-                            "maximum": 10000,
-                            "minimum": 1,
-                            "default": 1
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "q",
-                        "schema": {
-                            "type": "string",
-                            "default": "",
-                            "maxLength": 100
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "seller",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "tab",
-                        "schema": {
-                            "enum": [
-                                "attention",
-                                "cancellations",
-                                "corrections",
-                                "refunds",
-                                "disputes"
-                            ],
-                            "type": "string",
-                            "default": "attention",
-                            "minLength": 1
-                        },
-                        "description": "* `attention` - attention\n* `cancellations` - cancellations\n* `corrections` - corrections\n* `refunds` - refunds\n* `disputes` - disputes"
-                    }
-                ],
-                "tags": [
-                    "orders"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SellerIssuePage"
                                 }
                             }
                         },
@@ -11356,6 +11796,44 @@
                     "write"
                 ]
             },
+            "CartAttribute": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "label",
+                    "value"
+                ]
+            },
+            "CartImage": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "width": {
+                        "type": "integer"
+                    },
+                    "height": {
+                        "type": "integer"
+                    },
+                    "alt": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "alt",
+                    "height",
+                    "url",
+                    "width"
+                ]
+            },
             "CartLine": {
                 "type": "object",
                 "properties": {
@@ -11405,6 +11883,23 @@
                     "title": {
                         "type": "string"
                     },
+                    "image": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/CartImage"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CartAttribute"
+                        }
+                    },
+                    "contents": {
+                        "type": "string"
+                    },
                     "currency": {
                         "type": "string"
                     },
@@ -11415,20 +11910,36 @@
                         "type": "string",
                         "nullable": true
                     },
+                    "retail": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "wholesale": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "availability": {
+                        "$ref": "#/components/schemas/AvailabilityEnum"
+                    },
                     "available": {
                         "type": "boolean"
                     }
                 },
                 "required": [
+                    "attributes",
+                    "availability",
                     "available",
+                    "contents",
                     "currency",
                     "id",
+                    "image",
                     "increment",
                     "minimum",
                     "mode",
                     "price",
                     "product",
                     "quantity",
+                    "retail",
                     "seller",
                     "seller_name",
                     "sku",
@@ -11437,7 +11948,8 @@
                     "unit",
                     "unit_label",
                     "variant",
-                    "version"
+                    "version",
+                    "wholesale"
                 ]
             },
             "CartMutationActionEnum": {
@@ -12420,6 +12932,18 @@
                     "youtube"
                 ]
             },
+            "ConversationCommandRequest": {
+                "type": "object",
+                "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "command_id"
+                ]
+            },
             "ConversationDetail": {
                 "type": "object",
                 "properties": {
@@ -13052,6 +13576,12 @@
                     "overdue": {
                         "type": "boolean"
                     },
+                    "pending_claims": {
+                        "type": "integer"
+                    },
+                    "review_pending": {
+                        "type": "integer"
+                    },
                     "capabilities": {
                         "type": "object",
                         "additionalProperties": {
@@ -13130,6 +13660,7 @@
                     "overdue",
                     "overpayment",
                     "payment_method",
+                    "pending_claims",
                     "plans",
                     "receipts",
                     "received",
@@ -13139,6 +13670,7 @@
                     "refundable_excess",
                     "refunded",
                     "remaining",
+                    "review_pending",
                     "selection",
                     "seller",
                     "seller_name",
@@ -14365,6 +14897,9 @@
             "FulfilmentDetail": {
                 "type": "object",
                 "properties": {
+                    "buyer": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string",
                         "format": "uuid"
@@ -14551,9 +15086,6 @@
                     },
                     "history_count": {
                         "type": "integer"
-                    },
-                    "buyer": {
-                        "type": "string"
                     }
                 },
                 "required": [
@@ -14710,6 +15242,9 @@
             "FulfilmentSummary": {
                 "type": "object",
                 "properties": {
+                    "buyer": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string",
                         "format": "uuid"
@@ -14820,9 +15355,6 @@
                         "additionalProperties": {
                             "type": "boolean"
                         }
-                    },
-                    "buyer": {
-                        "type": "string"
                     }
                 },
                 "required": [
@@ -16441,6 +16973,22 @@
                     "status"
                 ]
             },
+            "OrderCustomer": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    }
+                },
+                "required": [
+                    "email",
+                    "name"
+                ]
+            },
             "OrderFigure": {
                 "type": "object",
                 "properties": {
@@ -16535,6 +17083,9 @@
             "OrderRow": {
                 "type": "object",
                 "properties": {
+                    "customer": {
+                        "$ref": "#/components/schemas/OrderCustomer"
+                    },
                     "id": {
                         "type": "string",
                         "format": "uuid"
@@ -16589,9 +17140,6 @@
                     "lines": {
                         "type": "array",
                         "items": {}
-                    },
-                    "customer": {
-                        "$ref": "#/components/schemas/OrderCustomer"
                     }
                 },
                 "required": [
@@ -18221,6 +18769,14 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
+                    },
+                    "can_message": {
+                        "type": "boolean"
+                    },
+                    "conversation": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -18536,6 +19092,112 @@
                     "name"
                 ]
             },
+            "SellerIssueOrder": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "buyer_name": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "buyer_name",
+                    "currency",
+                    "id",
+                    "number",
+                    "seller"
+                ]
+            },
+            "SellerIssuePage": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SellerIssueRow"
+                        }
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
+                ]
+            },
+            "SellerIssueRow": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/SellerIssueRowKindEnum"
+                    },
+                    "order": {
+                        "$ref": "#/components/schemas/SellerIssueOrder"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "actionable": {
+                        "type": "boolean"
+                    },
+                    "dispute_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "actionable",
+                    "amount",
+                    "date",
+                    "dispute_id",
+                    "key",
+                    "kind",
+                    "order",
+                    "state"
+                ]
+            },
+            "SellerIssueRowKindEnum": {
+                "enum": [
+                    "cancellation",
+                    "correction",
+                    "refund_due",
+                    "refund_report",
+                    "delivery_refund",
+                    "dispute"
+                ],
+                "type": "string",
+                "description": "* `cancellation` - cancellation\n* `correction` - correction\n* `refund_due` - refund_due\n* `refund_report` - refund_report\n* `delivery_refund` - delivery_refund\n* `dispute` - dispute"
+            },
             "SellerQueues": {
                 "type": "object",
                 "properties": {
@@ -18688,6 +19350,56 @@
                 "required": [
                     "result",
                     "state"
+                ]
+            },
+            "SetupRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                    },
+                    "reference": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "tracking": {
+                        "$ref": "#/components/schemas/TrackingEnum"
+                    },
+                    "expiry_required": {
+                        "type": "boolean"
+                    },
+                    "threshold": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    },
+                    "opening_quantity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                    },
+                    "expires_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "expiry_required",
+                    "reason",
+                    "token",
+                    "tracking",
+                    "version"
                 ]
             },
             "ShownPriceRequest": {
@@ -19304,6 +20016,12 @@
                     "overdue": {
                         "type": "boolean"
                     },
+                    "pending_claims": {
+                        "type": "integer"
+                    },
+                    "review_pending": {
+                        "type": "integer"
+                    },
                     "capabilities": {
                         "type": "object",
                         "additionalProperties": {
@@ -19330,11 +20048,13 @@
                     "overdue",
                     "overpayment",
                     "payment_method",
+                    "pending_claims",
                     "received",
                     "refund_due",
                     "refundable_excess",
                     "refunded",
                     "remaining",
+                    "review_pending",
                     "seller",
                     "seller_name",
                     "version"
@@ -19768,188 +20488,6 @@
                     "goods_version",
                     "reason",
                     "version"
-                ]
-            },
-            "CatalogueDeleted": {
-                "type": "object",
-                "properties": {
-                    "deleted": {
-                        "type": "boolean"
-                    }
-                },
-                "required": [
-                    "deleted"
-                ]
-            },
-            "SetupRequest": {
-                "type": "object",
-                "properties": {
-                    "token": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "version": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "reason": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 1000
-                    },
-                    "reference": {
-                        "type": "string",
-                        "maxLength": 120
-                    },
-                    "tracking": {
-                        "$ref": "#/components/schemas/TrackingEnum"
-                    },
-                    "expiry_required": {
-                        "type": "boolean"
-                    },
-                    "threshold": {
-                        "type": "string",
-                        "nullable": true,
-                        "maxLength": 20
-                    },
-                    "opening_quantity": {
-                        "type": "string",
-                        "maxLength": 20
-                    },
-                    "expires_on": {
-                        "type": "string",
-                        "format": "date",
-                        "nullable": true
-                    }
-                },
-                "required": [
-                    "expiry_required",
-                    "reason",
-                    "token",
-                    "tracking",
-                    "version"
-                ]
-            },
-            "OrderCustomer": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string",
-                        "format": "email"
-                    }
-                },
-                "required": [
-                    "email",
-                    "name"
-                ]
-            },
-            "SellerIssuePage": {
-                "type": "object",
-                "properties": {
-                    "count": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/SellerIssueRow"
-                        }
-                    }
-                },
-                "required": [
-                    "count",
-                    "page",
-                    "results"
-                ]
-            },
-            "SellerIssueRow": {
-                "type": "object",
-                "properties": {
-                    "key": {
-                        "type": "string"
-                    },
-                    "kind": {
-                        "$ref": "#/components/schemas/SellerIssueRowKindEnum"
-                    },
-                    "order": {
-                        "$ref": "#/components/schemas/SellerIssueOrder"
-                    },
-                    "amount": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "state": {
-                        "type": "string"
-                    },
-                    "date": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "actionable": {
-                        "type": "boolean"
-                    },
-                    "dispute_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    }
-                },
-                "required": [
-                    "actionable",
-                    "amount",
-                    "date",
-                    "dispute_id",
-                    "key",
-                    "kind",
-                    "order",
-                    "state"
-                ]
-            },
-            "SellerIssueRowKindEnum": {
-                "enum": [
-                    "cancellation",
-                    "correction",
-                    "refund_due",
-                    "refund_report",
-                    "delivery_refund",
-                    "dispute"
-                ],
-                "type": "string",
-                "description": "* `cancellation` - cancellation\n* `correction` - correction\n* `refund_due` - refund_due\n* `refund_report` - refund_report\n* `delivery_refund` - delivery_refund\n* `dispute` - dispute"
-            },
-            "SellerIssueOrder": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "seller": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "number": {
-                        "type": "string"
-                    },
-                    "buyer_name": {
-                        "type": "string"
-                    },
-                    "currency": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "buyer_name",
-                    "currency",
-                    "id",
-                    "number",
-                    "seller"
                 ]
             }
         },

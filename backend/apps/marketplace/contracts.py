@@ -1,5 +1,5 @@
 from rest_framework import serializers as s
-from apps.accounts.contracts import StrictSerializer
+from apps.accounts.api.contracts import StrictSerializer
 from apps.foundation.contracts import LOCALES
 
 
@@ -68,11 +68,20 @@ class MarketplaceProduct(s.Serializer):
     store = MarketplaceStore()
 
 
+class MarketplaceCategoryUnit(s.Serializer):
+    code = s.CharField()
+    name = s.CharField()
+    fractional = s.BooleanField()
+
+
 class MarketplaceCategory(s.Serializer):
     code = s.CharField()
     name = s.CharField()
     labels = s.DictField(child=s.CharField())
     count = s.IntegerField()
+    icon = s.CharField(required=False, allow_blank=True)
+    image = s.CharField(required=False, allow_null=True)
+    units = MarketplaceCategoryUnit(many=True, required=False)
 
 
 class MarketplacePage(s.Serializer):

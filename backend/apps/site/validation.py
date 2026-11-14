@@ -5,7 +5,7 @@ import socket
 from urllib.parse import urlsplit
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from .models import PAGES
+from .models import PAGES, ContentPage
 
 CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 
@@ -28,6 +28,7 @@ def destination(value):
         if value in {"/#demo-product-" + name for name in ["dried-fruit", "clothing", "beauty", "furniture"]} or re.fullmatch(r"/catalogue-preview/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", value):
             return value
         routes = {"/", "/help", *["/" + p for p in PAGES if p not in {"home", "payment-and-delivery", "cancellations-and-disputes", "verification"}], *["/help/" + p for p in ["payment-and-delivery", "cancellations-and-disputes", "verification"]], *["/auth/" + p for p in ["buyer-sign-in", "seller-sign-in", "buyer-registration", "seller-registration"]]}
+        routes.update(page.path for page in ContentPage.objects.filter(status="published").only("slug", "kind"))
         if value not in routes:
             raise ValidationError("Choose an existing public page, product preview or supported demo preview; omit the language prefix.")
         return value
@@ -66,16 +67,20 @@ def external_media(value, kind):
     return value
 
 
-def configuration(site, locales, slides):
-    if locales["fa-AF"].name.strip() == "":
+def missing_pair(label, url):
+    """Which half of a button pair is missing: 'url', 'label', or '' when balanced."""
+    if bool(label) == bool(url):
+        return ""
+    return "url" if label else "label"
+
+
+def settings_content(site, source):
+    """Required Dari content rules, shared by the settings form and the publish service."""
+    if not source.name.strip():
         raise ValidationError("Dari site name is required.")
-    if site.announcement_enabled and not locales["fa-AF"].announcement.strip():
+    if site.announcement_enabled and not source.announcement.strip():
         raise ValidationError("An enabled announcement needs Dari text.")
-    if site.announcement_url and not locales["fa-AF"].announcement_label.strip():
+    if site.announcement_url and not source.announcement_label.strip():
         raise ValidationError("An announcement link needs a Dari label.")
-    if site.maintenance_enabled and not (locales["fa-AF"].maintenance_title.strip() and locales["fa-AF"].maintenance_message.strip()):
+    if site.maintenance_enabled and not (source.maintenance_title.strip() and source.maintenance_message.strip()):
         raise ValidationError("Maintenance requires a Dari title and message.")
-    for kind in ["image", "video"]:
-        enabled = [slide for slide in slides if slide.enabled and not slide.is_draft and slide.placement == "main" and slide.kind == kind]
-        if len(enabled) > 8:
-            raise ValidationError("Publish up to eight included hero slides per media type. Disable an existing slide first.")

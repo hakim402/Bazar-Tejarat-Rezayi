@@ -29,6 +29,10 @@ class Category(models.Model):
     units = models.ManyToManyField(SaleUnit)
     active = models.BooleanField(default=True)
     version = models.PositiveIntegerField(default=1)
+    # Storefront presentation: a named glyph from the shared icon set and an optional
+    # public cover image kept in the site media library. Both are optional decorations.
+    icon = models.CharField(max_length=40, blank=True, default="")
+    image = models.ForeignKey("site.SiteMedia", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
 
     def __str__(self):
         return self.code

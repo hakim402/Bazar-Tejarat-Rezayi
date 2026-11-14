@@ -66,7 +66,7 @@ class ProductionGoogleTests(GoogleTests):
 
     @override_settings(PUBLIC_SIGNUP_ENABLED=False)
     def test_closed_registration_keeps_linked_google_signin_and_refuses_new_onboarding(self):
-        with patch("apps.accounts.google.exchange", return_value=self.claims):
+        with patch("apps.accounts.services.google.exchange", return_value=self.claims):
             response = post(self.client, "google/start/", {"context": "buyer", "action": "register", "locale": "en"})
             self.assertEqual(response.json()["error"]["code"], "registration_closed")
             self.assertFalse(GoogleAttempt.objects.exists())
@@ -84,7 +84,7 @@ class ProductionGoogleTests(GoogleTests):
 
     def test_buyer_and_seller_production_google_onboarding(self):
         for context in ("buyer", "seller"):
-            with self.subTest(context=context), patch("apps.accounts.google.exchange", return_value={**self.claims, "email": context + "-google@example.test", "sub": context + "-google-sub"}):
+            with self.subTest(context=context), patch("apps.accounts.services.google.exchange", return_value={**self.claims, "email": context + "-google@example.test", "sub": context + "-google-sub"}):
                 self.client = APIClient(enforce_csrf_checks=True)
                 _, query = self.start(action="register", context=context)
                 response = self.callback(query)

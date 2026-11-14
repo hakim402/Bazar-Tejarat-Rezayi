@@ -91,6 +91,7 @@
 	--text-account-title: 1.75rem;
 	--text-account-title-desktop: 2rem;
 	--breakpoint-desktop: 48rem;
+	--breakpoint-wide: 72.5rem;
 	--shadow-card: 0 4px 24px rgb(24 43 58 / 0.04);
 }
 @layer base {
@@ -505,5 +506,142 @@
 		outline: 2px solid var(--action);
 		outline-offset: 4px;
 		border-radius: 999px;
+	}
+}
+@layer components {
+	/* Owner-authored page hero: layered light over the brand gradient. */
+	.page-hero::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(
+				42rem 20rem at 12% -10%,
+				rgb(255 255 255 / 0.22),
+				transparent 60%
+			),
+			radial-gradient(
+				30rem 18rem at 95% 115%,
+				rgb(255 255 255 / 0.14),
+				transparent 60%
+			);
+		pointer-events: none;
+	}
+	.page-hero::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background-image: radial-gradient(
+			rgb(255 255 255 / 0.16) 1px,
+			transparent 1px
+		);
+		background-size: 1.4rem 1.4rem;
+		mask-image: linear-gradient(120deg, black, transparent 55%);
+		pointer-events: none;
+	}
+	/* Rich-HTML body rendered from the sanitized CMS field. */
+	.page-prose {
+		line-height: 2;
+		color: var(--ink);
+		overflow-wrap: anywhere;
+	}
+	.page-prose > * + * {
+		margin-top: 1.1rem;
+	}
+	.page-prose p,
+	.page-prose ul,
+	.page-prose ol,
+	.page-prose blockquote,
+	.page-prose figure,
+	.page-prose pre {
+		margin: 0;
+	}
+	.page-prose h2,
+	.page-prose h3,
+	.page-prose h4 {
+		margin-bottom: 0;
+		line-height: 1.5;
+		scroll-margin-top: 6rem;
+	}
+	.page-prose h2 {
+		margin-top: 2.2rem;
+		padding-inline-start: 0.9rem;
+		border-inline-start: 4px solid var(--action);
+		font-size: 1.35rem;
+	}
+	.page-prose h2:first-child {
+		margin-top: 0;
+	}
+	.page-prose h3 {
+		margin-top: 1.6rem;
+		font-size: 1.15rem;
+	}
+	.page-prose h4 {
+		margin-top: 1.3rem;
+		font-size: 1rem;
+	}
+	.page-prose a {
+		color: var(--action);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.page-prose ul,
+	.page-prose ol {
+		padding-inline-start: 1.5rem;
+		display: grid;
+		gap: 0.5rem;
+	}
+	.page-prose ul {
+		list-style: disc;
+	}
+	.page-prose ol {
+		list-style: decimal;
+	}
+	.page-prose blockquote {
+		padding: 1rem 1.25rem;
+		border-inline-start: 4px solid var(--action);
+		background: var(--soft);
+		border-radius: 0 var(--radius-control) var(--radius-control) 0;
+		color: var(--muted);
+	}
+	.page-prose img {
+		max-width: 100%;
+		height: auto;
+		border-radius: var(--radius-card);
+		border: 1px solid var(--line);
+	}
+	.page-prose figcaption {
+		margin-top: 0.5rem;
+		font-size: 0.8125rem;
+		color: var(--muted);
+		text-align: center;
+	}
+	.page-prose pre {
+		direction: ltr;
+		text-align: start;
+		overflow-x: auto;
+		padding: 1rem;
+		background: var(--soft);
+		border-radius: var(--radius-control);
+		font-family: var(--font-identifier);
+		font-size: 0.875rem;
+		scrollbar-width: thin;
+		scrollbar-color: var(--line) transparent;
+	}
+	.page-prose code {
+		font-family: var(--font-identifier);
+		font-size: 0.9em;
+		background: var(--soft);
+		padding: 0.1rem 0.35rem;
+		border-radius: 0.3rem;
+	}
+	.page-prose pre code {
+		background: transparent;
+		padding: 0;
+	}
+	.page-prose hr {
+		border: 0;
+		border-top: 1px solid var(--line);
+		margin-block: 2rem;
 	}
 }

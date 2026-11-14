@@ -9,7 +9,7 @@ from django.utils import timezone, translation
 from rest_framework.test import APIClient
 
 from apps.accounts.admin import owner_site
-from apps.accounts.dashboard import dashboard_context, activity_series
+from apps.accounts.admin.dashboard import dashboard_context, activity_series
 from apps.accounts.models import Account, Authenticator, User
 from apps.catalogue.models import Product
 from apps.organizations.models import BusinessProfile
@@ -143,7 +143,7 @@ class OwnerDashboardTests(TestCase):
             url = reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist")
             response = self.client.get(url)
             if model._meta.label == "site.SiteSettings":
-                self.assertRedirects(response, reverse("admin:site_settings_section", kwargs={"section": "general"}))
+                self.assertRedirects(response, reverse("admin:site_sitesettings_change", args=[1]))
             else:
                 self.assertEqual(response.status_code, 200, url)
 

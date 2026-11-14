@@ -7,11 +7,24 @@ import {
 	disposablePython,
 	fixturePassword as password,
 } from "./support/identity-runtime";
-import { pageKeys, pages } from "../features/pages/registry";
-import { pageCopy } from "../features/pages/copy";
 import { messages } from "../lib/i18n/messages";
 import { heroUI } from "../features/site/ui";
 import { storefrontCopy } from "../features/storefront/copy";
+const cmsPages = [
+	{ slug: "how-it-works", kind: "page" },
+	{ slug: "wholesale", kind: "page" },
+	{ slug: "sell", kind: "page" },
+	{ slug: "about", kind: "page" },
+	{ slug: "contact", kind: "contact" },
+	{ slug: "help", kind: "help-index" },
+	{ slug: "terms", kind: "page" },
+	{ slug: "privacy", kind: "page" },
+	{ slug: "payment-and-delivery", kind: "article" },
+	{ slug: "cancellations-and-disputes", kind: "article" },
+	{ slug: "verification", kind: "article" },
+] as const;
+const cmsPath = (page: (typeof cmsPages)[number]) =>
+	page.kind === "article" ? `/help/${page.slug}` : `/${page.slug}`;
 const evidence = process.env.PLAYWRIGHT_EVIDENCE_DIR;
 test.skip(
 	process.env.SITE_BROWSER_TESTS !== "1",
@@ -20,7 +33,7 @@ test.skip(
 function configure(options: Record<string, unknown> = {}) {
 	disposablePython(
 		`import sys,json
-from apps.site.models import SiteSettings,HeroSlide,HeroLocale,SiteLocale
+from apps.site.models import SiteSettings,HeroSlide,HeroLocale,SiteLocale,ContentPage,ContentPageLocale
 from apps.site.defaults import TEXT
 from apps.foundation.contracts import BRAND_NAMES
 from pathlib import Path
@@ -52,6 +65,12 @@ if 'video' in s.hero_mode:
  for slide in HeroSlide.objects.filter(enabled=True):
   slide.kind='video';slide.bundled_image=False;slide.video=media;slide.poster=poster;slide.source_url='/about';slide.save()
 if d.get('fallback'): HeroLocale.objects.filter(slide__enabled=True,locale='en').update(title='')
+PAGES=[('how-it-works','page','company'),('wholesale','page','company'),('sell','page','company'),('about','page','company'),('contact','contact','help'),('help','help-index','help'),('terms','page','legal'),('privacy','page','legal'),('payment-and-delivery','article','help'),('cancellations-and-disputes','article','help'),('verification','article','help')]
+for position,(slug,kind,group) in enumerate(PAGES):
+ page,_=ContentPage.objects.update_or_create(slug=slug,defaults=dict(kind=kind,group=group,status='published',position=position,show_in_footer=True))
+ for code in ['fa-AF','en','ps','ar']:
+  title='How it works' if slug=='how-it-works' and code=='en' else 'DEMO '+slug
+  ContentPageLocale.objects.update_or_create(page=page,locale=code,defaults=dict(is_draft=False,title=title,intro='DEMO intro '+slug,body='<h2>DEMO section</h2><p>DEMO body '+slug+'</p>'))
 path=Path(os.environ['REZAYI_TEST_ROOT'])/'site-fault'
 if d.get('fault'): path.write_text(d['fault'])
 elif path.exists(): path.unlink()
@@ -70,18 +89,18 @@ async function containment(page: Page) {
 	).toBe(true);
 }
 for (const locale of ["fa-AF", "en", "ps", "ar"] as const)
-	test(`${locale}: every fixed page, legal notice, help and metadata`, async ({
+	test(`${locale}: every published page, legal notice, help and metadata`, async ({
 		page,
 	}) => {
 		test.setTimeout(120000);
-		for (const key of pageKeys) {
-			const response = await page.goto(`/${locale}${pages[key].path}`);
-			expect(response?.status(), key).toBe(200);
+		for (const path of ["", ...cmsPages.map(cmsPath)]) {
+			const response = await page.goto(`/${locale}${path}`);
+			expect(response?.status(), path).toBe(200);
 			await expect(page.locator("h1")).toHaveCount(1);
 			await expect(page.locator("html")).toHaveAttribute("lang", locale);
 			await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
 				"href",
-				`https://bazartejaratrezayi.com/${locale}${pages[key].path}`,
+				`https://bazartejaratrezayi.com/${locale}${path}`,
 			);
 			await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(
 				4,
@@ -92,8 +111,8 @@ for (const locale of ["fa-AF", "en", "ps", "ar"] as const)
 			);
 		}
 		await page.goto(`/${locale}/terms`);
-		await expect(page.locator("h1")).toHaveText(pageCopy[locale].terms.title);
-		await expect(page.locator("#development-sample")).toBeVisible();
+		await expect(page.locator("h1")).toHaveText("DEMO terms");
+		await expect(page.locator("#section-1")).toBeVisible();
 		await containment(page);
 		await page.screenshot({
 			path: `${evidence}/site-terms-${locale}.png`,
@@ -827,11 +846,10 @@ for position,name in enumerate(['dried-fruit','clothing','beauty']):
 					.locator("footer")
 					.getByRole("button", { name: t.subscribe, exact: true }),
 			).toBeDisabled();
-			for (const key of Object.keys(pages) as (keyof typeof pages)[])
-				if (key !== "home")
-					await expect(
-						page.locator(`footer a[href="/${locale}${pages[key].path}"]`),
-					).toHaveCount(1);
+			for (const entry of cmsPages)
+				await expect(
+					page.locator(`footer a[href="/${locale}${cmsPath(entry)}"]`),
+				).toHaveCount(1);
 			for (const row of taxonomy)
 				await expect(
 					page

@@ -6,8 +6,8 @@ from rest_framework.exceptions import APIException
 from django.core.exceptions import PermissionDenied
 
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_copy import COPY as ADMIN_COPY
-from apps.accounts.admin_access import admin_actor, permits, is_owner
+from apps.accounts.admin.copy import COPY as ADMIN_COPY
+from apps.accounts.admin.access import admin_actor, permits, is_owner
 from apps.organizations.admin import ReadOnlyAdmin, WorkflowAdmin
 from .models import Evidence, ReviewCase
 from .services import download_evidence

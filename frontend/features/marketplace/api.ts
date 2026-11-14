@@ -4,7 +4,7 @@ export const marketPath = (locale: Locale, path: string) =>
 	`/api/v1/marketplace/public/${locale}/${path}`;
 export function mediaUrl(path: string) {
 	if (
-		!/^\/api\/v1\/(?:marketplace\/(?:public|seller)\/store-media|catalogue\/images)\/[0-9a-f-]{36}\/$/.test(
+		!/^\/api\/v1\/(?:marketplace\/(?:public|seller)\/store-media|catalogue\/images|site\/media)\/[0-9a-f-]{36}\/$/.test(
 			path,
 		)
 	)
@@ -45,10 +45,15 @@ export async function publicRequest<T>(
 	if (/^stores\/[0-9a-f-]{36}\/reviews\/summary\/$/.test(route)) {
 		if (
 			Object.keys(row).some((key) => key !== "count" && key !== "average") ||
-			!Number.isSafeInteger(row.count) || Number(row.count) < 0 ||
-			(row.count === 0 ? row.average !== null :
-				typeof row.average !== "string" || !/^[1-5]\.[0-9]$/.test(row.average) || Number(row.average) > 5)
-		) throw new ApiError("invalid");
+			!Number.isSafeInteger(row.count) ||
+			Number(row.count) < 0 ||
+			(row.count === 0
+				? row.average !== null
+				: typeof row.average !== "string" ||
+					!/^[1-5]\.[0-9]$/.test(row.average) ||
+					Number(row.average) > 5)
+		)
+			throw new ApiError("invalid");
 	} else if ("results" in row) {
 		if (
 			!Array.isArray(row.results) ||

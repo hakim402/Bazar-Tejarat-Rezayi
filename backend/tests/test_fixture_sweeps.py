@@ -35,7 +35,7 @@ class FixtureSweepTests(TestCase):
         for command in SEEDS:
             sys.stdin = io.StringIO(json.dumps(values))
             call_command(command, stdin=True, verbosity=0)
-        from apps.accounts.delivery import sweep_mail
+        from apps.accounts.services.delivery import sweep_mail
         from apps.notifications.tasks import sweep_notifications
         from apps.catalogue.translations import dispatch as translation_dispatch
         from apps.payments.jobs import sweep as payment_sweep

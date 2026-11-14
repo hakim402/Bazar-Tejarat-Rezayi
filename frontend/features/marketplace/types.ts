@@ -4,6 +4,16 @@ export type PublicStore = components["schemas"]["MarketplaceStore"];
 export type ProductPage = components["schemas"]["MarketplaceProducts"];
 export type StorePage = components["schemas"]["MarketplaceStores"];
 export type CategoryPage = components["schemas"]["MarketplaceCategories"];
+// Category storefront assets land in the API before the gated schema is regenerated;
+// this intersection keeps them typed without hand-editing schema.d.ts.
+export type CategoryAssets = { icon?: string; image?: string | null };
+export type CategoryRow = CategoryPage["results"][number] & CategoryAssets;
+export type HomeCategory = Home["categories"][number] & CategoryAssets;
+// Category sale units land in the API before the gated schema is regenerated.
+export type CategoryUnit = { code: string; name: string; fractional: boolean };
+export type CategoryDetail = NonNullable<ProductPage["category"]> & {
+	units?: CategoryUnit[];
+};
 export type ReviewSummary = components["schemas"]["MarketplaceReviewSummary"];
 export type Home = components["schemas"]["MarketplaceHome"];
 export type PrivateStore = components["schemas"]["StorePrivate"];

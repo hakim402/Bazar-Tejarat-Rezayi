@@ -2,12 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseSite, bundledSite } from "../features/site/contract.ts";
 import {
-	pages,
-	pageKeys,
-	pageAtPath,
 	destinationAllowed,
+	pagePath,
+	slugPattern,
 } from "../features/pages/registry.ts";
-import { pageCopy } from "../features/pages/copy.ts";
 import { locales } from "../lib/i18n/locales.ts";
 const origin = "http://127.0.0.1:8100";
 test("hero targets preserve published previews and only fixed demo product hashes", () => {
@@ -48,24 +46,59 @@ test("maintenance authority fails closed, presentation defaults remain safe", ()
 	assert.equal(site?.maintenance.enabled, false);
 	assert.equal(site?.indexing, false);
 });
-test("registry and four complete static editions preserve existing boundary", () => {
-	assert.equal(pageKeys.length, 12);
-	for (const locale of locales)
-		for (const key of pageKeys) {
-			assert.ok(pageCopy[locale][key].title);
-			assert.ok(pageCopy[locale][key].intro);
-			assert.equal(pageAtPath(pages[key].path || "/"), key);
-		}
+test("cms registry derives paths and only published destinations pass", () => {
+	assert.equal(pagePath("page", "about"), "/about");
+	assert.equal(pagePath("article", "verification"), "/help/verification");
+	assert.equal(slugPattern.test("About"), true);
+	assert.equal(slugPattern.test("-bad"), false);
+	assert.equal(slugPattern.test("a".repeat(81)), false);
+	const cms = new Set(["/about", "/help/verification"]);
+	for (const path of ["/", "/help", "/about", "/help/verification"])
+		assert.equal(destinationAllowed(path, cms), true, path);
 	for (const path of [
-		"/products",
-		"/stores/example",
+		"/about",
+		"/terms",
 		"/help/future",
 		"/checkout",
 		"/account/staff/content",
 	])
-		assert.equal(pageAtPath(path), undefined);
-	assert.match(pageCopy.en.terms.title, /development sample/);
-	assert.match(pageCopy.en.privacy.intro, /testing/);
+		assert.equal(destinationAllowed(path), false, path);
+	assert.equal(destinationAllowed("/help/future", cms), false);
+});
+test("site payload carries published page summaries that open destinations", () => {
+	const data = bundledSite("en"),
+		site = parseSite(
+			{
+				...data,
+				pages: [
+					{
+						slug: "about",
+						path: "/about",
+						group: "company",
+						kind: "page",
+						title: "About us",
+						intro: "Intro",
+						position: 1,
+						show_in_footer: true,
+					},
+					{ slug: "bad slug", title: "Ignored" },
+					{ slug: "about", title: "Duplicate" },
+				],
+				announcement: {
+					enabled: true,
+					title: "Note",
+					text: "Read about us",
+					label: "About",
+					url: "/about",
+				},
+			},
+			"en",
+			origin,
+		);
+	assert.equal(site?.pages.length, 1);
+	assert.equal(site?.pages[0].path, "/about");
+	assert.equal(site?.announcement.url, "/about");
+	assert.equal(locales.length, 4);
 });
 test("unsafe targets and media are never inherited into presentation", () => {
 	for (const href of [
@@ -136,6 +169,18 @@ test("informative video keeps an allowed long transcript", () => {
 	const data = bundledSite("en"),
 		url = "/api/v1/site/media/00000000-0000-0000-0000-000000000001/",
 		transcript = "Detailed transcript. ".repeat(250);
+	data.pages = [
+		{
+			slug: "about",
+			path: "/about",
+			group: "company",
+			kind: "page",
+			title: "About",
+			intro: "",
+			position: 0,
+			show_in_footer: true,
+		},
+	];
 	data.hero.mode = "video_carousel";
 	data.hero.slides = [
 		{
@@ -155,8 +200,7 @@ test("informative video keeps an allowed long transcript", () => {
 			fallback: false,
 		},
 	];
-	assert.equal(
-		parseSite(data, "en", origin)?.hero.slides[0].transcript,
-		transcript,
-	);
+	const parsed = parseSite(data, "en", origin);
+	assert.equal(parsed?.hero.slides[0].transcript, transcript);
+	assert.equal(parsed?.hero.slides[0].source_url, "/about");
 });

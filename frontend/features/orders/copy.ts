@@ -3,6 +3,18 @@ export const commerceCopy: Record<
 	Locale,
 	Record<
 		| "cart"
+		| "summary"
+		| "paymentInfo"
+		| "items"
+		| "lineProduct"
+		| "unitPrice"
+		| "lineTotal"
+		| "subtotal"
+		| "shipping"
+		| "continueShopping"
+		| "codHelp"
+		| "advanceHelp"
+		| "methodHelp"
 		| "reconcile"
 		| "quantityInvalid"
 		| "guestUnavailable"
@@ -70,6 +82,7 @@ export const commerceCopy: Record<
 		| "currency"
 		| "fixed"
 		| "negotiable"
+		| "negotiableShort"
 		| "saved"
 		| "review"
 		| "resume"
@@ -110,6 +123,19 @@ export const commerceCopy: Record<
 		termsUnconfigured:
 			"Checkout has not been configured for this seller. Exclude its selections to continue.",
 		cart: "Cart",
+		summary: "Order summary",
+		paymentInfo: "Payment info",
+		items: "Items",
+		lineProduct: "Product",
+		unitPrice: "Price",
+		lineTotal: "Line total",
+		subtotal: "Subtotal",
+		shipping: "Shipping",
+		continueShopping: "Continue shopping",
+		codHelp: "Pay in cash when the goods reach you.",
+		advanceHelp: "Pay before the seller dispatches your goods.",
+		methodHelp:
+			"Each seller sets the destinations and payment methods it allows; confirm them at checkout.",
 		add: "Add to cart",
 		quantity: "Quantity",
 		tier: "Price tier",
@@ -171,6 +197,7 @@ export const commerceCopy: Record<
 		currency: "Currency",
 		fixed: "Fixed price",
 		negotiable: "Negotiable — saved for later negotiation",
+		negotiableShort: "Negotiable",
 		saved: "Saved to cart",
 		review: "Review current estimate",
 		resume: "Resume pending sellers",
@@ -219,6 +246,19 @@ export const commerceCopy: Record<
 		termsUnconfigured:
 			"این فروشنده شرایط خرید را تنظیم نکرده است. برای ادامه، کالاهایش را از انتخاب خارج کنید.",
 		cart: "سبد خرید",
+		summary: "خلاصهٔ سفارش",
+		paymentInfo: "اطلاعات پرداخت",
+		items: "قلم‌ها",
+		lineProduct: "محصول",
+		unitPrice: "قیمت",
+		lineTotal: "مجموع قلم",
+		subtotal: "جمع سبد",
+		shipping: "هزینهٔ تحویل",
+		continueShopping: "ادامهٔ خرید",
+		codHelp: "هنگام رسیدن کالا نقد پرداخت کنید.",
+		advanceHelp: "پیش از ارسال کالا توسط فروشنده پرداخت کنید.",
+		methodHelp:
+			"هر فروشنده مقصد و روش پرداخت مجاز خود را تعیین می‌کند؛ در تسویه حساب تأیید کنید.",
 		add: "افزودن به سبد",
 		quantity: "مقدار",
 		tier: "نوع قیمت",
@@ -280,6 +320,7 @@ export const commerceCopy: Record<
 		currency: "پول",
 		fixed: "قیمت ثابت",
 		negotiable: "توافقی — برای مذاکرهٔ بعدی ذخیره شده",
+		negotiableShort: "توافقی",
 		saved: "به سبد افزوده شد",
 		review: "دیدن برآورد فعلی",
 		resume: "ادامهٔ فروشندگان در انتظار",
@@ -327,6 +368,19 @@ export const commerceCopy: Record<
 		termsUnconfigured:
 			"دې پلورونکي د پېرود شرطونه نه دي ټاکلي. د دوام لپاره یې توکي له انتخابه وباسئ.",
 		cart: "د پېر سبد",
+		summary: "د سفارش لنډیز",
+		paymentInfo: "د تادیې معلومات",
+		items: "توکونه",
+		lineProduct: "محصول",
+		unitPrice: "بیه",
+		lineTotal: "د توک مجموع",
+		subtotal: "د سبد جمع",
+		shipping: "د لېږد لګښت",
+		continueShopping: "خرید دوام وکړئ",
+		codHelp: "کله چې کالا ستاسو ته ورسېږي، نقد ورکړئ.",
+		advanceHelp: "مخکې له دې چې پلورونکی کالا ولېږي، تادیه وکړئ.",
+		methodHelp:
+			"هر پلورونکی خپل اجازه ورکړل شوي مقصدونه او د ادایې لارې ټاکي؛ په تسویه حساب کې یې تایید کړئ.",
 		add: "سبد ته زیاتول",
 		quantity: "مقدار",
 		tier: "د بیې ډول",
@@ -386,6 +440,7 @@ export const commerceCopy: Record<
 		currency: "پیسې",
 		fixed: "ثابته بیه",
 		negotiable: "توافقي — د وروسته خبرو لپاره ساتل شوی",
+		negotiableShort: "توافقي",
 		saved: "په سبد کې وساتل شو",
 		review: "اوسنی اټکل کتل",
 		resume: "په تمه پلورونکي بیا هڅول",
@@ -432,6 +487,19 @@ export const commerceCopy: Record<
 		termsUnconfigured:
 			"لم يحدد هذا البائع شروط الشراء. أزل تحديد منتجاته للمتابعة.",
 		cart: "السلة",
+		summary: "ملخّص الطلب",
+		paymentInfo: "معلومات الدفع",
+		items: "العناصر",
+		lineProduct: "المنتج",
+		unitPrice: "السعر",
+		lineTotal: "إجمالي العنصر",
+		subtotal: "المجموع الفرعي",
+		shipping: "الشحن",
+		continueShopping: "متابعة التسوق",
+		codHelp: "ادفع نقدًا عند وصول البضاعة إليك.",
+		advanceHelp: "ادفع قبل أن يرسل البائع البضاعة.",
+		methodHelp:
+			"يحدّد كل بائع الوجهات وطرق الدفع المسموحة لديه؛ أكّدها عند إتمام الشراء.",
 		add: "أضف إلى السلة",
 		quantity: "الكمية",
 		tier: "نوع السعر",
@@ -492,6 +560,7 @@ export const commerceCopy: Record<
 		currency: "العملة",
 		fixed: "سعر ثابت",
 		negotiable: "تفاوضي — محفوظ للتفاوض لاحقاً",
+		negotiableShort: "تفاوضي",
 		saved: "أضيف إلى السلة",
 		review: "عرض التقدير الحالي",
 		resume: "استئناف البائعين المعلقين",

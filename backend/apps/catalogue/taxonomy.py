@@ -42,11 +42,21 @@ def save_category(actor, data):
     units = SaleUnit.objects.filter(code__in=data["units"], active=True)
     if len(set(data["units"])) != units.count():
         fail("units", "choice")
+    # Resolve the optional cover against the shared site media library (images only).
+    image = None
+    if data.get("image"):
+        from apps.site.models import SiteMedia
+
+        image = SiteMedia.objects.filter(pk=data["image"], kind="image").first()
+        if image is None:
+            fail("image", "choice")
     values = {
         "labels": labels(data["labels"]),
         "attributes": schema(data["attributes"]),
         "parent": parent,
         "active": data["active"],
+        "icon": data.get("icon", ""),
+        "image": image,
     }
     if category:
         for k, v in values.items():
@@ -71,6 +81,8 @@ def taxonomy():
                 "active": c.active,
                 "parent": c.parent_id,
                 "version": c.version,
+                "icon": c.icon,
+                "image": f"/api/v1/site/media/{c.image_id}/" if c.image_id else None,
             }
             for c in Category.objects.prefetch_related("units").order_by("code")
         ],

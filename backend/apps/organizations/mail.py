@@ -8,8 +8,8 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.accounts.delivery import assemble_message, reveal
-from apps.accounts.email_copy import COPY as BRAND_COPY
+from apps.accounts.services.delivery import assemble_message, reveal
+from apps.accounts.copy.email import COPY as BRAND_COPY
 from .models import InvitationMail
 
 COPY = {

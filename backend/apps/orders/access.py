@@ -84,7 +84,7 @@ def can_receive(order, account):
 
 
 def aftercare_rights(actor):
-    from apps.accounts.admin_access import permission_codes
+    from apps.accounts.admin.access import permission_codes
     from .models import AFTERCARE_PERMISSIONS
 
     return (

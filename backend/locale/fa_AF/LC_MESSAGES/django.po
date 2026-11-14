@@ -536,8 +536,8 @@ msgstr "بستن برنامه‌ها"
 msgid "Close navigation"
 msgstr "بستن منو"
 
-msgid "Comma-separated sale unit codes, 1 to 9 entries, each at most 16 characters. Example: kg, piece."
-msgstr "کدهای واحد فروش جداشده با کاما، ۱ تا ۹ مورد، هر کدام حداکثر ۱۶ نویسه. مثال: kg، piece."
+msgid "Select 1 to 9 active sale units offered for products in this category."
+msgstr "۱ تا ۹ واحد فروش فعال را که برای محصولات این دسته ارائه می‌شود انتخاب کنید."
 
 msgid "Command tool shortcuts"
 msgstr "میان‌برهای ابزار فرمان"
@@ -1817,8 +1817,8 @@ msgstr "مدرک محافظت‌شدهٔ بازپرداخت"
 msgid "Protected reported image · %(width)s × %(height)s"
 msgstr "تصویر گزارش‌شدهٔ محافظت‌شده · %(width)s × %(height)s"
 
-msgid "Provide 1 to 9 unit codes separated by commas, without empty entries."
-msgstr "۱ تا ۹ کد واحد جداشده با کاما، بدون مورد خالی، ارائه کنید."
+msgid "Select at most 9 sale units."
+msgstr "حداکثر ۹ واحد فروش انتخاب کنید."
 
 msgid "Provider receipts"
 msgstr "رسیدهای ارائه‌دهنده"
@@ -4666,3 +4666,492 @@ msgstr "یوتیوب"
 
 msgid "← All verification cases"
 msgstr "→ همهٔ پرونده‌های تأیید"
+
+# Site admin: settings editor, media library and content pages.
+#, python-format
+msgid "%d page(s) published."
+msgstr "%d صفحه منتشر شد."
+
+#, python-format
+msgid "%d page(s) unpublished."
+msgstr "انتشار %d صفحه لغو شد."
+
+msgid "A button needs a destination."
+msgstr "دکمه به مقصد نیاز دارد."
+
+msgid "A button needs visible text."
+msgstr "دکمه به متن قابل‌مشاهده نیاز دارد."
+
+msgid "A page is public only in languages whose translation is published."
+msgstr "صفحه تنها به زبان‌هایی نمایش داده می‌شود که ترجمهٔ آن‌ها منتشر شده باشد."
+
+msgid "Arabic"
+msgstr "عربی"
+
+msgid "Body"
+msgstr "متن اصلی"
+
+msgid "Body images are added with the image button inside each language's rich text editor."
+msgstr "تصاویر متن اصلی با دکمهٔ تصویر درون ویرایشگر متن غنی هر زبان افزوده می‌شوند."
+
+msgid "Bundled marketplace image"
+msgstr "تصویر همراه بازار"
+
+msgid "Changes could not be saved. Re-select new uploads and retry."
+msgstr "تغییرات ذخیره نشدند. فایل‌های بارگذاری‌شدهٔ جدید را دوباره انتخاب کنید و تلاش کنید."
+
+msgid "Content page"
+msgstr "صفحهٔ محتوا"
+
+msgid "Content page translation"
+msgstr "ترجمهٔ صفحهٔ محتوا"
+
+msgid "Content page translations"
+msgstr "ترجمه‌های صفحهٔ محتوا"
+
+msgid "Content pages"
+msgstr "صفحه‌های محتوا"
+
+msgid "Core page (protected from deletion)"
+msgstr "صفحهٔ اصلی (محافظت‌شده در برابر حذف)"
+
+msgid "Core pages were kept — they can be unpublished but not deleted."
+msgstr "صفحه‌های اصلی نگه داشته شدند — انتشارشان قابل لغو است اما حذف نمی‌شوند."
+
+msgid "Cover image"
+msgstr "تصویر جلد"
+
+msgid "Current cover"
+msgstr "جلد فعلی"
+
+msgid "Current cover image"
+msgstr "تصویر جلد فعلی"
+
+msgid "Current media"
+msgstr "رسانهٔ فعلی"
+
+msgid "Draft state"
+msgstr "حالت پیش‌نویس"
+
+msgid "English"
+msgstr "انگلیسی"
+
+msgid "Existing cover image"
+msgstr "تصویر جلد موجود"
+
+msgid "Group"
+msgstr "گروه"
+
+msgid "Has draft changes"
+msgstr "دارای تغییرات پیش‌نویس"
+
+msgid "Hero button link"
+msgstr "پیوند دکمهٔ بخش اصلی"
+
+msgid "Hero button text"
+msgstr "متن دکمهٔ بخش اصلی"
+
+msgid "Homepage media"
+msgstr "رسانه‌های صفحهٔ خانه"
+
+msgid "Insert image"
+msgstr "درج تصویر"
+
+msgid "Intro"
+msgstr "معرفی"
+
+msgid "Keep this language as draft"
+msgstr "این زبان به‌صورت پیش‌نویس بماند"
+
+msgid "Kind"
+msgstr "نوع"
+
+msgid "Languages"
+msgstr "زبان‌ها"
+
+msgid "Media & record"
+msgstr "رسانه و اطلاعات"
+
+msgid "Missing"
+msgstr "موجود نیست"
+
+msgid "No cover image yet."
+msgstr "هنوز تصویر جلدی وجود ندارد."
+
+msgid "PNG, JPEG or WebP, up to 8 MiB. A new upload replaces the selected cover."
+msgstr "PNG، JPEG یا WebP، تا ۸ میب‌بایت. بارگذاری جدید جایگزین جلد انتخاب‌شده می‌شود."
+
+msgid "Pages"
+msgstr "صفحه‌ها"
+
+msgid "Pick a stored image, or leave empty and upload above."
+msgstr "یک تصویر ذخیره‌شده انتخاب کنید، یا خالی بگذارید و از بالا بارگذاری کنید."
+
+msgid "Placement"
+msgstr "جایگاه"
+
+msgid "Preview"
+msgstr "پیش‌نمایش"
+
+msgid "Publish selected pages"
+msgstr "انتشار صفحه‌های انتخاب‌شده"
+
+msgid "Restore original logo"
+msgstr "بازیابی لوگوی اصلی"
+
+msgid "SEO description (optional)"
+msgstr "توضیح سئو (اختیاری)"
+
+msgid "Second button link"
+msgstr "پیوند دکمهٔ دوم"
+
+msgid "Second button text (optional)"
+msgstr "متن دکمهٔ دوم (اختیاری)"
+
+msgid "Settings changed in another session. Your input is retained. Reload and compare before saving again."
+msgstr "تنظیمات در نشست دیگری تغییر کرده است. ورودی شما نگه داشته شده است. پیش از ذخیرهٔ دوباره، صفحه را دوباره بارگیری و مقایسه کنید."
+
+msgid "Site Setting changed in another session. Reload and compare before saving again."
+msgstr "تنظیمات سایت در نشست دیگری تغییر کرده است. پیش از ذخیرهٔ دوباره، صفحه را دوباره بارگیری و مقایسه کنید."
+
+msgid "Site settings are not initialized. Run the setup_site command."
+msgstr "تنظیمات سایت راه‌اندازی نشده است. فرمان setup_site را اجرا کنید."
+
+msgid "The cover image could not be stored. Other changes were saved; re-select the file and save again."
+msgstr "تصویر جلد ذخیره نشد. تغییرات دیگر ذخیره شدند؛ فایل را دوباره انتخاب کنید و دوباره ذخیره کنید."
+
+msgid "The image could not be uploaded. Try again."
+msgstr "تصویر بارگذاری نشد. دوباره تلاش کنید."
+
+msgid "Translation"
+msgstr "ترجمه"
+
+msgid "Translations — one per language"
+msgstr "ترجمه‌ها — یکی برای هر زبان"
+
+msgid "Unpublish selected pages"
+msgstr "لغو انتشار صفحه‌های انتخاب‌شده"
+
+msgid "Upload a cover image"
+msgstr "بارگذاری تصویر جلد"
+
+msgid "Visibility"
+msgstr "وضعیت نمایش"
+
+msgid "content type"
+msgstr "نوع محتوا"
+
+msgid "group"
+msgstr "گروه"
+
+msgid "intro"
+msgstr "معرفی"
+
+msgid "name"
+msgstr "نام"
+
+msgid "show in footer"
+msgstr "نمایش در پاورقی"
+
+msgid "slug"
+msgstr "نامک"
+
+msgid "version"
+msgstr "نسخه"
+
+# Unified workspace panels: embedded slide/post libraries in the section editors.
+msgid "Add and edit the homepage slides below, then choose how the carousel behaves."
+msgstr "اسلایدهای صفحهٔ خانه را در پایین اضافه و ویرایش کنید، سپس رفتار چرخ‌فلک را انتخاب کنید."
+
+msgid "Add and edit posts in the library below, then choose up to two published posts for the homepage."
+msgstr "پست‌ها را در کتابخانهٔ پایین اضافه و ویرایش کنید، سپس تا دو پست منتشرشده برای صفحهٔ خانه انتخاب کنید."
+
+msgid "Homepage slides"
+msgstr "اسلایدهای صفحهٔ خانه"
+
+msgid "Post library"
+msgstr "کتابخانهٔ پست‌ها"
+
+msgid "Add slide"
+msgstr "افزودن اسلاید"
+
+msgid "No homepage slides yet. Add the first one."
+msgstr "هنوز اسلایدی برای صفحهٔ خانه نیست. اولین اسلاید را اضافه کنید."
+
+msgid "No promotional posts yet. Add the first one."
+msgstr "هنوز پست تبلیغاتی نیست. اولین پست را اضافه کنید."
+
+msgid "Open full library"
+msgstr "باز کردن کتابخانهٔ کامل"
+
+# Catalogue admin: native Unfold review workspace, taxonomy CRUD and history tables
+msgid "Changes could not be saved. Reload the record and retry."
+msgstr "تغییرات ذخیره نشد. رکورد را دوباره بارگذاری کنید و دوباره تلاش کنید."
+
+msgid "Publication"
+msgstr "انتشار"
+
+msgid "Source under review"
+msgstr "منبع در حال بررسی"
+
+msgid "Activity"
+msgstr "فعالیت"
+
+msgid "Approve and publish"
+msgstr "تأیید و انتشار"
+
+msgid "Reject"
+msgstr "رد"
+
+msgid "Unpublish"
+msgstr "لغو انتشار"
+
+msgid "Approve translation"
+msgstr "تأیید ترجمه"
+
+msgid "Request automatic draft"
+msgstr "درخواست پیش‌نویس خودکار"
+
+msgid "Retry job"
+msgstr "تلاش دوبارهٔ کار"
+
+msgid "No source revision yet."
+msgstr "هنوز نسخهٔ منبعی وجود ندارد."
+
+msgid "Category"
+msgstr "دسته"
+
+msgid "Source language"
+msgstr "زبان منبع"
+
+msgid "Brand"
+msgstr "برند"
+
+msgid "Field"
+msgstr "فیلد"
+
+msgid "Value"
+msgstr "مقدار"
+
+msgid "No revisions yet."
+msgstr "هنوز نسخه‌ای وجود ندارد."
+
+msgid "No translations yet. Open the translation workspace to add one."
+msgstr "هنوز ترجمه‌ای وجود ندارد. برای افزودن، فضای کاری ترجمه را باز کنید."
+
+msgid "State"
+msgstr "حالت"
+
+msgid "No translation jobs."
+msgstr "هیچ کار ترجمه‌ای وجود ندارد."
+
+msgid "Error"
+msgstr "خطا"
+
+msgid "No activity yet."
+msgstr "هنوز فعالیتی وجود ندارد."
+
+msgid "When"
+msgstr "زمان"
+
+msgid "No images."
+msgstr "تصویری وجود ندارد."
+
+msgid "Publishing locks this exact source revision; unpublishing keeps it retained."
+msgstr "انتشار این نسخهٔ منبع را دقیقاً قفل می‌کند؛ لغو انتشار آن را نگه می‌دارد."
+
+msgid "The code is a permanent identity referenced by products; it cannot change after creation."
+msgstr "کد یک شناسهٔ دائمی است که محصولات به آن ارجاع می‌دهند؛ پس از ایجاد قابل تغییر نیست."
+
+msgid "The code is a permanent identity referenced by variants; it cannot change after creation."
+msgstr "کد یک شناسهٔ دائمی است که گونه‌ها به آن ارجاع می‌دهند؛ پس از ایجاد قابل تغییر نیست."
+
+msgid "The code is permanent and cannot change after creation."
+msgstr "کد دائمی است و پس از ایجاد قابل تغییر نیست."
+
+msgid "Revisions"
+msgstr "نسخه‌ها"
+
+msgid "Media"
+msgstr "رسانه"
+
+msgid "Jobs"
+msgstr "کارها"
+
+# Catalogue admin: category storefront presentation and folded product images
+msgid "No icon"
+msgstr "بدون نماد"
+
+msgid "Icon"
+msgstr "نماد"
+
+msgid "Cover"
+msgstr "جلد"
+
+msgid "Images"
+msgstr "تصاویر"
+
+msgid "Product image"
+msgstr "تصویر محصول"
+
+msgid "Category cover"
+msgstr "جلد دسته"
+
+msgid "Current category cover"
+msgstr "جلد فعلی دسته"
+
+msgid "Storefront presentation"
+msgstr "نمایش در ویترین"
+
+msgid "Current storefront presentation"
+msgstr "نمایش فعلی در ویترین"
+
+msgid "Remove the current cover image."
+msgstr "حذف تصویر جلد فعلی."
+
+msgid "Optional named glyph shown beside the category on the storefront."
+msgstr "نماد اختیاری که در ویترین کنار دسته نمایش داده می‌شود."
+
+msgid "Optional cover image (JPEG, PNG or WebP), stored in the shared site media library."
+msgstr "تصویر جلد اختیاری (JPEG، PNG یا WebP) که در کتابخانهٔ رسانهٔ سایت ذخیره می‌شود."
+
+msgid "An optional named glyph and cover image shown on public category cards."
+msgstr "نماد و تصویر جلد اختیاری که روی کارت‌های عمومی دسته نمایش داده می‌شوند."
+
+msgid "The cover image could not be stored. Re-select the file and save again."
+msgstr "تصویر جلد ذخیره نشد. فایل را دوباره انتخاب و ذخیره کنید."
+
+msgid "vs previous period"
+msgstr "در مقایسه با دورهٔ قبل"
+
+msgid "Other sellers"
+msgstr "سایر فروشندگان"
+
+msgid "Report analysis"
+msgstr "تحلیل گزارش"
+
+msgid "Key figures"
+msgstr "ارقام کلیدی"
+
+msgid "Total sales"
+msgstr "مجموع فروش"
+
+msgid "Accepted value after approved amendments."
+msgstr "ارزش پذیرفته‌شده پس از اصلاحات تأییدشده."
+
+msgid "Total orders"
+msgstr "مجموع سفارش‌ها"
+
+msgid "Accepted orders in this period."
+msgstr "سفارش‌های پذیرفته‌شده در این دوره."
+
+msgid "Total revenue"
+msgstr "مجموع عاید"
+
+msgid "Effective goods receipts recorded."
+msgstr "رسیدهای مؤثر کالا ثبت‌شده."
+
+msgid "Total customers"
+msgstr "مجموع مشتریان"
+
+msgid "Distinct buyers with accepted orders."
+msgstr "خریداران متمایز دارای سفارش پذیرفته‌شده."
+
+msgid "Revenue"
+msgstr "عاید"
+
+msgid "Current period"
+msgstr "دورهٔ فعلی"
+
+msgid "Previous period"
+msgstr "دورهٔ قبل"
+
+msgid "Accepted revenue per day, current versus previous period"
+msgstr "عاید پذیرفته‌شده در هر روز، دورهٔ فعلی در برابر دورهٔ قبل"
+
+msgid "Daily data"
+msgstr "داده‌های روزانه"
+
+msgid "Accepted revenue per day"
+msgstr "عاید پذیرفته‌شده در هر روز"
+
+msgid "Sales by location"
+msgstr "فروش بر اساس موقعیت"
+
+msgid "Recorded delivery destinations."
+msgstr "مقصدهای تحویل ثبت‌شده."
+
+msgid "Accepted value share by seller."
+msgstr "سهم ارزش پذیرفته‌شده به تفکیک فروشنده."
+
+msgid "Accepted value share by seller"
+msgstr "سهم ارزش پذیرفته‌شده به تفکیک فروشنده"
+
+msgid "Top selling sellers"
+msgstr "فروشندگان پرفروش"
+
+msgid "Up to 20 sellers per currency, by effective accepted total."
+msgstr "تا ۲۰ فروشنده در هر ارز، بر اساس مجموع مؤثر پذیرفته‌شده."
+
+msgid "See all"
+msgstr "مشاهده همه"
+
+msgid "Open seller"
+msgstr "باز کردن فروشنده"
+
+msgid "Fulfilment completion"
+msgstr "تکمیل تحویل"
+
+msgid "Completed deliveries against accepted orders."
+msgstr "تحویل‌های تکمیل‌شده در برابر سفارش‌های پذیرفته‌شده."
+
+msgid "Completed deliveries as a share of accepted orders"
+msgstr "تحویل‌های تکمیل‌شده به عنوان سهمی از سفارش‌های پذیرفته‌شده"
+
+msgid "Dispatched"
+msgstr "ارسال‌شده"
+
+msgid "Delivered"
+msgstr "تحویل‌شده"
+
+msgid "Completed"
+msgstr "تکمیل‌شده"
+
+msgid "Recorded money details"
+msgstr "جزئیات پول ثبت‌شده"
+
+msgid "Effective receipts and confirmed refunds per currency."
+msgstr "رسیدهای مؤثر و بازپرداخت‌های تأییدشده به تفکیک ارز."
+
+msgid "Goods received"
+msgstr "کالای دریافت‌شده"
+
+msgid "Receipts"
+msgstr "رسیدها"
+
+msgid "Goods refunds"
+msgstr "بازپرداخت کالا"
+
+msgid "Net"
+msgstr "خالص"
+
+msgid "New refund dues"
+msgstr "بدهی‌های جدید بازپرداخت"
+
+msgid "Delivery received"
+msgstr "تحویل دریافت‌شده"
+
+msgid "Delivery refunds"
+msgstr "بازپرداخت تحویل"
+
+msgid "Current open queues, not period-bound."
+msgstr "صف‌های باز فعلی، محدود به دوره نیست."
+
+msgid "New"
+msgstr "جدید"
+
+msgid "No change"
+msgstr "بدون تغییر"
+
+msgid "Date range"
+msgstr "بازهٔ تاریخ"

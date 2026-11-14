@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import Account
-from apps.accounts.admin_access import permission_codes
+from apps.accounts.admin.access import permission_codes
 from apps.foundation.storage import FileLocation
 from apps.organizations.access import Conflict, assert_version, company_lock, event, independent, manage_profile
 from apps.organizations.profiles import MATERIAL, current_case, next_revision, snapshot

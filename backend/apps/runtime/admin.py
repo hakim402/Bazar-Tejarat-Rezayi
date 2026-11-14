@@ -1,6 +1,6 @@
 """Read-only runtime metadata, behind the existing root/admin grant boundary."""
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_records import MetadataAdmin
+from apps.accounts.admin.records import MetadataAdmin
 from .models import Job, Scheduler, Schema, Transfer, Mutex, SearchText
 
 

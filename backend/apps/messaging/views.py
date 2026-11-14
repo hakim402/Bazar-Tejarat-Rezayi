@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema, OpenApiTypes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, NotFound
-from apps.accounts.views import AuthView
+from apps.accounts.api.views import AuthView
 from apps.accounts.services import rate_limit, TooManyRequests
 from apps.organizations.access import Actor
 from . import access, contracts as c, services, queries, media

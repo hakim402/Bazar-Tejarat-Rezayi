@@ -85,6 +85,9 @@ class CatalogueTaxonomyInput(s.Serializer):
     attributes = s.JSONField(default=list)
     units = s.ListField(child=s.CharField(max_length=16), max_length=9, allow_empty=False)
     active = s.BooleanField(default=True)
+    # Optional storefront decoration: a named glyph and a public site-media cover.
+    icon = s.CharField(max_length=40, required=False, allow_blank=True, default="")
+    image = s.UUIDField(allow_null=True, required=False, default=None)
 
 
 class CatalogueOperation(s.Serializer):

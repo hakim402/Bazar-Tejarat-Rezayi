@@ -11,8 +11,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_copy import COPY as ADMIN_COPY
-from apps.accounts.admin_access import admin_actor, is_owner
+from apps.accounts.admin.copy import COPY as ADMIN_COPY
+from apps.accounts.admin.access import admin_actor, is_owner
 from apps.accounts.models import User, AuditEvent
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.orders.admin import private_document

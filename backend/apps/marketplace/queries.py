@@ -28,6 +28,19 @@ def image_url(pk, *, private=False):
     return f"/api/v1/marketplace/{'seller' if private else 'public'}/store-media/{pk}/"
 
 
+def category_image_url(image_id):
+    # Category covers live in the shared site media library, served by its public endpoint.
+    return f"/api/v1/site/media/{image_id}/" if image_id else None
+
+
+def category_units(category, locale):
+    # Active sale units offered for this category, with localized display names.
+    return [
+        {"code": u.code, "name": u.labels.get(locale) or u.labels.get("fa-AF") or u.code, "fractional": u.fractional}
+        for u in sorted(category.units.all(), key=lambda u: u.code) if u.active
+    ]
+
+
 def identity_profiles(base, locale):
     name = ReviewCase.objects.filter(pk=OuterRef("approved_case")).annotate(public_name=KeyTextTransform("display_name", "snapshot"))
     revision = StoreRevision.objects.filter(store_id=OuterRef("pk"), pk=OuterRef("public_store__published_id"), business_case_id=OuterRef("approved_case"), state="approved")
@@ -183,7 +196,8 @@ class PublicGate:
 
     def category(self, code):
         item = get_object_or_404(Category.objects.filter(Q(active=True) | Q(pk__in=self.products.values("published__category_id"))), pk=code)
-        return {"code": item.pk, "name": item.labels.get(self.locale) or item.labels.get("fa-AF") or item.pk, "labels": item.labels, "count": self.products.filter(published__category_id=code).count()}
+        return {"code": item.pk, "name": item.labels.get(self.locale) or item.labels.get("fa-AF") or item.pk, "labels": item.labels, "count": self.products.filter(published__category_id=code).count(),
+            "icon": item.icon, "image": category_image_url(item.image_id), "units": category_units(item, self.locale)}
 
     def store(self, pk):
         gate = PublicGate(self.locale, profile_ids=[pk])
@@ -221,9 +235,9 @@ class PublicGate:
     def categories(self, page=1):
         counts = self.products.order_by().values("published__category_id").annotate(total=Count("pk"))
         directory = Category.objects.filter(Q(active=True) | Q(pk__in=counts.values("published__category_id"))).annotate(
-            public_count=Coalesce(Subquery(counts.filter(published__category_id=OuterRef("pk")).values("total")[:1]), Value(0))).order_by("code")
+            public_count=Coalesce(Subquery(counts.filter(published__category_id=OuterRef("pk")).values("total")[:1]), Value(0))).prefetch_related("units").order_by("code")
         return {"results": [{"code": cat.pk, "name": cat.labels.get(self.locale) or cat.labels.get("fa-AF") or cat.pk,
-            "labels": cat.labels, "count": cat.public_count} for cat in directory[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]],
+            "labels": cat.labels, "count": cat.public_count, "icon": cat.icon, "image": category_image_url(cat.image_id), "units": category_units(cat, self.locale)} for cat in directory[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]],
             "count": directory.count(), "page": page, "page_size": PAGE_SIZE, "facets": {}}
 
     def home(self):

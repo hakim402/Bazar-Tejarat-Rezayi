@@ -89,7 +89,7 @@ def finish(key, lease, *, failed=False):
 
 def execute(row):
     if row.kind == "account_sweep":
-        from apps.accounts.delivery import sweep_mail
+        from apps.accounts.services.delivery import sweep_mail
 
         sweep_mail()
     elif row.kind == "notice_sweep":

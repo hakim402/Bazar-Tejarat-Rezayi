@@ -33,7 +33,7 @@ class Actor:
         account = self.account
         if self.context == "owner":
             return None
-        from apps.accounts.admin_access import permission_codes
+        from apps.accounts.admin.access import permission_codes
         if self.context != "staff" or permission not in permission_codes(account, "verification"):
             raise PermissionDenied()
         return account

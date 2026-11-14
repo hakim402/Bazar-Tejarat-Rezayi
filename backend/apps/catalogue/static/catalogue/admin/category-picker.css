@@ -1,0 +1,43 @@
+/* Category icon picker: grid layout plus selected and keyboard-focused tile states.
+   Unfold's compiled stylesheet omits the size-* / peer-checked / ring utilities and
+   some responsive grid variants, so the picker is styled here. Glyph and cover
+   dimensions are set inline in the widget for the same reason. */
+
+.cat-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .cat-icon-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .cat-icon-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+.cat-icon-input:checked + .cat-icon-tile {
+    border-color: var(--color-primary-500);
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+}
+
+.cat-icon-input:focus-visible + .cat-icon-tile {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+.dark .cat-icon-input:checked + .cat-icon-tile {
+    border-color: var(--color-primary-400);
+    background-color: color-mix(in srgb, var(--color-primary-400) 18%, transparent);
+    color: var(--color-primary-300);
+}
+
+.dark .cat-icon-input:focus-visible + .cat-icon-tile {
+    outline-color: var(--color-primary-400);
+}

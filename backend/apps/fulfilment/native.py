@@ -13,8 +13,8 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_access import admin_actor
-from apps.accounts.admin_copy import COPY as COPY
+from apps.accounts.admin.access import admin_actor
+from apps.accounts.admin.copy import COPY as COPY
 from apps.orders.admin import private_document
 from apps.payments.models import Finance
 from apps.inventory.models import Bucket

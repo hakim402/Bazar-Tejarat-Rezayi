@@ -1117,7 +1117,7 @@ class OrganizationConcurrencyTests(TransactionTestCase):
             return list(pool.map(run, functions))
 
     def test_concurrent_invitation_acceptance_creates_one_membership(self):
-        from apps.accounts.delivery import reveal
+        from apps.accounts.services.delivery import reveal
 
         self.member.active = False
         self.member.save()

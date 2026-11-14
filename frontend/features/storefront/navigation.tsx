@@ -4,6 +4,8 @@ import { accessCopy } from "../../lib/i18n/access";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../lib/i18n/locales";
 import { Icon, type IconName } from "../../components/ui/icon";
+import { HeaderCart } from "../../components/layout/header-cart";
+import { HeaderNotifications } from "../../components/layout/header-notifications";
 import { Preferences } from "../../components/layout/preferences";
 import { publicRequest } from "../marketplace/api";
 import type { CategoryPage } from "../marketplace/types";
@@ -12,7 +14,6 @@ import { storefrontCopy } from "./copy";
 export function StorefrontNavigation({ locale }: { locale: Locale }) {
 	const t = storefrontCopy[locale],
 		[query, setQuery] = useState("");
-	const [notice, setNotice] = useState("");
 	const preferences = useRef<HTMLDetailsElement>(null);
 	const [taxonomy, setTaxonomy] = useState<CategoryPage | null>(null),
 		[taxonomyFailed, setTaxonomyFailed] = useState(false);
@@ -112,38 +113,11 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 				)}
 			</div>
 			<div className="relative ms-auto flex shrink-0 items-center gap-1 desktop:ms-0 desktop:gap-2">
-				{(
-					[
-						["bell", t.notifications],
-						["heart", t.wishlist],
-						["cart", t.cart],
-					] as [IconName, string][]
-				).map(([icon, label]) =>
-					icon === "cart" ? (
-						<Link
-							key={icon}
-							prefetch={false}
-							href={`/${locale}/cart`}
-							aria-label={label}
-							title={label}
-							className="flex size-9 items-center justify-center rounded-full border-0 bg-transparent text-muted no-underline hover:bg-info hover:text-action desktop:size-11"
-						>
-							<Icon name={icon} />
-						</Link>
-					) : (
-						<button
-							key={icon}
-							type="button"
-							aria-label={`${label} — ${t.soon}`}
-							aria-disabled="true"
-							title={`${label} — ${t.soon}`}
-							onClick={() => setNotice(`${label} — ${t.soon}`)}
-							className={`${icon === "bell" ? "hidden min-[420px]:flex" : "flex"} size-9 items-center justify-center rounded-full border-0 bg-transparent text-muted hover:bg-info hover:text-action desktop:size-11`}
-						>
-							<Icon name={icon} />
-						</button>
-					),
-				)}
+				<HeaderNotifications
+					locale={locale}
+					className="hidden min-[420px]:block"
+				/>
+				<HeaderCart locale={locale} />
 				<details
 					ref={preferences}
 					className="group/preferences relative"
@@ -170,22 +144,6 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 						<Preferences locale={locale} />
 					</div>
 				</details>
-				{notice && (
-					<div
-						role="status"
-						className="absolute end-0 top-full z-40 mt-3 flex w-64 max-w-[85vw] items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3 text-sm shadow-card"
-					>
-						<span>{notice}</span>
-						<button
-							type="button"
-							aria-label={t.close}
-							onClick={() => setNotice("")}
-							className="flex size-11 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-foreground"
-						>
-							<Icon name="close" className="size-4" />
-						</button>
-					</div>
-				)}
 			</div>
 		</>
 	);

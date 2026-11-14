@@ -8,7 +8,7 @@ from rest_framework.exceptions import APIException
 from django.utils.translation import gettext_lazy as _
 from unfold.widgets import UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_access import permits, admin_actor
+from apps.accounts.admin.access import permits, admin_actor
 from apps.organizations.admin import ReadOnlyAdmin
 from .models import (
     Outbox, Attempt, Event, Notice, Preference, OrderNoticeCursor,

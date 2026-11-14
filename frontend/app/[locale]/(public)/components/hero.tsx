@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { direction, type Locale } from "../../../../lib/i18n/locales";
 import { siteCopy } from "../../../../lib/i18n/site";
-import { pageCopy } from "../../../../features/pages/copy";
+import { useSite } from "../../../../features/site/context";
 import { Icon } from "../../../../components/ui/icon";
 import { heroHref } from "../../../../features/storefront/data";
 import { storefrontCopy } from "../../../../features/storefront/copy";
@@ -19,7 +19,7 @@ export function Hero({ locale, hero }: { locale: Locale; hero: Site["hero"] }) {
 		mediaRegion = useRef<HTMLDivElement>(null),
 		video = useRef<HTMLVideoElement>(null);
 	const t = heroUI[locale],
-		copy = pageCopy[locale].home,
+		how = useSite()?.pages.find((page) => page.slug === "how-it-works"),
 		store = storefrontCopy[locale],
 		slides = hero.slides,
 		slide = slides[index] ?? slides[0],
@@ -125,10 +125,10 @@ export function Hero({ locale, hero }: { locale: Locale; hero: Site["hero"] }) {
 						</p>
 					)}
 					<h1 className="max-w-sm text-[1.65rem] leading-snug desktop:text-[2.35rem]">
-						{slide?.title || copy.title}
+						{slide?.title || t.fallbackTitle}
 					</h1>
 					<p className="max-w-xs text-sm leading-7 text-muted">
-						{slide?.description || copy.intro}
+						{slide?.description || t.fallbackIntro}
 					</p>
 					{!videoOnly && slide?.cta_label && slide.cta_url ? (
 						<a
@@ -138,12 +138,12 @@ export function Hero({ locale, hero }: { locale: Locale; hero: Site["hero"] }) {
 							{slide.cta_label}
 							<Icon name="arrow" className="size-4 rtl:rotate-180" />
 						</a>
-					) : !slide ? (
+					) : !slide && how ? (
 						<a
 							className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 py-2 text-sm font-bold text-on-primary no-underline"
 							href={`/${locale}/how-it-works`}
 						>
-							{pageCopy[locale]["how-it-works"].title}
+							{how.title}
 						</a>
 					) : null}
 				</div>

@@ -550,6 +550,55 @@ class CommerceBoundaryTests(CommerceFixture, TestCase):
         self.assertEqual(len(result["lines"]), 1)
         self.assertLess(len(query), 15)
 
+    def test_cart_line_serves_public_media_prices_and_stock_signal(self):
+        from apps.cart.contracts import CartResult
+
+        self.add()
+        line = cart.projection(cart.buyer(self.buyer), "en")["lines"][0]
+        self.assertEqual(line["image"]["url"], f"/api/v1/catalogue/images/{self.image.pk}/")
+        self.assertEqual(line["image"]["alt"], "Synthetic safe image")
+        self.assertGreater(line["image"]["width"], 0)
+        self.assertGreater(line["image"]["height"], 0)
+        self.assertEqual((line["price"], line["retail"], line["wholesale"]), ("12.50", "12.50", "10.00"))
+        self.assertEqual((line["attributes"], line["contents"]), ([], ""))
+        self.assertEqual(line["availability"], "available")
+        # The published contract must accept the enriched projection for both contexts.
+        self.assertTrue(CartResult(cart.projection(cart.buyer(self.buyer), "en")).data["lines"])
+
+        Bucket.objects.filter(position_id=self.variant.pk).update(physical=Decimal(0))
+        self.assertEqual(cart.projection(cart.buyer(self.buyer), "en")["lines"][0]["availability"], "unavailable")
+
+        # A withdrawn selection must not leak media, prices or seller text.
+        from apps.catalogue.models import Product
+
+        Product.objects.filter(pk=self.product.pk).update(published=None)
+        withdrawn = cart.projection(cart.buyer(self.buyer), "en")["lines"][0]
+        self.assertFalse(withdrawn["available"])
+        self.assertIsNone(withdrawn["image"])
+        self.assertEqual(withdrawn["attributes"], [])
+        self.assertEqual((withdrawn["contents"], withdrawn["title"]), ("", ""))
+        self.assertIsNone(withdrawn["retail"])
+        self.assertIsNone(withdrawn["wholesale"])
+
+    def test_cart_line_helpers_resolve_locale_and_variant_media(self):
+        from types import SimpleNamespace
+
+        definition = {"attributes": {"grade": "A", "unlabelled": 2}, "attribute_labels": {"grade": {"en": "Grade", "fa-AF": "درجه"}}}
+        self.assertEqual(
+            cart.line_attributes(definition, "en"),
+            [{"label": "Grade", "value": "A"}, {"label": "unlabelled", "value": "2"}],
+        )
+        self.assertEqual(cart.line_attributes(definition, "ps")[0]["label"], "درجه")
+        self.assertEqual(cart.line_attributes(None, "en"), [])
+
+        assets = {"first": SimpleNamespace(width=8, height=6), "second": SimpleNamespace(width=4, height=3)}
+        body = {"images": [{"id": "first", "alt": "Cover", "variant": None}, {"id": "second", "alt": "Variant", "variant": "v2"}]}
+        self.assertEqual(cart.line_image(body, {}, "v1", assets)["url"], "/api/v1/catalogue/images/first/")
+        picked = cart.line_image(body, {"second": "Translated alt"}, "v2", assets)
+        self.assertEqual((picked["url"], picked["alt"], picked["width"]), ("/api/v1/catalogue/images/second/", "Translated alt", 4))
+        self.assertIsNone(cart.line_image(body, {}, "v1", {}))
+        self.assertIsNone(cart.line_image(None, {}, "v1", assets))
+
     def test_bounded_durable_order_notice_fanout_and_revoked_recipient(self):
         from apps.accounts.models import User, Account
         from apps.organizations.models import Membership

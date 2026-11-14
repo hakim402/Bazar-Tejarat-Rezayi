@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape
-from apps.accounts.delivery import assemble_message
+from apps.accounts.services.delivery import assemble_message
 from apps.accounts.models import Account, User, AuditEvent
 from apps.messaging import access
 from apps.messaging.models import Conversation, ReadState
@@ -50,7 +50,7 @@ def rendered(account, item, locale):
     title, text, cta = COPY[locale]
     suffix = f"?seller={item.seller_id}" if account.context == "seller" else ""
     url = f"{settings.FRONTEND_ORIGIN}/{locale}/account/{account.context}/messages/{item.pk}{suffix}"
-    from apps.accounts.email_copy import COPY as BRAND
+    from apps.accounts.copy.email import COPY as BRAND
 
     brand = BRAND[locale]["brand"]
     direction = "ltr" if locale == "en" else "rtl"
@@ -206,7 +206,7 @@ def sweep():
 
 @transaction.atomic
 def retry(actor, pk, version, reason, acknowledge):
-    from apps.accounts.admin_access import permission_codes
+    from apps.accounts.admin.access import permission_codes
     from apps.messaging.services import CommandConflict
     from rest_framework.exceptions import PermissionDenied, ValidationError
 

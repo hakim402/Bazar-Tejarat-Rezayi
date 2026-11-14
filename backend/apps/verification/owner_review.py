@@ -8,9 +8,9 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from rest_framework.exceptions import APIException
 
-from apps.accounts.admin_copy import COPY as ADMIN_COPY
+from apps.accounts.admin.copy import COPY as ADMIN_COPY
 from apps.accounts.models import Account, AuditEvent
-from apps.accounts.admin_access import admin_actor, permits, is_owner
+from apps.accounts.admin.access import admin_actor, permits, is_owner
 from apps.organizations.owner_copy import COPY
 from .forms import ReviewWorkflowForm
 from .services import authorize_case, categories, review_action, reviewer

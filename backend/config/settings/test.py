@@ -49,7 +49,7 @@ TEST_RUNNER = "tests.runner.IdentityTestRunner"
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 EMAIL_BACKEND = (
-    "apps.accounts.mail.PrivateCaptureBackend" if _browser else "django.core.mail.backends.locmem.EmailBackend"
+    "apps.accounts.services.mail.PrivateCaptureBackend" if _browser else "django.core.mail.backends.locmem.EmailBackend"
 )
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher" if _browser else "django.contrib.auth.hashers.MD5PasswordHasher"

@@ -7,8 +7,7 @@ import { direction } from "../../lib/i18n/locales";
 import { useSite } from "../../features/site/context";
 import { storefrontCopy } from "../../features/storefront/copy";
 import { productImage } from "../../features/storefront/data";
-import { pageCopy } from "../../features/pages/copy";
-import { pages, type PageKey } from "../../features/pages/registry";
+import type { PageSummary } from "../../features/pages/registry";
 import { authCopy } from "../../lib/i18n/auth";
 import { siteCopy } from "../../lib/i18n/site";
 import { BrandLogo } from "../brand/brand-logo";
@@ -19,19 +18,21 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 		t = storefrontCopy[locale],
 		a = authCopy[locale],
 		contact = site?.contacts;
-	const groups: [string, PageKey[]][] = [
-		[t.company, ["about", "how-it-works", "wholesale", "sell"]],
+	const footerPages = (site?.pages ?? [])
+		.filter((page) => page.show_in_footer && page.group !== "hidden")
+		.sort((x, y) => x.position - y.position);
+	const groups: [string, PageSummary[]][] = (
 		[
-			t.support,
-			[
-				"help",
-				"contact",
-				"payment-and-delivery",
-				"cancellations-and-disputes",
-				"verification",
-			],
-		],
-	];
+			[siteCopy[locale].pageGroups.company, "company"],
+			[siteCopy[locale].pageGroups.help, "help"],
+		] as const
+	)
+		.map(([title, group]): [string, PageSummary[]] => [
+			title,
+			footerPages.filter((page) => page.group === group),
+		])
+		.filter(([, rows]) => rows.length > 0);
+	const legal = footerPages.filter((page) => page.group === "legal");
 	const account = [
 		[a.buyerSignin, "buyer-sign-in"],
 		[a.sellerSignin, "seller-sign-in"],
@@ -122,17 +123,17 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 							</div>
 						)}
 					</div>
-					{groups.map(([title, keys]) => (
+					{groups.map(([title, rows]) => (
 						<nav key={title} aria-label={title} className="min-w-0">
 							<h2 className="mb-4 text-base">{title}</h2>
 							<ul className="m-0 list-none space-y-1 p-0">
-								{keys.map((key) => (
-									<li key={key}>
+								{rows.map((page) => (
+									<li key={page.slug}>
 										<Link
-											href={`/${locale}${pages[key].path}`}
+											href={`/${locale}${page.path}`}
 											className="inline-flex min-h-10 max-w-full items-center text-sm leading-6 wrap-anywhere text-muted no-underline hover:text-action hover:underline"
 										>
-											{pageCopy[locale][key].title}
+											{page.title}
 										</Link>
 									</li>
 								))}
@@ -218,13 +219,13 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 						© {new Date().getUTCFullYear()} {site?.identity.name}. {t.rights}
 					</p>
 					<nav aria-label={t.legal} className="flex flex-wrap gap-x-6 gap-y-2">
-						{(["privacy", "terms"] as const).map((key) => (
+						{legal.map((page) => (
 							<Link
-								key={key}
-								href={`/${locale}${pages[key].path}`}
+								key={page.slug}
+								href={`/${locale}${page.path}`}
 								className="inline-flex min-h-11 items-center text-inherit no-underline hover:text-action"
 							>
-								{pageCopy[locale][key].title}
+								{page.title}
 							</Link>
 						))}
 					</nav>

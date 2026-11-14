@@ -1,7 +1,7 @@
 import base64
 from pathlib import Path
 from django.core.management.base import BaseCommand
-from apps.accounts.delivery import render_account_mail
+from apps.accounts.services.delivery import render_account_mail
 
 
 class Command(BaseCommand):

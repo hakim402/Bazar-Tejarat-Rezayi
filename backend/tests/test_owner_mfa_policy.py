@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from config.security import owner_mfa_setting
 from apps.accounts.models import Account, AuditEvent, Authenticator, User
-from apps.accounts.owner_copy import PASSWORD_ONLY_SUBTITLES
+from apps.accounts.copy.owner import PASSWORD_ONLY_SUBTITLES
 from tests.test_identity import PASSWORD, NEW_PASSWORD, signin
 
 
@@ -61,7 +61,7 @@ class OwnerDevelopmentMFATests(TestCase):
 
     @override_settings(OWNER_MFA_REQUIRED=True)
     def test_staff_enrollment_describes_mfa_when_requirement_is_enabled(self):
-        from apps.accounts.owner_copy import COPY
+        from apps.accounts.copy.owner import COPY
 
         staff = User.objects.create_user(
             "staff-policy@example.test", PASSWORD, email_verified=True, is_staff=True

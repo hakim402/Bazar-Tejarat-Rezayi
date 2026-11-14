@@ -71,7 +71,7 @@ class CatalogueAdminTests(CatalogueFixture, TransactionTestCase):
         self.client = APIClient(enforce_csrf_checks=True)
         admin_signin(self.client, self.reviewer.user)
         path = f"/admin/catalogue/product/{self.product.pk}/workflow/"
-        image = f"/admin/catalogue/productimage/{self.image.pk}/download/"
+        image = f"/admin/catalogue/product/images/{self.image.pk}/download/"
         self.assertEqual(self.client.get(image).status_code, 200)
         self.product.refresh_from_db()
         self.assertEqual(

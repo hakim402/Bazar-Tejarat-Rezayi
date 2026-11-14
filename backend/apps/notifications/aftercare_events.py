@@ -16,8 +16,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.html import escape
 
-from apps.accounts.delivery import assemble_message
-from apps.accounts.email_copy import COPY as BRAND
+from apps.accounts.services.delivery import assemble_message
+from apps.accounts.copy.email import COPY as BRAND
 from apps.accounts.models import Account
 from apps.notifications.delivery import DefiniteDeliveryFailure
 from apps.organizations.models import BusinessProfile, Membership

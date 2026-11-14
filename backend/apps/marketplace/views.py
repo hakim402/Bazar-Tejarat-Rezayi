@@ -6,7 +6,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from apps.accounts.services import rate_limit
-from apps.accounts.views import AuthView
+from apps.accounts.api.views import AuthView
 from apps.catalogue.media import StorageUnavailable
 from apps.catalogue.validation import fail
 from apps.foundation.observability import log_failure

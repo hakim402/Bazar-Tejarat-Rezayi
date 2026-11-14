@@ -1,0 +1,173 @@
+/* Commerce report dashboard: layout grids, chart palette and small components
+   that the compiled accounts/admin.css utility set does not provide. Colors ride
+   the shared --admin-* theme variables so light/dark and locale fonts stay native. */
+
+.rz-report {
+  --rz-blue: var(--admin-action);
+  --rz-violet: #6d28d9;
+  --rz-green: #0e7a4f;
+  --rz-amber: #b45309;
+  --rz-slate: #64748b;
+}
+html.dark .rz-report {
+  --rz-violet: #a78bfa;
+  --rz-green: #6fd3a3;
+  --rz-amber: #fbbf24;
+  --rz-slate: #94a3b8;
+}
+
+/* Panel grids mirror the reference: four KPI cards, a wide revenue chart beside
+   two narrow panels, then a wide table beside the gauge, then two detail panels. */
+.rz-kpis { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.rz-row-charts, .rz-row-bottom, .rz-row-extra { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+@media (min-width: 40rem) {
+  .rz-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rz-row-extra { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 64rem) {
+  .rz-row-charts { grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .rz-row-bottom { grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr); }
+}
+@media (min-width: 80rem) {
+  .rz-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Trend chips: tinted semantic pills like the reference KPI footers. */
+.rz-chip {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .125rem .5rem; border-radius: .375rem;
+  font-size: 11px; font-weight: 600; line-height: 1.4;
+}
+.rz-chip .material-symbols-outlined { font-size: 14px; }
+.rz-chip-up { background: var(--admin-success-tint); color: var(--admin-success); }
+.rz-chip-down { background: var(--admin-danger-tint); color: var(--admin-danger); }
+.rz-chip-flat { background: var(--admin-tint); color: var(--admin-muted); }
+
+/* Location share bars. */
+.rz-bar { height: 6px; border-radius: 999px; background: var(--admin-line); overflow: hidden; }
+.rz-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--rz-violet); width: var(--share, 0%); }
+
+/* Chart legend dots, separable by hue and luminance. */
+.rz-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; background: var(--rz-blue); }
+.rz-dot-2 { background: var(--rz-violet); }
+.rz-dot-3 { background: var(--rz-green); }
+.rz-dot-4 { background: var(--rz-amber); }
+.rz-dot-5 { background: var(--rz-slate); }
+.rz-legend-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Report header badge + filter toolbar. A quiet card groups the currency pill,
+   a joined date-range field, Apply, and the export actions; logical properties
+   keep the whole bar correct in RTL and LTR. */
+.rz-title-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 2.5rem; height: 2.5rem; border-radius: .625rem;
+  background: var(--admin-tint); color: var(--admin-action);
+}
+.rz-title-icon .material-symbols-outlined { font-size: 22px; }
+
+.rz-toolbar {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem 1.25rem;
+  padding: .875rem 1rem;
+  border: 1px solid var(--admin-line); border-radius: .625rem;
+  background: var(--admin-panel); box-shadow: 0 1px 2px rgb(0 0 0 / .04);
+}
+.rz-tool { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
+.rz-tool-label { font-size: 11px; font-weight: 600; color: var(--admin-muted); }
+.rz-tool-export { margin-inline-start: auto; }
+.rz-export { display: inline-flex; align-items: center; gap: .5rem; }
+
+/* Currency segmented control: a tinted track with a raised active pill. */
+.rz-seg {
+  display: inline-flex; gap: 2px; padding: 2px;
+  border: 1px solid var(--admin-line); border-radius: .5rem; background: var(--admin-tint);
+}
+.rz-seg button {
+  min-height: 1.875rem; padding: 0 .875rem; border: 0; border-radius: .375rem; cursor: pointer;
+  background: transparent; color: var(--admin-muted); font: inherit; font-size: 12px; font-weight: 600;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.rz-seg button:hover { color: var(--admin-ink); }
+.rz-seg button[aria-pressed="true"] {
+  background: var(--admin-panel); color: var(--admin-action); box-shadow: 0 1px 2px rgb(0 0 0 / .10);
+}
+.rz-seg button:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-action) 28%, transparent); }
+
+/* Joined From -> To date-range field with a single shared focus ring. */
+.rz-daterange {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--admin-control); border-radius: .5rem; background: var(--admin-panel);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.rz-daterange:focus-within {
+  border-color: var(--admin-action); box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-action) 20%, transparent);
+}
+.rz-date { display: inline-flex; align-items: center; gap: .375rem; padding: .3125rem .625rem; cursor: pointer; }
+.rz-date-tag { font-size: 11px; font-weight: 600; color: var(--admin-muted); }
+.rz-date input {
+  border: 0; background: transparent; color: var(--admin-ink);
+  font: inherit; font-size: .8125rem; min-height: 1.5rem; padding: 0; cursor: pointer;
+}
+.rz-date input:focus { outline: none; }
+.rz-daterange-sep { display: inline-flex; align-items: center; color: var(--admin-muted); }
+.rz-daterange-sep .material-symbols-outlined { font-size: 16px; }
+[dir="rtl"] .rz-daterange-sep { transform: scaleX(-1); }
+
+/* Toolbar buttons: a quiet Apply and a solid primary export action. */
+.rz-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
+  min-height: 2.25rem; padding: 0 .875rem; border: 1px solid transparent; border-radius: .5rem;
+  font: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.rz-btn .material-symbols-outlined { font-size: 18px; }
+.rz-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-action) 28%, transparent); }
+.rz-btn-apply { background: var(--admin-panel); border-color: var(--admin-control); color: var(--admin-ink); }
+.rz-btn-apply:hover { background: var(--admin-tint); border-color: var(--admin-action); color: var(--admin-action); }
+.rz-btn-primary { background: var(--admin-action); color: var(--admin-on-action); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.rz-btn-primary:hover { filter: brightness(1.07); }
+.rz-btn-primary:active { filter: brightness(.95); }
+
+/* Custom export select with a palette caret, mirrored for RTL. */
+.rz-select-wrap { position: relative; display: inline-flex; align-items: center; }
+.rz-select {
+  appearance: none; -webkit-appearance: none;
+  min-height: 2.25rem; padding-inline: .75rem 2rem;
+  border: 1px solid var(--admin-control); border-radius: .5rem; background: var(--admin-panel);
+  color: var(--admin-ink); font: inherit; font-size: .8125rem; font-weight: 500; cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.rz-select:hover { border-color: var(--admin-action); }
+.rz-select:focus { outline: none; border-color: var(--admin-action); box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-action) 20%, transparent); }
+.rz-select-caret { position: absolute; inset-inline-end: .5rem; display: inline-flex; color: var(--admin-muted); pointer-events: none; }
+.rz-select-caret .material-symbols-outlined { font-size: 18px; }
+
+/* Narrow screens: let export span the row and slim the date field so it fits. */
+@media (max-width: 40rem) {
+  .rz-tool-export { margin-inline-start: 0; width: 100%; }
+  .rz-export { width: 100%; }
+  .rz-select-wrap { flex: 1 1 auto; }
+  .rz-select { width: 100%; }
+  .rz-date-tag { display: none; }
+  .rz-date { padding: .3125rem .5rem; }
+  .rz-date input { font-size: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rz-seg button, .rz-btn, .rz-select, .rz-daterange { transition: none; }
+}
+
+/* Flat report tables. */
+.rz-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.rz-table th, .rz-table td { padding: .625rem .75rem; text-align: start; }
+.rz-table thead th { color: var(--admin-muted); font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.rz-table tbody tr { border-top: 1px solid var(--admin-line); }
+.rz-table tbody tr:hover { background: var(--admin-tint); }
+
+/* Themed scrollbars for the wide finance table and data disclosures. */
+.rz-scroll { scrollbar-width: thin; scrollbar-color: var(--admin-control) transparent; }
+.rz-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.rz-scroll::-webkit-scrollbar-track { background: transparent; }
+.rz-scroll::-webkit-scrollbar-thumb { background: var(--admin-line); border-radius: 999px; }
+.rz-scroll::-webkit-scrollbar-thumb:hover { background: var(--admin-control); }
+
+/* Gauge canvas keeps a stable half-circle box. */
+.rz-gauge { position: relative; height: 150px; }

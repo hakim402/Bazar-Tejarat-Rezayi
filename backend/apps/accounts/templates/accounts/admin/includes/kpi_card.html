@@ -1,17 +1,17 @@
 {% load i18n %}
-<a href="{{ metric.url }}" class="ra:group ra:flex ra:min-w-0 ra:flex-col ra:overflow-hidden ra:rounded-md ra:border ra:border-line ra:bg-panel ra:text-ink ra:shadow-xs ra:transition-colors ra:hover:border-action" data-testid="dashboard-metric">
-  <div class="ra:flex-1 ra:px-6 ra:py-5">
-    <div class="ra:flex ra:items-start ra:justify-between ra:gap-2">
-      <p class="ra:text-sm ra:text-muted ra:group-hover:text-action">{{ metric.label }}</p>
-      <span class="ra:flex ra:size-8 ra:shrink-0 ra:items-center ra:justify-center ra:rounded-md ra:bg-tint ra:text-action"><span data-admin-icon class="material-symbols-outlined ra:text-lg" aria-hidden="true">{{ metric.icon }}</span></span>
+<a href="{{ metric.url }}" class="group flex min-w-0 flex-col overflow-hidden {{ rz_theme.card }} {{ rz_theme.card_hover }} {{ rz_theme.text }}" data-testid="dashboard-metric">
+  <div class="flex-1 px-6 py-5">
+    <div class="flex items-start justify-between gap-2">
+      <p class="text-sm {{ rz_theme.muted }} group-hover:text-primary-600">{{ metric.label }}</p>
+      <span class="{{ rz_theme.icon_tile }} h-8 w-8"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">{{ metric.icon }}</span></span>
     </div>
-    <p class="ra:text-3xl ra:font-bold ra:tabular-nums ra:tracking-tight" data-testid="metric-value"><bdi dir="ltr">{{ metric.value }}</bdi></p>
-    <p class="ra:mt-1 ra:text-xs ra:leading-5 ra:text-muted">{{ metric.note }}</p>
+    <p class="text-3xl font-bold tracking-tight" style="font-variant-numeric:tabular-nums" data-testid="metric-value"><bdi dir="ltr">{{ metric.value }}</bdi></p>
+    <p class="mt-1 text-xs leading-5 {{ rz_theme.muted }}">{{ metric.note }}</p>
   </div>
   {% if metric.delta %}
-    <div class="ra:flex ra:flex-wrap ra:items-center ra:gap-x-2 ra:gap-y-1 ra:border-t ra:border-line ra:px-6 ra:py-3 ra:text-sm ra:text-muted">
+    <div class="flex flex-wrap items-center gap-2 border-t {{ rz_theme.divider }} px-6 py-3 text-sm {{ rz_theme.muted }}">
       {% include 'accounts/admin/includes/delta_chip.html' with delta=metric.delta %}
-      <span class="ra:ms-auto ra:rounded-sm ra:bg-tint ra:px-2 ra:py-0.5 ra:text-[11px] ra:font-semibold ra:uppercase ra:tracking-wide ra:text-action">{% translate 'Last 7 days' %}</span>
+      <span class="ms-auto {{ rz_theme.chip }}">{% translate 'Last 7 days' %}</span>
     </div>
   {% endif %}
 </a>

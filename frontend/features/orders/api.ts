@@ -18,9 +18,15 @@ export type Line = {
 	unit: string;
 	unit_label: string;
 	title: string;
+	image?: { url: string; width: number; height: number; alt?: string } | null;
+	attributes?: { label: string; value: string }[];
+	contents?: string;
 	currency: "AFN" | "USD";
 	mode: "fixed" | "negotiable";
 	price: string | null;
+	retail?: string | null;
+	wholesale?: string | null;
+	availability?: "available" | "unavailable" | "unknown";
 	available: boolean;
 };
 export type Cart = {
@@ -215,6 +221,19 @@ export function addQuantity(a: string, b: string) {
 		return BigInt(w) * BigInt(1000) + BigInt(f.padEnd(3, "0"));
 	};
 	const n = parse(a) + parse(b);
+	return `${n / BigInt(1000)}.${String(n % BigInt(1000)).padStart(3, "0")}`;
+}
+
+export function stepQuantity(value: string, increment: string, delta: 1 | -1) {
+	const parse = (s: string) => {
+			if (!/^\d{1,9}(\.\d{1,3})?$/.test(s)) throw new AccountError(400);
+			const [w, f = ""] = s.split(".");
+			return BigInt(w) * BigInt(1000) + BigInt(f.padEnd(3, "0"));
+		},
+		step = parse(increment);
+	let n = parse(value) + step * BigInt(delta);
+	if (n < step) n = step;
+	if (n > BigInt("999999999999")) n = BigInt("999999999999");
 	return `${n / BigInt(1000)}.${String(n % BigInt(1000)).padStart(3, "0")}`;
 }
 

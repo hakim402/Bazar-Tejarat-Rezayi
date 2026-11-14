@@ -181,9 +181,9 @@ class UncertainMailTests(TestCase):
         from apps.accounts.models import User
         self.user=User.objects.create_user('durable-mail@example.test','Synthetic-Password-1234',display_name='Synthetic')
 
-    @patch('apps.accounts.delivery.EmailMultiAlternatives.send',side_effect=TimeoutError('Synthetic uncertain acknowledgement'))
+    @patch('apps.accounts.services.delivery.EmailMultiAlternatives.send',side_effect=TimeoutError('Synthetic uncertain acknowledgement'))
     def test_unknown_acknowledgement_never_blindly_retries(self,send):
-        from apps.accounts.delivery import queue_account_mail,sweep_mail
+        from apps.accounts.services.delivery import queue_account_mail,sweep_mail
         from apps.accounts.models import AccountMail
         queue_account_mail(self.user,'verify','en')
         self.assertEqual(send.call_count,0)
@@ -199,9 +199,9 @@ class UncertainMailTests(TestCase):
         row.refresh_from_db()
         self.assertEqual(row.encrypted_payload,'')
 
-    @patch('apps.accounts.delivery.EmailMultiAlternatives.send')
+    @patch('apps.accounts.services.delivery.EmailMultiAlternatives.send')
     def test_crash_after_persisted_dispatch_boundary_is_unknown(self,send):
-        from apps.accounts.delivery import queue_account_mail,sweep_mail
+        from apps.accounts.services.delivery import queue_account_mail,sweep_mail
         from apps.accounts.models import AccountMail
         queue_account_mail(self.user,'verify','en')
         AccountMail.objects.update(status='dispatching',attempts=1,next_attempt_at=timezone.now()-timedelta(seconds=1))

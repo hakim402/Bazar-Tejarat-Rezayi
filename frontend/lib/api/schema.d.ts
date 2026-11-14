@@ -772,6 +772,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fulfilment/{context}/orders/{id}/lines/{line_id}/image/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fulfilment_line_image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fulfilment/{context}/orders/{id}/partial-authorization/": {
         parameters: {
             query?: never;
@@ -1812,6 +1828,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{context}/negotiations/{id}/products/{variant}/image/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["negotiation_product_image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{context}/orders/": {
         parameters: {
             query?: never;
@@ -2228,6 +2260,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/seller/issues/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["seller_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/seller/negotiations/{id}/conversation/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["negotiation_conversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/seller/negotiations/{id}/finalize/": {
         parameters: {
             query?: never;
@@ -2302,6 +2366,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["aftercare_amendment_propose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/seller/orders/{id}/lines/{line_id}/image/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orders_line_image"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2932,38 +3012,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/orders/seller/orders/{id}/lines/{line_id}/image/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["orders_line_image"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/seller/issues/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["seller_issues"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3202,6 +3250,16 @@ export interface components {
             read: boolean;
             write: boolean;
         };
+        CartAttribute: {
+            label: string;
+            value: string;
+        };
+        CartImage: {
+            url: string;
+            width: number;
+            height: number;
+            alt: string;
+        };
         CartLine: {
             /** Format: uuid */
             id: string;
@@ -3221,9 +3279,15 @@ export interface components {
             unit: string;
             unit_label: string;
             title: string;
+            image: components["schemas"]["CartImage"] | null;
+            attributes: components["schemas"]["CartAttribute"][];
+            contents: string;
             currency: string;
             mode: string;
             price: string | null;
+            retail: string | null;
+            wholesale: string | null;
+            availability: components["schemas"]["AvailabilityEnum"];
             available: boolean;
         };
         /**
@@ -3511,6 +3575,10 @@ export interface components {
             instagram: string;
             linkedin: string;
             youtube: string;
+        };
+        ConversationCommandRequest: {
+            /** Format: uuid */
+            command_id: string;
         };
         ConversationDetail: {
             /** Format: uuid */
@@ -3880,6 +3948,8 @@ export interface components {
             deadline_generation: number;
             version: number;
             overdue: boolean;
+            pending_claims: number;
+            review_pending: number;
             capabilities: {
                 [key: string]: boolean;
             };
@@ -4230,6 +4300,7 @@ export interface components {
             evidence: string[];
         };
         FulfilmentDetail: {
+            buyer: string;
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -4290,7 +4361,6 @@ export interface components {
             history: unknown[];
             history_page: number;
             history_count: number;
-            buyer: string;
         };
         FulfilmentOutcome: {
             result: unknown;
@@ -4317,6 +4387,7 @@ export interface components {
             evidence?: string[];
         };
         FulfilmentSummary: {
+            buyer: string;
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -4357,7 +4428,6 @@ export interface components {
             capabilities: {
                 [key: string]: boolean;
             };
-            buyer: string;
         };
         /**
          * @description * `advance` - advance
@@ -4814,6 +4884,11 @@ export interface components {
         OperationResult: {
             status: string;
         };
+        OrderCustomer: {
+            name: string;
+            /** Format: email */
+            email: string;
+        };
         OrderFigure: {
             currency: string;
             accepted: number;
@@ -4838,6 +4913,7 @@ export interface components {
             results: components["schemas"]["OrderProfile"][];
         };
         OrderRow: {
+            customer?: components["schemas"]["OrderCustomer"];
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -4863,7 +4939,6 @@ export interface components {
                 [key: string]: boolean;
             };
             lines: unknown[];
-            customer?: components["schemas"]["OrderCustomer"];
         };
         Outcome: {
             /** Format: uuid */
@@ -5321,6 +5396,9 @@ export interface components {
             order: string | null;
             /** Format: uuid */
             invoice: string | null;
+            can_message?: boolean;
+            /** Format: uuid */
+            conversation?: string | null;
         };
         ResetRequestRequest: {
             token: string;
@@ -5403,6 +5481,42 @@ export interface components {
             id: string;
             name: string;
         };
+        SellerIssueOrder: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            number: string;
+            buyer_name: string;
+            currency: string;
+        };
+        SellerIssuePage: {
+            count: number;
+            page: number;
+            results: components["schemas"]["SellerIssueRow"][];
+        };
+        SellerIssueRow: {
+            key: string;
+            kind: components["schemas"]["SellerIssueRowKindEnum"];
+            order: components["schemas"]["SellerIssueOrder"];
+            amount: string | null;
+            state: string;
+            /** Format: date-time */
+            date: string;
+            actionable: boolean;
+            /** Format: uuid */
+            dispute_id: string | null;
+        };
+        /**
+         * @description * `cancellation` - cancellation
+         *     * `correction` - correction
+         *     * `refund_due` - refund_due
+         *     * `refund_report` - refund_report
+         *     * `delivery_refund` - delivery_refund
+         *     * `dispute` - dispute
+         * @enum {string}
+         */
+        SellerIssueRowKindEnum: "cancellation" | "correction" | "refund_due" | "refund_report" | "delivery_refund" | "dispute";
         SellerQueues: {
             awaiting_dispatch?: number;
             cancellations?: number;
@@ -5444,6 +5558,19 @@ export interface components {
         Settled: {
             state: components["schemas"]["CommandRecoveryStateEnum"];
             result: unknown;
+        };
+        SetupRequest: {
+            /** Format: uuid */
+            token: string;
+            version: number;
+            reason: string;
+            reference?: string;
+            tracking: components["schemas"]["TrackingEnum"];
+            expiry_required: boolean;
+            threshold?: string | null;
+            opening_quantity?: string;
+            /** Format: date */
+            expires_on?: string | null;
         };
         ShownPriceRequest: {
             /** Format: uuid */
@@ -5635,6 +5762,8 @@ export interface components {
             deadline_generation: number;
             version: number;
             overdue: boolean;
+            pending_claims: number;
+            review_pending: number;
             capabilities: {
                 [key: string]: boolean;
             };
@@ -5772,63 +5901,6 @@ export interface components {
             reason: string;
             /** Format: uuid */
             claim: string;
-        };
-        CatalogueDeleted: {
-            deleted: boolean;
-        };
-        SetupRequest: {
-            /** Format: uuid */
-            token: string;
-            version: number;
-            reason: string;
-            reference?: string;
-            tracking: components["schemas"]["TrackingEnum"];
-            expiry_required: boolean;
-            threshold?: string | null;
-            opening_quantity?: string;
-            /** Format: date */
-            expires_on?: string | null;
-        };
-        OrderCustomer: {
-            name: string;
-            /** Format: email */
-            email: string;
-        };
-        SellerIssuePage: {
-            count: number;
-            page: number;
-            results: components["schemas"]["SellerIssueRow"][];
-        };
-        SellerIssueRow: {
-            key: string;
-            kind: components["schemas"]["SellerIssueRowKindEnum"];
-            order: components["schemas"]["SellerIssueOrder"];
-            amount: string | null;
-            state: string;
-            /** Format: date-time */
-            date: string;
-            actionable: boolean;
-            /** Format: uuid */
-            dispute_id: string | null;
-        };
-        /**
-         * @description * `cancellation` - cancellation
-         *     * `correction` - correction
-         *     * `refund_due` - refund_due
-         *     * `refund_report` - refund_report
-         *     * `delivery_refund` - delivery_refund
-         *     * `dispute` - dispute
-         * @enum {string}
-         */
-        SellerIssueRowKindEnum: "cancellation" | "correction" | "refund_due" | "refund_report" | "delivery_refund" | "dispute";
-        SellerIssueOrder: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            seller: string;
-            number: string;
-            buyer_name: string;
-            currency: string;
         };
     };
     responses: never;
@@ -6590,13 +6662,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["CatalogueDeleted"];
-                };
+                content?: never;
             };
         };
     };
@@ -7190,6 +7261,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FulfilmentDetail"];
+                };
+            };
+        };
+    };
+    fulfilment_line_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
         };
@@ -8560,7 +8654,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -8621,7 +8725,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -8708,7 +8822,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -8769,7 +8893,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -8800,7 +8934,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -8832,7 +8976,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -8864,7 +9018,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -9026,6 +9190,29 @@ export interface operations {
             };
         };
     };
+    negotiation_product_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+                variant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+        };
+    };
     orders_list: {
         parameters: {
             query?: {
@@ -9037,7 +9224,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path: {
@@ -9222,7 +9419,17 @@ export interface operations {
                  */
                 locale?: "fa-AF" | "ps" | "ar" | "en";
                 page?: number;
+                q?: string;
                 seller?: string;
+                /**
+                 * @description * `` -
+                 *     * `unpaid` - unpaid
+                 *     * `partial` - partial
+                 *     * `paid` - paid
+                 *     * `overpaid` - overpaid
+                 *     * `overdue` - overdue
+                 */
+                state?: "" | "unpaid" | "partial" | "paid" | "overpaid" | "overdue";
             };
             header?: never;
             path?: never;
@@ -9746,6 +9953,64 @@ export interface operations {
             };
         };
     };
+    seller_issues: {
+        parameters: {
+            query?: {
+                page?: number;
+                q?: string;
+                seller?: string;
+                /**
+                 * @description * `attention` - attention
+                 *     * `cancellations` - cancellations
+                 *     * `corrections` - corrections
+                 *     * `refunds` - refunds
+                 *     * `disputes` - disputes
+                 */
+                tab?: "attention" | "cancellations" | "corrections" | "refunds" | "disputes";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerIssuePage"];
+                };
+            };
+        };
+    };
+    negotiation_conversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationCommandRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     negotiation_finalize: {
         parameters: {
             query?: never;
@@ -9875,6 +10140,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AftercareOutcome"];
+                };
+            };
+        };
+    };
+    orders_line_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
         };
@@ -10237,6 +10524,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                q?: string;
                 seller?: string;
                 /**
                  * @description * `` -
@@ -10270,6 +10558,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                q?: string;
                 seller?: string;
                 /**
                  * @description * `` -
@@ -10350,6 +10639,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                q?: string;
                 seller?: string;
                 /**
                  * @description * `` -
@@ -10636,6 +10926,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                q?: string;
                 seller?: string;
                 /**
                  * @description * `` -
@@ -10671,6 +10962,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
+                q?: string;
                 seller?: string;
                 /**
                  * @description * `` -
@@ -10959,59 +11251,6 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
-                };
-            };
-        };
-    };
-    orders_line_image: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                line_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "image/jpeg": string;
-                };
-            };
-        };
-    };
-    seller_issues: {
-        parameters: {
-            query?: {
-                page?: number;
-                q?: string;
-                seller?: string;
-                /**
-                 * @description * `attention` - attention
-                 *     * `cancellations` - cancellations
-                 *     * `corrections` - corrections
-                 *     * `refunds` - refunds
-                 *     * `disputes` - disputes
-                 */
-                tab?: "attention" | "cancellations" | "corrections" | "refunds" | "disputes";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SellerIssuePage"];
                 };
             };
         };

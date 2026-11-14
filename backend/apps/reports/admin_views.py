@@ -1,6 +1,7 @@
 """Root-only native admin commerce report. Staff platform aggregates are not exposed."""
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django.urls import path
@@ -12,7 +13,7 @@ from apps.accounts.services import get_grant
 from apps.catalogue.models import SourceRevision
 from apps.orders.models import SellerOrder
 
-from . import exports, queries
+from . import admin_queries, exports, queries
 from .contracts import EXPORT_KINDS
 
 
@@ -60,9 +61,11 @@ def report_urls(admin_site):
             "form": form,
             "window": window,
             "report": queries.summary(orders, window, rights),
+            "dash": admin_queries.dashboard(orders, window, rights),
             "sellers": queries.platform_sellers(window),
             "publication_pending": SourceRevision.objects.filter(state="submitted").count(),
             "kinds": EXPORT_KINDS,
+            "report_css_version": settings.REPORT_CSS_VERSION,
         }
         return render(request, "reports/admin/commerce.html", context)
 
@@ -80,8 +83,8 @@ def staff_work_report(request, admin_site):
     """Fresh native queue scopes, without platform or financial aggregates."""
     from django.http import HttpResponseBadRequest
 
-    from apps.accounts.admin_access import admin_actor
-    from apps.accounts.admin_work import my_work
+    from apps.accounts.admin.access import admin_actor
+    from apps.accounts.admin.work import my_work
     from apps.accounts.models import AuditEvent
     from apps.accounts.services import rate_limit
 

@@ -30,7 +30,7 @@ class UploadBoundaryMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        site = request.path.startswith(("/admin/site/", "/admin/settings/", "/admin/site-setting/"))
+        site = request.path.startswith("/admin/site/")
         if site and request.method == "POST":
             try:
                 if not 0 < int(request.META.get("CONTENT_LENGTH") or 0) <= 128 * 1024 * 1024:

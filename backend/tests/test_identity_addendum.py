@@ -17,12 +17,12 @@ from django.test import TestCase, TransactionTestCase, SimpleTestCase, override_
 from django.utils import timezone
 from rest_framework.test import APIClient, APIRequestFactory
 
-from apps.accounts import google
-from apps.accounts.delivery import dispatch_one, queue_account_mail, reveal, sweep_mail
+from apps.accounts.services import google
+from apps.accounts.services.delivery import dispatch_one, queue_account_mail, reveal, sweep_mail
 from apps.accounts.models import Account, AccountMail, ActionToken, BrowserAuthority, GoogleAttempt, GoogleIdentity, User
 from apps.accounts.provider_settings import provider_settings
 from apps.accounts.services import request_mail
-from apps.accounts.views import LogoutView
+from apps.accounts.api.views import LogoutView
 from tests.test_identity import PASSWORD, post, signin, token_from_mail
 
 GOOGLE = dict(
@@ -115,7 +115,7 @@ class MailTests(TestCase):
         self.assertFalse(ActionToken.objects.exists())
         self.assertEqual(len(mail.outbox), 0)
 
-    @patch("apps.accounts.delivery.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"sensitive-provider-text"))
+    @patch("apps.accounts.services.delivery.EmailMultiAlternatives.send", side_effect=smtplib.SMTPDataError(550, b"sensitive-provider-text"))
     def test_bounded_retry_uses_same_protected_token_and_cleans_expiry(self, send):
         with self.captureOnCommitCallbacks(execute=True):
             queue_account_mail(self.user, "verify", "en")
@@ -227,7 +227,7 @@ class GoogleTests(TestCase):
         self.assertEqual(attempt.return_path, "/en/account/buyer")
         self.assertNotIn("access_type", q)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_new_verified_identity_explicit_onboarding_then_one_role(self, exchange):
         exchange.return_value = self.claims
         _, q = self.start(action="register", context="seller")
@@ -245,7 +245,7 @@ class GoogleTests(TestCase):
         self.assertEqual(self.client.get("/api/v1/auth/seller/session/").status_code, 200)
         self.assertEqual(self.callback(q).status_code, 403)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_onboarding_consent_policy_and_replay(self, exchange):
         exchange.return_value = self.claims
         _, q = self.start()
@@ -258,7 +258,7 @@ class GoogleTests(TestCase):
         self.assertEqual(self.onboard(response).status_code, 200)
         self.assertEqual(post(self.client, "google/complete/", {**data, "consent": True}).status_code, 403)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_email_collision_never_merges_or_claims_unverified_local(self, exchange):
         user = User.objects.create_user(self.claims["email"], PASSWORD, display_name="Original")
         exchange.return_value = self.claims
@@ -277,7 +277,7 @@ class GoogleTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.email_verified)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_explicit_local_link_requires_fresh_password_and_same_google_email(self, exchange):
         user = User.objects.create_user(self.claims["email"], PASSWORD, display_name="Original", email_verified=True)
         Account.objects.create(user=user, context="buyer")
@@ -297,7 +297,7 @@ class GoogleTests(TestCase):
         self.assertTrue(user.check_password(PASSWORD))
         self.assertEqual(GoogleIdentity.objects.get().user, user)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_google_only_second_role_reauth_creates_pending_without_grant(self, exchange):
         user = User.objects.create_user(self.claims["email"], None, display_name="Social", email_verified=True)
         Account.objects.create(user=user, context="buyer")
@@ -315,7 +315,7 @@ class GoogleTests(TestCase):
         self.assertEqual(self.client.get("/api/v1/auth/seller/session/").status_code, 403)
         self.assertEqual(self.client.get("/api/v1/auth/buyer/session/").status_code, 200)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_linked_subject_not_changed_email_and_no_missing_or_suspended_role(self, exchange):
         user = User.objects.create_user("original@example.test", None, display_name="Social", email_verified=True)
         account = Account.objects.create(user=user, context="buyer")
@@ -336,7 +336,7 @@ class GoogleTests(TestCase):
         self.assertEqual(self.client.get("/api/v1/auth/staff/session/").status_code, 404)
         self.assertEqual(self.client.get("/admin/").status_code, 302)
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_browser_expiry_unsolicited_cancel_failure_and_replay(self, exchange):
         _, q = self.start()
         stranger = APIClient()
@@ -378,7 +378,7 @@ class GoogleTests(TestCase):
                 "google_unavailable",
             )
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_parallel_tabs_have_independent_attempts_and_credential_binding(self, exchange):
         _, first = self.start(locale="fa-AF")
         _, second = self.start(context="seller", locale="ar")
@@ -398,7 +398,7 @@ class GoogleTests(TestCase):
             403,
         )
 
-    @patch("apps.accounts.google.exchange")
+    @patch("apps.accounts.services.google.exchange")
     def test_google_only_password_recovery_preserves_link_and_suspended_roles(self, exchange):
         user = User.objects.create_user(self.claims["email"], None, display_name="Social", email_verified=True)
         Account.objects.create(user=user, context="buyer", status="suspended")
@@ -423,7 +423,7 @@ class OIDCCryptoTests(SimpleTestCase):
 
     def test_package_name_must_not_be_an_accepted_google_issuer(self):
         with self.assertRaises(Exception):
-            self.verify(iss="apps.accounts.google.com")
+            self.verify(iss="apps.accounts.services.google.com")
 
     @classmethod
     def setUpClass(cls):
@@ -450,8 +450,8 @@ class OIDCCryptoTests(SimpleTestCase):
         response = MagicMock()
         response.json.return_value = self.jwks
         with (
-            patch("apps.accounts.google.client", return_value=provider),
-            patch("apps.accounts.google.requests.get", return_value=response),
+            patch("apps.accounts.services.google.client", return_value=provider),
+            patch("apps.accounts.services.google.requests.get", return_value=response),
         ):
             result = google.exchange("synthetic-code", {"nonce": "synthetic-nonce", "verifier": "synthetic-verifier"})
             self.assertEqual(provider.fetch_token.call_args.kwargs["code_verifier"], "synthetic-verifier")
@@ -491,7 +491,7 @@ class ConcurrentGoogleTests(TransactionTestCase):
         from concurrent.futures import ThreadPoolExecutor
         from django.contrib.auth.models import AnonymousUser
         from django.db import connections
-        from apps.accounts.delivery import protect
+        from apps.accounts.services.delivery import protect
         from apps.accounts.services import AuthFailure
 
         attempts = []
@@ -573,7 +573,7 @@ class ConcurrentGoogleTests(TransactionTestCase):
                 connections.close_all()
 
         with patch(
-            "apps.accounts.google.exchange", return_value={"sub": "same-link-subject", "email": user.email, "name": "Link"}
+            "apps.accounts.services.google.exchange", return_value={"sub": "same-link-subject", "email": user.email, "name": "Link"}
         ):
             with ThreadPoolExecutor(max_workers=2) as pool:
                 results = list(pool.map(finish, states))

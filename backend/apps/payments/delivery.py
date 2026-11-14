@@ -9,8 +9,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape
 from apps.accounts.models import Account, User
-from apps.accounts.delivery import assemble_message
-from apps.accounts.email_copy import COPY as BRAND
+from apps.accounts.services.delivery import assemble_message
+from apps.accounts.copy.email import COPY as BRAND
 from apps.notifications.models import Preference
 from apps.notifications.delivery import DefiniteDeliveryFailure
 from apps.organizations.models import BusinessProfile

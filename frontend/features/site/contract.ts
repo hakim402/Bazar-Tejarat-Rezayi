@@ -1,9 +1,18 @@
 import { isLocale, type Locale } from "../../lib/i18n/locales.ts";
 import { messages } from "../../lib/i18n/messages.ts";
-import { destinationAllowed, pageKeys } from "../pages/registry.ts";
+import {
+	destinationAllowed,
+	pageGroups,
+	pageKinds,
+	pagePath,
+	slugPattern,
+	type PageSummary,
+} from "../pages/registry.ts";
 import { marketplacePages } from "../../lib/routes/marketplace-routes.ts";
 import type { components } from "../../lib/api/schema.d";
-export type Site = components["schemas"]["PublicSite"];
+export type Site = components["schemas"]["PublicSite"] & {
+	pages: PageSummary[];
+};
 export type Media = components["schemas"]["Media"];
 export type Notice = components["schemas"]["Notice"];
 export type Slide = components["schemas"]["Slide"];
@@ -72,6 +81,7 @@ export function bundledSite(locale: Locale): Site {
 		},
 		seo: [],
 		media_hosts: [],
+		pages: [],
 	};
 }
 /** Strict authority, bounded presentation defaults. Never interprets CMS payloads. */
@@ -99,6 +109,34 @@ export function parseSite(
 				)
 				.slice(0, 16)
 		: [];
+	const cmsPaths = new Set<string>();
+	for (const value of Array.isArray(data.pages)
+		? data.pages.slice(0, 100)
+		: []) {
+		const item = record(value),
+			slug = text(item.slug, 80),
+			title = text(item.title, 300);
+		if (!slugPattern.test(slug) || !title) continue;
+		const group = pageGroups.includes(item.group as PageSummary["group"])
+				? (item.group as PageSummary["group"])
+				: "hidden",
+			kind = pageKinds.includes(item.kind as PageSummary["kind"])
+				? (item.kind as PageSummary["kind"])
+				: "page",
+			path = pagePath(kind, slug);
+		if (cmsPaths.has(path)) continue;
+		cmsPaths.add(path);
+		result.pages.push({
+			slug,
+			path,
+			group,
+			kind,
+			title,
+			intro: text(item.intro, 1000),
+			position: Number.isInteger(item.position) ? Number(item.position) : 0,
+			show_in_footer: item.show_in_footer === true,
+		});
+	}
 	function media(value: unknown): Media | null {
 		const item = record(value);
 		let url = text(item.url, 2048);
@@ -160,8 +198,8 @@ export function parseSite(
 			enabled: item.enabled === true,
 			title: text(item.title, 300),
 			text: text(item.text),
-			label: destinationAllowed(target) && label ? label : "",
-			url: destinationAllowed(target) && label ? target : "",
+			label: destinationAllowed(target, cmsPaths) && label ? label : "",
+			url: destinationAllowed(target, cmsPaths) && label ? target : "",
 			content_locale: localeOf(item.content_locale, locale),
 			fallback: item.fallback === true,
 		};
@@ -200,7 +238,7 @@ export function parseSite(
 		"youtube",
 	] as const) {
 		const url = text(contacts[key], 2048);
-		if (url.startsWith("https:") && destinationAllowed(url))
+		if (url.startsWith("https:") && destinationAllowed(url, cmsPaths))
 			result.contacts[key] = url;
 	}
 	if (
@@ -251,10 +289,12 @@ export function parseSite(
 			title: text(s.title, 300),
 			description: text(s.description),
 			alt: text(s.alt),
-			cta_label: destinationAllowed(target) ? text(s.cta_label, 160) : "",
-			cta_url: destinationAllowed(target) ? target : "",
+			cta_label: destinationAllowed(target, cmsPaths)
+				? text(s.cta_label, 160)
+				: "",
+			cta_url: destinationAllowed(target, cmsPaths) ? target : "",
 			transcript: text(s.transcript, 6000),
-			source_url: destinationAllowed(text(s.source_url, 2048))
+			source_url: destinationAllowed(text(s.source_url, 2048), cmsPaths)
 				? text(s.source_url, 2048)
 				: "",
 			content_locale: localeOf(s.content_locale, locale),
@@ -275,7 +315,7 @@ export function parseSite(
 			2048,
 		);
 		if (
-			!destinationAllowed(target) ||
+			!destinationAllowed(target, cmsPaths) ||
 			(kind === "video"
 				? video?.content_type !== "video/mp4" ||
 					!poster?.content_type.startsWith("image/")
@@ -302,10 +342,13 @@ export function parseSite(
 			fallback: card.fallback === true,
 		});
 	}
-	const seoPages = [...pageKeys, ...marketplacePages];
 	for (const value of Array.isArray(data.seo) ? data.seo.slice(0, 16) : []) {
 		const row = record(value);
-		if (seoPages.includes(row.page as (typeof seoPages)[number]))
+		if (
+			typeof row.page === "string" &&
+			(slugPattern.test(row.page) ||
+				(marketplacePages as readonly string[]).includes(row.page))
+		)
 			result.seo.push({
 				page: row.page as Site["seo"][number]["page"],
 				title: text(row.title, 300),

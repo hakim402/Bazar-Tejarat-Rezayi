@@ -1,0 +1,1 @@
+"""Localized copy decks: owner-facing admin strings and account email bodies."""

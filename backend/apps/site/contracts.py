@@ -81,6 +81,30 @@ class SEO(s.Serializer):
     image = Media(allow_null=True)
 
 
+class PublicPageSummary(s.Serializer):
+    slug = s.SlugField()
+    path = s.CharField()
+    group = s.ChoiceField(choices=["company", "help", "legal", "hidden"])
+    kind = s.ChoiceField(choices=["page", "article", "contact", "help-index"])
+    title = s.CharField()
+    intro = s.CharField()
+    position = s.IntegerField()
+    show_in_footer = s.BooleanField()
+
+
+class PublicPage(PublicPageSummary):
+    body = s.CharField()
+    meta_description = s.CharField()
+    cover = Media(allow_null=True)
+    cta_label = s.CharField()
+    cta_url = s.CharField()
+    cta_secondary_label = s.CharField()
+    cta_secondary_url = s.CharField()
+    content_locale = s.ChoiceField(choices=LOCALES)
+    fallback = s.BooleanField()
+    updated_at = s.CharField()
+
+
 class PublicSite(s.Serializer):
     default_locale = s.ChoiceField(choices=LOCALES)
     default_theme = s.ChoiceField(choices=["system", "light", "dark"])
@@ -94,3 +118,4 @@ class PublicSite(s.Serializer):
     hero = Hero()
     seo = SEO(many=True)
     media_hosts = s.ListField(child=s.CharField())
+    pages = PublicPageSummary(many=True)

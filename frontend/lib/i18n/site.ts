@@ -10,6 +10,9 @@ export const siteCopy: Record<
 		contact: string;
 		noContact: string;
 		navigation: string;
+		onThisPage: string;
+		keepReading: string;
+		pageGroups: { company: string; help: string; legal: string };
 	}
 > = {
 	en: {
@@ -22,6 +25,13 @@ export const siteCopy: Record<
 		contact: "Platform support",
 		noContact: "Approved support details are not published yet.",
 		navigation: "Navigation",
+		onThisPage: "On this page",
+		keepReading: "Keep reading",
+		pageGroups: {
+			company: "Company",
+			help: "Help centre",
+			legal: "Legal",
+		},
 	},
 	"fa-AF": {
 		home: "خانه",
@@ -33,6 +43,13 @@ export const siteCopy: Record<
 		contact: "پشتیبانی بازار",
 		noContact: "راه‌های تأییدشدهٔ پشتیبانی هنوز نشر نشده است.",
 		navigation: "راهبری",
+		onThisPage: "در این صفحه",
+		keepReading: "بخوانید",
+		pageGroups: {
+			company: "شرکت",
+			help: "مرکز راهنما",
+			legal: "حقوقی",
+		},
 	},
 	ps: {
 		home: "کور",
@@ -44,6 +61,13 @@ export const siteCopy: Record<
 		contact: "د بازار ملاتړ",
 		noContact: "د ملاتړ تایید شوې لارې لا نه دي خپرې شوې.",
 		navigation: "لارموندنه",
+		onThisPage: "په دې پاڼه کې",
+		keepReading: "لولئ",
+		pageGroups: {
+			company: "شرکت",
+			help: "د لارښود مرکز",
+			legal: "حقوقي",
+		},
 	},
 	ar: {
 		home: "الرئيسية",
@@ -54,5 +78,12 @@ export const siteCopy: Record<
 		contact: "دعم المنصة",
 		noContact: "لم تُنشر معلومات الدعم المعتمدة بعد.",
 		navigation: "التنقل",
+		onThisPage: "في هذه الصفحة",
+		keepReading: "اقرأ أيضاً",
+		pageGroups: {
+			company: "الشركة",
+			help: "مركز المساعدة",
+			legal: "قانوني",
+		},
 	},
 };

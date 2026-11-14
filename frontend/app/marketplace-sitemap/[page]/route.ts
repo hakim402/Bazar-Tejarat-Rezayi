@@ -4,7 +4,7 @@ import {
 	xmlResponse,
 } from "../../../features/marketplace/sitemap";
 import { publicOrigin } from "../../../features/pages/metadata";
-import { pages, pageKeys } from "../../../features/pages/registry";
+import { readSite } from "../../../features/site/server";
 import { marketplacePages } from "../../../lib/routes/marketplace-routes";
 import { locales } from "../../../lib/i18n/locales";
 import { publicRequest } from "../../../features/marketplace/api";
@@ -25,8 +25,10 @@ export async function GET(
 			);
 		let paths: string[] = [];
 		if (page === 0) {
+			const site = await readSite("fa-AF");
 			paths = [
-				...pageKeys.map((key) => pages[key].path),
+				"",
+				...(site?.pages ?? []).map((entry) => entry.path),
 				...marketplacePages
 					.filter((key) => key !== "search")
 					.map((key) => `/${key}`),

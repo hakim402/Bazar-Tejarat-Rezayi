@@ -8,7 +8,7 @@ import {
 import { NextResponse, type NextRequest } from "next/server";
 import { apiOrigin } from "./lib/api/client";
 import { defaultLocale, isLocale, type Locale } from "./lib/i18n/locales";
-import { pageAtPath } from "./features/pages/registry";
+import { slugPattern } from "./features/pages/registry";
 import { authScreens, type AuthScreen } from "./lib/i18n/auth-screens";
 import { parseSite, type Site } from "./features/site/contract";
 import { marketplaceRoute } from "./lib/routes/marketplace-routes";
@@ -75,13 +75,23 @@ export async function proxy(request: NextRequest) {
 	)
 		return statusResponse(request, locale, 404);
 	const path = `/${parts.slice(1).join("/")}`,
-		key = pageAtPath(path);
+		infoPath =
+			!["auth", "account", "invitation"].includes(parts[1] ?? "") &&
+			(parts.length === 1 ||
+				(parts.length === 2 && slugPattern.test(parts[1])) ||
+				(parts.length === 3 &&
+					parts[1] === "help" &&
+					slugPattern.test(parts[2])));
 	const marketplace = marketplaceRoute(path);
-	if (key || marketplace || path === "/cart") {
+	if (infoPath || marketplace || path === "/cart") {
 		const site = await settings(locale);
 		if (!site || site.maintenance.enabled)
 			return statusResponse(request, locale, 503);
-		if (marketplace || key === "home") {
+		const published =
+			path === "/" || site.pages.some((page) => page.path === path);
+		if (!marketplace && path !== "/cart" && !published)
+			return statusResponse(request, locale, 404);
+		if (marketplace || path === "/") {
 			try {
 				const parameters = new URLSearchParams(request.nextUrl.searchParams);
 				for (const key of ["auth", "return", "context"]) parameters.delete(key);
@@ -94,13 +104,13 @@ export async function proxy(request: NextRequest) {
 					])
 						parameters.delete(key);
 				}
-				const endpoint = key === "home" ? "home/" : marketplace;
+				const endpoint = path === "/" ? "home/" : marketplace;
 				const scoped =
 					parts[1] === "stores" && parts.length === 3 && parameters.size
 						? `stores/${parts[2]}/products/`
 						: endpoint;
 				const query =
-					key === "home" || parts.length === 4 ? "" : parameters.toString();
+					path === "/" || parts.length === 4 ? "" : parameters.toString();
 				const upstream = await fetch(
 					`${apiOrigin(process.env.API_INTERNAL_URL)}/api/v1/marketplace/public/${locale}/${scoped}${query ? `?${query}` : ""}`,
 					{
@@ -166,7 +176,7 @@ export async function proxy(request: NextRequest) {
 		(context === "seller"
 			? sellerAccountRoute(parts.slice(3))
 			: (!["fulfilment", "aftercare"].includes(screen) &&
-				commerceRoute(parts.slice(3))) ||
+					commerceRoute(parts.slice(3))) ||
 				communicationRoute(parts.slice(3)) ||
 				(ordinary && parts.length <= 4) ||
 				(screen === "reports" && parts.length === 4) ||

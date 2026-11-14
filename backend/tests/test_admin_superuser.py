@@ -7,8 +7,8 @@ from django.test import TransactionTestCase, override_settings, RequestFactory
 from django.urls import reverse, resolve, NoReverseMatch
 from rest_framework.test import APIClient
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_navigation import navigation
-from apps.accounts.admin_access import is_owner
+from apps.accounts.admin.navigation import navigation
+from apps.accounts.admin.access import is_owner
 from apps.accounts.models import User, AuditEvent, ActionToken, Authenticator, AccountMail
 from apps.accounts.services import get_grant, AuthFailure
 from tests.test_identity import PASSWORD
@@ -100,7 +100,7 @@ class SuperAdminTests(TransactionTestCase):
         with self.assertRaises(AuthFailure):
             get_grant(request, 'owner')
         self.assertEqual(self.client.get('/admin/').status_code, 302)
-        self.assertEqual(self.client.post('/admin/site-setting/general/', {}).status_code, 403)  # CSRF remains independent
+        self.assertEqual(self.client.post('/admin/site/sitesettings/1/change/', {}).status_code, 403)  # CSRF remains independent
         self.assertEqual(account.context, 'staff')
 
     def test_privilege_edit_self_protection_version_attestation_and_audit(self):
@@ -200,7 +200,6 @@ class SuperAdminTests(TransactionTestCase):
             'catalogue.category',
             'catalogue.pricechange',
             'catalogue.product',
-            'catalogue.productimage',
             'catalogue.saleunit',
             'catalogue.sourcerevision',
             'catalogue.translation',

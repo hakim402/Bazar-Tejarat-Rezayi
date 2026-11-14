@@ -1,0 +1,1 @@
+"""HTTP API surface: DRF views, Google OAuth endpoints and request/response contracts."""

@@ -42,6 +42,8 @@ def origin_list(name, *, secure=False):
 
 INSTALLED_APPS = [
     "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
     "apps.runtime.apps.RuntimeConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.organizations.apps.OrganizationsConfig",
@@ -76,7 +78,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "apps.runtime.middleware.TargetSchemaMiddleware",
     "apps.accounts.middleware.ReadSafeSessionMiddleware",
-    "apps.accounts.admin_locale.AdminLanguageMiddleware",
+    "apps.accounts.admin.locale.AdminLanguageMiddleware",
     "django.middleware.common.CommonMiddleware",
     "apps.verification.uploads.EvidenceRequestLimitMiddleware",
     "apps.catalogue.media.CatalogueRequestLimitMiddleware",
@@ -157,7 +159,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 SESSION_COOKIE_HTTPONLY = True
-EMAIL_BACKEND = "apps.accounts.mail.PrivateCaptureBackend"
+EMAIL_BACKEND = "apps.accounts.services.mail.PrivateCaptureBackend"
 DEFAULT_FROM_EMAIL = "no-reply@rezayi.example.test"
 PRIVATE_MAIL_ROOT = env("PRIVATE_MAIL_ROOT", default=str(BASE_DIR / "data" / "private-mail"))
 FRONTEND_ORIGIN = env(
@@ -186,17 +188,18 @@ except (ValueError, TypeError):
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS[1]["OPTIONS"] = {"min_length": 12}
 ADMIN_CSS_VERSION = sha256((BASE_DIR / "apps/accounts/static/accounts/admin.css").read_bytes()).hexdigest()[:16]
+REPORT_CSS_VERSION = sha256((BASE_DIR / "apps/reports/static/reports/admin/report.css").read_bytes()).hexdigest()[:16]
 
 UNFOLD = {
     "SITE_TITLE": "Bazar Rezayi",
     "SITE_HEADER": "Bazar Rezayi",
     "SITE_SUBHEADER": "Administration",
     "SHOW_LANGUAGES": False,
-    "DASHBOARD_CALLBACK": "apps.accounts.dashboard.dashboard_context",
+    "DASHBOARD_CALLBACK": "apps.accounts.admin.dashboard.dashboard_context",
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": True,
-        "navigation": "apps.accounts.admin_navigation.navigation",
+        "navigation": "apps.accounts.admin.navigation.navigation",
     },
     "COLORS": {
         "primary": {
@@ -251,7 +254,7 @@ CORS_EXPOSE_HEADERS = ["X-Request-ID"]
 SESSION_COOKIE_DOMAIN = None
 CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_HTTPONLY = True
-CSRF_FAILURE_VIEW = "apps.accounts.views.csrf_failure"
+CSRF_FAILURE_VIEW = "apps.accounts.api.views.csrf_failure"
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_PROXY_SSL_HEADER = None

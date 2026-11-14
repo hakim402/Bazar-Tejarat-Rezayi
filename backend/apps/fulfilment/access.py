@@ -3,7 +3,7 @@
 from django.db.models import Q, Exists, OuterRef
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound, PermissionDenied
-from apps.accounts.admin_access import permission_codes
+from apps.accounts.admin.access import permission_codes
 from apps.accounts.models import Account, User
 from apps.messaging.access import lock_actor
 from apps.organizations.models import BusinessProfile, Membership

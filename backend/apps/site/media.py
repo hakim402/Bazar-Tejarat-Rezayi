@@ -179,8 +179,15 @@ def cleanup_media(asset_ids):
 
 def media_is_public(pk):
     from django.db.models import Q
-    from .models import SiteSettings, SiteLocale, PageSEO, HeroSlide
+    from .models import SiteSettings, SiteLocale, PageSEO, HeroSlide, ContentPage, ContentPageLocale
     if SiteSettings.objects.filter(Q(favicon_id=pk) | Q(og_image_id=pk)).exists() or SiteLocale.objects.filter(Q(logo_light_id=pk) | Q(logo_dark_id=pk)).exists() or PageSEO.objects.filter(image_id=pk).exists():
+        return True
+    if ContentPage.objects.filter(status='published', cover_id=pk).exists() or ContentPageLocale.objects.filter(page__status='published', is_draft=False, body__contains=str(pk)).exists():
+        return True
+    # A category cover is public whenever its category appears in the public directory:
+    # active, or still carrying published products. Lazy import avoids the catalogue->site cycle.
+    from apps.catalogue.models import Category, Product
+    if Category.objects.filter(image_id=pk).filter(Q(active=True) | Q(pk__in=Product.objects.filter(published__isnull=False).values('published__category_id'))).exists():
         return True
     site = SiteSettings.objects.only('hero_mode', 'promotion_one', 'promotion_two').filter(pk=1).first()
     if not site:

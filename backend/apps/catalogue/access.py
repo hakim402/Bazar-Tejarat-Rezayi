@@ -10,7 +10,7 @@ from .models import Product, PERMISSIONS, CatalogueEvent
 
 
 def permissions(actor):
-    from apps.accounts.admin_access import permission_codes
+    from apps.accounts.admin.access import permission_codes
     account = actor.account
     if actor.context == "owner":
         return list(PERMISSIONS)

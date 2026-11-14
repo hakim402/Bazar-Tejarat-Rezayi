@@ -5,7 +5,7 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from apps.accounts.admin import owner_site
-from apps.accounts.admin_access import admin_actor, is_owner
+from apps.accounts.admin.access import admin_actor, is_owner
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.orders.admin import private_document
 from . import models as m, access, media, native

@@ -3,7 +3,7 @@ from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from apps.accounts.views import AuthView
+from apps.accounts.api.views import AuthView
 from apps.accounts.services import get_grant, AuthFailure, rate_limit
 from apps.organizations.access import Actor
 from apps.messaging.views import query

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Locale } from "../../../lib/i18n/locales";
 import { direction } from "../../../lib/i18n/locales";
-import { Icon } from "../../../components/ui/icon";
-import type { PublicProduct, PublicStore } from "../types";
+import { Icon, iconName } from "../../../components/ui/icon";
+import type { PublicProduct, PublicStore, CategoryAssets } from "../types";
 import { marketplaceCopy } from "../copy";
 import {
 	featuredPlaceholders,
@@ -177,6 +177,32 @@ export function Asset({
 			loading={loading}
 			className={className}
 		/>
+	);
+}
+export function CategoryMedia({
+	category,
+	className = "h-28 w-full",
+	iconClassName = "size-12",
+}: {
+	category: CategoryAssets;
+	className?: string;
+	iconClassName?: string;
+}) {
+	return category.image ? (
+		// biome-ignore lint/performance/noImgElement: inspected API media requires its native publication-aware byte boundary.
+		<img
+			src={mediaUrl(category.image)}
+			alt=""
+			loading="lazy"
+			className={`object-contain ${className}`}
+		/>
+	) : (
+		<span
+			aria-hidden
+			className={`flex items-center justify-center text-action ${className}`}
+		>
+			<Icon name={iconName(category.icon)} className={iconClassName} />
+		</span>
 	);
 }
 export function ProductCard({

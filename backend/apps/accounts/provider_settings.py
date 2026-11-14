@@ -35,7 +35,7 @@ def provider_settings(env, production=False):
         ACCOUNT_EMAIL_TRANSPORT=transport,
         EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
         if transport == "smtp"
-        else "apps.accounts.mail.PrivateCaptureBackend",
+        else "apps.accounts.services.mail.PrivateCaptureBackend",
     )
     for key, default in [
         ("EMAIL_HOST", "smtp.gmail.com"),

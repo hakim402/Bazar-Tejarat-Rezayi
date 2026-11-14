@@ -20,7 +20,7 @@ def validate_bundles(values):
 
 
 def rotate_invitation(invitation):
-    from apps.accounts.delivery import protect
+    from apps.accounts.services.delivery import protect
 
     raw = secrets.token_urlsafe(32)
     invitation.digest = hashlib.sha256(raw.encode()).hexdigest()

@@ -9,6 +9,9 @@ export const heroUI = {
 		transcript: "متن ویدیو",
 		maintenance: "به‌زودی برمی‌گردیم",
 		unavailable: "سایت موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.",
+		fallbackTitle: "بازار رضایی؛ راه روشن تجارت",
+		fallbackIntro: "با بازار، حساب‌های خرید و فروش و اصول خرید پرچون و عمده آشنا شوید.",
+		howItWorks: "بازار چگونه کار می‌کند؟",
 	},
 	en: {
 		carousel: "carousel",
@@ -21,6 +24,9 @@ export const heroUI = {
 		maintenance: "We’ll be back soon",
 		unavailable:
 			"The site is temporarily unavailable. Please try again shortly.",
+		fallbackTitle: "Bazar Rezayi — trade with clarity",
+		fallbackIntro: "Understand the marketplace, choose your account and explore retail and wholesale guidance.",
+		howItWorks: "How the marketplace works",
 	},
 	ps: {
 		carousel: "د سلایډونو ننداره",
@@ -32,6 +38,9 @@ export const heroUI = {
 		transcript: "د ویډیو متن",
 		maintenance: "ژر به بېرته راشو",
 		unavailable: "سایټ لنډمهاله نه شته. مهرباني وکړئ لږ وروسته بیا هڅه وکړئ.",
+		fallbackTitle: "رضايي بازار؛ روښانه سوداګري",
+		fallbackIntro: "بازار، د پېر او پلور حسابونه او د پرچون او عمده سوداګرۍ لارښوونې وپېژنئ.",
+		howItWorks: "بازار څنګه کار کوي؟",
 	},
 	ar: {
 		carousel: "عرض شرائح",
@@ -43,5 +52,8 @@ export const heroUI = {
 		transcript: "نص الفيديو",
 		maintenance: "سنعود قريباً",
 		unavailable: "الموقع غير متاح مؤقتاً. يرجى المحاولة بعد قليل.",
+		fallbackTitle: "سوق رضائي — تجارة أكثر وضوحاً",
+		fallbackIntro: "تعرّف إلى السوق وحسابات الشراء والبيع وإرشادات التجزئة والجملة.",
+		howItWorks: "كيف يعمل السوق؟",
 	},
 } as const;

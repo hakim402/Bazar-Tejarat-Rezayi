@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
-from apps.accounts.admin_access import permission_codes
+from apps.accounts.admin.access import permission_codes
 from apps.accounts.models import Account
 from apps.organizations.models import BusinessProfile, Membership
 from . import access
