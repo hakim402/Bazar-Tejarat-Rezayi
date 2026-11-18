@@ -201,7 +201,7 @@ class MarketplaceTests(CatalogueFixture, TestCase):
         empty = BusinessProfile.objects.create(account=empty_actor.account, kind="individual", display_name="Synthetic empty")
         ReviewCase.objects.create(profile=empty, snapshot={"display_name": "Reviewed empty store"}, status="approved")
         for index in range(44):
-            result = catalogue.create(self.seller, {"seller": company.pk if index % 2 else self.profile.pk, "currency": "USD" if index % 2 else "AFN", "pricing_mode": "fixed"})
+            result = catalogue.create(self.seller, {"command_id": uuid4(), "seller": company.pk if index % 2 else self.profile.pk, "currency": "USD" if index % 2 else "AFN", "pricing_mode": "fixed"})
             self.product = Product.objects.get(pk=result["id"])
             uploaded = upload(self.seller, self.product.pk, self.product.version, image_file())
             self.image = ProductImage.objects.get(pk=uploaded["id"])

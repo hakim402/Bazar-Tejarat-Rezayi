@@ -32,7 +32,7 @@ class NoticeRow(s.Serializer):
     product = s.UUIDField(allow_null=True)
     store = s.UUIDField(allow_null=True)
     report = s.UUIDField(allow_null=True)
-    seller = s.UUIDField()
+    seller = s.UUIDField(allow_null=True)
     read = s.BooleanField()
     created_at = s.DateTimeField()
 

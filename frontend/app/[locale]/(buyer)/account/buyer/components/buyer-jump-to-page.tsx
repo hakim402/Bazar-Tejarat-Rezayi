@@ -14,6 +14,7 @@ export interface BuyerDestination {
 	href: string;
 	icon: IconName;
 	active: boolean;
+	badge?: number;
 }
 
 export interface BuyerNavigationGroup {

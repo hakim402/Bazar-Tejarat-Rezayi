@@ -1,7 +1,9 @@
 """Private scoped projections. Quantities are never summed across units."""
 
+from datetime import timedelta
 from decimal import Decimal
-from django.db.models import Prefetch, OuterRef, Subquery
+from django.db.models import Prefetch, OuterRef, Subquery, Sum, Case, When, Value, F, Q, DecimalField, BooleanField
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from apps.catalogue.models import Variant, SourceRevision, Product
 from apps.catalogue.queries import image_url
@@ -10,22 +12,24 @@ from apps.verification.models import ReviewCase
 from apps.organizations.access import visible_profiles
 from . import access
 from .models import Bucket, Movement, Shortage
-from .services import expired, expiring, active, clock
+from .services import expired, expiring, active, clock, today, EXPIRING_DAYS
 
 
 def profiles(actor):
+    visible = list(visible_profiles(actor))
+    statuses = {
+        (case["profile_id"], case["revision"]): case["status"]
+        for case in ReviewCase.objects.filter(profile__in=visible).values("profile_id", "revision", "status")
+    }
     return [
         {
             "id": str(p.pk),
             "name": p.display_name,
             "kind": p.kind,
-            "verification": ReviewCase.objects.filter(profile=p, revision=p.revision)
-            .values_list("status", flat=True)
-            .first()
-            or "draft",
+            "verification": statuses.get((p.pk, p.revision), "draft"),
             "capabilities": access.capabilities(actor, p),
         }
-        for p in visible_profiles(actor)
+        for p in visible
     ]
 
 
@@ -49,6 +53,16 @@ def variants(profile):
             Prefetch("stock_position__buckets", queryset=Bucket.objects.select_related("batch").order_by("pk"))
         )
     )
+
+
+def _active_variant_ids(profile):
+    """Published-body eligibility, read once instead of rescanning every variant."""
+    ids = set()
+    for product in Product.objects.filter(seller=profile, published__isnull=False).select_related("published"):
+        for row in product.published.body["variants"]:
+            if row["active"]:
+                ids.add(str(row["id"]))
+    return ids
 
 
 def position_data(variant, caps, *, detail=False, now=None):
@@ -153,12 +167,80 @@ def overview(actor, profile_id, params):
     q, state, sort, page = filters(params)
     base = variants(profile)
     if q:
-        from django.db.models import Q
-
         title_match = Q(stock_title__icontains=q) if caps["write"] else Q(product__published__body__title__icontains=q)
         base = base.filter(Q(sku__icontains=q) | title_match)
     now = clock()
-    rows = [position_data(v, caps, now=now) for v in base]
+    day = today(now)
+    horizon = day + timedelta(days=EXPIRING_DAYS)
+    active_ids = _active_variant_ids(profile)
+    money = DecimalField(max_digits=24, decimal_places=3)
+    zero = Value(Decimal(0))
+    bucket = "stock_position__buckets"
+    expired_on = Q(**{f"{bucket}__batch__expires_on__lt": day})
+    expiring_on = Q(
+        **{
+            f"{bucket}__batch__expires_on__gte": day,
+            f"{bucket}__batch__expires_on__lte": horizon,
+            f"{bucket}__physical__gt": 0,
+        }
+    )
+    # Bucket totals aggregate in the DB; state/count/filter/sort stay exact in Python
+    # over lightweight rows, and full position_data is built only for the page.
+    light = list(
+        base.annotate(
+            held_sum=Coalesce(Sum(f"{bucket}__held"), zero, output_field=money),
+            expired_sum=Coalesce(
+                Sum(Case(When(expired_on, then=F(f"{bucket}__physical")), default=zero, output_field=money)),
+                zero,
+                output_field=money,
+            ),
+            expiring_sum=Coalesce(
+                Sum(Case(When(expiring_on, then=F(f"{bucket}__physical")), default=zero, output_field=money)),
+                zero,
+                output_field=money,
+            ),
+            available_raw=Coalesce(
+                Sum(
+                    Case(
+                        When(expired_on, then=zero),
+                        default=F(f"{bucket}__physical") - F(f"{bucket}__held"),
+                        output_field=money,
+                    )
+                ),
+                zero,
+                output_field=money,
+            ),
+            configured=Case(
+                When(stock_position__isnull=True, then=Value(False)), default=Value(True), output_field=BooleanField()
+            ),
+        ).values(
+            "pk", "sku", "product_id", "held_sum", "expired_sum", "expiring_sum", "available_raw",
+            "configured", "stock_position__threshold",
+        )
+    )
+    rows = []
+    for r in light:
+        eligible = str(r["pk"]) in active_ids
+        available = r["available_raw"] if eligible else Decimal(0)
+        threshold = r["stock_position__threshold"]
+        status = (
+            "unconfigured"
+            if not r["configured"]
+            else "inactive"
+            if not eligible
+            else "zero"
+            if available == 0
+            else "low"
+            if threshold is not None and available <= threshold
+            else "available"
+        )
+        rows.append(
+            {
+                "id": r["pk"], "sku": r["sku"], "product": r["product_id"], "state": status,
+                "eligible": eligible, "available": available,
+                "expired": r["expired_sum"], "expiring": r["expiring_sum"], "held": r["held_sum"],
+            }
+        )
     # Fulfilment-only grants do not reveal private draft variants/descriptions.
     if not caps["write"]:
         rows = [r for r in rows if r["eligible"]]
@@ -169,35 +251,22 @@ def overview(actor, profile_id, params):
     for row in rows:
         if row["state"] in {"unconfigured", "zero", "inactive"}:
             counts[row["state"]] += 1
-        if (
-            row["configured"]
-            and row["eligible"]
-            and row["threshold"] is not None
-            and Decimal(row["available"]) <= Decimal(row["threshold"])
-        ):
-            counts["low"] += 1
-        counts["expired"] += int(Decimal(row["expired"]) > 0)
-        counts["expiring"] += int(Decimal(row["expiring"]) > 0)
-        counts["held"] += int(Decimal(row["held"]) > 0)
+        counts["low"] += int(row["state"] == "low")
+        counts["expired"] += int(row["expired"] > 0)
+        counts["expiring"] += int(row["expiring"] > 0)
+        counts["held"] += int(row["held"] > 0)
     if state in {"expired", "expiring", "held"}:
-        rows = [r for r in rows if Decimal(r[state]) > 0]
-    elif state == "low":
-        rows = [
-            r
-            for r in rows
-            if r["configured"]
-            and r["eligible"]
-            and r["threshold"] is not None
-            and Decimal(r["available"]) <= Decimal(r["threshold"])
-        ]
+        rows = [r for r in rows if r[state] > 0]
     elif state:
         rows = [r for r in rows if r["state"] == state]
     rows.sort(
-        key=lambda r: ((Decimal(r["available"] or 0) if "available" in sort else r["sku"].casefold()), r["id"]),
+        key=lambda r: ((r["available"] if "available" in sort else r["sku"].casefold()), str(r["id"])),
         reverse=sort.startswith("-"),
     )
+    page_ids = [r["id"] for r in rows[(page - 1) * 20 : page * 20]]
+    fetched = {v.pk: v for v in variants(profile).filter(pk__in=page_ids)}
     return {
-        "results": rows[(page - 1) * 20 : page * 20],
+        "results": [position_data(fetched[pk], caps, now=now) for pk in page_ids],
         "count": len(rows),
         "page": page,
         "page_size": 20,
@@ -206,7 +275,7 @@ def overview(actor, profile_id, params):
         if caps["write"]
         else len({r["product"] for r in rows}),
         "capabilities": caps,
-        "recent": history(actor, profile_id, {})["results"][:5],
+        "recent": movement_rows(_movement_base(profile, caps).order_by("-created_at", "-id")[:5]),
     }
 
 
@@ -251,6 +320,15 @@ def movement_rows(base):
     ]
 
 
+def _movement_base(profile, caps):
+    base = Movement.objects.filter(operation__seller=profile).select_related(
+        "operation__actor", "bucket__position__variant__unit", "bucket__batch"
+    )
+    if not caps["write"]:
+        base = base.filter(bucket__position_id__in=_active_variant_ids(profile))
+    return base
+
+
 def history(actor, profile_id, params):
     profile = access.authorize(actor, profile_id)
     caps = access.capabilities(actor, profile)
@@ -258,15 +336,8 @@ def history(actor, profile_id, params):
 
     params = QueryDict("") if not params else params
     q, _, _, page = filters(params, {"seller", "q", "page", "action", "variant", "batch", "locale"})
-    base = Movement.objects.filter(operation__seller=profile).select_related(
-        "operation__actor", "bucket__position__variant__unit", "bucket__batch"
-    )
-    if not caps["write"]:
-        eligible = [v.pk for v in variants(profile) if active(v)]
-        base = base.filter(bucket__position_id__in=eligible)
+    base = _movement_base(profile, caps)
     if q:
-        from django.db.models import Q
-
         base = base.filter(Q(bucket__position__variant__sku__icontains=q) | Q(operation__reason__icontains=q))
     if params.get("variant"):
         from .validation import identifier

@@ -16,26 +16,60 @@ import { communicationCopy } from "../../messaging/copy";
 import { type Context, threadHref, localTimestamp } from "../../messaging/api";
 import { useVisiblePoll, accessLost } from "../../messaging/hooks";
 import { clearDrafts } from "../../messaging/drafts";
-import { action, Failure } from "../../messaging/components/controls";
+import {
+	actionBtn,
+	Failure,
+	failureMessage,
+} from "../../messaging/components/ui";
+import toast from "react-hot-toast";
 import { AccountError } from "../../../lib/api/private-client";
 import Link from "next/link";
 import { invoiceHref } from "../../orders/api";
 import { commerceCopy } from "../../orders/copy";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "../../../components/shadcn/button";
+import { Badge } from "../../../components/shadcn/badge";
+import { Icon, type IconName } from "../../../components/ui/icon";
+import { EmptyState } from "../../../components/ui/empty-state";
+
+function kindIcon(kind: string): IconName {
+	switch (kind) {
+		case "aftercare":
+			return "return";
+		case "fulfilment":
+			return "truck";
+		case "payment":
+			return "wallet";
+		case "negotiation":
+			return "handshake";
+		case "order_accepted":
+			return "receipt";
+		case "message":
+			return "mail";
+		case "report_status":
+			return "shield";
+		default:
+			return "bell";
+	}
+}
+
 export function NoticeList({
 	locale,
 	context,
 	seller,
+	variant,
 }: {
 	locale: Locale;
 	context: Context;
 	seller: string;
+	variant?: "buyer";
 }) {
 	const t = communicationCopy[locale],
 		search = useSearchParams(),
 		router = useRouter(),
 		path = usePathname(),
 		page = Number(search.get("page") ?? 1);
+	const buyer = variant === "buyer";
 	const [data, setData] = useState<Notices | null>(null),
 		[error, setError] = useState<unknown>(null),
 		[reload, setReload] = useState(0),
@@ -80,12 +114,17 @@ export function NoticeList({
 		setBusy(true);
 		try {
 			await notification(context, `${id}/read/`, {});
-			if (alive.current && owned.current === owner) setReload((v) => v + 1);
+			if (alive.current && owned.current === owner) {
+				setReload((v) => v + 1);
+				toast.success(t.noticeRead);
+			}
 		} catch (e) {
 			if (alive.current && owned.current === owner) {
 				if (accessLost(e)) {
 					clearDrafts();
 					setData(null);
+				} else {
+					toast.error(failureMessage(locale, e));
 				}
 				setError(e);
 			}
@@ -102,35 +141,55 @@ export function NoticeList({
 		router.push(`${path}?${q}`);
 	};
 	return (
-		<section className="space-y-4" aria-label={t.notifications}>
+		<section
+			className={buyer ? "flex flex-col gap-4" : "space-y-4"}
+			aria-label={t.notifications}
+		>
 			<OwnReports locale={locale} context={context} />
 			{error ? (
 				<Failure locale={locale} error={error} />
 			) : !data ? (
-				<p role="status">{t.loading}</p>
+				buyer ? (
+					<div
+						role="status"
+						className="rounded-card border border-solid border-border bg-surface p-6 text-sm text-muted"
+					>
+						{t.loading}
+					</div>
+				) : (
+					<p role="status">{t.loading}</p>
+				)
 			) : !data.results.length ? (
-				<p>{t.emptyNotices}</p>
+				buyer ? (
+					<EmptyState icon="bell" title={t.emptyNotices} />
+				) : (
+					<p>{t.emptyNotices}</p>
+				)
 			) : (
-				<ul className="space-y-3">
-					{data.results.map((row) => (
-						<li
-							key={row.id}
-							className="space-y-3 rounded-card border border-border bg-surface p-4"
-						>
-							<Link
-								prefetch={false}
-								className="inline-flex min-h-11 items-center gap-3 font-bold"
-								href={
-									row.kind === "report_status" && (row.product || row.store || row.order)
-										? reportTargetHref(locale, context, row.product ? "product" : row.store ? "store" : "order", row.product ?? row.store ?? row.order ?? "", row.seller)
-										: row.kind === "aftercare"
-										? aftercareHref(
-												locale,
-												context,
-												row.aftercare ?? undefined,
-												context === "seller" ? row.seller : undefined,
-											)
-										: row.fulfilment
+				<ul
+					className={
+						buyer ? "m-0 flex list-none flex-col gap-3 p-0" : "space-y-3"
+					}
+				>
+					{data.results.map((row) => {
+						const href =
+							row.kind === "report_status" &&
+							(row.product || row.store || row.order)
+								? reportTargetHref(
+										locale,
+										context,
+										row.product ? "product" : row.store ? "store" : "order",
+										row.product ?? row.store ?? row.order ?? "",
+										row.seller,
+									)
+								: row.kind === "aftercare"
+									? aftercareHref(
+											locale,
+											context,
+											row.aftercare ?? undefined,
+											context === "seller" ? row.seller : undefined,
+										)
+									: row.fulfilment
 										? fulfilmentHref(
 												locale,
 												context,
@@ -163,12 +222,11 @@ export function NoticeList({
 															context,
 															row.conversation ?? "",
 															row.seller,
-														)
-								}
-							>
-								{row.kind === "aftercare"
-									? aftercareCopy[locale].title
-									: row.kind === "fulfilment"
+														);
+						const title =
+							row.kind === "aftercare"
+								? aftercareCopy[locale].title
+								: row.kind === "fulfilment"
 									? fulfilmentCopy[locale][
 											context === "buyer" ? "buyerTitle" : "sellerTitle"
 										]
@@ -188,51 +246,138 @@ export function NoticeList({
 													commerceCopy[locale].invoices
 												: row.kind === "message"
 													? t.newMessage
-													: t.reportStatus}
-								{!row.read && (
-									<span className="rounded-control bg-info px-2 py-1 text-sm text-action">
-										{t.unread}
-									</span>
-								)}
-							</Link>
-							<p className="text-sm text-muted">
-								<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
-								{t.timezone}
-							</p>
-							{!row.read && (
-								<button
-									type="button"
-									className={action}
-									disabled={busy}
-									onClick={() => void mark(row.id)}
+													: t.reportStatus;
+						if (buyer)
+							return (
+								<li
+									key={row.id}
+									className="flex items-start gap-3 rounded-xl border border-solid border-border bg-surface p-4"
 								>
-									{t.markRead}
-								</button>
-							)}
-						</li>
-					))}
+									<span
+										className={`flex size-10 shrink-0 items-center justify-center rounded-lg bg-page ${row.read ? "text-muted" : "text-action"}`}
+										aria-hidden="true"
+									>
+										<Icon name={kindIcon(row.kind)} className="size-5" />
+									</span>
+									<div className="min-w-0 flex-1">
+										<div className="flex flex-wrap items-center gap-2">
+											<Link
+												prefetch={false}
+												href={href}
+												className="min-w-0 text-sm font-semibold text-foreground no-underline hover:text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+											>
+												{title}
+											</Link>
+											{!row.read && (
+												<Badge
+													variant="secondary"
+													className="rounded-full border-0 bg-info text-action"
+												>
+													{t.unread}
+												</Badge>
+											)}
+										</div>
+										<p className="m-0 mt-1 text-xs text-muted">
+											<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
+											{t.timezone}
+										</p>
+									</div>
+									{!row.read && (
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											className="size-9 shrink-0 rounded-lg"
+											disabled={busy}
+											onClick={() => void mark(row.id)}
+											aria-label={t.markRead}
+											title={t.markRead}
+										>
+											<Icon name="check-circle" className="size-4" />
+										</Button>
+									)}
+								</li>
+							);
+						return (
+							<li
+								key={row.id}
+								className="space-y-3 rounded-card border border-border bg-surface p-4"
+							>
+								<Link
+									prefetch={false}
+									className="inline-flex min-h-11 items-center gap-3 font-bold"
+									href={href}
+								>
+									{title}
+									{!row.read && (
+										<span className="rounded-control bg-info px-2 py-1 text-sm text-action">
+											{t.unread}
+										</span>
+									)}
+								</Link>
+								<p className="text-sm text-muted">
+									<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
+									{t.timezone}
+								</p>
+								{!row.read && (
+									<button
+										type="button"
+										className={actionBtn}
+										disabled={busy}
+										onClick={() => void mark(row.id)}
+									>
+										{t.markRead}
+									</button>
+								)}
+							</li>
+						);
+					})}
 				</ul>
 			)}
-			{data && (
-				<div className="flex flex-wrap gap-3">
-					<button
-						type="button"
-						className={action}
-						disabled={page <= 1}
-						onClick={() => select(page - 1)}
-					>
-						{t.previous}
-					</button>
-					<button
-						type="button"
-						className={action}
-						disabled={page * 20 >= data.count}
-						onClick={() => select(page + 1)}
-					>
-						{t.next}
-					</button>
-				</div>
-			)}
+			{data &&
+				(buyer ? (
+					<div className="flex flex-wrap items-center gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="rounded-lg"
+							disabled={page <= 1}
+							onClick={() => select(page - 1)}
+						>
+							{t.previous}
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="rounded-lg"
+							disabled={page * 20 >= data.count}
+							onClick={() => select(page + 1)}
+						>
+							{t.next}
+						</Button>
+					</div>
+				) : (
+					<div className="flex flex-wrap gap-3">
+						<button
+							type="button"
+							className={actionBtn}
+							disabled={page <= 1}
+							onClick={() => select(page - 1)}
+						>
+							{t.previous}
+						</button>
+						<button
+							type="button"
+							className={actionBtn}
+							disabled={page * 20 >= data.count}
+							onClick={() => select(page + 1)}
+						>
+							{t.next}
+						</button>
+					</div>
+				))}
 		</section>
 	);
 }

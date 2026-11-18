@@ -8,6 +8,8 @@ const en = {
 	offline:
 		"You are offline. Saved history remains visible; updates resume when you reconnect.",
 	notifications: "Notifications",
+	notificationsHelp:
+		"Order updates, deliveries, payments and messages — newest first.",
 	enquire: "Enquire about this product",
 	purchasing: "Purchasing is not available yet",
 	privacy:
@@ -32,6 +34,7 @@ const en = {
 	retry: "Retry / reconcile",
 	body: "Message",
 	images: "Images",
+	attach: "Attach",
 	imageRule: "Up to 3 JPEG, PNG or WebP images, 5 MiB each.",
 	remove: "Remove staged image",
 	uploadFailed: "The image could not be uploaded. Choose Retry or remove it.",
@@ -42,7 +45,17 @@ const en = {
 	back: "Back to messages",
 	business: "Selected seller business",
 	choose: "Choose a business",
-	ownReports: "My reports", emptyReports: "No reports yet.", report: "Report message", reportProduct: "Report product", reportStore: "Report store", reportOrder: "Report order", fraud: "Fraud", reportNeutral: "A report changes no rating, publication, order status or money. Staff review is separate.", reportUncertain: "Outcome uncertain. Retry sends only the identical retained report; do not start another attempt.",
+	ownReports: "My reports",
+	emptyReports: "No reports yet.",
+	report: "Report message",
+	reportProduct: "Report product",
+	reportStore: "Report store",
+	reportOrder: "Report order",
+	fraud: "Fraud",
+	reportNeutral:
+		"A report changes no rating, publication, order status or money. Staff review is separate.",
+	reportUncertain:
+		"Outcome uncertain. Retry sends only the identical retained report; do not start another attempt.",
 	category: "Category",
 	reason: "Reason",
 	abuse: "Abuse",
@@ -65,6 +78,7 @@ const en = {
 	emailEnabled: "Send optional unread-message email",
 	savePreference: "Save email preference",
 	preferenceSaved: "Email preference saved",
+	preferenceFailed: "Could not save the email preference.",
 	discard: "Discard this unsent draft and continue?",
 	discardDraft: "Discard draft",
 	keep: "Keep draft",
@@ -82,6 +96,18 @@ const en = {
 	refreshing: "Refreshing…",
 	prepare: "Preparing image…",
 	noAccess: "Access unavailable",
+	firstPage: "First page",
+	selectConversation: "Select a conversation to read",
+	noticeRead: "Notification marked read",
+	viewInfo: "Conversation details",
+	sku: "SKU",
+	buyer: "Buyer",
+	store: "Store",
+	currency: "Currency",
+	updated: "Last activity",
+	productUnavailable:
+		"The product is no longer public. Saved conversation details are shown.",
+	productName: "Product",
 } as const;
 type Copy = { [K in keyof typeof en]: string };
 const fa: Copy = {
@@ -93,6 +119,8 @@ const fa: Copy = {
 	offline:
 		"انترنت قطع است. سابقهٔ ثبت‌شده دیده می‌شود؛ تازه‌سازی پس از وصل‌شدن ادامه می‌یابد.",
 	notifications: "اطلاعیه‌ها",
+	notificationsHelp:
+		"به‌روزرسانی سفارش‌ها، تحویلی‌ها، پرداخت‌ها و پیام‌ها — تازه‌ترین‌ها نخست.",
 	enquire: "پرسش دربارهٔ این محصول",
 	purchasing: "خرید هنوز فعال نیست",
 	privacy:
@@ -114,6 +142,7 @@ const fa: Copy = {
 	retry: "تلاش دوباره / بررسی نتیجه",
 	body: "پیام",
 	images: "تصویرها",
+	attach: "پیوست",
 	imageRule: "حداکثر ۳ تصویر JPEG، PNG یا WebP، هر کدام ۵ میبی‌بایت.",
 	remove: "حذف تصویر آماده‌شده",
 	uploadFailed: "تصویر بارگذاری نشد. دوباره تلاش کنید یا آن را بردارید.",
@@ -124,7 +153,17 @@ const fa: Copy = {
 	back: "بازگشت به پیام‌ها",
 	business: "شرکت فروشندهٔ انتخاب‌شده",
 	choose: "یک شرکت را انتخاب کنید",
-	ownReports: "گزارش‌های من", emptyReports: "هنوز گزارشی نیست.", report: "گزارش پیام", reportProduct: "گزارش محصول", reportStore: "گزارش فروشگاه", reportOrder: "گزارش سفارش", fraud: "تقلب", reportNeutral: "گزارش، امتیاز، نشر، وضعیت سفارش یا پول را تغییر نمی‌دهد. بررسی کارمند جدا است.", reportUncertain: "نتیجه نامعلوم است. تلاش دوباره فقط همان گزارش حفظ‌شده را می‌فرستد؛ تلاش جدید آغاز نکنید.",
+	ownReports: "گزارش‌های من",
+	emptyReports: "هنوز گزارشی نیست.",
+	report: "گزارش پیام",
+	reportProduct: "گزارش محصول",
+	reportStore: "گزارش فروشگاه",
+	reportOrder: "گزارش سفارش",
+	fraud: "تقلب",
+	reportNeutral:
+		"گزارش، امتیاز، نشر، وضعیت سفارش یا پول را تغییر نمی‌دهد. بررسی کارمند جدا است.",
+	reportUncertain:
+		"نتیجه نامعلوم است. تلاش دوباره فقط همان گزارش حفظ‌شده را می‌فرستد؛ تلاش جدید آغاز نکنید.",
 	category: "دسته‌بندی",
 	reason: "دلیل",
 	abuse: "آزار",
@@ -147,6 +186,7 @@ const fa: Copy = {
 	emailEnabled: "ایمیل اختیاری پیام خوانده‌نشده را بفرستید",
 	savePreference: "ثبت تنظیم ایمیل",
 	preferenceSaved: "تنظیم ایمیل ثبت شد",
+	preferenceFailed: "ذخیرهٔ تنظیم ایمیل ناموفق بود.",
 	discard: "متن ارسال‌نشده را کنار گذاشته و ادامه می‌دهید؟",
 	discardDraft: "کنار گذاشتن پیش‌نویس",
 	keep: "حفظ پیش‌نویس",
@@ -164,6 +204,18 @@ const fa: Copy = {
 	refreshing: "در حال تازه‌سازی…",
 	prepare: "در حال آماده‌کردن تصویر…",
 	noAccess: "دسترسی موجود نیست",
+	firstPage: "صفحهٔ نخست",
+	selectConversation: "برای خواندن، یک گفت‌وگو را انتخاب کنید",
+	noticeRead: "اطلاعیه خوانده‌شده نشانی شد",
+	viewInfo: "جزئیات گفت‌وگو",
+	sku: "SKU",
+	buyer: "خریدار",
+	store: "فروشگاه",
+	currency: "واحد پول",
+	updated: "آخرین فعالیت",
+	productUnavailable:
+		"محصول دیگر عمومی نیست. جزئیات ذخیره‌شدهٔ گفت‌وگو نمایش داده می‌شود.",
+	productName: "محصول",
 };
 const ps: Copy = {
 	messages: "پیغامونه",
@@ -175,6 +227,8 @@ const ps: Copy = {
 	offline:
 		"تاسو له انټرنېټ سره نه یاست نښتي. ساتل شوې خبرې ښکاري؛ تازه کول له نښلېدو وروسته دوام کوي.",
 	notifications: "خبرتیاوې",
+	notificationsHelp:
+		"د فرمایشونو، سپارنو، تادیاتو او پیغامونو تازه معلومات — نوی لومړی.",
 	enquire: "د دې محصول په اړه پوښتنه",
 	purchasing: "پېرود لا فعال نه دی",
 	privacy:
@@ -195,6 +249,7 @@ const ps: Copy = {
 	retry: "بیا هڅه / د پایلې کتنه",
 	body: "پیغام",
 	images: "انځورونه",
+	attach: "ضمیمه",
 	imageRule: "تر ۳ JPEG، PNG یا WebP انځورونه، هر یو تر ۵ میبي‌بایټه.",
 	remove: "چمتو شوی انځور لرې کړئ",
 	uploadFailed: "انځور پورته نه شو. بیا هڅه وکړئ یا یې لرې کړئ.",
@@ -205,7 +260,17 @@ const ps: Copy = {
 	back: "پیغامونو ته ستنېدل",
 	business: "ټاکل شوی پلورونکی شرکت",
 	choose: "یو شرکت وټاکئ",
-	ownReports: "زما راپورونه", emptyReports: "تر اوسه راپور نشته.", report: "د پیغام راپور", reportProduct: "د محصول راپور", reportStore: "د پلورنځي راپور", reportOrder: "د سپارښتنې راپور", fraud: "درغلي", reportNeutral: "راپور درجه، خپرونه، د سپارښتنې حالت یا پیسې نه بدلوي. د کارکوونکي کتنه جلا ده.", reportUncertain: "پایله نامعلومه ده. بیا هڅه یوازې هماغه ساتل شوی راپور لېږي؛ نوې هڅه مه پیلوئ.",
+	ownReports: "زما راپورونه",
+	emptyReports: "تر اوسه راپور نشته.",
+	report: "د پیغام راپور",
+	reportProduct: "د محصول راپور",
+	reportStore: "د پلورنځي راپور",
+	reportOrder: "د سپارښتنې راپور",
+	fraud: "درغلي",
+	reportNeutral:
+		"راپور درجه، خپرونه، د سپارښتنې حالت یا پیسې نه بدلوي. د کارکوونکي کتنه جلا ده.",
+	reportUncertain:
+		"پایله نامعلومه ده. بیا هڅه یوازې هماغه ساتل شوی راپور لېږي؛ نوې هڅه مه پیلوئ.",
 	category: "ډله",
 	reason: "دلیل",
 	abuse: "ځورونه",
@@ -228,6 +293,7 @@ const ps: Copy = {
 	emailEnabled: "د نا لوستل شوي پیغام اختیاري برېښنالیک واستوئ",
 	savePreference: "د برېښنالیک تنظیم ثبت کړئ",
 	preferenceSaved: "د برېښنالیک تنظیم ثبت شو",
+	preferenceFailed: "د بریښنالیک غوره توب خوندي نه شو.",
 	discard: "نااستول شوې مسوده پرېږدئ او دوام ورکړئ؟",
 	discardDraft: "مسوده پرېښودل",
 	keep: "مسوده وساتئ",
@@ -244,6 +310,17 @@ const ps: Copy = {
 	refreshing: "د تازه کولو په حال کې…",
 	prepare: "د انځور چمتو کول…",
 	noAccess: "لاسرسی نشته",
+	firstPage: "لومړۍ پاڼه",
+	selectConversation: "د لوستلو لپاره یوه خبره وټاکئ",
+	noticeRead: "خبرتیا لوستل شوې ونومول شوه",
+	viewInfo: "د خبرې معلومات",
+	sku: "SKU",
+	buyer: "پیرودونکی",
+	store: "پلورنځی",
+	currency: "د پیسو واحد",
+	updated: "وروستی فعالیت",
+	productUnavailable: "محصول نور عام نه دی. د خبرې ساتل شوي معلومات ښودل کېږي.",
+	productName: "محصول",
 };
 const ar: Copy = {
 	messages: "الرسائل",
@@ -254,6 +331,8 @@ const ar: Copy = {
 	offline:
 		"أنت غير متصل. يبقى السجل المحفوظ ظاهراً وتستأنف التحديثات عند الاتصال.",
 	notifications: "الإشعارات",
+	notificationsHelp:
+		"تحديثات الطلبات والتسليمات والمدفوعات والرسائل — الأحدث أولاً.",
 	enquire: "استفسر عن هذا المنتج",
 	purchasing: "الشراء غير متاح بعد",
 	privacy:
@@ -274,6 +353,7 @@ const ar: Copy = {
 	retry: "إعادة المحاولة / التحقق",
 	body: "الرسالة",
 	images: "الصور",
+	attach: "إرفاق",
 	imageRule: "حتى ٣ صور JPEG أو PNG أو WebP، بحجم ٥ ميبيبايت لكل صورة.",
 	remove: "إزالة الصورة المجهّزة",
 	uploadFailed: "تعذّر رفع الصورة. أعد المحاولة أو أزلها.",
@@ -284,7 +364,17 @@ const ar: Copy = {
 	back: "العودة إلى الرسائل",
 	business: "شركة البائع المحددة",
 	choose: "اختر شركة",
-	ownReports: "بلاغاتي", emptyReports: "لا توجد بلاغات بعد.", report: "الإبلاغ عن الرسالة", reportProduct: "الإبلاغ عن المنتج", reportStore: "الإبلاغ عن المتجر", reportOrder: "الإبلاغ عن الطلب", fraud: "احتيال", reportNeutral: "لا يغير البلاغ التقييم أو النشر أو حالة الطلب أو الأموال. مراجعة الموظف منفصلة.", reportUncertain: "النتيجة غير مؤكدة. تعيد المحاولة إرسال البلاغ المحفوظ نفسه فقط؛ لا تبدأ محاولة جديدة.",
+	ownReports: "بلاغاتي",
+	emptyReports: "لا توجد بلاغات بعد.",
+	report: "الإبلاغ عن الرسالة",
+	reportProduct: "الإبلاغ عن المنتج",
+	reportStore: "الإبلاغ عن المتجر",
+	reportOrder: "الإبلاغ عن الطلب",
+	fraud: "احتيال",
+	reportNeutral:
+		"لا يغير البلاغ التقييم أو النشر أو حالة الطلب أو الأموال. مراجعة الموظف منفصلة.",
+	reportUncertain:
+		"النتيجة غير مؤكدة. تعيد المحاولة إرسال البلاغ المحفوظ نفسه فقط؛ لا تبدأ محاولة جديدة.",
 	category: "الفئة",
 	reason: "السبب",
 	abuse: "إساءة",
@@ -307,6 +397,7 @@ const ar: Copy = {
 	emailEnabled: "إرسال بريد اختياري للنشاط غير المقروء",
 	savePreference: "حفظ تفضيل البريد",
 	preferenceSaved: "تم حفظ تفضيل البريد",
+	preferenceFailed: "تعذر حفظ تفضيل البريد الإلكتروني.",
 	discard: "تجاهل هذه المسودة غير المرسلة والمتابعة؟",
 	discardDraft: "تجاهل المسودة",
 	keep: "الاحتفاظ بالمسودة",
@@ -324,6 +415,17 @@ const ar: Copy = {
 	refreshing: "جارٍ التحديث…",
 	prepare: "جارٍ تجهيز الصورة…",
 	noAccess: "الوصول غير متاح",
+	firstPage: "الصفحة الأولى",
+	selectConversation: "اختر محادثة لقراءتها",
+	noticeRead: "تم تحديد الإشعار كمقروء",
+	viewInfo: "تفاصيل المحادثة",
+	sku: "SKU",
+	buyer: "المشتري",
+	store: "المتجر",
+	currency: "العملة",
+	updated: "آخر نشاط",
+	productUnavailable: "لم يعد المنتج عاماً. تُعرض تفاصيل المحادثة المحفوظة.",
+	productName: "المنتج",
 };
 export const communicationCopy: Record<Locale, Copy> = {
 	en: en,

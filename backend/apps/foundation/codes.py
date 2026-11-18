@@ -14,6 +14,7 @@ CANCELLATION_REFUSALS = frozenset(
 AMENDMENT_REFUSALS = frozenset(
     {
         "amendment_ineligible_dispatched",
+        "amendment_ineligible_cancelled",
         "amendment_proposal_pending",
         "amendment_zero_quantity",
         "amendment_increase_refused",

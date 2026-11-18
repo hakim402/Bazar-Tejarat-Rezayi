@@ -1,16 +1,21 @@
 "use client";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { Icon } from "../../../components/ui/icon";
 import { panel } from "../../orders/components/controls";
 export function Confirmation({
 	label,
 	close,
 	children,
 	returnFocus,
+	presentation,
+	closeLabel,
 }: {
 	label: string;
 	close: () => void;
 	children: ReactNode;
 	returnFocus: HTMLElement | null;
+	presentation?: "buyer";
+	closeLabel?: string;
 }) {
 	const ref = useRef<HTMLDialogElement>(null);
 	const onClose = useRef(close);
@@ -70,9 +75,33 @@ export function Confirmation({
 				e.preventDefault();
 				onClose.current();
 			}}
-			className={`${panel} m-auto max-h-[90dvh] w-[min(36rem,calc(100%-2rem))] overflow-y-auto text-foreground backdrop:bg-black/50`}
+			className={
+				presentation === "buyer"
+					? "m-auto flex max-h-[90dvh] w-[min(38rem,calc(100%-2rem))] flex-col overflow-hidden rounded-card border border-border bg-surface p-0 text-foreground shadow-lifted backdrop:bg-overlay"
+					: `${panel} m-auto max-h-[90dvh] w-[min(36rem,calc(100%-2rem))] overflow-y-auto text-foreground backdrop:bg-black/50`
+			}
 		>
-			{children}
+			{presentation === "buyer" ? (
+				<>
+					<header className="flex shrink-0 items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-3">
+						<h2 className="m-0 text-sm font-semibold">{label}</h2>
+						<button
+							type="button"
+							aria-label={closeLabel}
+							title={closeLabel}
+							onClick={() => onClose.current()}
+							className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-action hover:bg-info hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
+						>
+							<Icon name="close" className="size-4" />
+						</button>
+					</header>
+					<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4">
+						{children}
+					</div>
+				</>
+			) : (
+				children
+			)}
 		</dialog>
 	);
 }

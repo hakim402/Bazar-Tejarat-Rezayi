@@ -90,7 +90,9 @@ export function RequestDetail({
 		[ready, setReady] = useState(false),
 		[busy, setBusy] = useState(false),
 		[intent, setIntent] = useState<Pending | undefined>(() => getIntent(scope)),
-		[referenceOnly, setReferenceOnly] = useState(!!attempt && !getIntent(scope)),
+		[referenceOnly, setReferenceOnly] = useState(
+			!!attempt && !getIntent(scope),
+		),
 		[result, setResult] = useState<Result | null>(null),
 		[value, setValue] = useState<Proposal | null>(null),
 		[reason, setReason] = useState(""),
@@ -235,7 +237,11 @@ export function RequestDetail({
 				setIntent(packet);
 				reference(key);
 			}
-			const next = await negotiation<Result>("seller", packet.path, packet.body);
+			const next = await negotiation<Result>(
+				"seller",
+				packet.path,
+				packet.body,
+			);
 			if (live.current === mine) done(next);
 		} catch (e) {
 			if (live.current === mine) {
@@ -301,7 +307,8 @@ export function RequestDetail({
 			setMessagingBusy(false);
 		}
 	}
-	if (error && !row) return <NegotiationFailure locale={locale} error={error} />;
+	if (error && !row)
+		return <NegotiationFailure locale={locale} error={error} />;
 	if (!row || !value)
 		return (
 			<p role="status" aria-busy={!ready} className={salesPanel}>
@@ -330,7 +337,7 @@ export function RequestDetail({
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0 space-y-1.5">
 						<h1 className="text-xl font-bold tracking-tight" tabIndex={-1}>
-							{t.request} · <bdi>{row.id}</bdi>
+							{t.request} · <bdi>#{row.reference}</bdi>
 						</h1>
 						<p className="m-0 text-sm text-muted">
 							{s.customer}: <span dir="auto">{row.buyer}</span>
@@ -367,7 +374,11 @@ export function RequestDetail({
 										<MoreHorizontal className="size-5" aria-hidden="true" />
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end" sideOffset={6} className="w-56 rounded-xl p-1.5">
+								<DropdownMenuContent
+									align="end"
+									sideOffset={6}
+									className="w-56 rounded-xl p-1.5"
+								>
 									{canChange && (
 										<DropdownMenuItem
 											className="gap-2.5"
@@ -410,7 +421,12 @@ export function RequestDetail({
 			)}
 
 			<section className={salesPanel}>
-				<ProgressSteps locale={locale} stages={stages} active={active} terminal={terminal} />
+				<ProgressSteps
+					locale={locale}
+					stages={stages}
+					active={active}
+					terminal={terminal}
+				/>
 			</section>
 
 			{result && !result.pending && (
@@ -445,7 +461,11 @@ export function RequestDetail({
 			</StageCard>
 
 			{row.state === "submitted" && step >= 2 && (
-				<StageCard index={2} title={s.stageTerms} status={step > 2 ? "done" : "current"}>
+				<StageCard
+					index={2}
+					title={s.stageTerms}
+					status={step > 2 ? "done" : "current"}
+				>
 					<TermsStage
 						locale={locale}
 						row={row}
@@ -483,7 +503,9 @@ export function RequestDetail({
 
 			{row.state === "correction_requested" && (
 				<section className={salesPanel} role="status">
-					<p className="m-0 text-sm font-medium text-warning">{s.awaitingCustomer}</p>
+					<p className="m-0 text-sm font-medium text-warning">
+						{s.awaitingCustomer}
+					</p>
 					<p className="m-0 text-sm text-muted">{t.correction_requested}</p>
 				</section>
 			)}
@@ -611,7 +633,10 @@ function StatusPill({ locale, state }: { locale: Locale; state: string }) {
 						? "bg-page text-muted"
 						: "bg-info text-action";
 	return (
-		<Badge variant="secondary" className={cn("whitespace-normal border-0", tone)}>
+		<Badge
+			variant="secondary"
+			className={cn("whitespace-normal border-0", tone)}
+		>
 			{t[state as keyof typeof t] ?? state}
 		</Badge>
 	);
@@ -638,7 +663,10 @@ function ProgressSteps({
 				return (
 					<li key={label} className="flex items-center gap-2">
 						{i > 0 && (
-							<ChevronRight className="size-4 text-muted rtl:rotate-180" aria-hidden="true" />
+							<ChevronRight
+								className="size-4 text-muted rtl:rotate-180"
+								aria-hidden="true"
+							/>
 						)}
 						<span
 							className={cn(
@@ -691,14 +719,18 @@ function StageCard({
 			<span
 				className={cn(
 					"flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-					status === "done" ? "bg-success-surface text-success" : "bg-info text-action",
+					status === "done"
+						? "bg-success-surface text-success"
+						: "bg-info text-action",
 				)}
 				aria-hidden="true"
 			>
 				{status === "done" ? <Check className="size-3.5" /> : index}
 			</span>
 			<h2 className="text-base font-semibold">{title}</h2>
-			{status === "done" && <Check className="size-4 text-success" aria-hidden="true" />}
+			{status === "done" && (
+				<Check className="size-4 text-success" aria-hidden="true" />
+			)}
 		</div>
 	);
 	if (status === "done")
@@ -756,13 +788,17 @@ function ProductRow({
 				</p>
 				<dl className="m-0 grid grid-cols-2 gap-3 sm:grid-cols-4">
 					<div>
-						<dt className="text-xs text-muted">{negotiationCopy[locale].quantity}</dt>
+						<dt className="text-xs text-muted">
+							{negotiationCopy[locale].quantity}
+						</dt>
 						<dd className="m-0 text-sm font-medium">
 							<bdi>{line.quantity}</bdi>
 						</dd>
 					</div>
 					<div>
-						<dt className="text-xs text-muted">{negotiationCopy[locale].offer}</dt>
+						<dt className="text-xs text-muted">
+							{negotiationCopy[locale].offer}
+						</dt>
 						<dd className="m-0 text-sm font-medium">
 							<bdi>
 								{line.unit_price} {row.currency}
@@ -770,13 +806,17 @@ function ProductRow({
 						</dd>
 					</div>
 					<div>
-						<dt className="text-xs text-muted">{negotiationCopy[locale].maxQuantity}</dt>
+						<dt className="text-xs text-muted">
+							{negotiationCopy[locale].maxQuantity}
+						</dt>
 						<dd className="m-0 text-sm font-medium">
 							<bdi>{line.max_quantity}</bdi>
 						</dd>
 					</div>
 					<div>
-						<dt className="text-xs text-muted">{negotiationCopy[locale].maxPrice}</dt>
+						<dt className="text-xs text-muted">
+							{negotiationCopy[locale].maxPrice}
+						</dt>
 						<dd className="m-0 text-sm font-medium">
 							<bdi>
 								{line.max_unit_price} {row.currency}
@@ -830,7 +870,10 @@ function ReviewStage({
 				))}
 			</ul>
 			<p className="m-0 text-sm font-semibold">
-				{t.amount}: <bdi>{goodsTotal(row.proposal.lines)} {row.currency}</bdi>
+				{t.amount}:{" "}
+				<bdi>
+					{goodsTotal(row.proposal.lines)} {row.currency}
+				</bdi>
 			</p>
 			<dl className="grid gap-3 rounded-xl border border-border p-3 text-sm sm:grid-cols-3">
 				<div>
@@ -854,13 +897,22 @@ function ReviewStage({
 				</div>
 			</dl>
 			{row.proposal.note && (
-				<p className="m-0 whitespace-pre-wrap rounded-xl bg-info p-3 text-sm" dir="auto">
+				<p
+					className="m-0 whitespace-pre-wrap rounded-xl bg-info p-3 text-sm"
+					dir="auto"
+				>
 					{row.proposal.note}
 				</p>
 			)}
 			{incomplete && (
-				<p role="status" className="m-0 flex items-start gap-2 text-sm text-warning">
-					<AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+				<p
+					role="status"
+					className="m-0 flex items-start gap-2 text-sm text-warning"
+				>
+					<AlertTriangle
+						className="mt-0.5 size-4 shrink-0"
+						aria-hidden="true"
+					/>
 					{s.missingInfo}
 				</p>
 			)}
@@ -899,7 +951,12 @@ function ReviewStage({
 					</button>
 				)}
 				{canFinalize && state === "submitted" && (
-					<button type="button" className={salesAction} disabled={blocked} onClick={onTerms}>
+					<button
+						type="button"
+						className={salesAction}
+						disabled={blocked}
+						onClick={onTerms}
+					>
 						<Package className="size-4" aria-hidden="true" />
 						{s.continueTerms}
 					</button>
@@ -930,7 +987,11 @@ function TermsStage({
 }) {
 	const t = negotiationCopy[locale],
 		s = sellerNegotiationCopy[locale];
-	const setLine = (index: number, key: "quantity" | "unit_price", raw: string) =>
+	const setLine = (
+		index: number,
+		key: "quantity" | "unit_price",
+		raw: string,
+	) =>
 		onChange({
 			...value,
 			lines: value.lines.map((line, i) =>
@@ -953,7 +1014,8 @@ function TermsStage({
 							className="space-y-3 rounded-xl border border-border p-4"
 						>
 							<legend className="max-w-full break-words px-2 text-sm font-semibold">
-								<span dir="auto">{text.title}</span> · {commerceCopy[locale][line.tier]}
+								<span dir="auto">{text.title}</span> ·{" "}
+								{commerceCopy[locale][line.tier]}
 							</legend>
 							<p className="m-0 text-xs text-muted">
 								<bdi>{text.unit}</bdi> · {commerceCopy[locale].increment}:{" "}
@@ -1008,7 +1070,10 @@ function TermsStage({
 				})}
 			</div>
 			<p className="m-0 text-sm font-semibold">
-				{t.amount}: <bdi>{goodsTotal(value.lines)} {row.currency}</bdi>
+				{t.amount}:{" "}
+				<bdi>
+					{goodsTotal(value.lines)} {row.currency}
+				</bdi>
 			</p>
 			{!valid && (
 				<p role="alert" className="m-0 text-sm text-warning">
@@ -1016,7 +1081,12 @@ function TermsStage({
 				</p>
 			)}
 			<div className="flex flex-wrap gap-2">
-				<button type="button" className={salesAction} disabled={blocked} onClick={onBack}>
+				<button
+					type="button"
+					className={salesAction}
+					disabled={blocked}
+					onClick={onBack}
+				>
 					<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 					{s.backToRequests}
 				</button>
@@ -1084,7 +1154,10 @@ function ConfirmStage({
 				})}
 			</ul>
 			<p className="m-0 text-sm font-semibold">
-				{t.amount}: <bdi>{goodsTotal(value.lines)} {row.currency}</bdi>
+				{t.amount}:{" "}
+				<bdi>
+					{goodsTotal(value.lines)} {row.currency}
+				</bdi>
 			</p>
 			<dl className="grid gap-3 text-sm sm:grid-cols-2">
 				<div>
@@ -1104,9 +1177,19 @@ function ConfirmStage({
 			<p className="m-0 rounded-xl bg-info p-3 text-sm leading-relaxed">
 				{t.finalNotice}
 			</p>
-			<ReasonField locale={locale} value={reason} disabled={blocked} onChange={onReason} />
+			<ReasonField
+				locale={locale}
+				value={reason}
+				disabled={blocked}
+				onChange={onReason}
+			/>
 			<div className="flex flex-wrap gap-2">
-				<button type="button" className={salesAction} disabled={blocked} onClick={onBack}>
+				<button
+					type="button"
+					className={salesAction}
+					disabled={blocked}
+					onClick={onBack}
+				>
 					<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 					{s.stageTerms}
 				</button>

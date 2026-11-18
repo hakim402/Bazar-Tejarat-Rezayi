@@ -3,6 +3,7 @@
 import io
 import json
 import sys
+import uuid
 from types import SimpleNamespace
 from unittest.mock import patch
 from PIL import Image
@@ -90,6 +91,7 @@ class Command(BaseCommand):
                     result = services.create(
                         actor,
                         {
+                            "command_id": uuid.uuid4(),
                             "seller": profile.pk,
                             "currency": "USD" if index == 2 else "AFN",
                             "pricing_mode": "negotiable" if index == 2 else "fixed",

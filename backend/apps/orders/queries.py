@@ -6,23 +6,68 @@ from . import access
 from .models import CheckoutSubmission, Invoice
 
 
-def submission_data(actor, pk):
+def submission_data(actor, pk, locale="fa-AF"):
     row = get_object_or_404(
-        CheckoutSubmission.objects.prefetch_related("outcomes__order__invoice", "outcomes__order__lines"),
+        CheckoutSubmission.objects.prefetch_related(
+            "outcomes__seller", "outcomes__order__invoice", "outcomes__order__lines"
+        ),
         buyer=actor.account,
         pk=pk,
     )
-    return submission_row(row)
+    return submission_row(row, locale)
 
 
-def submission_row(row):
+def submission_row(row, locale="fa-AF"):
+    choices = {c["seller"]: c for c in row.payload.get("choices", [])}
+    counts = {}
+    for sel in row.selections or []:
+        counts[sel["seller"]] = counts.get(sel["seller"], 0) + 1
+    cart_lines = {}
+    if any(o.state != "accepted" for o in row.outcomes.all()):
+        from apps.cart.services import projection as cart_projection
+
+        cart_lines = {x["id"]: x for x in cart_projection(row.cart, locale)["lines"]}
     rows = []
     for outcome in row.outcomes.all():
         accepted = outcome.state == "accepted"
         order = outcome.order if accepted else None
+        seller = str(outcome.seller_id)
+        choice = choices.get(seller, {})
+        items = []
+        if order:
+            for line in order.lines.all():
+                snapshot = line.snapshot
+                titles = snapshot.get("titles", {})
+                source = snapshot.get("source_locale", "fa-AF")
+                items.append(
+                    {
+                        "line": str(line.pk),
+                        "title": titles.get(locale) or titles.get(source) or next(iter(titles.values()), ""),
+                        "image": f"/api/v1/orders/buyer/orders/{order.pk}/lines/{line.pk}/image/",
+                        "quantity": format(line.quantity, ".3f"),
+                        "sku": snapshot.get("sku", ""),
+                    }
+                )
+        else:
+            for sel in row.selections or []:
+                if sel.get("seller") != seller:
+                    continue
+                cl = cart_lines.get(sel.get("line"))
+                if not cl:
+                    continue
+                items.append(
+                    {
+                        "line": sel["line"],
+                        "title": cl["title"] or cl["sku"],
+                        "image": (cl["image"] or {}).get("url"),
+                        "quantity": cl["quantity"],
+                        "sku": cl["sku"],
+                    }
+                )
         rows.append(
             {
-                "seller": str(outcome.seller_id),
+                "seller": seller,
+                "seller_name": outcome.seller.display_name,
                 "state": outcome.state,
                 "code": outcome.code,
                 "order": str(order.pk) if order else None,
@@ -33,6 +78,10 @@ def submission_row(row):
                 "price_changed": any(line.snapshot.get("price_changed", False) for line in order.lines.all())
                 if order
                 else False,
+                "item_count": counts.get(seller, len(items)),
+                "destination": {"country": choice.get("country", ""), "city": choice.get("city", "")},
+                "method": choice.get("method", ""),
+                "items": items,
             }
         )
     return {
@@ -44,13 +93,14 @@ def submission_row(row):
     }
 
 
-def order_data(row, *, seller_list=False):
+def order_data(row, *, seller_list=False, buyer_list=False):
     from apps.payments.queries import projection
 
     financial = projection(row)
     from apps.fulfilment.queries import dimensions
 
     delivery = dimensions(row)
+    image_scope = "seller" if seller_list else "buyer" if buyer_list else None
     return {
         "id": str(row.pk),
         "seller": str(row.seller_id),
@@ -78,9 +128,14 @@ def order_data(row, *, seller_list=False):
             else "settled"
             if delivery["delivery_settled"]
             else "unsettled",
+            "delivery_charge_amount": delivery["charge"] or "",
+            "delivery_remaining": delivery["delivery_remaining"] or "",
+            "delivery_provider": delivery["provider"] or delivery["charge_provider"] or "",
+            "dispatch_problem": delivery["dispatch_problem"] or "",
             "cancellation": "pending" if delivery["cancellation_hold"] else "none",
             "dispute": "unresolved" if delivery["dispute_open"] else "none",
             "completion": delivery["completion"],
+            "completed_at": delivery["completed_at"].isoformat() if delivery["completed_at"] else "",
         },
         "payment": financial,
         "capabilities": {x: False for x in ["pay", "dispatch", "cancel", "refund", "amend", "complete"]},
@@ -93,7 +148,7 @@ def order_data(row, *, seller_list=False):
                 "unit_price": format(x.unit_price, ".2f"),
                 "goods_amount": format(x.goods_amount, ".2f"),
                 "snapshot": x.snapshot,
-                **({"image": f"/api/v1/orders/seller/orders/{row.pk}/lines/{x.pk}/image/"} if seller_list else {}),
+                **({"image": f"/api/v1/orders/{image_scope}/orders/{row.pk}/lines/{x.pk}/image/"} if image_scope else {}),
             }
             for x in row.lines.all()
         ],
@@ -115,7 +170,9 @@ def order_page(actor, *, seller=None, page=1, invoices=False, q="", state=""):
     qs = order_queryset(actor, seller=seller, invoices=invoices)
     if q:
         qs = qs.filter(
-            Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q)
+            Q(invoice__number__icontains=q)
+            | Q(snapshot__buyer__icontains=q)
+            | Q(buyer__user__display_name__icontains=q)
         )
     if state == "overdue":
         qs = qs.filter(payment_due__lte=timezone.now(), payment_total__lt=F("accepted_total"))
@@ -124,10 +181,10 @@ def order_page(actor, *, seller=None, page=1, invoices=False, q="", state=""):
     elif state == "partial":
         qs = qs.filter(payment_total__gt=0, payment_total__lt=F("accepted_total"))
     elif state == "paid":
-        qs = qs.filter(payment_total=F("accepted_total"))
+        qs = qs.filter(payment_total=F("accepted_total"), accepted_total__gt=0)
     elif state == "overpaid":
         qs = qs.filter(payment_total__gt=F("accepted_total"))
-    return {"count": qs.count(), "page": page, "results": [order_data(x, seller_list=actor.context == "seller" and not invoices) for x in qs[(page - 1) * 20 : page * 20]]}
+    return {"count": qs.count(), "page": page, "results": [order_data(x, seller_list=actor.context == "seller" and not invoices, buyer_list=actor.context == "buyer" and not invoices) for x in qs[(page - 1) * 20 : page * 20]]}
 
 
 def document(actor, pk, *, action="invoice_read", native=False):

@@ -78,6 +78,7 @@ class Command(BaseCommand):
                 created = catalogue.create(
                     actor,
                     {
+                        "command_id": uuid.uuid4(),
                         "seller": profile.pk,
                         "currency": "AFN" if kind == "individual" else "USD",
                         "pricing_mode": "fixed",

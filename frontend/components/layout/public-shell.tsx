@@ -89,7 +89,7 @@ export function PublicShell({
 	locale: Locale;
 	site?: Site | null;
 	hero?: ReactNode;
-	children: ReactNode;
+	children?: ReactNode;
 }) {
 	const announcement = site?.announcement;
 	return (

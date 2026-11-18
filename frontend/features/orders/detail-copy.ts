@@ -50,6 +50,12 @@ const en = {
 	advanceRequired: "Advance payment is required before dispatch.",
 	cancellationBlocks: "A pending cancellation blocks dispatch and completion.",
 	disputeBlocks: "An open dispute blocks completion.",
+	close: "Close",
+	paymentDetails: "Payment & invoice details",
+	deliveryDetails: "Delivery details",
+	aftercareDetails: "Aftercare, disputes & reviews",
+	aftercareHelp:
+		"Cancellations, amendments, refunds, disputes and reviews for this order. Staff review each action.",
 };
 type Copy = Record<keyof typeof en, string>;
 export const orderDetailCopy: Record<Locale, Copy> = {
@@ -100,10 +106,17 @@ export const orderDetailCopy: Record<Locale, Copy> = {
 		reviewCancellation: "بازبینی لغو",
 		reviewDispute: "بازبینی اختلاف",
 		noAction: "فعلاً اقدامی لازم نیست.",
-		roleBlocked: "این مرحله در بخشی مدیریت می‌شود که نقش فعلی شما نمی‌تواند باز کند.",
+		roleBlocked:
+			"این مرحله در بخشی مدیریت می‌شود که نقش فعلی شما نمی‌تواند باز کند.",
 		advanceRequired: "پیش‌پرداخت پیش از ارسال لازم است.",
 		cancellationBlocks: "لغو در انتظار، ارسال و تکمیل را متوقف می‌کند.",
 		disputeBlocks: "اختلاف باز، تکمیل را متوقف می‌کند.",
+		close: "بستن",
+		paymentDetails: "جزئیات پرداخت و صورت‌حساب",
+		deliveryDetails: "جزئیات تحویل",
+		aftercareDetails: "رسیدگی، اختلاف‌ها و دیدگاه‌ها",
+		aftercareHelp:
+			"لغو، اصلاح، بازپرداخت، اختلاف و دیدگاه این سفارش. هر اقدام توسط کارمند بررسی می‌شود.",
 	},
 	ps: {
 		backToOrders: "سپارښتنو ته ستنېدل",
@@ -151,10 +164,17 @@ export const orderDetailCopy: Record<Locale, Copy> = {
 		reviewCancellation: "لغوه کول بیاکتل",
 		reviewDispute: "شخړه بیاکتل",
 		noAction: "اوس کومې کړنې ته اړتیا نشته.",
-		roleBlocked: "دا ګام په داسې برخه کې اداره کېږي چې ستاسو اوسنی رول یې نه شي پرانیستلی.",
+		roleBlocked:
+			"دا ګام په داسې برخه کې اداره کېږي چې ستاسو اوسنی رول یې نه شي پرانیستلی.",
 		advanceRequired: "مخکې تادیه د لېږد مخکې اړینه ده.",
 		cancellationBlocks: "په تمه لغوه کول لېږد او بشپړېدل بندوي.",
 		disputeBlocks: "پرانیستې شخړه بشپړېدل بندوي.",
+		close: "تړل",
+		paymentDetails: "د تادیې او بل جزئیات",
+		deliveryDetails: "د سپارلو جزئیات",
+		aftercareDetails: "پاملرنه، شخړې او نظرونه",
+		aftercareHelp:
+			"د دې سپارښتنې لغوه کول، سمون، بېرته تادیه، شخړې او نظرونه. هر عمل کارکوونکی ګوري.",
 	},
 	ar: {
 		backToOrders: "العودة إلى الطلبات",
@@ -206,5 +226,11 @@ export const orderDetailCopy: Record<Locale, Copy> = {
 		advanceRequired: "الدفع المقدم مطلوب قبل الشحن.",
 		cancellationBlocks: "الإلغاء المعلق يمنع الشحن والاكتمال.",
 		disputeBlocks: "النزاع المفتوح يمنع الاكتمال.",
+		close: "إغلاق",
+		paymentDetails: "تفاصيل الدفع والفاتورة",
+		deliveryDetails: "تفاصيل التوصيل",
+		aftercareDetails: "المتابعة والنزاعات والمراجعات",
+		aftercareHelp:
+			"الإلغاء والتعديل والاسترداد والنزاعات والمراجعات لهذا الطلب. يراجع الموظف كل إجراء.",
 	},
 };

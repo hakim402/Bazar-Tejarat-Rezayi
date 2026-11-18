@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { DashboardCard } from "../../components/ui/dashboard-card";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -26,6 +26,8 @@ import {
 	type SellerSummary,
 } from "./api";
 import { reportCopy } from "./copy";
+import { Figure as ReportFigure } from "./components/figure";
+import { BuyerReports } from "./components/buyer-reports";
 
 type Context = "seller" | "buyer";
 type Summary = SellerSummary | BuyerSummary;
@@ -95,10 +97,9 @@ function Figure({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border py-2 first:border-t-0">
-			<dt className="text-sm text-muted">{label}</dt>
-			<dd className="font-semibold text-foreground">{children}</dd>
-		</div>
+		<ReportFigure label={label} valueClass="text-base">
+			{children}
+		</ReportFigure>
 	);
 }
 
@@ -146,8 +147,10 @@ export function ReportsWorkspace({
 		};
 	}, [context]);
 
+	const cancelLoad = useRef<(() => void) | null>(null);
 	const load = useCallback(() => {
 		if (context === "seller" && !seller) return;
+		cancelLoad.current?.();
 		setState("loading");
 		const request =
 			context === "seller"
@@ -169,9 +172,11 @@ export function ReportsWorkspace({
 							: "failed",
 					);
 			});
-		return () => {
+		const stop = () => {
 			live = false;
 		};
+		cancelLoad.current = stop;
+		return stop;
 	}, [context, seller, period]);
 
 	useEffect(() => load(), [load]);
@@ -232,6 +237,20 @@ export function ReportsWorkspace({
 		context === "seller" &&
 		!!data &&
 		(kind === "orders" ? data.sections.orders : data.sections.finance);
+
+	if (context === "buyer")
+		return (
+			<BuyerReports
+				locale={locale}
+				draft={draft}
+				setDraft={setDraft}
+				setPeriod={setPeriod}
+				apply={apply}
+				state={state}
+				data={data as BuyerSummary | null}
+				onRetry={load}
+			/>
+		);
 
 	return (
 		<div className="space-y-6">

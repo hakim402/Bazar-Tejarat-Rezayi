@@ -12,11 +12,6 @@ import type { Context } from "../../messaging/api";
 import { paymentCopy } from "../copy";
 import { actualTime, moneyUnits } from "../validation";
 import {
-	action as defaultAction,
-	control as defaultControl,
-	panel as defaultPanel,
-} from "../../orders/components/controls";
-import {
 	salesAction,
 	salesControl,
 } from "../../sales/components/seller-sales-ui";
@@ -84,20 +79,13 @@ export function FactsForm({
 	const correction = !!receipt,
 		claim = row.capabilities.claim && !correction,
 		seller = context === "seller",
-		action = seller
-			? cn(salesAction, "min-h-10 rounded-lg shadow-none")
-			: defaultAction,
-		control = seller
-			? cn(
-					salesControl,
-					"min-h-10! h-10 rounded-lg! border-solid text-sm! shadow-none",
-				)
-			: defaultControl,
-		FieldInput = seller ? Input : "input",
-		FieldTextarea = seller ? Textarea : "textarea",
-		panel = seller
-			? "min-w-0 space-y-4 rounded-xl border border-solid border-border bg-surface p-4 shadow-none sm:p-5"
-			: defaultPanel;
+		action = cn(salesAction, "min-h-10 rounded-lg shadow-none"),
+		control = cn(
+			salesControl,
+			"min-h-10! h-10 rounded-lg! border-solid text-sm! shadow-none",
+		),
+		panel =
+			"min-w-0 space-y-4 rounded-xl border border-solid border-border bg-surface p-4 shadow-none sm:p-5";
 	return (
 		<form
 			className={panel}
@@ -136,13 +124,7 @@ export function FactsForm({
 				);
 			}}
 		>
-			<h3
-				className={
-					seller
-						? "m-0 text-base font-semibold tracking-tight"
-						: "font-semibold"
-				}
-			>
+			<h3 className="m-0 text-base font-semibold tracking-tight">
 				{correction
 					? t.correction
 					: claim
@@ -175,20 +157,14 @@ export function FactsForm({
 			)}
 			<fieldset
 				disabled={disabled}
-				className={
-					seller
-						? "m-0 grid min-w-0 gap-4 border-0 p-0 sm:grid-cols-2"
-						: "space-y-3"
-				}
+				className="m-0 grid min-w-0 gap-4 border-0 p-0 sm:grid-cols-2"
 			>
 				<label
-					className={
-						seller ? "block min-w-0 space-y-2 text-sm font-medium" : "block"
-					}
+					className="block min-w-0 space-y-2 text-sm font-medium"
 					htmlFor={amountId}
 				>
 					{t.amount} <bdi>{row.currency}</bdi>
-					<FieldInput
+					<Input
 						id={amountId}
 						required
 						dir="ltr"
@@ -206,13 +182,11 @@ export function FactsForm({
 					</span>
 				</label>
 				<label
-					className={
-						seller ? "block min-w-0 space-y-2 text-sm font-medium" : "block"
-					}
+					className="block min-w-0 space-y-2 text-sm font-medium"
 					htmlFor={paidId}
 				>
 					{t.paidAt}
-					<FieldInput
+					<Input
 						id={paidId}
 						required
 						type="datetime-local"
@@ -223,49 +197,41 @@ export function FactsForm({
 						onChange={(e) => setPaidAt(e.target.value)}
 					/>
 				</label>
-				<div className={seller ? "min-w-0 space-y-2 sm:col-span-2" : "block"}>
+				<div className="min-w-0 space-y-2 sm:col-span-2">
 					<label htmlFor={descriptionId}>{t.description}</label>
-					<FieldTextarea
+					<Textarea
 						id={descriptionId}
 						required
 						maxLength={500}
 						aria-invalid={invalid && !description.trim()}
 						aria-describedby={invalid ? errorId : undefined}
-						className={
-							seller ? cn(control, "h-auto min-h-24! resize-y") : control
-						}
+						className={cn(control, "h-auto min-h-24! resize-y")}
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 				</div>
 				{correction && (
-					<div className={seller ? "min-w-0 space-y-2 sm:col-span-2" : "block"}>
+					<div className="min-w-0 space-y-2 sm:col-span-2">
 						<label htmlFor={reasonId}>{t.reason}</label>
-						<FieldTextarea
+						<Textarea
 							id={reasonId}
 							required
 							minLength={3}
 							aria-invalid={invalid && reason.trim().length < 3}
 							aria-describedby={invalid ? errorId : undefined}
 							maxLength={1000}
-							className={
-								seller ? cn(control, "h-auto min-h-24! resize-y") : control
-							}
+							className={cn(control, "h-auto min-h-24! resize-y")}
 							value={reason}
 							onChange={(e) => setReason(e.target.value)}
 						/>
 					</div>
 				)}
 				<label
-					className={
-						seller
-							? "block min-w-0 space-y-2 border-t border-border pt-4 text-sm font-semibold sm:col-span-2"
-							: "block"
-					}
+					className="block min-w-0 space-y-2 border-t border-border pt-4 text-sm font-semibold sm:col-span-2"
 					htmlFor={fileId}
 				>
 					{t.evidence}
-					<FieldInput
+					<Input
 						id={fileId}
 						type="file"
 						accept="image/jpeg,image/png,image/webp"
@@ -284,31 +250,13 @@ export function FactsForm({
 						}}
 					/>
 				</label>
-				<p
-					className={
-						seller
-							? "text-xs leading-relaxed text-muted sm:col-span-2"
-							: "text-sm text-muted"
-					}
-				>
+				<p className="text-xs leading-relaxed text-muted sm:col-span-2">
 					{t.evidenceNote} ({evidence.length}/3)
 				</p>
-				<p
-					className={
-						seller
-							? "text-xs leading-relaxed text-muted sm:col-span-2"
-							: "text-sm text-muted"
-					}
-				>
+				<p className="text-xs leading-relaxed text-muted sm:col-span-2">
 					{t.inputTimezone}
 				</p>
-				<div
-					className={
-						seller
-							? "flex min-w-0 flex-wrap gap-3 sm:col-span-2"
-							: "flex flex-wrap gap-3"
-					}
-				>
+				<div className="flex min-w-0 flex-wrap gap-3 sm:col-span-2">
 					{evidence.map((id) => (
 						<div key={id}>
 							<PaymentEvidence {...{ id, context, locale }} />
@@ -338,14 +286,10 @@ export function FactsForm({
 				<button
 					type="submit"
 					data-payment-facts-review
-					className={
-						seller
-							? cn(
-									action,
-									"justify-self-start border-action bg-action text-white hover:bg-action/90 hover:text-white sm:col-span-2",
-								)
-							: action
-					}
+					className={cn(
+						action,
+						"justify-self-start border-action bg-action text-white hover:bg-action/90 hover:text-white sm:col-span-2",
+					)}
 				>
 					{t.exact}
 				</button>

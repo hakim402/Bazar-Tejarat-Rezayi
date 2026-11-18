@@ -29,7 +29,8 @@ import {
 	inventoryRequest,
 	type StockPosition,
 } from "../../../../../../../features/inventory/api/inventory";
-import { StockModal, panel } from "./stock-parts";
+import { panel } from "./stock-parts";
+import { DiscardDialog } from "../../../../../../../components/ui/discard-dialog";
 import { stockHref } from "./stock-ui";
 import { stockFlowCopy } from "../../../../../../../lib/i18n/stock-flow";
 
@@ -1056,28 +1057,20 @@ function StockForm({
 					</div>
 				</>
 			)}
-			{leave && (
-				<StockModal
-					title={pending ? copy.pendingLeave : t.discard}
-					onClose={() => setLeave(null)}
-				>
-					<div className="flex gap-3">
-						<Button variant="outline" onClick={() => setLeave(null)}>
-							{t.keep}
-						</Button>
-						{!pending && (
-							<Button
-								onClick={() => {
-									setLeave(null);
-									leave();
-								}}
-							>
-								{t.discard}
-							</Button>
-						)}
-					</div>
-				</StockModal>
-			)}
+			<DiscardDialog
+				locale={locale}
+				open={leave !== null}
+				title={pending ? copy.pendingLeave : t.discard}
+				help={pending ? undefined : t.discardHelp}
+				cancelLabel={t.keep}
+				confirmLabel={pending ? undefined : t.discardConfirm}
+				onCancel={() => setLeave(null)}
+				onConfirm={() => {
+					const next = leave;
+					setLeave(null);
+					next?.();
+				}}
+			/>
 		</div>
 	);
 }

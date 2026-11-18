@@ -43,7 +43,13 @@ import { orderListCopy } from "../list-copy";
 import type { Order, OrderLine } from "../api";
 import { ProductThumbnail } from "./order-ui";
 
-function OrderProducts({ order, locale }: { order: Order; locale: Locale }) {
+export function OrderProducts({
+	order,
+	locale,
+}: {
+	order: Order;
+	locale: Locale;
+}) {
 	const t = orderListCopy[locale];
 	const line = (item: OrderLine) => (
 		<div key={item.id} className="flex min-w-0 items-start gap-3">
@@ -95,7 +101,13 @@ function OrderProducts({ order, locale }: { order: Order; locale: Locale }) {
 		</div>
 	);
 }
-function OrderStatuses({ order, locale }: { order: Order; locale: Locale }) {
+export function OrderStatuses({
+	order,
+	locale,
+}: {
+	order: Order;
+	locale: Locale;
+}) {
 	const t = orderListCopy[locale];
 	const paid =
 		order.dimensions.financial === "paid" ||

@@ -20,16 +20,20 @@ const badgeStyles: Record<BadgeVariant, string> = {
 export function StatusBadge({
 	variant = "neutral",
 	dot = true,
+	size = "md",
 	children,
 	className = "",
 	...props
 }: ComponentProps<"span"> & {
 	variant?: BadgeVariant;
 	dot?: boolean;
+	size?: "sm" | "md";
 }) {
 	return (
 		<span
-			className={`inline-flex max-w-full items-center gap-1.5 rounded-sm px-2 py-0.5 text-caption font-semibold ${badgeStyles[variant]} ${className}`}
+			className={`inline-flex max-w-full items-center gap-1.5 rounded-sm py-0.5 font-semibold ${
+				size === "sm" ? "px-1.5 text-xs" : "px-2 text-caption"
+			} ${badgeStyles[variant]} ${className}`}
 			{...props}
 		>
 			{dot && (

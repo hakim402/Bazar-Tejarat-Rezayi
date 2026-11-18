@@ -241,3 +241,16 @@ class CatalogueEvent(models.Model):
     version = models.PositiveIntegerField(default=0)
     reason = models.CharField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Command(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="catalogue_commands")
+    action = models.CharField(max_length=32)
+    key = models.UUIDField()
+    digest = models.CharField(max_length=64)
+    outcome = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["account", "action", "key"], name="catalogue_unique_command")]

@@ -5,6 +5,7 @@ real order, payment and stock services; nothing mocks a permission or money effe
 """
 
 import copy
+import uuid
 from datetime import timedelta
 
 from django.contrib.auth.models import Group, Permission
@@ -135,7 +136,7 @@ class SellerReportTests(AftercareFixture, TestCase):
         self.assertEqual(exports.cell("plain"), "plain")
 
     def test_publication_backlog_counts_latest_revision_only(self):
-        created = catalogue.create(self.seller, {"seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+        created = catalogue.create(self.seller, {"command_id": uuid.uuid4(), "seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
         product = Product.objects.get(pk=created["id"])
         image = upload(self.seller, product.pk, product.version, image_file())
         product.refresh_from_db()

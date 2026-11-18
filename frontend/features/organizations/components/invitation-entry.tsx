@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { authMutation } from "../../identity/api/accounts";
 import { Button } from "../../../components/ui/button";
 import { Alert } from "../../../components/ui/alert";
@@ -31,7 +32,13 @@ export function InvitationReturn({ locale }: { locale: Locale }) {
 		</Link>
 	) : null;
 }
-export function InvitationEntry({ locale }: { locale: Locale }) {
+export function InvitationEntry({
+	locale,
+	context = "buyer",
+}: {
+	locale: Locale;
+	context?: "buyer" | "seller";
+}) {
 	const t = organizationCopy[locale];
 	const [token, setToken] = useState("");
 	const [data, setData] = useState<InvitePreview | null>(null);
@@ -86,9 +93,23 @@ export function InvitationEntry({ locale }: { locale: Locale }) {
 			sessionStorage.removeItem(KEY);
 			setToken("");
 			setData({ status: "accepted" });
+			toast.success(t.joined);
 		} catch {
 			setError(t.invalid);
+			toast.error(t.invalid);
 		} finally {
+			setBusy(false);
+		}
+	}
+	async function signOutEverywhere() {
+		setBusy(true);
+		setError("");
+		try {
+			await authMutation("logout-all/");
+			window.location.reload();
+		} catch {
+			setError(t.failed);
+			toast.error(t.failed);
 			setBusy(false);
 		}
 	}
@@ -129,7 +150,7 @@ export function InvitationEntry({ locale }: { locale: Locale }) {
 								{data.company_name}
 							</h2>
 							<bdi className="font-identifier">{data.invited_hint}</bdi>
-							<ul className="my-5">
+							<ul className="my-5 list-none p-0">
 								{data.bundles?.map((bundle) => (
 									<li key={bundle}>{label(t, bundle)}</li>
 								))}
@@ -149,10 +170,8 @@ export function InvitationEntry({ locale }: { locale: Locale }) {
 							{state === "wrong_account" && (
 								<Button
 									variant="secondary"
-									onClick={async () => {
-										await authMutation("logout-all/");
-										window.location.reload();
-									}}
+									disabled={busy}
+									onClick={() => void signOutEverywhere()}
 								>
 									{t.signin}
 								</Button>
@@ -172,7 +191,7 @@ export function InvitationEntry({ locale }: { locale: Locale }) {
 					)}
 					<Link
 						className="my-5 block text-action"
-						href={`/${locale}/account/seller/organizations`}
+						href={`/${locale}/account/${context}/organizations`}
 					>
 						{t.select}
 					</Link>

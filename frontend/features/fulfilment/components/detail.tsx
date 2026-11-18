@@ -1,7 +1,4 @@
 "use client";
-import { aftercareHref } from "../../aftercare/api";
-import { aftercareCopy } from "../../aftercare/copy";
-import Link from "next/link";
 import {
 	useCallback,
 	useEffect,
@@ -11,37 +8,41 @@ import {
 } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { apiOrigin } from "../../../lib/api/client";
+import { Button } from "../../../components/shadcn/button";
+import { Icon } from "../../../components/ui/icon";
 import {
 	useVisiblePoll,
 	accessLost,
 	useOnlineState,
 } from "../../messaging/hooks";
-import {
-	action as buyerAction,
-	panel as buyerPanel,
-} from "../../orders/components/controls";
+import { panel as buyerPanel } from "../../orders/components/controls";
+import { DetailCard } from "../../orders/components/order-ui";
+import { DetailDialog } from "../../orders/components/detail-dialog";
 import { useSearchParams } from "next/navigation";
-import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import {
 	SalesFrame,
 	SalesHeader,
-	SalesRelated,
 	salesHref,
-	salesAction,
 	salesPanel,
 } from "../../sales/components/seller-sales-ui";
 import { fulfilment, fulfilmentHref, clearFulfilmentIntents } from "../api";
-import { fulfilmentCopy, fulfilmentState } from "../copy";
+import { availableModes } from "../modes";
+import { fulfilmentCopy } from "../copy";
 import { workflowCopy } from "../workflow-copy";
 import { useFulfilmentCommand } from "../use-command";
 import toast from "react-hot-toast";
 import type { Context, Detail, Reviewed } from "../types";
-import { DeliverySummary } from "./summary";
 import { DeliveryActionForm } from "./action-form";
 import { SellerFulfilment } from "./seller-workflow";
 import { DeliveryReview } from "./review";
-import { DeliveryHistory } from "./history";
-import { paymentHref } from "../../payments/api";
+import {
+	BuyerDeliveryHeader,
+	BuyerDeliveryProgress,
+	BuyerMoneyCard,
+	BuyerRecipientCard,
+	BuyerArrangementCard,
+	BuyerDeliveryHistory,
+} from "./buyer-cards";
 export function DeliveryDetail({
 	locale,
 	context,
@@ -60,9 +61,7 @@ export function DeliveryDetail({
 	attempt: string | null;
 }) {
 	const t = fulfilmentCopy[locale],
-		s = sellerSalesCopy[locale],
 		isSeller = context === "seller",
-		action = isSeller ? salesAction : buyerAction,
 		panel = isSeller ? salesPanel : buyerPanel,
 		params = useSearchParams(),
 		back = isSeller
@@ -113,17 +112,21 @@ export function DeliveryDetail({
 		onApplied: (intent, result, current) => {
 			setReview(null);
 			setError(false);
-			if (intent?.upload && typeof result.id === "string")
+			if (intent?.upload && typeof result.id === "string") {
 				setUploaded({ id: result.id, purpose: String(result.purpose) });
-			else if (intent) {
+				toast.success(workflowCopy[locale].applied);
+			} else if (intent) {
 				setFormGeneration((value) => value + 1);
 				setUploaded(null);
-				if (isSeller) toast.success(workflowCopy[locale].applied);
+				toast.success(workflowCopy[locale].applied);
 			}
 			if (current) setRow(current);
 			setReload((value) => value + 1);
 		},
 	});
+	useEffect(() => {
+		if (command.error) toast.error(t.error);
+	}, [command.error, t]);
 	useVisiblePoll(
 		async (signal) => {
 			if (denied) return;
@@ -253,145 +256,20 @@ export function DeliveryDetail({
 				/>
 			</SalesFrame>
 		);
-	return (
-		<SalesFrame seller={isSeller}>
-			<div className="min-w-0 space-y-5">
-				{isSeller ? (
-					<SalesHeader
-						locale={locale}
-						section="fulfilment"
-						seller={row.seller}
-						back={back}
-						title={
-							<>
-								{s.fulfilment} · <bdi>{row.number}</bdi>
-							</>
-						}
-					/>
-				) : (
-					<Link href={back} className={action}>
-						{t.buyerTitle}
-					</Link>
-				)}
-				<DeliverySummary {...{ locale, row }} seller={isSeller} />
-				{isSeller && row.capabilities.invoice && (
-					<SalesRelated
-						locale={locale}
-						seller={row.seller}
-						links={[
-							{ section: "orders", id: row.id },
-							...(row.invoice
-								? [{ section: "invoices" as const, id: row.invoice }]
-								: []),
-							{ section: "payments", id: row.id },
-							{ section: "aftercare", id: row.id },
-						]}
-					/>
-				)}
-				{!isSeller && row.capabilities.invoice && (
-					<Link
-						className={action}
-						prefetch={false}
-						href={aftercareHref(locale, context, row.id, row.seller)}
-					>
-						{aftercareCopy[locale].openWorkspace}
-					</Link>
-				)}
-				{!online && <p role="status">{t.offline}</p>}
-				{(error || Boolean(command.error)) && <p role="alert">{t.error}</p>}
-				{command.absent && <p role="status">{t.absent}</p>}
-				{command.locked && (
-					<section
-						className={panel}
-						role="status"
-						tabIndex={-1}
-						data-fulfilment-pending
-					>
-						<p>{t.uncertain}</p>
-						<button
-							type="button"
-							className={action}
-							disabled={command.busy || !online}
-							onClick={() => void command.reconcile()}
-						>
-							{t.reconcile}
-						</button>
-					</section>
-				)}
-				{isSeller && (row.recipient || row.arrangement) && (
-					<h2 className="text-lg font-semibold">{s.details}</h2>
-				)}
-				{row.recipient && (
-					<section className={panel}>
-						<h2 className="text-xl font-bold">
-							{t.recipient} · {t.revision} <bdi>{row.recipient.revision}</bdi>
-						</h2>
-						<p>{t.privacy}</p>
-						<p dir="auto">{row.recipient.name}</p>
-						<p>
-							<bdi>{row.recipient.phone}</bdi>
-						</p>
-						<p className="break-words whitespace-pre-wrap">
-							{row.recipient.address}
-						</p>
-						<p className="break-words whitespace-pre-wrap">
-							{row.recipient.instructions}
-						</p>
-						<p>{t.unchangedDestination}</p>
-					</section>
-				)}
-				{row.arrangement && (
-					<section className={panel}>
-						<h2 className="text-xl font-bold">{t.arrangement}</h2>
-						<p>
-							{t.arranger}: {fulfilmentState(locale, row.arrangement.arranger)}
-						</p>
-						<p>
-							{t.provider}: <bdi>{row.arrangement.provider}</bdi>
-						</p>
-						<p>{row.arrangement.instructions}</p>
-						{row.preparation && (
-							<p>
-								{t.preparedFor}: <bdi>{row.preparation.recipient_revision}</bdi>
-							</p>
-						)}
-						{row.stage === "needs_preparation" && (
-							<p role="status">{t.needPreparation}</p>
-						)}
-						{row.stage === "dispatched" || row.stage === "delivered" ? (
-							<p>{t.providerFrozen}</p>
-						) : null}
-					</section>
-				)}
-				{row.capabilities.handover &&
-					(row.stage === "dispatched" || row.stage === "delivered") && (
-						<div className="flex flex-wrap gap-3">
-							<button
-								type="button"
-								className={action}
-								disabled={downloading}
-								onClick={() => void handover("html")}
-							>
-								{t.handover}
-							</button>
-							<button
-								type="button"
-								className={action}
-								disabled={downloading}
-								onClick={() => void handover("pdf")}
-							>
-								{t.handoverPdf}
-							</button>
-						</div>
-					)}
-				{!isSeller && row.capabilities.invoice && (
-					<Link
-						className={action}
-						href={paymentHref(locale, context, row.id, seller)}
-					>
-						{t.title}
-					</Link>
-				)}
+	const actionDialog =
+		availableModes(row, context, locale).length > 0 ? (
+			<DetailDialog
+				locale={locale}
+				icon="send"
+				label={t.buyerActions}
+				title={t.buyerActions}
+				wide
+				keepMounted
+				inline
+			>
+				<p className="m-0 text-xs leading-relaxed text-muted">
+					{t.buyerActionsHelp}
+				</p>
 				<DeliveryActionForm
 					key={`${formGeneration}:${JSON.stringify(row.capabilities)}`}
 					{...{ locale, context, row, uploaded }}
@@ -402,10 +280,7 @@ export function DeliveryDetail({
 						setReview(next);
 					}}
 					upload={(file, purpose) => {
-						if (
-							purpose === "refund" &&
-							(!isSeller || !row.capabilities.refund)
-						)
+						if (purpose === "refund" && (!isSeller || !row.capabilities.refund))
 							return;
 						const key = crypto.randomUUID(),
 							body = new FormData();
@@ -415,32 +290,137 @@ export function DeliveryDetail({
 						void command.send({ key, path: "uploads/", body, upload: true });
 					}}
 				/>
-				<DeliveryHistory
-					{...{ locale, context, row, seller, page }}
-					returnParams={isSeller ? params : undefined}
-				/>
-				{review &&
-					row.capabilities[review.capability] &&
-					(review.capability !== "refund" || isSeller) && (
-						<DeliveryReview
-							{...{ locale, context, review, row }}
-							busy={command.locked}
-							opener={opener.current}
-							cancel={() => {
-								setReview(null);
-							}}
-							confirm={() => {
-								if (
-									command.locked ||
-									!row.capabilities[review.capability] ||
-									(review.capability === "refund" && !isSeller)
-								)
-									return;
-								void command.send(review.intent).then(() => setReview(null));
-							}}
-						/>
-					)}
-			</div>
-		</SalesFrame>
+			</DetailDialog>
+		) : null;
+	const handoverShown =
+		row.capabilities.handover &&
+		(row.stage === "dispatched" || row.stage === "delivered");
+	const rail = (
+		<>
+			<BuyerMoneyCard locale={locale} row={row} seller={seller} />
+			<BuyerRecipientCard locale={locale} row={row} />
+			<BuyerArrangementCard locale={locale} row={row} />
+			<BuyerDeliveryHistory
+				locale={locale}
+				context={context}
+				row={row}
+				seller={seller}
+			/>
+		</>
+	);
+	return (
+		<section className="min-w-0 space-y-4">
+			<BuyerDeliveryHeader
+				locale={locale}
+				row={row}
+				back={back}
+				busy={command.busy}
+				onReload={() => setReload((value) => value + 1)}
+				actions={actionDialog}
+			/>
+			<BuyerDeliveryProgress locale={locale} row={row} />
+			{!online && (
+				<p
+					role="status"
+					className="m-0 rounded-lg border border-warning bg-warning-surface px-3 py-2 text-sm text-warning"
+				>
+					{t.offline}
+				</p>
+			)}
+			{(error || Boolean(command.error)) && (
+				<p
+					role="alert"
+					className="m-0 rounded-lg border border-danger bg-danger-surface px-3 py-2 text-sm text-danger"
+				>
+					{t.error}
+				</p>
+			)}
+			{command.absent && (
+				<p
+					role="status"
+					className="m-0 rounded-lg border border-border bg-page px-3 py-2 text-sm text-muted"
+				>
+					{t.absent}
+				</p>
+			)}
+			{command.locked && (
+				<section
+					className={panel}
+					role="status"
+					tabIndex={-1}
+					data-fulfilment-pending
+				>
+					<p className="m-0 text-sm">{t.uncertain}</p>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="rounded-lg"
+						disabled={command.busy || !online}
+						onClick={() => void command.reconcile()}
+					>
+						{t.reconcile}
+					</Button>
+				</section>
+			)}
+			{handoverShown ? (
+				<div className="grid items-start gap-4 lg:grid-cols-3">
+					<div className="min-w-0 space-y-4 lg:col-span-2">
+						<DetailCard title={t.handover} icon="file" compact>
+							<div className="flex flex-wrap gap-2">
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="rounded-lg"
+									disabled={downloading}
+									onClick={() => void handover("html")}
+								>
+									<Icon name="arrow-down" className="size-3.5" />
+									{t.handover}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="rounded-lg"
+									disabled={downloading}
+									onClick={() => void handover("pdf")}
+								>
+									<Icon name="file" className="size-3.5" />
+									{t.handoverPdf}
+								</Button>
+							</div>
+						</DetailCard>
+					</div>
+					<div className="min-w-0 space-y-4">{rail}</div>
+				</div>
+			) : (
+				<div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{rail}
+				</div>
+			)}
+			{review &&
+				row.capabilities[review.capability] &&
+				(review.capability !== "refund" || isSeller) && (
+					<DeliveryReview
+						{...{ locale, context, review, row }}
+						busy={command.locked}
+						opener={opener.current}
+						cancel={() => {
+							setReview(null);
+						}}
+						confirm={() => {
+							if (
+								command.locked ||
+								!row.capabilities[review.capability] ||
+								(review.capability === "refund" && !isSeller)
+							)
+								return;
+							void command.send(review.intent).then(() => setReview(null));
+						}}
+					/>
+				)}
+		</section>
 	);
 }

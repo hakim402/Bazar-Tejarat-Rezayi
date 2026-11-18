@@ -420,7 +420,7 @@ def submit(actor, data):
             after_seller_commit(outcome)
     from .queries import submission_data
 
-    return submission_data(actor, submission.pk)
+    return submission_data(actor, submission.pk, data.get("locale", "fa-AF"))
 
 
 @transaction.atomic

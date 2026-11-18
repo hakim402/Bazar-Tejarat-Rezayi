@@ -13,26 +13,21 @@ class Profiles(OrderView):
     @extend_schema(operation_id="payments_profiles", parameters=[c.Query], responses=OpenApiTypes.OBJECT)
     def get(self, request):
         actor = self.actor("seller")
-        data = query(request, c.Query)
-        rows = access.profiles(actor.account, summary=True).order_by("pk")
+        query(request, c.Query)
+        rows = list(access.profiles(actor.account, summary=True).order_by("pk")[:100])
         writers = set(access.profiles(actor.account).values_list("pk", flat=True))
-        return Response(
+        results = [
             {
-                "count": rows.count(),
-                "page": data["page"],
-                "results": [
-                    {
-                        "id": str(x.pk),
-                        "name": x.display_name,
-                        "read": True,
-                        "write": x.pk in writers,
-                        "evidence": x.pk in writers,
-                        "selection": x.pk in writers,
-                    }
-                    for x in rows[(data["page"] - 1) * 20 : data["page"] * 20]
-                ],
+                "id": str(x.pk),
+                "name": x.display_name,
+                "read": True,
+                "write": x.pk in writers,
+                "evidence": x.pk in writers,
+                "selection": x.pk in writers,
             }
-        )
+            for x in rows
+        ]
+        return Response({"count": len(results), "page": 1, "results": results})
 
 
 class Orders(OrderView):

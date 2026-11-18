@@ -1,9 +1,17 @@
 "use client";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { AccountError } from "../../../lib/api/private-client";
-import { Icon } from "../../../components/ui/icon";
+import { Icon, type IconName } from "../../../components/ui/icon";
+import { StatusBadge } from "../../../components/ui/status-badge";
+import { Button } from "../../../components/shadcn/button";
+import { Textarea } from "../../../components/shadcn/textarea";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
 import { useCommerceGuard } from "../../orders/components/unsaved";
 import { uuidPattern } from "../../../lib/routes/account-routes";
 import {
@@ -19,8 +27,7 @@ import {
 } from "../api";
 import { communicationCopy } from "../copy";
 import { accessLost, useCommunicationSession, useOnlineState } from "../hooks";
-import { control, action, Failure } from "./controls";
-import { messageAction, messageControl } from "./seller-messages-ui";
+import { actionBtn, Failure, failureMessage } from "./ui";
 
 // All target types use the existing deliberate report seal and identical replay.
 export function ReportForm({
@@ -31,6 +38,7 @@ export function ReportForm({
 	onDirty,
 	onDenied,
 	embedded = false,
+	compact = false,
 }: {
 	context: Context;
 	id: string;
@@ -39,6 +47,7 @@ export function ReportForm({
 	onDirty?: (dirty: boolean) => void;
 	onDenied?: (error: unknown) => void;
 	embedded?: boolean;
+	compact?: boolean;
 }) {
 	const t = communicationCopy[locale],
 		online = useOnlineState();
@@ -139,6 +148,7 @@ export function ReportForm({
 				setUncertain(false);
 				setReason("");
 				setDirty(false);
+				toast.success(t.reportSaved);
 			}
 		} catch (error) {
 			if (live.current && owner.current === mine && !request.signal.aborted) {
@@ -158,7 +168,11 @@ export function ReportForm({
 				) {
 					pending.current = null;
 					setUncertain(false);
-				} else setUncertain(true);
+					toast.error(failureMessage(locale, error));
+				} else {
+					setUncertain(true);
+					toast.error(failureMessage(locale, error));
+				}
 			}
 		} finally {
 			if (live.current && owner.current === mine) {
@@ -181,8 +195,10 @@ export function ReportForm({
 	const body = denied ? (
 		<Failure locale={locale} error={error} />
 	) : (
-		<div className="space-y-3 pt-3">
-			<p>{t.reportNeutral}</p>
+		<div className={compact ? "flex flex-col gap-3 pt-1" : "space-y-3 pt-3"}>
+			<p className={compact ? "m-0 text-sm text-muted" : undefined}>
+				{t.reportNeutral}
+			</p>
 			{!online && <p role="status">{t.offline}</p>}
 			{results?.map((result) => (
 				<p key={result.id} role="status">
@@ -200,16 +216,21 @@ export function ReportForm({
 			{(!results?.length || dirty || uncertain) && (
 				<form
 					aria-label={label}
-					className="space-y-3"
+					className={compact ? "flex flex-col gap-4" : "space-y-3"}
 					onSubmit={(event) => {
 						event.preventDefault();
 						void submit();
 					}}
 				>
-					<label className="block space-y-2">
-						{t.category}
-						<select
-							className={context === "seller" ? messageControl : control}
+					<div className="flex flex-col gap-1.5">
+						<label
+							htmlFor={`${id}-report-category`}
+							className="text-sm font-medium"
+						>
+							{t.category}
+						</label>
+						<NativeSelect
+							id={`${id}-report-category`}
 							value={category}
 							disabled={busy || uncertain}
 							onChange={(event) => {
@@ -219,21 +240,26 @@ export function ReportForm({
 						>
 							{(["abuse", "fraud", "spam", "privacy", "other"] as const).map(
 								(value) => (
-									<option key={value} value={value}>
+									<NativeSelectOption key={value} value={value}>
 										{value === "privacy" ? t.privacyCategory : t[value]}
-									</option>
+									</NativeSelectOption>
 								),
 							)}
-						</select>
-					</label>
-					<label className="block space-y-2">
-						{t.reason}
-						<textarea
+						</NativeSelect>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<label
+							htmlFor={`${id}-report-reason`}
+							className="text-sm font-medium"
+						>
+							{t.reason}
+						</label>
+						<Textarea
+							id={`${id}-report-reason`}
 							dir="auto"
 							required
 							minLength={3}
 							maxLength={1000}
-							className={context === "seller" ? messageControl : control}
 							value={reason}
 							disabled={busy || uncertain}
 							onChange={(event) => {
@@ -241,24 +267,26 @@ export function ReportForm({
 								setDirty(true);
 							}}
 						/>
-					</label>
-					<button
-						className={context === "seller" ? messageAction : action}
-						disabled={busy || !online}
+					</div>
+					<Button
 						type="submit"
+						className="self-start rounded-lg"
+						disabled={busy || !online}
 					>
 						{busy ? t.sending : uncertain ? t.retry : t.submitReport}
-					</button>
+					</Button>
 				</form>
 			)}
-			<button
-				className={context === "seller" ? messageAction : action}
+			<Button
 				type="button"
+				variant="ghost"
+				size="sm"
+				className="self-start rounded-lg"
 				disabled={busy || !online || uncertain}
 				onClick={() => void load()}
 			>
 				{t.retry}
-			</button>
+			</Button>
 			{!!error && <Failure locale={locale} error={error} />}
 		</div>
 	);
@@ -266,7 +294,13 @@ export function ReportForm({
 		return (
 			<>
 				{guard.feedback}
-				<div className="space-y-3 text-sm">{body}</div>
+				<div
+					className={
+						compact ? "flex flex-col gap-3 text-sm" : "space-y-3 text-sm"
+					}
+				>
+					{body}
+				</div>
 			</>
 		);
 	return (
@@ -278,7 +312,7 @@ export function ReportForm({
 					if (event.currentTarget.open && !uncertain) void load();
 				}}
 			>
-				<summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 font-semibold text-action">
+				<summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-muted transition-colors hover:text-action">
 					<Icon name="shield" className="size-4" />
 					{label}
 				</summary>
@@ -286,6 +320,19 @@ export function ReportForm({
 			</details>
 		</>
 	);
+}
+
+function reportTargetIcon(kind: string): IconName {
+	switch (kind) {
+		case "product":
+			return "box";
+		case "store":
+			return "store";
+		case "order":
+			return "receipt";
+		default:
+			return "mail";
+	}
 }
 
 export function OwnReports({
@@ -332,97 +379,235 @@ export function OwnReports({
 			});
 		return () => request.abort();
 	}, [open, online, denied, context, page, reload]);
+	const buyer = context === "buyer";
 	return (
 		<details
-			className="space-y-3 rounded-card border border-border bg-surface p-4"
+			className={
+				buyer
+					? "rounded-card border border-solid border-border bg-surface p-4"
+					: "space-y-3 rounded-card border border-border bg-surface p-4"
+			}
 			onToggle={(event) => setOpen(event.currentTarget.open)}
 		>
-			<summary className="min-h-11 cursor-pointer font-bold">
-				{t.ownReports}
+			<summary
+				className={
+					buyer
+						? "flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden"
+						: "min-h-11 cursor-pointer font-bold"
+				}
+			>
+				{buyer && <Icon name="shield" className="size-4 shrink-0 text-muted" />}
+				<span className="min-w-0 flex-1">{t.ownReports}</span>
+				{buyer && (
+					<Icon
+						name="chevron-down"
+						className={`size-4 shrink-0 text-muted transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+					/>
+				)}
 			</summary>
-			{open && (
-				<div className="space-y-3">
-					<p>{t.reportNeutral}</p>
-					{!online && <p role="status">{t.offline}</p>}
-					{!!error && <Failure locale={locale} error={error} />}
-					{busy && <p role="status">{t.loading}</p>}
-					{data && !denied && (
-						<>
-							{!data.results.length && <p>{t.emptyReports}</p>}
-							{data.results.map((row) => (
-								<article
-									key={row.id}
-									className="space-y-2 border-b border-border py-3"
-								>
-									<Link
-										prefetch={false}
-										className={action}
-										href={reportTargetHref(
-											locale,
-											context,
-											row.target_kind,
-											row.target,
-										)}
+			{open &&
+				(buyer ? (
+					<div className="flex flex-col gap-3 pt-3">
+						<p className="m-0 text-xs leading-relaxed text-muted">
+							{t.reportNeutral}
+						</p>
+						{!online && (
+							<p role="status" className="m-0 text-sm text-muted">
+								{t.offline}
+							</p>
+						)}
+						{!!error && <Failure locale={locale} error={error} />}
+						{busy && (
+							<p role="status" className="m-0 text-sm text-muted">
+								{t.loading}
+							</p>
+						)}
+						{data && !denied && (
+							<>
+								{!data.results.length ? (
+									<p className="m-0 text-sm text-muted">{t.emptyReports}</p>
+								) : (
+									<ul className="m-0 flex list-none flex-col p-0">
+										{data.results.map((row) => (
+											<li
+												key={row.id}
+												className="flex items-center gap-3 border-0 border-b border-solid border-border py-3 last:border-b-0"
+											>
+												<span
+													className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted"
+													aria-hidden="true"
+												>
+													<Icon
+														name={reportTargetIcon(row.target_kind)}
+														className="size-4"
+													/>
+												</span>
+												<div className="min-w-0 flex-1">
+													<Link
+														prefetch={false}
+														href={reportTargetHref(
+															locale,
+															context,
+															row.target_kind,
+															row.target,
+														)}
+														className="text-sm font-medium text-foreground no-underline hover:text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+													>
+														{
+															{
+																message: t.report,
+																product: t.reportProduct,
+																store: t.reportStore,
+																order: t.reportOrder,
+															}[row.target_kind]
+														}
+													</Link>
+													{row.created_at && (
+														<p className="m-0 mt-0.5 text-xs text-muted">
+															<bdi>
+																{localTimestamp(row.created_at, locale)}
+															</bdi>{" "}
+															· {t.timezone}
+														</p>
+													)}
+												</div>
+												<StatusBadge
+													variant={
+														row.status === "open" ? "warning" : "success"
+													}
+													dot={false}
+													size="sm"
+												>
+													{row.status === "open" ? t.open : t.resolved}
+												</StatusBadge>
+											</li>
+										))}
+									</ul>
+								)}
+								<div className="flex flex-wrap items-center gap-2">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="rounded-lg"
+										disabled={busy || !online || page <= 1}
+										onClick={() => {
+											setData(null);
+											setPage((value) => value - 1);
+										}}
 									>
-										{
+										{t.previous}
+									</Button>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="rounded-lg"
+										disabled={busy || !online || page * 20 >= data.count}
+										onClick={() => {
+											setData(null);
+											setPage((value) => value + 1);
+										}}
+									>
+										{t.next}
+									</Button>
+								</div>
+							</>
+						)}
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="self-start rounded-lg"
+							disabled={busy || !online || denied}
+							onClick={() => setReload((value) => value + 1)}
+						>
+							{t.retry}
+						</Button>
+					</div>
+				) : (
+					<div className="space-y-3">
+						<p>{t.reportNeutral}</p>
+						{!online && <p role="status">{t.offline}</p>}
+						{!!error && <Failure locale={locale} error={error} />}
+						{busy && <p role="status">{t.loading}</p>}
+						{data && !denied && (
+							<>
+								{!data.results.length && <p>{t.emptyReports}</p>}
+								{data.results.map((row) => (
+									<article
+										key={row.id}
+										className="space-y-2 border-b border-border py-3"
+									>
+										<Link
+											prefetch={false}
+											className={actionBtn}
+											href={reportTargetHref(
+												locale,
+												context,
+												row.target_kind,
+												row.target,
+											)}
+										>
 											{
-												message: t.report,
-												product: t.reportProduct,
-												store: t.reportStore,
-												order: t.reportOrder,
-											}[row.target_kind]
-										}
-									</Link>
-									<p>
-										{row.status === "open" ? t.open : t.resolved} ·{" "}
-										<bdi>
-											{row.id} · v{row.version}
-										</bdi>
-									</p>
-									{row.created_at && (
+												{
+													message: t.report,
+													product: t.reportProduct,
+													store: t.reportStore,
+													order: t.reportOrder,
+												}[row.target_kind]
+											}
+										</Link>
 										<p>
-											<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
-											{t.timezone}
+											{row.status === "open" ? t.open : t.resolved} ·{" "}
+											<bdi>
+												{row.id} · v{row.version}
+											</bdi>
 										</p>
-									)}
-								</article>
-							))}
-							<div className="flex flex-wrap gap-3">
-								<button
-									type="button"
-									className={action}
-									disabled={busy || !online || page <= 1}
-									onClick={() => {
-										setData(null);
-										setPage((value) => value - 1);
-									}}
-								>
-									{t.previous}
-								</button>
-								<button
-									type="button"
-									className={action}
-									disabled={busy || !online || page * 20 >= data.count}
-									onClick={() => {
-										setData(null);
-										setPage((value) => value + 1);
-									}}
-								>
-									{t.next}
-								</button>
-							</div>
-						</>
-					)}
-					<button
-						type="button"
-						className={action}
-						disabled={busy || !online || denied}
-						onClick={() => setReload((value) => value + 1)}
-					>
-						{t.retry}
-					</button>
-				</div>
-			)}
+										{row.created_at && (
+											<p>
+												<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
+												{t.timezone}
+											</p>
+										)}
+									</article>
+								))}
+								<div className="flex flex-wrap gap-3">
+									<button
+										type="button"
+										className={actionBtn}
+										disabled={busy || !online || page <= 1}
+										onClick={() => {
+											setData(null);
+											setPage((value) => value - 1);
+										}}
+									>
+										{t.previous}
+									</button>
+									<button
+										type="button"
+										className={actionBtn}
+										disabled={busy || !online || page * 20 >= data.count}
+										onClick={() => {
+											setData(null);
+											setPage((value) => value + 1);
+										}}
+									>
+										{t.next}
+									</button>
+								</div>
+							</>
+						)}
+						<button
+							type="button"
+							className={actionBtn}
+							disabled={busy || !online || denied}
+							onClick={() => setReload((value) => value + 1)}
+						>
+							{t.retry}
+						</button>
+					</div>
+				))}
 		</details>
 	);
 }

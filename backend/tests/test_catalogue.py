@@ -73,7 +73,7 @@ class CatalogueFixture:
             contact_phone="PRIVATE-CONTACT",
         )
         ReviewCase.objects.create(profile=self.profile, snapshot={}, status="approved")
-        result = services.create(self.seller, {"seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+        result = services.create(self.seller, {"command_id": uuid.uuid4(), "seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
         self.product = Product.objects.get(pk=result["id"])
         uploaded = upload(self.seller, self.product.pk, self.product.version, image_file())
         self.product.refresh_from_db()
@@ -434,7 +434,7 @@ class CatalogueTests(CatalogueFixture, TestCase):
         with self.assertRaises((NotFound, Http404)):
             access.resource(self.seller, self.product.pk)
         with self.assertRaises(PermissionDenied):
-            services.create(self.seller, {"seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+            services.create(self.seller, {"command_id": uuid.uuid4(), "seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
 
     def test_staff_permissions_scoped_to_catalogue(self):
         source = self.save()

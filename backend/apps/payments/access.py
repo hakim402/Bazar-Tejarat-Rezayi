@@ -70,14 +70,19 @@ def financial_member(order, account):
 def capabilities(actor, order):
     account = account_for(actor)
     buyer = actor.context == "buyer" and order.buyer_id == account.pk
-    seller_reader = actor.context == "seller" and financial_member(order, account)
+    member = getattr(order, "_financial_member", None)
+    seller_reader = actor.context == "seller" and (
+        member if member is not None else financial_member(order, account)
+    )
     seller = seller_reader
     if seller:
-        from apps.verification.models import ReviewCase as Verification
+        seller = getattr(order, "_verified", None)
+        if seller is None:
+            from apps.verification.models import ReviewCase as Verification
 
-        seller = Verification.objects.filter(
-            profile=order.seller, revision=order.seller.revision, status="approved"
-        ).exists()
+            seller = Verification.objects.filter(
+                profile=order.seller, revision=order.seller.revision, status="approved"
+            ).exists()
     from apps.orders.aftercare import cancelled
 
     active = not cancelled(order)

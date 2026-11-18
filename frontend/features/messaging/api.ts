@@ -9,23 +9,45 @@ export type Message = components["schemas"]["MessageRow"];
 export type ImageRef = components["schemas"]["ImageResult"];
 export type Sent = components["schemas"]["Sent"];
 export type Profiles = components["schemas"]["MessagingProfiles"];
-export type ReportResult = components["schemas"]["ReportResult"] & { created_at?: string };
+export type ReportResult = components["schemas"]["ReportResult"] & {
+	created_at?: string;
+};
 export type ReportTarget = "message" | "product" | "store" | "order";
 export function reportPath(target: ReportTarget, id: string) {
-	return target === "message" ? `messages/${id}/reports/` : `reports/${target}/${id}/`;
+	return target === "message"
+		? `messages/${id}/reports/`
+		: `reports/${target}/${id}/`;
 }
 export type OwnReport = components["schemas"]["OwnReportResult"];
 export type OwnReportPage = components["schemas"]["OwnReportPage"];
-export function reportTargetHref(locale: string, context: Context, target: ReportTarget, id: string, seller?: string) {
-	if (!uuidPattern.test(id)) return `/${locale}/account/${context}/notifications`;
-	if (target === "product" || target === "store") return `/${locale}/${target === "product" ? "products" : "stores"}/${id}`;
-	if (target === "order") return `/${locale}/account/${context}/${context === "buyer" ? "cancellations" : "aftercare"}/${id}${context === "seller" && seller && uuidPattern.test(seller) ? `?seller=${seller}` : ""}`;
+export function reportTargetHref(
+	locale: string,
+	context: Context,
+	target: ReportTarget,
+	id: string,
+	seller?: string,
+) {
+	if (!uuidPattern.test(id))
+		return `/${locale}/account/${context}/notifications`;
+	if (target === "product" || target === "store")
+		return `/${locale}/${target === "product" ? "products" : "stores"}/${id}`;
+	if (target === "order")
+		return `/${locale}/account/${context}/${context === "buyer" ? "cancellations" : "aftercare"}/${id}${context === "seller" && seller && uuidPattern.test(seller) ? `?seller=${seller}` : ""}`;
 	// Own message reports expose a message UUID, not a conversation UUID.
 	return `/${locale}/account/${context}/messages`;
 }
 export function reportPacket(category: string, reason: string, key: string) {
-	// biome-ignore lint/suspicious/noControlCharactersInRegex: reject unsafe control characters in user text.
-	if (!uuidPattern.test(key) || !["abuse", "fraud", "spam", "privacy", "other"].includes(category) || reason.trim().length < 3 || reason.length > 1000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202a-\u202e\u2066-\u2069]/u.test(reason)) return null;
+	if (
+		!uuidPattern.test(key) ||
+		!["abuse", "fraud", "spam", "privacy", "other"].includes(category) ||
+		reason.trim().length < 3 ||
+		reason.length > 1000 ||
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: reject unsafe control characters in user text.
+		/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202a-\u202e\u2066-\u2069]/u.test(
+			reason,
+		)
+	)
+		return null;
 	return Object.freeze({ command_id: key, category, reason: reason.trim() });
 }
 export function messaging<T>(
@@ -55,4 +77,21 @@ export function localTimestamp(value: string, locale: string) {
 		dateStyle: "medium",
 		timeStyle: "short",
 	}).format(new Date(value));
+}
+export function shortTimestamp(value: string, locale: string) {
+	const date = new Date(value),
+		now = new Date(),
+		day = (d: Date) =>
+			new Intl.DateTimeFormat("en-CA", {
+				timeZone: "Asia/Kabul",
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+			}).format(d);
+	return new Intl.DateTimeFormat(
+		locale,
+		day(date) === day(now)
+			? { timeZone: "Asia/Kabul", hour: "2-digit", minute: "2-digit" }
+			: { timeZone: "Asia/Kabul", day: "numeric", month: "short" },
+	).format(date);
 }

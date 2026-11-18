@@ -1,5 +1,8 @@
 from rest_framework import serializers
 
+from apps.foundation.contracts import LOCALES
+from apps.site.contracts import Media
+
 
 class StrictSerializer(serializers.Serializer):
     def to_internal_value(self, data):
@@ -51,7 +54,43 @@ class LinkRequest(StrictSerializer):
 
 
 class ProfileUpdate(StrictSerializer):
-    display_name = serializers.CharField(max_length=150)
+    display_name = serializers.CharField(max_length=150, required=False)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    bio = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+    gender = serializers.ChoiceField(choices=["", "male", "female", "other", "prefer_not_to_say"], required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    preferred_locale = serializers.ChoiceField(choices=["", *LOCALES], required=False, allow_blank=True)
+
+
+class AvatarUpload(serializers.Serializer):
+    file = serializers.FileField()
+
+
+class AddressPayload(StrictSerializer):
+    label = serializers.CharField(max_length=80, required=False, allow_blank=True)
+    recipient_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    province = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    city = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    area = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    street_address = serializers.CharField(max_length=400, required=False, allow_blank=True)
+    landmark = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    is_default = serializers.BooleanField(required=False)
+
+
+class AddressData(serializers.Serializer):
+    id = serializers.UUIDField()
+    label = serializers.CharField()
+    recipient_name = serializers.CharField()
+    phone = serializers.CharField()
+    province = serializers.CharField()
+    city = serializers.CharField()
+    area = serializers.CharField()
+    street_address = serializers.CharField()
+    landmark = serializers.CharField()
+    is_default = serializers.BooleanField()
 
 
 class Empty(StrictSerializer):
@@ -72,6 +111,15 @@ class IdentityData(serializers.Serializer):
     email = serializers.EmailField()
     display_name = serializers.CharField()
     email_verified = serializers.BooleanField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    phone = serializers.CharField()
+    bio = serializers.CharField()
+    gender = serializers.CharField()
+    date_of_birth = serializers.DateField(allow_null=True)
+    preferred_locale = serializers.CharField()
+    avatar = Media(allow_null=True)
+    date_joined = serializers.DateTimeField()
 
 
 class AuthResult(serializers.Serializer):

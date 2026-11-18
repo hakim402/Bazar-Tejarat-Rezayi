@@ -41,6 +41,23 @@ class User(AbstractUser):
     email_verified = models.BooleanField(default=False)
     owner_authority = models.BooleanField(default=False)
     credential_epoch = models.PositiveIntegerField(default=1)
+    # Optional buyer profile details. first_name/last_name/date_joined come from AbstractUser.
+    phone = models.CharField(max_length=40, blank=True, default="")
+    bio = models.TextField(blank=True, default="")
+    gender = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=[("male", "Male"), ("female", "Female"), ("other", "Other"), ("prefer_not_to_say", "Prefer not to say")],
+    )
+    date_of_birth = models.DateField(null=True, blank=True)
+    preferred_locale = models.CharField(
+        max_length=5,
+        blank=True,
+        default="",
+        choices=[("fa-AF", "Dari"), ("en", "English"), ("ps", "Pashto"), ("ar", "Arabic")],
+    )
+    avatar = models.ForeignKey("site.SiteMedia", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["display_name"]
     objects = UserManager()
@@ -125,6 +142,33 @@ class Account(models.Model):
         if kwargs.get("update_fields"):
             kwargs["update_fields"] = set(kwargs["update_fields"]) | {"access_epoch"}
         return super().save(*args, **kwargs)
+
+
+class Address(models.Model):
+    """A reusable delivery address in the identity's address book; one may be the default."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses")
+    label = models.CharField(max_length=80, blank=True, default="")
+    recipient_name = models.CharField(max_length=150, blank=True, default="")
+    phone = models.CharField(max_length=40, blank=True, default="")
+    province = models.CharField(max_length=120, blank=True, default="")
+    city = models.CharField(max_length=120, blank=True, default="")
+    area = models.CharField(max_length=120, blank=True, default="")
+    street_address = models.CharField(max_length=400, blank=True, default="")
+    landmark = models.CharField(max_length=200, blank=True, default="")
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-is_default", "-updated_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user"], condition=models.Q(is_default=True), name="accounts_one_default_address"),
+        ]
+
+    def __str__(self):
+        return self.label or self.recipient_name or str(self.id)
 
 
 class ActionToken(models.Model):

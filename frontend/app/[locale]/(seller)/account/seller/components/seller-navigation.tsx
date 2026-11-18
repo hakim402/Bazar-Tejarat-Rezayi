@@ -33,7 +33,6 @@ import { inventoryCopy } from "../../../../../../lib/i18n/inventory";
 import { sellerShellCopy } from "../../../../../../lib/i18n/seller-shell";
 import { sellerHref } from "../../../../../../lib/routes/account-routes";
 import { Icon, type IconName } from "../../../../../../components/ui/icon";
-import { SellerPreferences } from "./seller-preferences";
 import { SellerSidebarAccount } from "./seller-account";
 import {
 	JumpToPage,
@@ -644,9 +643,6 @@ export function SellerNavigation({
 						{navigation}
 					</div>
 					<SellerSidebarAccount locale={locale} />
-					<div className="shrink-0 border-t border-border px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-						<SellerPreferences locale={locale} drawer />
-					</div>
 				</div>
 			</dialog>
 		</SellerNavigationContext.Provider>

@@ -1,12 +1,10 @@
 "use client";
 import { Button } from "../../../components/shadcn/button";
-import { cn } from "../../../lib/shadcn-utils";
-import { salesAction } from "../../sales/components/seller-sales-ui";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Context } from "../../messaging/api";
 import { localTimestamp } from "../../messaging/api";
 import { Confirmation } from "../../negotiations/components/confirmation";
-import { action } from "../../orders/components/controls";
+import { DetailField, Money } from "../../orders/components/order-ui";
 import { paymentCopy } from "../copy";
 import { sellerPaymentCopy } from "../seller-copy";
 import { moneyUnits } from "../validation";
@@ -22,6 +20,7 @@ export function ActionReview({
 	locale,
 	context,
 	review,
+	liveRow,
 	selection,
 	busy,
 	opener,
@@ -31,17 +30,13 @@ export function ActionReview({
 	locale: Locale;
 	context: Context;
 	review: ReviewedAction;
+	liveRow: Detail | null;
 	selection: Selection | null;
 	busy: boolean;
 	opener: HTMLElement | null;
 	cancel: () => void;
 	confirm: () => void;
 }) {
-	const ReviewButton = context === "seller" ? Button : "button";
-	const buttonClass =
-		context === "seller"
-			? cn(salesAction, "min-h-10 rounded-lg shadow-none")
-			: action;
 	const t = paymentCopy[locale],
 		body = review.packet.body as Record<string, unknown>,
 		row = review.row,
@@ -61,7 +56,11 @@ export function ActionReview({
 	const receipt = row.receipts.find((r) =>
 		review.packet.path.startsWith(`receipts/${r.id}/corrections/`),
 	);
-	const staleReceipt = !!receipt && receipt.version !== body.receipt_version;
+	const liveReceipt = (liveRow ?? row).receipts.find(
+		(r) => r.id === receipt?.id,
+	);
+	const staleReceipt =
+		!!receipt && liveReceipt?.version !== body.receipt_version;
 	const lines = body.lines as
 		| { variant: string; batch: string | null; quantity: string }[]
 		| undefined;
@@ -95,179 +94,221 @@ export function ActionReview({
 				: null;
 	return (
 		<Confirmation label={t.exact} close={cancel} returnFocus={opener}>
-			<h2 className="text-xl font-bold">{review.label}</h2>
-			<p>
-				<bdi>
-					{row.number} · {row.currency}
-				</bdi>{" "}
-				· v{row.version}
-			</p>
-			<p>
-				{t.confirmed}:{" "}
-				<bdi>
-					{row.confirmed_total} {row.currency}
-				</bdi>{" "}
-				· {t.remaining}:{" "}
-				<bdi>
-					{row.remaining} {row.currency}
-				</bdi>
-			</p>
-			{context === "seller" && projected && (
-				<p className="rounded-control border border-border bg-page p-3 text-sm font-semibold">
-					{sellerPaymentCopy[locale].projected}: {t.confirmed}{" "}
-					<bdi>
-						{projected.confirmed} {row.currency}
-					</bdi>{" "}
-					· {t.remaining}{" "}
-					<bdi>
-						{projected.remaining} {row.currency}
-					</bdi>
-					{projected.overpayment !== "0.00" && (
-						<>
-							{" "}
-							· {t.overpayment}{" "}
-							<bdi>
-								{projected.overpayment} {row.currency}
-							</bdi>
-						</>
-					)}
-				</p>
-			)}
-			{receipt && (
-				<section
-					className="space-y-2 rounded-control border border-border p-3"
-					aria-label={t.originalAmount}
-				>
-					<p>
-						{t.effectiveAmount}:{" "}
+			<div className="flex min-w-0 flex-col gap-4">
+				<div className="flex flex-col gap-1">
+					<h2 className="m-0 text-lg font-semibold">{review.label}</h2>
+					<p className="m-0 text-sm text-muted">
 						<bdi>
-							{receipt.amount} {row.currency}
+							{row.number} · {row.currency}
 						</bdi>{" "}
-						· v{receipt.version}
+						· v{row.version}
 					</p>
-					<p>
-						<bdi>{localTimestamp(receipt.paid_at, locale)}</bdi>
-					</p>
-					<p className="break-words whitespace-pre-wrap">
-						{receipt.description}
-					</p>
-					{staleReceipt && <p role="alert">{t.error}</p>}
-				</section>
-			)}
-			<dl className="space-y-3">
-				{(
-					[
-						["amount", t.amount],
-						["description", t.description],
-						["reason", t.reason],
-					] as const
-				).map(
-					([key, label]) =>
-						facts[key] !== undefined && (
-							<div key={key}>
-								<dt className="text-sm text-muted">{label}</dt>
-								<dd className="break-words whitespace-pre-wrap">
-									<bdi>
-										{String(facts[key])}
-										{key === "amount" ? ` ${row.currency}` : ""}
-									</bdi>
-								</dd>
-							</div>
-						),
-				)}
-				{(["paid_at", "due_at"] as const).map(
-					(key) =>
-						typeof facts[key] === "string" && (
-							<div key={key}>
-								<dt>{key === "paid_at" ? t.paidAt : t.laterDue}</dt>
-								<dd>
-									<bdi>{localTimestamp(facts[key], locale)}</bdi>
-								</dd>
-							</div>
-						),
-				)}
-				{(
-					[
-						"claim_version",
-						"receipt_version",
-						"intent_version",
-						"deadline_generation",
-					] as const
-				).map(
-					(key) =>
-						facts[key] !== undefined && (
-							<div key={key}>
-								<dt>
-									{key === "claim_version"
-										? t.claimState
-										: key === "receipt_version"
-											? t.review
-											: key === "intent_version"
-												? t.selection
-												: t.effectiveDue}
-								</dt>
-								<dd>
-									<bdi>v{String(facts[key])}</bdi>
-								</dd>
-							</div>
-						),
-				)}
-			</dl>
-			{lines && (
-				<div className="space-y-3">
-					{lines.map((line, i) => (
-						<p key={`${line.variant}:${line.batch ?? i}`}>
-							<bdi>
-								{review.preview?.[i]?.sku ??
-									selection?.goods.find((g) => g.variant === line.variant)
-										?.sku ??
-									line.variant}
-							</bdi>{" "}
-							· {t.batch}:{" "}
-							<bdi>
-								{(review.preview?.[i]?.code || undefined) ??
-									selection?.results.find(
-										(b) => b.variant === line.variant && b.batch === line.batch,
-									)?.code ??
-									line.batch ??
-									"—"}
-							</bdi>{" "}
-							· {t.quantity}:{" "}
-							<bdi>
-								{line.quantity} {review.preview?.[i]?.unit}
-							</bdi>
-						</p>
-					))}
 				</div>
-			)}
-			<p>
-				{t.evidence}: <bdi>{images.length}</bdi>
-			</p>
-			<div className="flex flex-wrap gap-3">
-				{images.map((id) => (
-					<PaymentEvidence key={id} {...{ id, context, locale }} />
-				))}
-			</div>
-			<p>{t.receiptNote}</p>
-			<div className="flex flex-wrap gap-3">
-				<ReviewButton type="button" className={buttonClass} onClick={cancel}>
-					{t.cancel}
-				</ReviewButton>
-				<ReviewButton
-					type="button"
-					className={
-						context === "seller"
-							? cn(
-									buttonClass,
-									"border-action bg-action text-white hover:bg-action/90 hover:text-white",
-								)
-							: action
-					}
-					disabled={busy || staleReceipt}
-					onClick={confirm}
-				>
-					{t.confirm}
-				</ReviewButton>
+				<div className="grid grid-cols-2 gap-3 rounded-lg bg-page p-3">
+					<div className="min-w-0">
+						<p className="m-0 text-xs text-muted">{t.confirmed}</p>
+						<Money
+							amount={row.confirmed_total}
+							currency={row.currency}
+							className="text-sm font-bold"
+						/>
+					</div>
+					<div className="min-w-0">
+						<p className="m-0 text-xs text-muted">{t.remaining}</p>
+						<Money
+							amount={row.remaining}
+							currency={row.currency}
+							className="text-sm font-bold"
+						/>
+					</div>
+				</div>
+				{context === "seller" && projected && (
+					<p className="m-0 rounded-lg border border-solid border-border bg-page p-3 text-sm font-semibold">
+						{sellerPaymentCopy[locale].projected}: {t.confirmed}{" "}
+						<bdi>
+							{projected.confirmed} {row.currency}
+						</bdi>{" "}
+						· {t.remaining}{" "}
+						<bdi>
+							{projected.remaining} {row.currency}
+						</bdi>
+						{projected.overpayment !== "0.00" && (
+							<>
+								{" "}
+								· {t.overpayment}{" "}
+								<bdi>
+									{projected.overpayment} {row.currency}
+								</bdi>
+							</>
+						)}
+					</p>
+				)}
+				{receipt && (
+					<section
+						className="flex flex-col gap-2 rounded-lg border border-solid border-border bg-page p-3"
+						aria-label={t.originalAmount}
+					>
+						<p className="m-0 text-sm">
+							{t.effectiveAmount}:{" "}
+							<Money
+								amount={receipt.amount}
+								currency={row.currency}
+								className="font-semibold"
+							/>{" "}
+							· v{receipt.version}
+						</p>
+						<p className="m-0 text-xs text-muted">
+							<bdi>{localTimestamp(receipt.paid_at, locale)}</bdi>
+						</p>
+						<p
+							className="m-0 break-words whitespace-pre-wrap text-sm"
+							dir="auto"
+						>
+							{receipt.description}
+						</p>
+						{staleReceipt && (
+							<p
+								role="alert"
+								className="m-0 rounded-lg bg-warning-surface px-2.5 py-1.5 text-sm text-warning"
+							>
+								{t.error}
+							</p>
+						)}
+					</section>
+				)}
+				<dl className="m-0 grid gap-3 sm:grid-cols-2">
+					{(
+						[
+							["amount", t.amount],
+							["description", t.description],
+							["reason", t.reason],
+						] as const
+					).map(
+						([key, label]) =>
+							facts[key] !== undefined && (
+								<DetailField
+									key={key}
+									label={label}
+									className={key === "amount" ? undefined : "sm:col-span-2"}
+								>
+									{key === "amount" ? (
+										<Money
+											amount={String(facts[key])}
+											currency={row.currency}
+										/>
+									) : (
+										<span
+											dir="auto"
+											className="break-words whitespace-pre-wrap"
+										>
+											{String(facts[key])}
+										</span>
+									)}
+								</DetailField>
+							),
+					)}
+					{(["paid_at", "due_at"] as const).map(
+						(key) =>
+							typeof facts[key] === "string" && (
+								<DetailField
+									key={key}
+									label={key === "paid_at" ? t.paidAt : t.laterDue}
+								>
+									<bdi>{localTimestamp(facts[key], locale)}</bdi>
+								</DetailField>
+							),
+					)}
+					{(
+						[
+							"claim_version",
+							"receipt_version",
+							"intent_version",
+							"deadline_generation",
+						] as const
+					).map(
+						(key) =>
+							facts[key] !== undefined && (
+								<DetailField
+									key={key}
+									label={
+										key === "claim_version"
+											? t.claimState
+											: key === "receipt_version"
+												? t.review
+												: key === "intent_version"
+													? t.selection
+													: t.effectiveDue
+									}
+								>
+									<bdi>v{String(facts[key])}</bdi>
+								</DetailField>
+							),
+					)}
+				</dl>
+				{lines && (
+					<div className="flex flex-col gap-2 rounded-lg border border-solid border-border p-3">
+						{lines.map((line, i) => (
+							<p
+								key={`${line.variant}:${line.batch ?? i}`}
+								className="m-0 text-sm"
+							>
+								<bdi>
+									{review.preview?.[i]?.sku ??
+										selection?.goods.find((g) => g.variant === line.variant)
+											?.sku ??
+										line.variant}
+								</bdi>{" "}
+								· {t.batch}:{" "}
+								<bdi>
+									{(review.preview?.[i]?.code || undefined) ??
+										selection?.results.find(
+											(b) =>
+												b.variant === line.variant && b.batch === line.batch,
+										)?.code ??
+										line.batch ??
+										"—"}
+								</bdi>{" "}
+								· {t.quantity}:{" "}
+								<bdi>
+									{line.quantity} {review.preview?.[i]?.unit}
+								</bdi>
+							</p>
+						))}
+					</div>
+				)}
+				<div className="flex flex-col gap-2">
+					<p className="m-0 text-xs text-muted">
+						{t.evidence}: <bdi>{images.length}</bdi>
+					</p>
+					{images.length > 0 && (
+						<div className="flex flex-wrap gap-2">
+							{images.map((id) => (
+								<PaymentEvidence key={id} {...{ id, context, locale }} />
+							))}
+						</div>
+					)}
+				</div>
+				<p className="m-0 text-xs leading-relaxed text-muted">
+					{t.receiptNote}
+				</p>
+				<div className="flex flex-wrap justify-end gap-2 border-0 border-t border-solid border-border pt-4">
+					<Button
+						type="button"
+						variant="outline"
+						className="rounded-lg"
+						onClick={cancel}
+					>
+						{t.cancel}
+					</Button>
+					<Button
+						type="button"
+						className="rounded-lg"
+						disabled={busy || staleReceipt}
+						onClick={confirm}
+					>
+						{t.confirm}
+					</Button>
+				</div>
 			</div>
 		</Confirmation>
 	);

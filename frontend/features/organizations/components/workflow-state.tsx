@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, useRef } from "react";
-import Link from "next/link";
+import toast from "react-hot-toast";
 import { AccountError } from "../../../lib/api/private-client";
 import { ACCOUNT_SESSION_CHANGED } from "../../identity/api/accounts";
 import { orgRequest } from "../api/organizations";
@@ -17,60 +17,70 @@ export function useWorkflow<T>(path: string, locale: Locale) {
 	const [error, setError] = useState("");
 	const [fields, setFields] = useState<string[]>([]);
 	const [notice, setNotice] = useState("");
+	const scope = `${locale}:${path}`;
+	const owner = useRef({ scope, active: true, read: 0 });
+	if (owner.current.scope !== scope) {
+		owner.current.active = false;
+		owner.current = { scope, active: true, read: 0 };
+	}
 	const t = organizationCopy[locale];
 	const failure = useCallback(
 		(cause: unknown) => {
 			setFields(cause instanceof AccountError ? cause.fields : []);
-			setError(
+			const message =
 				cause instanceof AccountError
 					? cause.status === 403
 						? t.denied
 						: cause.status === 409
 							? t.stale
 							: `${t.invalid}${cause.fields.length ? ` (${cause.fields.map((f) => t[f as keyof typeof t] ?? t.fields).join(", ")})` : ""}`
-					: t.failed,
-			);
+					: t.failed;
+			setError(message);
+			toast.error(message);
 		},
 		[t],
 	);
 	const refresh = useCallback(async () => {
+		const life = owner.current;
+		if (!life.active) return;
+		const request = ++life.read;
 		setLoading(true);
 		setError("");
 		setFields([]);
 		try {
-			setData(await orgRequest<T>(path));
+			const result = await orgRequest<T>(path);
+			if (owner.current !== life || !life.active || request !== life.read)
+				return;
+			setData(result);
 		} catch (e) {
+			if (owner.current !== life || !life.active || request !== life.read)
+				return;
 			setData(null);
 			failure(e);
 		} finally {
-			setLoading(false);
+			if (owner.current === life && life.active && request === life.read)
+				setLoading(false);
 		}
 	}, [path, failure]);
 	useEffect(() => {
-		let active = true;
+		const life = owner.current;
+		life.active = true;
 		setData(null);
 		setLoading(true);
 		setError("");
 		setFields([]);
-		orgRequest<T>(path)
-			.then((result) => {
-				if (active) setData(result);
-			})
-			.catch((e) => {
-				if (active) failure(e);
-			})
-			.finally(() => {
-				if (active) setLoading(false);
-			});
+		void refresh();
 		return () => {
-			active = false;
+			life.active = false;
+			++life.read;
 		};
-	}, [path, failure]);
+	}, [refresh]);
 	async function mutate<Result = unknown>(
 		target: string,
 		values: unknown,
 		method = "POST",
 	) {
+		const life = owner.current;
 		setBusy(true);
 		setError("");
 		setFields([]);
@@ -78,11 +88,13 @@ export function useWorkflow<T>(path: string, locale: Locale) {
 		try {
 			// A mutation acknowledgment is never used as private detail or queue data.
 			await orgRequest<Result>(target, values, method);
+			if (owner.current !== life || !life.active) return false;
 			await refresh();
+			if (owner.current !== life || !life.active) return false;
 			setNotice(t.saved);
 			return true;
 		} catch (e) {
-			failure(e);
+			if (owner.current === life && life.active) failure(e);
 			return false;
 		} finally {
 			setBusy(false);
@@ -132,17 +144,17 @@ export function useSellerWorkflow<T>(
 				setDenied(true);
 			}
 			setFields(cause instanceof AccountError ? cause.fields : []);
-			setError(
-				denied
-					? t.denied
-					: reading
-						? copy.refreshFailed
-						: cause instanceof AccountError && cause.status === 409
-							? t.stale
-							: cause instanceof AccountError
-								? t.invalid
-								: t.failed,
-			);
+			const message = denied
+				? t.denied
+				: reading
+					? copy.refreshFailed
+					: cause instanceof AccountError && cause.status === 409
+						? t.stale
+						: cause instanceof AccountError
+							? t.invalid
+							: t.failed;
+			setError(message);
+			toast.error(message);
 		},
 		[t, copy],
 	);
@@ -303,23 +315,5 @@ export function WorkflowState({
 				</p>
 			)}
 		</>
-	);
-}
-export function WorkspaceNav({
-	locale,
-	context,
-}: {
-	locale: Locale;
-	context: string;
-}) {
-	const t = organizationCopy[locale];
-	return (
-		<nav className="my-5 flex flex-wrap gap-4 text-action" aria-label={t.title}>
-			<Link href={`/${locale}/account/${context}`}>{t.back}</Link>
-
-			<Link href={`/${locale}/account/${context}/organizations`}>
-				{t.select}
-			</Link>
-		</nav>
 	);
 }

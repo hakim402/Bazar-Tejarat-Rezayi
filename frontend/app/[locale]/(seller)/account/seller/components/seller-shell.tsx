@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SellerAccount, SellerAccountProvider } from "./seller-account";
+import { SellerAccountProvider } from "./seller-account";
 import { SellerNotifications } from "./seller-notifications";
 import type { CSSProperties, ReactNode } from "react";
 import type { Locale } from "../../../../../../lib/i18n/locales";
@@ -9,7 +9,9 @@ import { SellerNavigation } from "./seller-navigation";
 import { BrandLogo } from "../../../../../../components/brand/brand-logo";
 import { SkipLink } from "../../../../../../components/ui/skip-link";
 import { messages } from "../../../../../../lib/i18n/messages";
-import { SellerPreferences } from "./seller-preferences";
+import { PreferencesMenu } from "../../../../../../components/layout/preferences";
+import { HeaderProfile } from "../../../../../../components/layout/header-profile";
+import { HeaderSessionProvider } from "../../../../../../components/layout/header-session";
 
 export function SellerShell({
 	locale,
@@ -44,13 +46,13 @@ export function SellerShell({
 								id="seller-jump-to-page"
 								className="flex min-w-11 justify-end lg:justify-center"
 							/>
-							<div className="flex min-w-0 shrink-0 items-center gap-2">
-								<SellerNotifications locale={locale} />
-								<div className="hidden shrink-0 sm:block">
-									<SellerPreferences locale={locale} />
+							<HeaderSessionProvider>
+								<div className="flex min-w-0 shrink-0 items-center gap-2">
+									<SellerNotifications locale={locale} />
+									<PreferencesMenu locale={locale} />
+									<HeaderProfile locale={locale} />
 								</div>
-								<SellerAccount locale={locale} />
-							</div>
+							</HeaderSessionProvider>
 						</div>
 					</header>
 					<SellerNavigation locale={locale}>

@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "../../../components/ui/icon";
-import { sellerMessagesCopy } from "../../../lib/i18n/seller-messages";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { apiOrigin } from "../../../lib/api/client";
@@ -15,18 +14,19 @@ import {
 	type History,
 	type Message,
 	type Sent,
-	type ImageRef,} from "../api";
+	type ImageRef,
+} from "../api";
 import { communicationCopy } from "../copy";
 import { useVisiblePoll, accessLost } from "../hooks";
 import { clearDrafts, scopeKey } from "../drafts";
-import { ReportForm as MessageReport } from "./report";
+import { MessageMenu } from "./message-menu";
 import { Composer } from "./composer";
-import { action, Failure } from "./controls";
-import {
-	messageAction,
-	messagePanel,
-	sellerMessagesHref,
-} from "./seller-messages-ui";
+import { panel, actionBtn, badge, Avatar, Failure } from "./ui";
+import { sellerMessagesHref } from "./seller-messages-ui";
+import { ConversationInfo } from "./info-dialog";
+import { usePublicProduct } from "../product";
+import { mediaUrl } from "../../marketplace/api";
+
 export function Thread({
 	identity,
 	locale,
@@ -41,8 +41,6 @@ export function Thread({
 	seller: string;
 }) {
 	const search = useSearchParams(),
-		sellerPresentation = context === "seller",
-		copy = sellerMessagesCopy[locale],
 		t = communicationCopy[locale],
 		[detail, setDetail] = useState<Conversation | null>(null),
 		[rows, setRows] = useState<Message[]>([]),
@@ -230,91 +228,62 @@ export function Thread({
 			}
 		}
 	}
+	const isSeller = context === "seller",
+		buyer = isSeller
+			? (rows.filter((row) => !row.own).at(-1)?.author ?? null)
+			: null,
+		lastAt = rows.at(-1)?.created_at ?? null;
 	return (
 		<section
-			className="min-w-0 space-y-4"
+			className="flex min-w-0 flex-col gap-3"
 			aria-label={t.messages}
 			data-testid="message-thread"
 		>
 			<Link
 				prefetch={false}
-				className={context === "seller" ? messageAction : action}
+				className={`${actionBtn} lg:hidden`}
 				href={
-					sellerPresentation
+					context === "seller"
 						? sellerMessagesHref(locale, seller, undefined, search, true)
 						: `/${locale}/account/${context}/messages${seller ? `?seller=${seller}` : ""}`
 				}
 			>
-				{sellerPresentation && (
-					<Icon name="arrow" className="size-4 ltr:rotate-180" />
-				)}
+				<Icon name="arrow" className="size-4 ltr:rotate-180" />
 				{t.back}
 			</Link>
 			{!!error && <Failure locale={locale} error={error} />}
-			{!detail && !error && <p role="status">{t.loading}</p>}
+			{!detail && !error && (
+				<p role="status" className={`${panel} p-4`}>
+					{t.loading}
+				</p>
+			)}
 			{detail && (
 				<>
-					<header
-						className={
-							sellerPresentation
-								? messagePanel
-								: "space-y-2 rounded-card border border-border bg-surface p-4"
-						}
-					>
-						{sellerPresentation && (
-							<p className="flex items-center gap-2 text-xs font-semibold text-muted">
-								<Icon name="box" className="size-4" />
-								{copy.snapshot}
-							</p>
-						)}
-						<h2 className="break-words text-xl font-bold" dir="auto">
-							{detail.snapshot.title}
-						</h2>
-						<p
-							dir="auto"
-							className={sellerPresentation ? "text-sm text-muted" : undefined}
-						>
-							{detail.snapshot.seller} ·{" "}
-							<bdi dir="ltr">{detail.snapshot.currency}</bdi>
-						</p>
-						{detail.can_send ? (
-							<Link
-								prefetch={false}
-								className={
-									sellerPresentation
-										? messageAction
-										: "inline-flex min-h-11 items-center"
-								}
-								href={`/${locale}/products/${detail.snapshot.product}`}
-							>
-								{sellerPresentation && <Icon name="eye" className="size-4" />}
-								{t.product}
-							</Link>
-						) : (
-							<p role="status" className="text-warning">
-								{t.readonly}
-							</p>
-						)}
-						<p className="text-sm text-muted">{t.timezone}</p>
-					</header>
+					<ThreadHeader
+						locale={locale}
+						snapshot={detail.snapshot}
+						buyer={buyer}
+						isSeller={isSeller}
+						updatedAt={lastAt}
+						unread={detail.unread}
+						readonly={!detail.can_send}
+					/>
 					{older && (
 						<button
 							type="button"
-							className={context === "seller" ? messageAction : action}
+							className={actionBtn}
 							disabled={busy}
 							onClick={() => void earlier()}
 						>
+							<Icon name="history" className="size-4" />
 							{t.older}
 						</button>
 					)}
 					<section
 						ref={pane}
-						className={
-							sellerPresentation
-								? "max-h-[38rem] min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-border bg-page p-3 focus-visible:outline-2 focus-visible:outline-action sm:p-5"
-								: "max-h-[38rem] min-w-0 space-y-4 overflow-y-auto rounded-card border border-border bg-page p-3 desktop:p-5"
-						}
-						tabIndex={sellerPresentation ? 0 : undefined}
+						/* biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable history must be reachable by keyboard. */
+						tabIndex={0}
+						className="max-h-[38rem] min-w-0 space-y-3 overflow-y-auto rounded-2xl border border-border bg-page p-3 focus-visible:outline-2 focus-visible:outline-action sm:p-4"
 						aria-label={t.messages}
 						data-testid="message-history"
 					>
@@ -322,29 +291,36 @@ export function Thread({
 							<article
 								key={row.id}
 								data-sequence={row.own ? undefined : row.sequence}
-								className={
-									sellerPresentation
-										? `w-fit min-w-0 max-w-[95%] space-y-3 rounded-2xl border border-border p-3 text-sm leading-relaxed shadow-sm sm:max-w-[85%] sm:p-4 ${row.own ? "ms-auto bg-info" : "me-auto bg-surface"}`
-										: `min-w-0 space-y-3 rounded-card border border-border p-4 ${row.own ? "ms-4 bg-info desktop:ms-12" : "me-4 bg-surface desktop:me-12"}`
-								}
+								className={`w-fit min-w-0 max-w-[95%] space-y-2 border p-3 text-sm leading-relaxed shadow-sm sm:max-w-[85%] ${
+									row.own
+										? "ms-auto rounded-2xl rounded-ee-sm border-transparent bg-info text-foreground"
+										: "me-auto rounded-2xl rounded-es-sm border-border bg-surface text-foreground"
+								}`}
 							>
-								<header className="flex flex-wrap items-center justify-between gap-2 text-sm">
+								<header className="flex flex-wrap items-center justify-between gap-2 text-xs">
 									<strong
 										className="min-w-0 [overflow-wrap:anywhere]"
 										dir="auto"
 									>
 										{row.own ? t.you : row.author}
 									</strong>
-									<time
-										className={
-											sellerPresentation
-												? "min-w-0 text-xs text-muted [overflow-wrap:anywhere]"
-												: "min-w-0 [overflow-wrap:anywhere]"
-										}
-										dateTime={row.created_at}
-									>
-										<bdi>{localTimestamp(row.created_at, locale)}</bdi>
-									</time>
+									<span className="flex shrink-0 items-center gap-1">
+										<time className="text-muted" dateTime={row.created_at}>
+											<bdi>{localTimestamp(row.created_at, locale)}</bdi>
+										</time>
+										<MessageMenu
+											context={context}
+											id={row.id}
+											locale={locale}
+											onDenied={(error) => {
+												clearDrafts();
+												setError(error);
+												setDetail(null);
+												setRows([]);
+												current.current = [];
+											}}
+										/>
+									</span>
 								</header>
 								{row.body && (
 									<p
@@ -355,7 +331,7 @@ export function Thread({
 									</p>
 								)}
 								{!!row.images.length && (
-									<div className="flex flex-wrap gap-3">
+									<div className="flex flex-wrap gap-2">
 										{row.images.map((image) => (
 											<ProtectedImage
 												key={image.id}
@@ -366,46 +342,34 @@ export function Thread({
 										))}
 									</div>
 								)}
-								<MessageReport
-									key={row.id}
-									context={context}
-									id={row.id}
-									locale={locale}
-									onDenied={(error) => {
-										clearDrafts();
-										setError(error);
-										setDetail(null);
-										setRows([]);
-										current.current = [];
-									}}
-								/>
 							</article>
 						))}
 					</section>
-					{newMessages && (
-						<button
-							type="button"
-							className={context === "seller" ? messageAction : action}
-							onClick={() => {
-								pane.current?.scrollTo({
-									top: pane.current.scrollHeight,
-									behavior:
-										sellerPresentation &&
-										window.matchMedia("(prefers-reduced-motion: reduce)")
-											.matches
+					<div aria-live="polite">
+						{newMessages && (
+							<button
+								type="button"
+								className={actionBtn}
+								onClick={() => {
+									pane.current?.scrollTo({
+										top: pane.current.scrollHeight,
+										behavior: window.matchMedia(
+											"(prefers-reduced-motion: reduce)",
+										).matches
 											? "auto"
 											: "smooth",
-								});
-								setNewMessages(false);
-							}}
-						>
-							{t.newMessages}
-						</button>
-					)}
+									});
+									setNewMessages(false);
+								}}
+							>
+								<Icon name="arrow-down" className="size-4" />
+								{t.newMessages}
+							</button>
+						)}
+					</div>
 					<Composer
 						key={`${identity}:${context}:${seller}:${id}`}
 						locale={locale}
-						presentation={sellerPresentation ? "seller" : undefined}
 						draftKey={scopeKey(identity, context, seller, id)}
 						uploadPath={`messaging/${context}/conversations/${id}/uploads/`}
 						allowed={detail.can_send && !error}
@@ -427,6 +391,83 @@ export function Thread({
 		</section>
 	);
 }
+
+function ThreadHeader({
+	locale,
+	snapshot,
+	buyer,
+	isSeller,
+	updatedAt,
+	unread,
+	readonly,
+}: {
+	locale: Locale;
+	snapshot: Conversation["snapshot"];
+	buyer: string | null;
+	isSeller: boolean;
+	updatedAt: string | null;
+	unread: boolean;
+	readonly: boolean;
+}) {
+	const t = communicationCopy[locale],
+		product = usePublicProduct(locale, snapshot.product);
+	const cover = product?.images[0],
+		logo = product?.store.logo,
+		shop = product?.store.name ?? snapshot.seller,
+		title = product?.body.title ?? snapshot.title;
+	return (
+		<header className={`${panel} flex flex-wrap items-center gap-3 p-3 sm:p-4`}>
+			{cover ? (
+				// biome-ignore lint/performance/noImgElement: cached public marketplace cover used as the conversation image.
+				<img
+					src={mediaUrl(cover.url)}
+					alt={cover.alt}
+					className="size-12 shrink-0 rounded-xl border border-border object-cover"
+				/>
+			) : (
+				<Avatar label={title} className="size-12 rounded-xl text-sm" />
+			)}
+			<div className="min-w-0 flex-1 space-y-0.5">
+				<h2 className="truncate text-base font-bold" dir="auto">
+					{isSeller ? (buyer ?? title) : title}
+				</h2>
+				<p className="truncate text-xs text-muted" dir="auto">
+					{isSeller ? title : shop} · <bdi dir="ltr">{snapshot.currency}</bdi>
+				</p>
+			</div>
+			<span className="flex shrink-0 items-center gap-2">
+				<span className="flex items-center gap-2 rounded-full border border-border bg-page py-1 pe-3 ps-1">
+					{logo ? (
+						// biome-ignore lint/performance/noImgElement: cached public store logo rendered as a small profile chip.
+						<img
+							src={mediaUrl(logo.url)}
+							alt={logo.alt}
+							className="size-7 rounded-full object-cover"
+						/>
+					) : (
+						<Avatar label={shop} className="size-7 text-[0.625rem]" />
+					)}
+					<span className="max-w-32 truncate text-xs font-semibold" dir="auto">
+						{shop}
+					</span>
+				</span>
+				<ConversationInfo
+					locale={locale}
+					snapshot={snapshot}
+					buyer={buyer}
+					updatedAt={updatedAt}
+					unread={unread}
+				/>
+				{readonly && (
+					<span role="status" className={`${badge} text-warning`}>
+						{t.readonly}
+					</span>
+				)}
+			</span>
+		</header>
+	);
+}
+
 function ProtectedImage({
 	context,
 	image,
@@ -448,11 +489,7 @@ function ProtectedImage({
 			) : (
 				<button
 					type="button"
-					className={
-						context === "seller"
-							? "min-h-11 min-w-11 max-w-full rounded-xl border border-border bg-surface p-2 transition-colors hover:border-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
-							: "min-h-11 max-w-full rounded-control border border-border p-2"
-					}
+					className="min-h-11 min-w-11 max-w-full cursor-pointer rounded-xl border border-border bg-surface p-1 transition-colors hover:border-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
 					aria-label={t.enlarge}
 					onClick={() => {
 						setOpen(true);
@@ -467,7 +504,7 @@ function ProtectedImage({
 						alt={t.images}
 						width={image.width}
 						height={image.height}
-						className="max-h-48 max-w-full object-contain"
+						className="size-24 rounded-lg object-cover"
 						onError={() => setError(true)}
 					/>
 				</button>
@@ -475,16 +512,12 @@ function ProtectedImage({
 			<dialog
 				ref={dialog}
 				onClose={() => setOpen(false)}
-				className={
-					context === "seller"
-						? "max-h-[90dvh] max-w-[92vw] space-y-3 overflow-auto rounded-2xl border border-border bg-surface p-4 text-foreground shadow-lifted backdrop:bg-black/50"
-						: "max-h-[90dvh] max-w-[92vw] space-y-3 rounded-card border border-border bg-surface p-4 text-foreground backdrop:bg-black/50"
-				}
+				className={`${panel} max-h-[90dvh] max-w-[92vw] space-y-3 overflow-auto p-4 text-foreground shadow-lifted backdrop:bg-black/50`}
 				aria-label={t.enlarge}
 			>
 				<button
 					type="button"
-					className={context === "seller" ? messageAction : action}
+					className={actionBtn}
 					onClick={() => dialog.current?.close()}
 				>
 					{t.close}

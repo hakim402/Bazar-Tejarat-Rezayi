@@ -1,3 +1,4 @@
+from django.db.models import OuterRef, Subquery
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
@@ -11,7 +12,7 @@ from apps.organizations.eligibility import require_seller_approval
 from apps.foundation.storage import FileLocation
 from apps.foundation.observability import log_failure
 from . import access, contracts as c, queries, services, taxonomy
-from .models import ProductImage
+from .models import ProductImage, SourceRevision
 from .media import upload, StorageUnavailable
 from .validation import fail
 
@@ -32,13 +33,6 @@ class Products(CatalogueView):
                 raise ValueError
         except ValueError:
             fail("page", "invalid")
-        state = request.query_params.get("state", "")
-        if state == "live":
-            base = base.filter(published__isnull=False)
-        elif state in {"draft", "submitted", "rejected", "withdrawn"}:
-            base = base.filter(revisions__state=state).distinct()
-        elif state:
-            fail("state", "choice")
         sellers = []
         if context == "seller":
             for profile in visible_profiles(actor):
@@ -47,13 +41,20 @@ class Products(CatalogueView):
                 except Exception:
                     continue
                 sellers.append({"id": profile.pk, "name": profile.display_name})
+            base = base.filter(seller_id__in=[s["id"] for s in sellers])
+        state = request.query_params.get("state", "")
+        if state == "live":
+            base = base.filter(published__isnull=False)
+        elif state in {"draft", "submitted", "rejected", "withdrawn"}:
+            base = base.annotate(
+                latest_state=Subquery(
+                    SourceRevision.objects.filter(product=OuterRef("pk")).order_by("-number").values("state")[:1]
+                )
+            ).filter(latest_state=state)
+        elif state:
+            fail("state", "choice")
         rows = []
         for item in base.order_by("-created_at")[(page - 1) * 8 : page * 8]:
-            if context == "seller":
-                try:
-                    access.seller(actor, item.seller_id)
-                except Exception:
-                    continue
             latest = item.revisions.order_by("-number").first()
             rows.append(
                 {
@@ -94,24 +95,32 @@ class Detail(CatalogueView):
 
     @extend_schema(operation_id="catalogue_save", request=c.CatalogueSave, responses=c.CatalogueOperation)
     def post(self, request, context, pk):
-        return Response(services.save(self.actor(context), pk, self.data(c.CatalogueSave)))
+        actor = self.actor(context)
+        rate_limit(request, "catalogue_save", identity=str(actor.account.pk), limit=60)
+        return Response(services.save(actor, pk, self.data(c.CatalogueSave)))
 
-    @extend_schema(operation_id="catalogue_delete", responses=c.CatalogueDeleted)
+    @extend_schema(operation_id="catalogue_delete", request=c.CatalogueDelete, responses=c.CatalogueDeleted)
     def delete(self, request, context, pk):
-        services.delete_product(self.actor(context), pk)
+        actor = self.actor(context)
+        rate_limit(request, "catalogue_delete", identity=str(actor.account.pk), limit=60)
+        services.delete_product(actor, pk, self.data(c.CatalogueDelete)["version"])
         return Response({"deleted": True})
 
 
 class Action(CatalogueView):
     @extend_schema(operation_id="catalogue_action", request=c.CatalogueAction, responses=c.CatalogueOperation)
     def post(self, request, context, pk):
-        return Response(services.transition(self.actor(context), pk, self.data(c.CatalogueAction)))
+        actor = self.actor(context)
+        rate_limit(request, "catalogue_action", identity=str(actor.account.pk), limit=60)
+        return Response(services.transition(actor, pk, self.data(c.CatalogueAction)))
 
 
 class Prices(CatalogueView):
     @extend_schema(operation_id="catalogue_prices", request=c.CataloguePrices, responses=c.CatalogueOperation)
     def post(self, request, context, pk):
-        return Response(services.change_prices(self.actor(context), pk, self.data(c.CataloguePrices)))
+        actor = self.actor(context)
+        rate_limit(request, "catalogue_prices", identity=str(actor.account.pk), limit=60)
+        return Response(services.change_prices(actor, pk, self.data(c.CataloguePrices)))
 
 
 class Images(CatalogueView):
@@ -128,13 +137,15 @@ class Images(CatalogueView):
         },
     )
     def post(self, request, context, pk):
+        actor = self.actor(context)
+        rate_limit(request, "catalogue_upload", identity=str(actor.account.pk), limit=120)
         try:
             version = int(request.data.get("version", ""))
         except ValueError:
             fail("version", "invalid")
         if len(request.FILES) != 1:
             fail("file", "image_count")
-        return Response(upload(self.actor(context), pk, version, request.FILES.get("file")), status=201)
+        return Response(upload(actor, pk, version, request.FILES.get("file")), status=201)
 
 
 class ImageBytes(CatalogueView):

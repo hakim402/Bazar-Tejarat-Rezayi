@@ -3,10 +3,10 @@ import { disputeHref } from "../api";
 import type { ReactNode } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { localTimestamp } from "../../messaging/api";
-import { panel } from "../../orders/components/controls";
 import { salesPanel } from "../../sales/components/seller-sales-ui";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import { aftercareCopy, aftercareState } from "../copy";
+import { StatusBadge } from "../../../components/ui/status-badge";
 import type {
 	Context,
 	DeliveryDetail,
@@ -27,10 +27,57 @@ function HistoryGroup({
 	seller?: boolean;
 }) {
 	return (
-		<section className={seller ? salesPanel : `${panel} space-y-4`}>
-			<h2 className="text-xl font-bold">{title}</h2>
+		<section
+			className={
+				seller
+					? salesPanel
+					: "flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4"
+			}
+		>
+			<h2
+				className={seller ? "text-xl font-bold" : "m-0 text-sm font-semibold"}
+			>
+				{title}
+			</h2>
 			{children}
 		</section>
+	);
+}
+function HistoryState({
+	locale,
+	state,
+	time,
+	seller,
+}: {
+	locale: Locale;
+	state: string;
+	time?: string;
+	seller: boolean;
+}) {
+	const label = aftercareState(locale, state);
+	if (seller)
+		return (
+			<p className="m-0">
+				{label}
+				{time ? (
+					<>
+						{" · "}
+						<bdi>{time}</bdi>
+					</>
+				) : null}
+			</p>
+		);
+	return (
+		<div className="flex flex-wrap items-center gap-2">
+			<StatusBadge size="sm" variant="neutral">
+				{label}
+			</StatusBadge>
+			{time && (
+				<time className="text-xs text-muted">
+					<bdi>{time}</bdi>
+				</time>
+			)}
+		</div>
 	);
 }
 function RequestHistory({
@@ -48,29 +95,39 @@ function RequestHistory({
 			className={
 				seller
 					? "min-w-0 space-y-3 rounded-xl border border-border p-4"
-					: "space-y-2"
+					: "flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-page p-3"
 			}
 		>
-			<p>
-				{aftercareState(locale, row.state)} ·{" "}
-				<bdi>{localTimestamp(row.created_at, locale)}</bdi>
-			</p>
-			<p className="break-words text-sm text-muted">
-				<bdi>{row.id}</bdi> · v{row.version}
-			</p>
-			<p dir="auto" className="whitespace-pre-wrap break-words">
+			<HistoryState
+				locale={locale}
+				state={row.state}
+				time={localTimestamp(row.created_at, locale)}
+				seller={seller}
+			/>
+			{seller && (
+				<p className="break-words text-sm text-muted">
+					<bdi>{row.id}</bdi> · v{row.version}
+				</p>
+			)}
+			<p
+				dir="auto"
+				className="m-0 whitespace-pre-wrap break-words text-sm text-muted"
+			>
 				{row.reason}
 			</p>
 			{row.decision && (
 				<div className="border-s-2 border-border ps-3">
-					<p>
+					<p className="m-0 text-sm">
 						{t.review}: {aftercareState(locale, row.decision)}
 					</p>
-					<p dir="auto" className="whitespace-pre-wrap break-words">
+					<p
+						dir="auto"
+						className="m-0 whitespace-pre-wrap break-words text-sm text-muted"
+					>
 						{row.decision_reason}
 					</p>
 					{row.decided_at && (
-						<p>
+						<p className="m-0 text-xs text-muted">
 							<bdi>{localTimestamp(row.decided_at, locale)}</bdi>
 						</p>
 					)}
@@ -103,24 +160,125 @@ export function OrderHistory({
 			<p className="text-sm text-muted">{t.recentHistory}</p>
 			<HistoryGroup title={t.disputes} seller={seller}>
 				<p>{t.disputeNote}</p>
-				{row.disputes?.length ? row.disputes.map((item) => <article key={item.id} className="min-w-0 space-y-3 border-t border-border pt-3">
-					<Link prefetch={false} className="inline-flex min-h-11 items-center font-semibold text-action" href={disputeHref(locale, seller ? "seller" : "buyer", item.id, row.seller)}><bdi>{item.id}</bdi></Link>
-					<p>{aftercareState(locale, item.state)} · <bdi>{localTimestamp(item.created_at, locale)}</bdi></p>
-					<p>{item.assigned ? t.assigned : t.unassigned}</p>
-					<p dir="auto" className="whitespace-pre-wrap break-words">{item.reason}</p>
-					<div className="flex flex-wrap gap-3">{item.evidence?.map((id) => <AftercareEvidence key={id} locale={locale} context={seller ? "seller" : "buyer"} domain="orders" id={id} />)}</div>
-					{item.response && <div className="space-y-2 border-s-2 border-border ps-3"><h3 className="font-semibold">{t.disputeResponse}</h3><p dir="auto" className="whitespace-pre-wrap break-words">{item.response.text}</p><bdi>{localTimestamp(item.response.created_at, locale)}</bdi></div>}
-					{item.decision && <div className="space-y-2 border-s-2 border-border ps-3"><h3 className="font-semibold">{t.disputeAction}: {aftercareState(locale, item.decision.action)}</h3><p dir="auto" className="whitespace-pre-wrap break-words">{item.decision.reason}</p>{item.decision.amount && <p><bdi>{item.decision.amount} {row.currency}</bdi></p>}{item.decision.refund_due && <p>{t.refundDue}: <bdi>{item.decision.refund_due}</bdi></p>}<bdi>{localTimestamp(item.decision.created_at, locale)}</bdi></div>}
-				</article>) : <p>{t.disputeEmpty}</p>}
+				{row.disputes?.length ? (
+					row.disputes.map((item) => (
+						<article
+							key={item.id}
+							className="min-w-0 space-y-3 border-t border-border pt-3"
+						>
+							<Link
+								prefetch={false}
+								className="inline-flex min-h-11 items-center font-semibold text-action"
+								href={disputeHref(
+									locale,
+									seller ? "seller" : "buyer",
+									item.id,
+									row.seller,
+								)}
+							>
+								<bdi>{seller ? item.id : item.number}</bdi>
+							</Link>
+							<HistoryState
+								locale={locale}
+								state={item.state}
+								time={localTimestamp(item.created_at, locale)}
+								seller={seller}
+							/>
+							<p className="m-0 text-sm text-muted">
+								{item.assigned ? t.assigned : t.unassigned}
+							</p>
+							<p dir="auto" className="whitespace-pre-wrap break-words">
+								{item.reason}
+							</p>
+							<div className="flex flex-wrap gap-3">
+								{item.evidence?.map((id) => (
+									<AftercareEvidence
+										key={id}
+										locale={locale}
+										context={seller ? "seller" : "buyer"}
+										domain="orders"
+										id={id}
+									/>
+								))}
+							</div>
+							{item.response && (
+								<div className="space-y-2 border-s-2 border-border ps-3">
+									<h3 className="font-semibold">{t.disputeResponse}</h3>
+									<p dir="auto" className="whitespace-pre-wrap break-words">
+										{item.response.text}
+									</p>
+									<bdi>{localTimestamp(item.response.created_at, locale)}</bdi>
+								</div>
+							)}
+							{item.decision && (
+								<div className="space-y-2 border-s-2 border-border ps-3">
+									<h3 className="font-semibold">
+										{t.disputeAction}:{" "}
+										{aftercareState(locale, item.decision.action)}
+									</h3>
+									<p dir="auto" className="whitespace-pre-wrap break-words">
+										{item.decision.reason}
+									</p>
+									{item.decision.amount && (
+										<p>
+											<bdi>
+												{item.decision.amount} {row.currency}
+											</bdi>
+										</p>
+									)}
+									{item.decision.refund_due && (
+										<p>
+											{t.refundDue}: <bdi>{item.decision.refund_due}</bdi>
+										</p>
+									)}
+									<bdi>{localTimestamp(item.decision.created_at, locale)}</bdi>
+								</div>
+							)}
+						</article>
+					))
+				) : (
+					<p>{t.disputeEmpty}</p>
+				)}
 			</HistoryGroup>
 			<HistoryGroup title={t.reviews} seller={seller}>
 				<p>{t.reviewNote}</p>
-				{row.review ? <article className="min-w-0 space-y-3">
-					<p>{aftercareState(locale, `review_${row.review.state}`)} · <bdi>{row.review.rating}/5</bdi></p>
-					<p lang={row.review.language} dir="auto" className="whitespace-pre-wrap break-words">{row.review.text}</p>
-					<p><bdi>{row.review.language}</bdi> · <bdi>{localTimestamp(row.review.created_at, locale)}</bdi></p>
-					{row.review.decisions.map((decision) => <div key={`${decision.created_at}:${decision.action}`} className="space-y-2 border-s-2 border-border ps-3"><p>{aftercareState(locale, decision.action)}</p><p dir="auto" className="whitespace-pre-wrap break-words">{decision.reason}</p><bdi>{localTimestamp(decision.created_at, locale)}</bdi></div>)}
-				</article> : <p>{t.reviewEmpty}</p>}
+				{row.review ? (
+					<article className="min-w-0 space-y-3">
+						<div className="flex flex-wrap items-center gap-2">
+							<HistoryState
+								locale={locale}
+								state={`review_${row.review.state}`}
+								seller={seller}
+							/>
+							<bdi className="text-xs text-muted">{row.review.rating}/5</bdi>
+						</div>
+						<p
+							lang={row.review.language}
+							dir="auto"
+							className="whitespace-pre-wrap break-words"
+						>
+							{row.review.text}
+						</p>
+						<p>
+							<bdi>{row.review.language}</bdi> ·{" "}
+							<bdi>{localTimestamp(row.review.created_at, locale)}</bdi>
+						</p>
+						{row.review.decisions.map((decision) => (
+							<div
+								key={`${decision.created_at}:${decision.action}`}
+								className="space-y-2 border-s-2 border-border ps-3"
+							>
+								<p>{aftercareState(locale, decision.action)}</p>
+								<p dir="auto" className="whitespace-pre-wrap break-words">
+									{decision.reason}
+								</p>
+								<bdi>{localTimestamp(decision.created_at, locale)}</bdi>
+							</div>
+						))}
+					</article>
+				) : (
+					<p>{t.reviewEmpty}</p>
+				)}
 			</HistoryGroup>
 			<HistoryGroup title={t.cancellations} seller={seller}>
 				{row.cancellations.length ? (
@@ -173,14 +331,18 @@ export function OrderHistory({
 									: "space-y-3 border-t border-border pt-3"
 							}
 						>
-							<p>
-								{aftercareState(locale, item.cause)} ·{" "}
-								<bdi>{localTimestamp(item.created_at, locale)}</bdi>
-							</p>
-							<p className="break-words text-sm text-muted">
-								<bdi>{item.id}</bdi>
-							</p>
-							{(item.cancellation || item.amendment) && (
+							<HistoryState
+								locale={locale}
+								state={item.cause}
+								time={localTimestamp(item.created_at, locale)}
+								seller={seller}
+							/>
+							{seller && (
+								<p className="break-words text-sm text-muted">
+									<bdi>{item.id}</bdi>
+								</p>
+							)}
+							{seller && (item.cancellation || item.amendment) && (
 								<p className="break-words">
 									{t.target}: <bdi>{item.cancellation ?? item.amendment}</bdi>
 								</p>
@@ -262,19 +424,32 @@ export function GoodsRefundHistory({
 								: "space-y-2 border-t border-border pt-3"
 						}
 					>
-						<p>
-							{aftercareState(locale, due.cause)} ·{" "}
-							{aftercareState(locale, due.state)}
-						</p>
+						{seller ? (
+							<p className="m-0">
+								{aftercareState(locale, due.cause)} ·{" "}
+								{aftercareState(locale, due.state)}
+							</p>
+						) : (
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusBadge size="sm" variant="neutral">
+									{aftercareState(locale, due.cause)}
+								</StatusBadge>
+								<StatusBadge size="sm" variant="neutral">
+									{aftercareState(locale, due.state)}
+								</StatusBadge>
+							</div>
+						)}
 						<p>
 							<bdi>
 								{due.amount} {due.currency} ·{" "}
 								{localTimestamp(due.created_at, locale)}
 							</bdi>
 						</p>
-						<p className="break-words text-sm text-muted">
-							<bdi>{due.id}</bdi> · v{due.version}
-						</p>
+						{seller && (
+							<p className="break-words text-sm text-muted">
+								<bdi>{due.id}</bdi> · v{due.version}
+							</p>
+						)}
 						{due.previous && (
 							<p className="break-words">
 								{t.before}: <bdi>{due.previous}</bdi>
@@ -296,21 +471,29 @@ export function GoodsRefundHistory({
 								: "space-y-2 border-t border-border pt-3"
 						}
 					>
-						<p>
-							{aftercareState(locale, report.state)} ·{" "}
-							<bdi>
+						<div className="flex flex-wrap items-center gap-2">
+							<HistoryState
+								locale={locale}
+								state={report.state}
+								seller={seller}
+							/>
+							<bdi className="text-sm font-medium">
 								{report.amount} {row.currency}
 							</bdi>
-						</p>
+						</div>
 						<p>
 							{t.sentAt}: <bdi>{localTimestamp(report.sent_at, locale)}</bdi>
 						</p>
-						<p className="break-words text-sm text-muted">
-							<bdi>{report.id}</bdi>
-						</p>
-						<p className="break-words">
-							{t.target}: <bdi>{report.due}</bdi>
-						</p>
+						{seller && (
+							<p className="break-words text-sm text-muted">
+								<bdi>{report.id}</bdi>
+							</p>
+						)}
+						{seller && (
+							<p className="break-words">
+								{t.target}: <bdi>{report.due}</bdi>
+							</p>
+						)}
 						{report.previous && (
 							<p className="break-words">
 								{t.before}: <bdi>{report.previous}</bdi>
@@ -363,8 +546,8 @@ export function DeliveryRefundHistory({
 			<dl
 				className={
 					seller
-						? "grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-						: "space-y-2"
+						? "m-0 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+						: "m-0 space-y-2"
 				}
 			>
 				{[
@@ -390,7 +573,7 @@ export function DeliveryRefundHistory({
 						<dt className="text-sm text-muted">{label}</dt>
 						<dd
 							className={
-								seller ? "font-semibold tabular-nums wrap-anywhere" : undefined
+								seller ? "m-0 font-semibold tabular-nums wrap-anywhere" : "m-0"
 							}
 						>
 							<bdi>{value}</bdi>
@@ -416,12 +599,16 @@ export function DeliveryRefundHistory({
 								: "space-y-2 border-t border-border pt-3"
 						}
 					>
-						<p>
-							{aftercareState(locale, refund.state)} ·{" "}
-							<bdi>
+						<div className="flex flex-wrap items-center gap-2">
+							<HistoryState
+								locale={locale}
+								state={refund.state}
+								seller={seller}
+							/>
+							<bdi className="text-sm font-medium">
 								{refund.amount} {refund.currency}
 							</bdi>
-						</p>
+						</div>
 						<p>
 							{t.provider}: <bdi>{refund.provider_name}</bdi>
 						</p>
@@ -431,9 +618,11 @@ export function DeliveryRefundHistory({
 						<p>
 							{t.reference}: <bdi>{refund.reference}</bdi>
 						</p>
-						<p className="break-words text-sm text-muted">
-							<bdi>{refund.id}</bdi>
-						</p>
+						{seller && (
+							<p className="break-words text-sm text-muted">
+								<bdi>{refund.id}</bdi>
+							</p>
+						)}
 						<p dir="auto" className="whitespace-pre-wrap break-words">
 							{refund.description}
 						</p>

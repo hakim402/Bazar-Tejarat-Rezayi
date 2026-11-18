@@ -1,10 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import type { Locale } from "../../../lib/i18n/locales";
-import { sellerMessagesCopy } from "../../../lib/i18n/seller-messages";
 import { Icon } from "../../../components/ui/icon";
 import { privateRequest, AccountError } from "../../../lib/api/private-client";
 import { useUnsavedNavigation } from "../../../components/layout/navigation-guard";
+import { DiscardDialog } from "../../../components/ui/discard-dialog";
 import { communicationCopy } from "../copy";
 import {
 	clearDrafts,
@@ -17,13 +18,8 @@ import {
 } from "../drafts";
 import { accessLost } from "../hooks";
 import type { ImageRef, Sent } from "../api";
-import { control, action, primaryAction, Failure } from "./controls";
-import {
-	messageAction,
-	messageControl,
-	messagePanel,
-	SellerMessageAttachments,
-} from "./seller-messages-ui";
+import { panel, actionBtn, iconBtn, Failure, failureMessage } from "./ui";
+
 export function Composer({
 	locale,
 	draftKey,
@@ -33,7 +29,6 @@ export function Composer({
 	onExisting,
 	onDenied,
 	allowed = true,
-	presentation,
 }: {
 	locale: Locale;
 	draftKey: string;
@@ -43,14 +38,11 @@ export function Composer({
 	onExisting?: (id: string, draft: Draft) => void;
 	onDenied?: (error: unknown) => void;
 	allowed?: boolean;
-	presentation?: "seller";
 }) {
-	const sellerPresentation = presentation === "seller",
-		t = communicationCopy[locale],
+	const t = communicationCopy[locale],
 		[draft, setDraft] = useState<Draft>(() => draftFor(draftKey)),
 		[busy, setBusy] = useState(false),
-		[error, setError] = useState<unknown>(null),
-		[notice, setNotice] = useState("");
+		[error, setError] = useState<unknown>(null);
 	const live = useRef<object | null>({}),
 		write = useRef<object | null>(null),
 		current = useRef(draft),
@@ -69,14 +61,15 @@ export function Composer({
 		};
 	}, []);
 	const dirty = !!draft.body || !!draft.images.length || !!draft.pending;
+	const [leave, setLeave] = useState<(() => void) | null>(null);
 	const guard = useCallback(
 		(action: () => void) => {
-			if (window.confirm(t.discard)) {
+			setLeave(() => () => {
 				dropDraft(draftKey);
 				action();
-			}
+			});
 		},
-		[draftKey, t.discard],
+		[draftKey],
 	);
 	useUnsavedNavigation(dirty, guard);
 	async function upload(row: Prepared) {
@@ -118,6 +111,8 @@ export function Composer({
 					onDenied?.(e);
 					current.current = { body: "", images: [] };
 					setDraft(current.current);
+				} else {
+					toast.error(t.uploadFailed);
 				}
 				setError(e);
 			}
@@ -142,7 +137,6 @@ export function Composer({
 		const controller = new AbortController();
 		controllers.current.add(controller);
 		setBusy(true);
-		setNotice("");
 		setError(null);
 		const reconciling = current.current.pending !== undefined;
 		const packet = current.current.pending ?? {
@@ -159,7 +153,7 @@ export function Composer({
 				return;
 			update({ body: "", images: [] });
 			dropDraft(draftKey);
-			setNotice(t.saved);
+			toast.success(t.saved);
 			onSaved(result);
 		} catch (e) {
 			if (!lifecycle || live.current !== lifecycle || write.current !== owner)
@@ -179,8 +173,12 @@ export function Composer({
 				!reconciling &&
 				e instanceof AccountError &&
 				[400, 409, 429].includes(e.status ?? 0)
-			)
+			) {
 				update({ ...current.current, pending: undefined });
+				toast.error(failureMessage(locale, e));
+			} else {
+				toast.error(failureMessage(locale, e));
+			}
 			setError(e);
 		} finally {
 			controllers.current.delete(controller);
@@ -192,71 +190,113 @@ export function Composer({
 	}
 	return (
 		<section
-			className={
-				sellerPresentation
-					? messagePanel
-					: "space-y-3 rounded-card border border-border bg-surface p-4"
-			}
+			className={`${panel} p-2 sm:p-3`}
 			aria-label={t.body}
 			data-testid="message-composer"
 		>
-			{sellerPresentation && (
-				<h2 className="flex items-center gap-2 text-lg font-semibold">
-					<Icon name="mail" className="size-5 text-action" />
-					{sellerMessagesCopy[locale].reply}
-				</h2>
-			)}
-			<p className="text-sm text-muted">{t.enquiryNote}</p>
-			{sellerPresentation ? (
-				<p className="flex items-start gap-2 rounded-xl bg-info p-3 text-sm leading-relaxed text-foreground">
-					<Icon name="shield-lock" className="mt-0.5 size-4 text-action" />
-					<span>{t.privacy}</span>
-				</p>
-			) : (
-				<p className="text-sm text-muted">{t.privacy}</p>
-			)}
 			<form
-				className={sellerPresentation ? "space-y-4" : "space-y-3"}
-				aria-label={
-					sellerPresentation ? sellerMessagesCopy[locale].reply : undefined
-				}
+				className="space-y-2"
 				onSubmit={(e) => {
 					e.preventDefault();
 					void submit();
 				}}
 			>
-				<label className="block space-y-2">
-					<span className="font-bold">{t.body}</span>
-					<textarea
-						name="message"
-						className={`${sellerPresentation ? messageControl : control} min-h-32 resize-y [unicode-bidi:plaintext]`}
-						dir="auto"
-						maxLength={6000}
-						value={draft.body}
-						disabled={!allowed || busy || !!draft.pending}
-						aria-describedby="message-limits"
-						onChange={(e) =>
-							update({ ...current.current, body: e.target.value })
+				{!!draft.images.length && (
+					<ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+						{draft.images.map((row, index) => (
+							<li
+								key={row.localId}
+								className="flex items-center gap-1 rounded-xl border border-border bg-page ps-3 pe-1 text-xs"
+							>
+								<Icon name="image" className="size-4 text-action" />
+								<span className="min-w-0">
+									{t.images} <bdi>{index + 1}</bdi> ·{" "}
+									{row.image
+										? `${row.image.width} × ${row.image.height}`
+										: busy
+											? t.prepare
+											: t.uploadFailed}
+								</span>
+								{!row.image && (
+									<button
+										className={actionBtn}
+										type="button"
+										disabled={busy || !allowed || !!draft.pending}
+										onClick={() => void upload(row)}
+									>
+										{t.retry}
+									</button>
+								)}
+								<button
+									className={iconBtn}
+									type="button"
+									title={t.remove}
+									aria-label={t.remove}
+									disabled={busy || !!draft.pending}
+									onClick={() =>
+										update({
+											...current.current,
+											images: current.current.images.filter(
+												(x) => x.localId !== row.localId,
+											),
+										})
+									}
+								>
+									<Icon name="close" className="size-4" />
+								</button>
+							</li>
+						))}
+					</ul>
+				)}
+				{draft.pending && !busy && (
+					<p role="status" className="text-sm text-warning">
+						{t.uncertain}
+					</p>
+				)}
+				{!!error && <Failure locale={locale} error={error} />}
+				<div className="flex items-end gap-2 rounded-xl border border-border bg-surface px-3 py-2 shadow-sm focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-action">
+					<label className="min-w-0 flex-1">
+						<span className="sr-only">{t.body}</span>
+						<textarea
+							name="message"
+							rows={1}
+							className="max-h-40 min-h-6 w-full resize-none overflow-y-auto border-0 bg-transparent p-0 text-base text-foreground [unicode-bidi:plaintext] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+							dir="auto"
+							maxLength={6000}
+							placeholder={t.body}
+							value={draft.body}
+							disabled={!allowed || busy || !!draft.pending}
+							onChange={(e) =>
+								update({ ...current.current, body: e.target.value })
+							}
+						/>
+					</label>
+					<button
+						className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-action transition-colors hover:bg-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+						type="submit"
+						title={busy ? t.sending : draft.pending ? t.retry : t.send}
+						aria-label={busy ? t.sending : draft.pending ? t.retry : t.send}
+						disabled={
+							!allowed ||
+							busy ||
+							(!draft.body.trim() && !draft.images.length) ||
+							draft.images.some((x) => !x.image)
 						}
-					/>
-				</label>
-				<p id="message-limits" className="text-sm text-muted">
-					<bdi>{draft.body.length} / 6000</bdi> · {t.imageRule}
-				</p>
-				<SellerMessageAttachments
-					locale={locale}
-					seller={sellerPresentation}
-					hasImages={!!draft.images.length}
-				>
-					<label className="block space-y-2">
-						<span>{t.images}</span>
+					>
+						<Icon name="send" className="size-5" />
+					</button>
+				</div>
+				<div className="flex flex-wrap items-center gap-2">
+					<label
+						className="relative inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-info hover:text-action focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-action"
+						title={t.attach}
+					>
+						<Icon name="paperclip" className="size-4" />
+						{t.attach}
 						<input
 							type="file"
-							className={
-								sellerPresentation
-									? "block min-h-11 w-full min-w-0 max-w-full rounded-lg text-sm file:me-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-info file:px-3 file:text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
-									: "block w-full min-w-0 max-w-full text-sm"
-							}
+							aria-label={t.attach}
+							className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
 							accept="image/jpeg,image/png,image/webp"
 							disabled={
 								!allowed || busy || draft.images.length >= 3 || !!draft.pending
@@ -285,99 +325,40 @@ export function Composer({
 							}}
 						/>
 					</label>
-					{!!draft.images.length && (
-						<ul className="space-y-2">
-							{draft.images.map((row, index) => (
-								<li
-									key={row.localId}
-									className="flex flex-wrap items-center gap-3 rounded-control border border-border p-3"
-								>
-									<span>
-										{t.images} <bdi>{index + 1}</bdi> ·{" "}
-										{row.image
-											? `${row.image.width} × ${row.image.height}`
-											: busy
-												? t.prepare
-												: t.uploadFailed}
-									</span>
-									{!row.image && (
-										<button
-											className={sellerPresentation ? messageAction : action}
-											type="button"
-											disabled={busy || !allowed || !!draft.pending}
-											onClick={() => void upload(row)}
-										>
-											{t.retry}
-										</button>
-									)}
-									<button
-										className={sellerPresentation ? messageAction : action}
-										type="button"
-										disabled={busy || !!draft.pending}
-										onClick={() =>
-											update({
-												...current.current,
-												images: current.current.images.filter(
-													(x) => x.localId !== row.localId,
-												),
-											})
-										}
-									>
-										{t.remove}
-									</button>
-								</li>
-							))}
-						</ul>
-					)}
-				</SellerMessageAttachments>
-				{draft.pending && !busy && (
-					<p role="status" className="text-sm text-warning">
-						{t.uncertain}
-					</p>
-				)}
-				{!!error && <Failure locale={locale} error={error} />}{" "}
-				{notice && <p role="status">{notice}</p>}
-				<div
-					className={
-						sellerPresentation
-							? "flex flex-wrap gap-3 border-t border-border pt-4"
-							: "flex flex-wrap gap-3"
-					}
-				>
-					<button
-						className={
-							sellerPresentation
-								? `${messageAction} border-primary! bg-primary! text-on-primary! hover:bg-primary!`
-								: primaryAction
-						}
-						type="submit"
-						disabled={
-							!allowed ||
-							busy ||
-							(!draft.body.trim() && !draft.images.length) ||
-							draft.images.some((x) => !x.image)
-						}
-					>
-						{busy ? t.sending : draft.pending ? t.retry : t.send}
-					</button>
 					{dirty && (
 						<button
-							className={sellerPresentation ? messageAction : action}
+							className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-info hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
 							type="button"
+							title={t.discardDraft}
+							aria-label={t.discardDraft}
 							disabled={busy}
 							onClick={() => {
-								if (window.confirm(t.discard)) {
+								setLeave(() => () => {
 									update({ body: "", images: [] });
 									dropDraft(draftKey);
 									setError(null);
-								}
+								});
 							}}
 						>
+							<Icon name="trash" className="size-4" />
 							{t.discardDraft}
 						</button>
 					)}
 				</div>
 			</form>
+			<DiscardDialog
+				locale={locale}
+				open={leave !== null}
+				title={t.discard}
+				cancelLabel={t.keep}
+				confirmLabel={t.discardDraft}
+				onCancel={() => setLeave(null)}
+				onConfirm={() => {
+					const next = leave;
+					setLeave(null);
+					next?.();
+				}}
+			/>
 		</section>
 	);
 }

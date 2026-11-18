@@ -34,7 +34,6 @@ import {
 import { useCommerceGuard } from "../../orders/components/unsaved";
 import {
 	commerce,
-	invoiceHref,
 	type Profile,
 	type Terms,
 	type Cart,
@@ -62,6 +61,26 @@ import {
 	uuidPattern,
 	type QueryReader,
 } from "../../../lib/routes/account-routes";
+import toast from "react-hot-toast";
+import { Button } from "../../../components/shadcn/button";
+import { Textarea } from "../../../components/shadcn/textarea";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
+import { StatusBadge } from "../../../components/ui/status-badge";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { Icon } from "../../../components/ui/icon";
+import { DetailCard, Money } from "../../orders/components/order-ui";
+import { orderDetailCopy } from "../../orders/detail-copy";
+import {
+	BuyerRequestsList,
+	BuyerRequestHeader,
+	BuyerRequestInfo,
+	BuyerTermsCard,
+	BuyerPending,
+	BuyerResult,
+} from "./buyer-negotiations";
 
 export function NegotiationWorkspace({
 	locale,
@@ -265,6 +284,21 @@ function Workspace({
 					controller.signal,
 				);
 				if (live.current !== mine) return;
+				if (!search.get("currency")) {
+					const available: string[] = [
+						...new Set(
+							value.lines
+								.filter((l) => l.mode === "negotiable")
+								.map((l) => l.currency),
+						),
+					].filter((c) => c === "AFN" || c === "USD");
+					if (available.length && !available.includes(currency)) {
+						const params = new URLSearchParams(search.toString());
+						params.set("currency", available[0]);
+						router.replace(`${requestHref(locale, context, "new")}?${params}`);
+						return;
+					}
+				}
 				const lines = value.lines.filter(
 					(l) => l.mode === "negotiable" && l.currency === currency,
 				);
@@ -369,6 +403,7 @@ function Workspace({
 		historyPage,
 		filterState,
 		filterQuery,
+		search,
 	]);
 	function change(sid: string, value: Proposal) {
 		setProposals((v) => ({ ...v, [sid]: value }));
@@ -515,10 +550,18 @@ function Workspace({
 				packet.path,
 				packet.body,
 			);
-			if (live.current === mine) done(value);
+			if (live.current === mine) {
+				done(value);
+				if (!isSeller && !value.pending && !value.rejected) {
+					if (actionName === "submit") toast.success(t.submittedToast);
+					else if (actionName === "resubmit") toast.success(t.resubmittedToast);
+					else if (actionName === "withdraw") toast.success(t.withdrawnToast);
+				}
+			}
 		} catch (e) {
 			if (live.current === mine) {
 				setError(e);
+				if (!isSeller) toast.error(t.toastError);
 				setConfirmation(null);
 				setFinalReview(null);
 				if (accessLost(e)) {
@@ -548,9 +591,15 @@ function Workspace({
 					? `negotiation-submissions/by-command/${commandKey}/reconcile/`
 					: `negotiations/${id}/commands/${commandKey}/reconcile/`;
 			const value = await negotiation<Result>(context, path, {});
-			if (live.current === mine) done(value);
+			if (live.current === mine) {
+				done(value);
+				if (!isSeller) toast.success(t.recoveredToast);
+			}
 		} catch (e) {
-			if (live.current === mine) setError(e);
+			if (live.current === mine) {
+				setError(e);
+				if (!isSeller) toast.error(t.toastError);
+			}
 		} finally {
 			if (live.current === mine && owned.current === write) {
 				owned.current = null;
@@ -570,10 +619,53 @@ function Workspace({
 		builder ||
 		(row?.actions.includes("resubmit") && context === "buyer") ||
 		(row?.actions.includes("finalize") && context === "seller");
+	const listHref = (
+		nextPage: number,
+		nextState = filterState,
+		nextQuery = filterQuery,
+	) => {
+		const params = new URLSearchParams({ page: String(nextPage) });
+		if (nextState) params.set("state", nextState);
+		if (nextQuery) params.set("q", nextQuery);
+		if (seller) params.set("seller", seller);
+		return `${requestHref(locale, context)}?${params}`;
+	};
+	const withReturn = (target: string) => {
+		const extra = new URLSearchParams();
+		if (page > 1) extra.set("list_page", String(page));
+		if (filterState) extra.set("list_state", filterState);
+		if (filterQuery) extra.set("list_q", filterQuery);
+		return extra.size
+			? `${target}${target.includes("?") ? "&" : "?"}${extra}`
+			: target;
+	};
+	const backHref = (() => {
+		const backPage = Number(search.get("list_page") ?? 1),
+			backState = search.get("list_state") ?? "",
+			backQuery = search.get("list_q") ?? "",
+			params = new URLSearchParams();
+		if (Number.isInteger(backPage) && backPage > 1 && backPage <= 10000)
+			params.set("page", String(backPage));
+		if (
+			[
+				"submitted",
+				"correction_requested",
+				"accepted",
+				"withdrawn",
+				"rejected",
+			].includes(backState)
+		)
+			params.set("state", backState);
+		if (backQuery) params.set("q", backQuery.slice(0, 100));
+		const query = params.toString();
+		return `${requestHref(locale, context)}${query ? `?${query}` : ""}`;
+	})();
 	return (
 		<SalesFrame seller={isSeller}>
 			<section
-				className={isSeller ? "min-w-0 space-y-6" : "space-y-5"}
+				className={
+					isSeller ? "min-w-0 space-y-6" : "flex min-w-0 flex-col gap-5"
+				}
 				data-testid="negotiation-workspace"
 			>
 				{isSeller ? (
@@ -618,56 +710,125 @@ function Workspace({
 							)
 						}
 					/>
-				) : (
-					<header className="flex flex-wrap items-center justify-between gap-3">
-						<h1 className="text-2xl font-bold">
-							{t.title}
-							{builder ? ` · ${currency}` : ""}
-						</h1>
-						{context === "buyer" && !builder && (
-							<Link
-								className={action}
-								href={`${requestHref(locale, context, "new")}?currency=AFN`}
+				) : builder ? (
+					<header className="space-y-3">
+						<Link
+							href={requestHref(locale, context)}
+							className="inline-flex items-center gap-1.5 text-sm font-medium text-action no-underline hover:underline"
+						>
+							<Icon name="arrow" className="size-4 ltr:rotate-180" />
+							{t.backToRequests}
+						</Link>
+						<div className="flex items-start gap-3">
+							<span
+								className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary"
+								aria-hidden="true"
 							>
-								{t.new}
-							</Link>
-						)}
+								<Icon name="handshake" className="size-5" />
+							</span>
+							<div className="min-w-0 flex-1 space-y-1">
+								<h1 className="m-0 text-page-title font-bold">{t.new}</h1>
+								<p className="m-0 text-sm text-muted">{t.description}</p>
+							</div>
+						</div>
+						<div className="flex flex-wrap items-center gap-2">
+							<label
+								htmlFor="negotiation-currency"
+								className="text-sm font-medium"
+							>
+								{commerceCopy[locale].currency}
+							</label>
+							<div className="w-28">
+								<NativeSelect
+									id="negotiation-currency"
+									size="sm"
+									value={currency}
+									disabled={blocked}
+									onChange={(e) => {
+										const next = e.target.value;
+										guard.choose(() => {
+											const params = new URLSearchParams(search.toString());
+											params.set("currency", next);
+											router.replace(
+												`${requestHref(locale, context, "new")}?${params}`,
+											);
+										});
+									}}
+								>
+									<NativeSelectOption value="AFN">AFN</NativeSelectOption>
+									<NativeSelectOption value="USD">USD</NativeSelectOption>
+								</NativeSelect>
+							</div>
+						</div>
 					</header>
-				)}
+				) : null}
 				{guard.feedback}
 				<NegotiationFailure locale={locale} error={error} />
-				{commandKey && (intent || referenceOnly) && (
-					<div className={panel} role="status">
-						<p>{result?.pending ? commerceCopy[locale].pending : t.pending}</p>
-						{intent && (
+				{commandKey &&
+					(intent || referenceOnly) &&
+					(isSeller ? (
+						<div className={panel} role="status">
+							<p>
+								{result?.pending ? commerceCopy[locale].pending : t.pending}
+							</p>
+							{intent && (
+								<button
+									type="button"
+									className={action}
+									disabled={busy}
+									onClick={() => void send("retry")}
+								>
+									{t.retry}
+								</button>
+							)}{" "}
 							<button
 								type="button"
 								className={action}
 								disabled={busy}
-								onClick={() => void send("retry")}
+								onClick={() => void recover()}
 							>
-								{t.retry}
+								{t.recover}
 							</button>
-						)}{" "}
-						<button
-							type="button"
-							className={action}
+						</div>
+					) : (
+						<BuyerPending
+							locale={locale}
+							pendingLabel={
+								result?.pending ? commerceCopy[locale].pending : t.pending
+							}
+							busy={busy}
+							canRetry={!!intent}
+							onRetry={() => void send("retry")}
+							onRecover={() => void recover()}
+						/>
+					))}
+				{result &&
+					(isSeller ? (
+						<ResultView
+							{...{ locale, context, result, seller }}
+							params={search}
 							disabled={busy}
-							onClick={() => void recover()}
-						>
-							{t.recover}
-						</button>
-					</div>
-				)}
-				{result && (
-					<ResultView
-						{...{ locale, context, result, seller }}
-						params={search}
-						disabled={busy}
-						onResume={() => void recover(true)}
-					/>
-				)}
-				{!ready && !error && <p role="status">{t.review}…</p>}
+							onResume={() => void recover(true)}
+						/>
+					) : (
+						<BuyerResult
+							locale={locale}
+							result={result}
+							busy={busy}
+							onResume={() => void recover(true)}
+						/>
+					))}
+				{!ready &&
+					!error &&
+					(isSeller ? (
+						<p role="status">{t.review}…</p>
+					) : id || builder ? (
+						<div className={`${panel} min-h-40`} role="status">
+							<p className="m-0 text-sm text-muted">
+								{commerceCopy[locale].loading}
+							</p>
+						</div>
+					) : null)}
 				{rows && isSeller ? (
 					profiles.length === 0 ? (
 						<SalesEmpty locale={locale} noBusiness />
@@ -839,92 +1000,21 @@ function Workspace({
 					)
 				) : (
 					rows && (
-						<>
-							<form
-								className="flex flex-wrap gap-3"
-								onSubmit={(e) => {
-									e.preventDefault();
-									const data = new FormData(e.currentTarget);
-									const q = new URLSearchParams({
-										q: String(data.get("q") ?? ""),
-										state: String(data.get("state") ?? ""),
-									});
-									if (seller) q.set("seller", seller);
-									router.push(`${requestHref(locale, context)}?${q}`);
-								}}
-							>
-								<label>
-									{t.search}
-									<input
-										name="q"
-										className={control}
-										maxLength={100}
-										defaultValue={search.get("q") ?? ""}
-									/>
-								</label>
-								<label>
-									{t.status}
-									<select
-										className={control}
-										name="state"
-										defaultValue={search.get("state") ?? ""}
-									>
-										<option value="">{t.all}</option>
-										{(
-											[
-												"submitted",
-												"correction_requested",
-												"accepted",
-												"withdrawn",
-												"rejected",
-											] as const
-										).map((s) => (
-											<option key={s} value={s}>
-												{t[s]}
-											</option>
-										))}
-									</select>
-								</label>
-								<button type="submit" className={action}>
-									{t.search}
-								</button>
-							</form>
-							{!rows.results.length ? (
-								<p>{t.empty}</p>
-							) : (
-								rows.results.map((r) => (
-									<article key={r.id} className={panel}>
-										<Link
-											className="font-bold text-action underline"
-											href={requestHref(locale, context, r.id, seller)}
-										>
-											{r.seller_name} · <bdi>{r.id}</bdi>
-										</Link>
-										<p>
-											{t[r.state]} · <bdi>{r.currency}</bdi> · {t.version}{" "}
-											<bdi>{r.version}</bdi>
-										</p>
-										<p>
-											{r.buyer} ·{" "}
-											<bdi>{localTimestamp(r.created_at, locale)}</bdi>
-										</p>
-									</article>
-								))
-							)}
-							<nav className="flex gap-3">
-								{[page - 1, page + 1]
-									.filter((p) => p > 0 && p <= Math.ceil(rows.count / 20))
-									.map((p) => (
-										<Link
-											key={p}
-											className={action}
-											href={`${requestHref(locale, context)}?${new URLSearchParams({ page: String(p), state: filterState, q: filterQuery, ...(seller ? { seller } : {}) })}`}
-										>
-											{p < page ? t.previous : t.next}
-										</Link>
-									))}
-							</nav>
-						</>
+						<BuyerRequestsList
+							locale={locale}
+							rows={rows.results}
+							count={rows.count}
+							page={page}
+							state={filterState}
+							q={filterQuery}
+							busy={busy}
+							loading={!ready && !error}
+							href={listHref}
+							navigate={(href) => guard.choose(() => router.push(href))}
+							detailHref={(r) => withReturn(requestHref(locale, context, r.id))}
+							newHref={requestHref(locale, context, "new")}
+							onReload={() => setReload((x) => x + 1)}
+						/>
 					)
 				)}
 				{row && isSeller ? (
@@ -1002,230 +1092,280 @@ function Workspace({
 					</>
 				) : (
 					row && (
-						<div className={panel}>
-							<h2 className="font-bold">
-								<bdi>{row.id}</bdi> · <span>{t[row.state]}</span>
-							</h2>
-							<p>
-								{row.seller_name} · {row.buyer}
-							</p>
-							<p>
-								{t.version} <bdi>{row.version}</bdi> · {t.noExpiry}
-							</p>
-							{row.invoice && (
-								<Link
-									className={action}
-									href={invoiceHref(locale, context, row.invoice, seller)}
-								>
-									{t.invoice}
-								</Link>
-							)}
-							{row.order && (
-								<Link
-									className={action}
-									href={`/${locale}/account/${context}/orders/${row.order}${seller ? `?seller=${seller}` : ""}`}
-								>
-									{t.order}
-								</Link>
-							)}
-						</div>
+						<>
+							<BuyerRequestHeader
+								row={row}
+								locale={locale}
+								busy={busy}
+								backHref={backHref}
+								onReload={() => setReload((x) => x + 1)}
+								onWithdraw={(opener) => prompt("withdraw", opener)}
+								onResubmit={() =>
+									document
+										.getElementById("negotiation-resubmit")
+										?.scrollIntoView({ block: "start" })
+								}
+							/>
+							<div className="grid items-start gap-4 lg:grid-cols-3">
+								<div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
+									<DetailCard title={t.yourProposal} icon="box" compact>
+										<ProposalSummary
+											locale={locale}
+											proposal={row.proposal}
+											currency={row.currency}
+										/>
+									</DetailCard>
+								</div>
+								<div className="flex min-w-0 flex-col gap-4">
+									<BuyerRequestInfo row={row} locale={locale} />
+									<BuyerTermsCard proposal={row.proposal} locale={locale} />
+								</div>
+							</div>
+						</>
 					)
 				)}
-				{(builder || row) &&
-					ready &&
-					(!isSeller || editable) &&
-					!(builder && result && !result.rejected) && (
-						<form
-							className={isSeller ? `${panel} space-y-5` : "space-y-4"}
-							onSubmit={(e) => {
-								e.preventDefault();
-								if (builder) void send("submit");
-								else if (row?.actions.includes("resubmit"))
-									void send("resubmit");
-								else void send("finalize");
-							}}
+				{editable && ready && !(builder && result && !result.rejected) && (
+					<form
+						id={!isSeller && row ? "negotiation-resubmit" : undefined}
+						className={
+							isSeller
+								? `${panel} space-y-5`
+								: "flex flex-col gap-4 rounded-card border border-solid border-border bg-surface p-4 sm:p-5"
+						}
+						onSubmit={(e) => {
+							e.preventDefault();
+							if (builder) void send("submit");
+							else if (row?.actions.includes("resubmit")) void send("resubmit");
+							else void send("finalize");
+						}}
+					>
+						{isSeller && <h2 className="text-lg font-semibold">{t.final}</h2>}
+						<p
+							className={
+								isSeller
+									? "rounded-xl bg-info p-4 text-sm leading-relaxed"
+									: "m-0 rounded-xl bg-info p-4 text-sm leading-relaxed"
+							}
 						>
-							{isSeller && <h2 className="text-lg font-semibold">{t.final}</h2>}
-							<p
-								className={
-									isSeller
-										? "rounded-xl bg-info p-4 text-sm leading-relaxed"
-										: "rounded-card bg-info p-4"
-								}
-							>
-								{isSeller ? t.finalNotice : t.explanation}
-							</p>
-							<p
-								className={
-									isSeller ? "text-sm leading-relaxed text-muted" : undefined
-								}
-							>
-								{t.bounds}
-							</p>
-							{(builder ? Object.keys(proposals) : sid ? [sid] : []).map(
-								(s) => {
-									const p = proposals[s];
-									if (!p) return null;
-									const current = terms[s],
-										included = !builder || selected.includes(s);
-									return (
-										<section
-											className={isSeller ? "min-w-0 space-y-4" : panel}
-											key={s}
-											data-seller={s}
-										>
-											<h2
-												className={
-													isSeller
-														? "break-words text-sm font-semibold text-muted"
-														: "break-words font-bold"
-												}
-											>
+							{isSeller ? t.finalNotice : t.explanation}
+						</p>
+						<p
+							className={
+								isSeller
+									? "text-sm leading-relaxed text-muted"
+									: "m-0 text-sm leading-relaxed text-muted"
+							}
+						>
+							{t.bounds}
+						</p>
+						{(builder ? Object.keys(proposals) : sid ? [sid] : []).map((s) => {
+							const p = proposals[s];
+							if (!p) return null;
+							const current = terms[s],
+								included = !builder || selected.includes(s);
+							return (
+								<section
+									className={
+										isSeller
+											? "min-w-0 space-y-4"
+											: "flex min-w-0 flex-col gap-4 rounded-xl border border-solid border-border bg-surface p-4"
+									}
+									key={s}
+									data-seller={s}
+								>
+									<h2
+										className={
+											isSeller
+												? "break-words text-sm font-semibold text-muted"
+												: "m-0 break-words text-sm font-semibold"
+										}
+										dir={isSeller ? undefined : "auto"}
+									>
+										{isSeller ? (
+											<>
 												{cart?.lines.find((l) => l.seller === s)?.seller_name ??
 													row?.seller_name}{" "}
 												· <bdi>{s}</bdi>
-											</h2>
-											{builder && (
-												<label className="flex gap-2">
-													<input
-														type="checkbox"
-														checked={included}
-														disabled={blocked}
-														onChange={(e) => {
-															setSelected((v) =>
-																e.target.checked
-																	? [...v, s]
-																	: v.filter((x) => x !== s),
-															);
-															setDirty(true);
-														}}
-													/>
-													{t.include}
-												</label>
-											)}
-											<fieldset
-												disabled={blocked || !editable || !included}
-												className="space-y-4"
-											>
-												<ProposalFields
-													locale={locale}
-													presentation={isSeller ? "seller" : undefined}
-													currency={row?.currency ?? currency}
-													lines={p.lines}
-													labels={Object.fromEntries(
-														p.lines.map((line, i) => {
-															const product = productText(
-																productContext(p, line.variant, i),
-																locale,
-																line.variant,
-															);
-															return [
-																line.variant,
-																cart?.lines.find(
-																	(l) => l.variant === line.variant,
-																)?.title ??
-																	`${product.title}${product.source ? ` · ${commerceCopy[locale].source}: ${product.source}` : ""}`,
-															];
-														}),
-													)}
-													metadata={Object.fromEntries(
-														p.lines.map((line, i) => {
-															const c = cart?.lines.find(
-																	(l) => l.variant === line.variant,
-																),
-																product = productContext(p, line.variant, i);
-															return [
-																line.variant,
-																{
-																	unit:
-																		c?.unit_label ??
-																		productText(product, locale, line.variant)
-																			.unit,
-																	increment:
-																		c?.increment ??
-																		String(product?.increment ?? ""),
-																	minimum:
-																		c?.minimum ??
-																		String(product?.minimum ?? ""),
-																},
-															];
-														}),
-													)}
-													limits={context === "seller"}
-													prefillLimits={builder}
-													change={(lines) => change(s, { ...p, lines })}
-												/>
-												<p className="font-bold">
-													{commerceCopy[locale].estimate}:{" "}
-													<bdi>
-														{goodsTotal(p.lines)} {row?.currency ?? currency}
-													</bdi>
-												</p>
-												{editable &&
-													(current?.enabled ? (
-														<TermsFields
-															{...{ locale }}
-															terms={current}
-															presentation={isSeller ? "seller" : undefined}
-															value={p.choice}
-															change={(choice) => change(s, { ...p, choice })}
-														/>
-													) : (
-														<p role="status">
-															{isSeller
-																? `${t.terms}: ${commerceCopy[locale].unavailable}`
-																: t.unavailable}
-														</p>
-													))}
-												{context === "buyer" && (
-													<label className="grid gap-2">
-														{t.note}
-														<textarea
-															aria-label={t.note}
-															dir="auto"
-															maxLength={1000}
-															className={control}
-															value={p.note}
-															onChange={(e) =>
-																change(s, { ...p, note: e.target.value })
-															}
-														/>
-													</label>
-												)}
-											</fieldset>
-											{editable &&
-												(!current?.enabled || failedTerms.includes(s)) && (
-													<button
-														type="button"
-														className={action}
-														disabled={busy}
-														onClick={() => {
-															if (live.current) void loadTerms(s, live.current);
-														}}
-													>
-														{t.retryTerms}
-													</button>
-												)}
-										</section>
-									);
-								},
-							)}
-							{editable && (
-								<>
-									<p>{t.capsReview}</p>
-									{context === "buyer" && (
-										<label className="flex items-start gap-3">
+											</>
+										) : (
+											(cart?.lines.find((l) => l.seller === s)?.seller_name ??
+											row?.seller_name)
+										)}
+									</h2>
+									{builder && (
+										<label className="flex items-center gap-2 text-sm font-medium">
 											<input
 												type="checkbox"
-												required
-												checked={ack}
+												className="size-4 shrink-0 cursor-pointer accent-primary"
+												checked={included}
 												disabled={blocked}
-												onChange={(e) => setAck(e.target.checked)}
+												onChange={(e) => {
+													setSelected((v) =>
+														e.target.checked
+															? [...v, s]
+															: v.filter((x) => x !== s),
+													);
+													setDirty(true);
+												}}
 											/>
-											{t.ack}
+											{t.include}
 										</label>
 									)}
-									{!builder && (
+									<fieldset
+										disabled={blocked || !editable || !included}
+										className={
+											isSeller
+												? "m-0 min-w-0 space-y-4 border-0 p-0"
+												: "m-0 flex min-w-0 flex-col gap-4 border-0 p-0"
+										}
+									>
+										<ProposalFields
+											locale={locale}
+											presentation={isSeller ? "seller" : undefined}
+											currency={row?.currency ?? currency}
+											lines={p.lines}
+											labels={Object.fromEntries(
+												p.lines.map((line, i) => {
+													const product = productText(
+														productContext(p, line.variant, i),
+														locale,
+														line.variant,
+													);
+													return [
+														line.variant,
+														cart?.lines.find((l) => l.variant === line.variant)
+															?.title ??
+															`${product.title}${product.source ? ` · ${commerceCopy[locale].source}: ${product.source}` : ""}`,
+													];
+												}),
+											)}
+											metadata={Object.fromEntries(
+												p.lines.map((line, i) => {
+													const c = cart?.lines.find(
+															(l) => l.variant === line.variant,
+														),
+														product = productContext(p, line.variant, i);
+													return [
+														line.variant,
+														{
+															unit:
+																c?.unit_label ??
+																productText(product, locale, line.variant).unit,
+															increment:
+																c?.increment ??
+																String(product?.increment ?? ""),
+															minimum:
+																c?.minimum ?? String(product?.minimum ?? ""),
+														},
+													];
+												}),
+											)}
+											limits={context === "seller"}
+											prefillLimits={builder}
+											change={(lines) => change(s, { ...p, lines })}
+										/>
+										<p
+											className={
+												isSeller ? "font-bold" : "m-0 text-sm font-semibold"
+											}
+										>
+											{commerceCopy[locale].estimate}:{" "}
+											<bdi>
+												{goodsTotal(p.lines)} {row?.currency ?? currency}
+											</bdi>
+										</p>
+										{editable &&
+											(current?.enabled ? (
+												<TermsFields
+													{...{ locale }}
+													terms={current}
+													presentation={isSeller ? "seller" : undefined}
+													value={p.choice}
+													change={(choice) => change(s, { ...p, choice })}
+												/>
+											) : (
+												<p
+													role="status"
+													className={
+														isSeller ? undefined : "m-0 text-sm text-warning"
+													}
+												>
+													{isSeller
+														? `${t.terms}: ${commerceCopy[locale].unavailable}`
+														: t.unavailable}
+												</p>
+											))}
+										{context === "buyer" && (
+											<div className="grid gap-1.5">
+												<label
+													htmlFor={`negotiation-note-${s}`}
+													className="text-xs font-medium text-muted"
+												>
+													{t.note}
+												</label>
+												<Textarea
+													id={`negotiation-note-${s}`}
+													dir="auto"
+													maxLength={1000}
+													className="rounded-lg"
+													value={p.note}
+													onChange={(e) =>
+														change(s, { ...p, note: e.target.value })
+													}
+												/>
+											</div>
+										)}
+									</fieldset>
+									{editable &&
+										(!current?.enabled || failedTerms.includes(s)) &&
+										(isSeller ? (
+											<button
+												type="button"
+												className={action}
+												disabled={busy}
+												onClick={() => {
+													if (live.current) void loadTerms(s, live.current);
+												}}
+											>
+												{t.retryTerms}
+											</button>
+										) : (
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												className="self-start rounded-lg"
+												disabled={busy}
+												onClick={() => {
+													if (live.current) void loadTerms(s, live.current);
+												}}
+											>
+												{t.retryTerms}
+											</Button>
+										))}
+								</section>
+							);
+						})}
+						{editable && (
+							<>
+								<p className={isSeller ? undefined : "m-0 text-sm text-muted"}>
+									{t.capsReview}
+								</p>
+								{context === "buyer" && (
+									<label className="flex items-start gap-2.5 text-sm">
+										<input
+											type="checkbox"
+											required
+											className="mt-0.5 size-4 shrink-0 cursor-pointer accent-primary"
+											checked={ack}
+											disabled={blocked}
+											onChange={(e) => setAck(e.target.checked)}
+										/>
+										{t.ack}
+									</label>
+								)}
+								{!builder &&
+									(isSeller ? (
 										<label className="grid gap-2">
 											{t.reason}
 											<textarea
@@ -1243,9 +1383,37 @@ function Workspace({
 												}}
 											/>
 										</label>
-									)}
-									<div className="flex flex-wrap gap-3">
-										{builder && (
+									) : (
+										<div className="grid gap-1.5">
+											<label
+												htmlFor="negotiation-reason"
+												className="text-xs font-medium text-muted"
+											>
+												{t.reason}
+											</label>
+											<Textarea
+												id="negotiation-reason"
+												dir="auto"
+												required
+												minLength={3}
+												maxLength={1000}
+												value={reason}
+												className="rounded-lg"
+												disabled={blocked}
+												onChange={(e) => {
+													setReason(e.target.value);
+													setDirty(true);
+												}}
+											/>
+										</div>
+									))}
+								<div
+									className={
+										isSeller ? "flex flex-wrap gap-3" : "flex flex-wrap gap-2"
+									}
+								>
+									{builder &&
+										(isSeller ? (
 											<button
 												type="button"
 												className={action}
@@ -1254,7 +1422,18 @@ function Workspace({
 											>
 												{t.review}
 											</button>
-										)}
+										) : (
+											<Button
+												type="button"
+												variant="outline"
+												className="rounded-lg"
+												disabled={blocked}
+												onClick={() => void send("review")}
+											>
+												{t.review}
+											</Button>
+										))}
+									{isSeller ? (
 										<button
 											type="submit"
 											className={action}
@@ -1263,78 +1442,90 @@ function Workspace({
 												(!builder && sid ? !terms[sid]?.enabled : false)
 											}
 										>
-											{builder
-												? t.submit
-												: context === "buyer"
-													? t.resubmit
-													: t.finalize}
+											{builder ? t.submit : t.finalize}
 										</button>
-									</div>
-								</>
-							)}
-						</form>
-					)}
+									) : (
+										<Button
+											type="submit"
+											className="rounded-lg"
+											disabled={
+												blocked ||
+												(!builder && sid ? !terms[sid]?.enabled : false)
+											}
+										>
+											{builder ? t.submit : t.resubmit}
+										</Button>
+									)}
+								</div>
+							</>
+						)}
+					</form>
+				)}
 				{preview !== undefined && (
-					<section className={panel}>
-						<h2>{t.difference}</h2>
-						<p>{t.finalNotice}</p>
+					<section className="flex flex-col gap-3 rounded-card border border-solid border-border bg-surface p-4">
+						<h2 className="m-0 text-sm font-semibold">{t.difference}</h2>
+						<p className="m-0 text-sm leading-relaxed text-muted">
+							{t.finalNotice}
+						</p>
 						{preview.results?.map((r) => (
-							<p key={r.seller}>
-								<bdi>{r.seller}</bdi> ·{" "}
-								{r.code === "ready"
-									? t.ready
-									: ["wholesale_minimum", "wholesale_verification"].includes(
-												r.code,
-											)
-										? commerceCopy[locale].wholesaleHelp
-										: (commerceCopy[locale][
-												r.code as keyof typeof commerceCopy.en
-											] ?? t.error)}
-								{r.goods_total && (
-									<>
-										{" "}
-										·{" "}
-										<bdi>
-											{r.goods_total} {currency}
-										</bdi>
-									</>
+							<div
+								key={r.seller}
+								className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-solid border-border px-3 py-2"
+							>
+								{r.code === "ready" ? (
+									<StatusBadge variant="success">{t.ready}</StatusBadge>
+								) : (
+									<span className="text-sm text-warning">
+										{["wholesale_minimum", "wholesale_verification"].includes(
+											r.code,
+										)
+											? commerceCopy[locale].wholesaleHelp
+											: (commerceCopy[locale][
+													r.code as keyof typeof commerceCopy.en
+												] ?? t.error)}
+									</span>
 								)}
-							</p>
+								{r.goods_total && (
+									<Money
+										amount={r.goods_total}
+										currency={currency}
+										className="text-sm font-semibold"
+									/>
+								)}
+							</div>
 						))}
-						{builder && <p>{t.capsReview}</p>}
+						{builder && (
+							<p className="m-0 text-sm text-muted">{t.capsReview}</p>
+						)}
 					</section>
 				)}
 				{row && (
 					<>
-						{!isSeller && <p>{t.returnCart}</p>}
-						<div
-							className={
-								isSeller && otherActions.length
-									? `${panel} flex flex-wrap gap-3 space-y-0!`
-									: "flex flex-wrap gap-3"
-							}
-						>
-							{isSeller && otherActions.length > 0 && (
+						{!isSeller && (
+							<p className="m-0 text-xs text-muted">{t.returnCart}</p>
+						)}
+						{isSeller && otherActions.length > 0 && (
+							<div className={`${panel} flex flex-wrap gap-3 space-y-0!`}>
 								<h2 className="basis-full text-lg font-semibold">
 									{sales.actions}
 								</h2>
-							)}
-							{otherActions.map((a) => (
-								<button
-									type="button"
-									key={a}
-									className={action}
-									disabled={blocked}
-									onClick={(e) => prompt(a, e.currentTarget)}
-								>
-									{a === "withdraw"
-										? t.withdraw
-										: a === "reject"
-											? t.reject
-											: t.correct}
-								</button>
-							))}
-						</div>
+								{otherActions.map((a) => (
+									<button
+										type="button"
+										key={a}
+										className={action}
+										disabled={blocked}
+										onClick={(e) => prompt(a, e.currentTarget)}
+									>
+										{a === "withdraw"
+											? t.withdraw
+											: a === "reject"
+												? t.reject
+												: t.correct}
+									</button>
+								))}
+							</div>
+						)}
 						<History
 							{...{ locale, row, context, seller }}
 							presentation={isSeller ? "seller" : undefined}
@@ -1346,6 +1537,8 @@ function Workspace({
 					<Confirmation
 						key={confirmationKey}
 						returnFocus={focus.current}
+						presentation={isSeller ? undefined : "buyer"}
+						closeLabel={orderDetailCopy[locale].close}
 						label={confirmation === "finalize" ? t.finalize : t.confirm}
 						close={() => {
 							if (!busy && modalToken.current === confirmationKey) {
@@ -1354,7 +1547,7 @@ function Workspace({
 							}
 						}}
 					>
-						<p>
+						<p className={isSeller ? undefined : "m-0 text-sm leading-relaxed"}>
 							{confirmation === "finalize"
 								? t.finalNotice
 								: confirmation === "withdraw"
@@ -1370,67 +1563,158 @@ function Workspace({
 								reason={String(finalReview.packet.body.reason)}
 							/>
 						)}
-						{confirmation !== "finalize" && (
-							<label className="grid gap-2">
-								{t.reason}
-								<textarea
-									aria-label={t.reason}
-									dir="auto"
-									className={control}
-									value={reason}
-									minLength={3}
-									maxLength={1000}
-									onChange={(e) => setReason(e.target.value)}
-								/>
-							</label>
+						{confirmation !== "finalize" &&
+							(isSeller ? (
+								<label className="grid gap-2">
+									{t.reason}
+									<textarea
+										aria-label={t.reason}
+										dir="auto"
+										className={control}
+										value={reason}
+										minLength={3}
+										maxLength={1000}
+										onChange={(e) => setReason(e.target.value)}
+									/>
+								</label>
+							) : (
+								<div className="grid gap-1.5">
+									<label
+										htmlFor="negotiation-confirm-reason"
+										className="text-xs font-medium text-muted"
+									>
+										{t.reason}
+									</label>
+									<Textarea
+										id="negotiation-confirm-reason"
+										dir="auto"
+										className="rounded-lg"
+										value={reason}
+										minLength={3}
+										maxLength={1000}
+										onChange={(e) => setReason(e.target.value)}
+									/>
+								</div>
+							))}
+						{isSeller ? (
+							<>
+								<button
+									type="button"
+									className={action}
+									disabled={
+										busy ||
+										reason.trim().length < 3 ||
+										(confirmation === "finalize" && !finalReview)
+									}
+									onClick={() => void send(confirmation, true)}
+								>
+									{confirmation === "finalize" ? t.finalize : t.confirm}
+								</button>{" "}
+								<button
+									type="button"
+									className={action}
+									disabled={busy}
+									onClick={() => {
+										setConfirmation(null);
+										setFinalReview(null);
+										focus.current?.focus();
+									}}
+								>
+									{t.cancel}
+								</button>
+							</>
+						) : (
+							<div className="mt-auto flex flex-wrap justify-end gap-2 border-0 border-t border-solid border-border pt-3">
+								<Button
+									type="button"
+									variant="outline"
+									className="rounded-lg"
+									disabled={busy}
+									onClick={() => {
+										setConfirmation(null);
+										setFinalReview(null);
+										focus.current?.focus();
+									}}
+								>
+									{t.cancel}
+								</Button>
+								<Button
+									type="button"
+									className="rounded-lg"
+									disabled={
+										busy ||
+										reason.trim().length < 3 ||
+										(confirmation === "finalize" && !finalReview)
+									}
+									onClick={() => void send(confirmation, true)}
+								>
+									{confirmation === "finalize" ? t.finalize : t.confirm}
+								</Button>
+							</div>
 						)}
-						<button
-							type="button"
-							className={action}
-							disabled={
-								busy ||
-								reason.trim().length < 3 ||
-								(confirmation === "finalize" && !finalReview)
-							}
-							onClick={() => void send(confirmation, true)}
-						>
-							{confirmation === "finalize" ? t.finalize : t.confirm}
-						</button>{" "}
-						<button
-							type="button"
-							className={action}
-							disabled={busy}
-							onClick={() => {
-								setConfirmation(null);
-								setFinalReview(null);
-								focus.current?.focus();
-							}}
-						>
-							{t.cancel}
-						</button>
 					</Confirmation>
 				)}
-				{!builder && row && !row.actions.length && <p>{t.readonly}</p>}
-				{builder && cart && !Object.keys(proposals).length && <p>{t.empty}</p>}
+				{!builder && row && !row.actions.length && (
+					<p className={isSeller ? undefined : "m-0 text-sm text-muted"}>
+						{t.readonly}
+					</p>
+				)}
+				{builder &&
+					cart &&
+					!Object.keys(proposals).length &&
+					(isSeller ? (
+						<p>{t.empty}</p>
+					) : (
+						<EmptyState
+							icon="cart"
+							title={t.empty}
+							description={t.emptyHelp}
+							action={
+								<Button asChild className="rounded-lg">
+									<Link href={`/${locale}/cart`}>
+										{commerceCopy[locale].cart}
+									</Link>
+								</Button>
+							}
+						/>
+					))}
 				<div className="space-y-2 rounded-card bg-info p-4 text-sm">
 					<p>{t.noExpiry}</p>
 					<p>{commerceCopy[locale].delivery}</p>
 					<p>{commerceCopy[locale].unreserved}</p>
 				</div>
-				<button
-					type="button"
-					className={action}
-					disabled={blocked}
-					onClick={() =>
-						guard.choose(() => {
-							setDirty(false);
-							setResult(null);
-							setReload((x) => x + 1);
-						})
-					}
-				>
-					{t.reload}
-				</button>
+				{isSeller ? (
+					<button
+						type="button"
+						className={action}
+						disabled={blocked}
+						onClick={() =>
+							guard.choose(() => {
+								setDirty(false);
+								setResult(null);
+								setReload((x) => x + 1);
+							})
+						}
+					>
+						{t.reload}
+					</button>
+				) : builder ? (
+					<Button
+						type="button"
+						variant="outline"
+						className="self-start rounded-lg"
+						disabled={blocked}
+						onClick={() =>
+							guard.choose(() => {
+								setDirty(false);
+								setResult(null);
+								setReload((x) => x + 1);
+							})
+						}
+					>
+						{t.reload}
+					</Button>
+				) : null}
 			</section>
 		</SalesFrame>
 	);

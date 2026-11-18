@@ -76,6 +76,7 @@ class RequestResult(s.Serializer):
     state = s.CharField()
     version = s.IntegerField()
     revision = s.IntegerField()
+    reference = s.IntegerField()
     created_at = s.DateTimeField()
     proposal = s.JSONField()
     history_count = s.IntegerField()

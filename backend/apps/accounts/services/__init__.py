@@ -473,17 +473,27 @@ def compatibility_review_status(account):
     return "pending" if statuses or account.context == "seller" or account.intent == "business" else "not_requested"
 
 
-def update_display_name(request, context, display_name):
+PROFILE_FIELDS = ("display_name", "first_name", "last_name", "phone", "bio", "gender", "date_of_birth", "preferred_locale")
+
+
+def update_profile(request, context, changes):
     account = get_grant(request, context)
+    fields = [key for key in PROFILE_FIELDS if key in changes]
     with transaction.atomic():
         user = User.objects.select_for_update().get(pk=request.user.pk)
         request.user = user
         get_grant(request, context)
-        user.display_name = display_name
-        user.save(update_fields=["display_name"])
-        audit("profile_updated", request=request, user=user, account=account,
-              context=context, fields=["display_name"])
+        for key in fields:
+            setattr(user, key, changes[key])
+        if fields:
+            user.save(update_fields=fields)
+            audit("profile_updated", request=request, user=user, account=account,
+                  context=context, fields=fields)
     return user
+
+
+def update_display_name(request, context, display_name):
+    return update_profile(request, context, {"display_name": display_name})
 
 
 def change_shared_password(request, context, current_password, password):

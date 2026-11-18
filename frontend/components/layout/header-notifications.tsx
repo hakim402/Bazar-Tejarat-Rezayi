@@ -21,14 +21,11 @@ import {
 	type Context,
 } from "../../features/messaging/api";
 import { communicationCopy } from "../../features/messaging/copy";
-import { accessLost, useVisiblePoll } from "../../features/messaging/hooks";
+import { accessLost } from "../../features/messaging/hooks";
 import { requestHref } from "../../features/negotiations/api";
 import { negotiationCopy } from "../../features/negotiations/copy";
-import {
-	notification,
-	type Counts,
-	type Notices,
-} from "../../features/notifications/api";
+import { notification, type Notices } from "../../features/notifications/api";
+import { useUnreadCount } from "../../features/notifications/hooks";
 import { invoiceHref } from "../../features/orders/api";
 import { commerceCopy } from "../../features/orders/copy";
 import { paymentHref } from "../../features/payments/api";
@@ -115,8 +112,11 @@ export function HeaderNotifications({
 	const t = communicationCopy[locale];
 	const shell =
 		role === "seller" ? sellerShellCopy[locale] : buyerShellCopy[locale];
-	const [counts, setCounts] = useState<Counts | null>(null);
-	const [countReload, setCountReload] = useState(0);
+	const { count, reload: reloadCount } = useUnreadCount(
+		role,
+		seller,
+		!sessionLoading,
+	);
 	const [list, setList] = useState<Notices | null>(null);
 	const [listError, setListError] = useState<"denied" | "unavailable" | null>(
 		null,
@@ -132,30 +132,6 @@ export function HeaderNotifications({
 			alive.current = false;
 		};
 	}, []);
-	useVisiblePoll(
-		async (signal) => {
-			if (!role) return;
-			try {
-				const value = await notification<Counts>(
-					role,
-					`unread/${seller ? `?seller=${encodeURIComponent(seller)}` : ""}`,
-					undefined,
-					"GET",
-					{ signal },
-				);
-				if (!signal.aborted) setCounts(value);
-			} catch (failure) {
-				if (signal.aborted) return;
-				setCounts(null);
-				throw failure;
-			}
-		},
-		[role, seller, countReload],
-		!sessionLoading && !!role,
-	);
-	useEffect(() => {
-		if (!role) setCounts(null);
-	}, [role]);
 	useEffect(() => {
 		void listReload;
 		if (!opened.current || !role) return;
@@ -194,7 +170,7 @@ export function HeaderNotifications({
 				if (!alive.current) return;
 				toast.success(headerCopy[locale].markedRead);
 				setListReload((value) => value + 1);
-				setCountReload((value) => value + 1);
+				reloadCount();
 			})
 			.catch(() => {
 				if (alive.current) toast.error(headerCopy[locale].actionError);
@@ -208,7 +184,7 @@ export function HeaderNotifications({
 		<HeaderMenu
 			icon="bell"
 			label={storefrontCopy[locale].notifications}
-			count={counts?.unread_notices ?? 0}
+			count={count}
 			className={className}
 			triggerClassName="size-9 text-muted hover:text-action desktop:size-11"
 			panelClassName="flex max-h-[min(30rem,calc(100dvh-7rem))] w-96 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden"
@@ -272,7 +248,7 @@ export function HeaderNotifications({
 							<ul
 								role="status"
 								aria-label={t.loading}
-								className="divide-y divide-border/60"
+								className="m-0 list-none divide-y divide-border/60 p-0"
 							>
 								{[0, 1, 2].map((row) => (
 									<li
@@ -296,7 +272,7 @@ export function HeaderNotifications({
 								<p className="text-sm text-muted">{t.emptyNotices}</p>
 							</div>
 						) : (
-							<ul className="divide-y divide-border/60">
+							<ul className="m-0 list-none divide-y divide-border/60 p-0">
 								{rows.map((row) => (
 									<li
 										key={row.id}

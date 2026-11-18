@@ -1,6 +1,7 @@
 """Locked source publication and price changes never replay descriptive snapshot prices."""
 
 import copy
+import hashlib
 import json
 from functools import partial
 
@@ -9,13 +10,15 @@ from django.db import transaction
 from django.db.models import Max
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 
 from apps.organizations.access import Conflict, assert_version
+from apps.runtime.locks import lock as durable_lock
 from . import access
 from .models import (
     CatalogueEvent,
     Category,
+    Command,
     PriceChange,
     Product,
     ProductImage,
@@ -50,16 +53,28 @@ def bump(item):
 @transaction.atomic
 def create(actor, data):
     profile = access.seller(actor, data["seller"])
+    key = data["command_id"]
+    token = int.from_bytes(hashlib.sha256(f"{actor.account.pk}:create:{key}".encode()).digest()[:8], "big", signed=True)
+    durable_lock(token)
+    hashed = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
+    old = Command.objects.filter(account=actor.account, action="create", key=key).first()
+    if old and old.digest != hashed:
+        raise Conflict("Idempotency identity was already used for a different operation.")
+    if old:
+        return old.outcome
     item = Product.objects.create(seller=profile, currency=data["currency"], pricing_mode=data["pricing_mode"])
     access.audit(actor, item, "create")
-    return operation(item)
+    result = json.loads(json.dumps(operation(item), default=str))
+    Command.objects.create(account=actor.account, action="create", key=key, digest=hashed, outcome=result)
+    return result
 
 
 @transaction.atomic
-def delete_product(actor, pk):
+def delete_product(actor, pk, version):
     item = access.resource(actor, pk, lock=True)
     if actor.context != "seller":
         raise PermissionDenied()
+    assert_version(item, version)
     product_id = str(item.pk)
     images = list(item.images.values_list("storage_alias", "key"))
     # Keep the audit trail while removing its foreign keys to the deleted object.
@@ -82,7 +97,7 @@ def delete_product(actor, pk):
         item.variants.all().delete()
         item.delete()
     except ProtectedError:
-        raise ValidationError("This product is linked to protected business history and cannot be deleted.") from None
+        fail("product", "protected_history")
     CatalogueEvent.objects.create(
         product=None,
         actor=actor.user,

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 
 from .queries import MAX_DAYS
 
@@ -19,6 +20,8 @@ class PeriodQuery(Strict):
 
     def validate(self, data):
         start, end = data.get("start"), data.get("end")
+        if start and start > timezone.localdate():
+            raise serializers.ValidationError({"start": ["future_start"]})
         if start and end:
             if start > end:
                 raise serializers.ValidationError({"start": ["after_end"]})

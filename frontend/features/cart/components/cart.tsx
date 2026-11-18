@@ -73,7 +73,7 @@ function CartEditor({ locale, buyer }: { locale: Locale; buyer: boolean }) {
 		const controller = new AbortController();
 		void Promise.all([
 			commerce<Cart>(
-				cartPath(context) + `?locale=${locale}`,
+				`${cartPath(context)}?locale=${locale}`,
 				undefined,
 				"GET",
 				controller.signal,
@@ -126,6 +126,7 @@ function CartEditor({ locale, buyer }: { locale: Locale; buyer: boolean }) {
 			if (live.current === mine && owned.current === write) {
 				if (accessLost(e)) setData(null);
 				setError(e);
+				toast.error(t.actionFailed);
 			}
 		} finally {
 			if (live.current === mine && owned.current === write) {
@@ -153,11 +154,17 @@ function CartEditor({ locale, buyer }: { locale: Locale; buyer: boolean }) {
 			}
 			if (live.current === mine && owned.current === write) {
 				pending.current = null;
-				if (applied) announceCartChange();
+				if (applied) {
+					announceCartChange();
+					toast.success(t.saved);
+				}
 				setReload((x) => x + 1);
 			}
 		} catch (e) {
-			if (live.current === mine && owned.current === write) setError(e);
+			if (live.current === mine && owned.current === write) {
+				setError(e);
+				toast.error(t.actionFailed);
+			}
 		} finally {
 			if (live.current === mine && owned.current === write) {
 				owned.current = null;
@@ -529,7 +536,7 @@ function CartRow({
 					dir="ltr"
 					aria-labelledby={labelId}
 					aria-describedby={helpId}
-					className="min-h-8 w-12 shrink-0 rounded-control border-0 bg-transparent px-0.5 text-center text-sm font-bold text-foreground focus-visible:ring-2 focus-visible:ring-focus/50 disabled:opacity-50"
+					className="min-h-8 w-20 shrink-0 rounded-control border-0 bg-transparent px-0.5 text-center text-sm font-bold text-foreground focus-visible:ring-2 focus-visible:ring-focus/50 disabled:opacity-50"
 					value={quantity}
 					maxLength={20}
 					disabled={disabled}
@@ -608,11 +615,11 @@ function CartTotals({
 		cap = capLabel(locale),
 		total = estimateTotal(lines);
 	return (
-		<dl className="space-y-2.5 text-sm">
+		<dl className="m-0 space-y-2.5 text-sm">
 			{label && <dt className={cap}>{label}</dt>}
 			<div className="flex items-baseline justify-between gap-4">
 				<dt className={cap}>{t.subtotal}</dt>
-				<dd className="font-bold">
+				<dd className="m-0 font-bold">
 					<bdi dir="ltr">
 						{total ?? "—"} {group}
 					</bdi>
@@ -620,11 +627,11 @@ function CartTotals({
 			</div>
 			<div className="flex items-baseline justify-between gap-4">
 				<dt className={cap}>{t.shipping}</dt>
-				<dd className="font-semibold text-muted">—</dd>
+				<dd className="m-0 font-semibold text-muted">—</dd>
 			</div>
 			<div className="flex items-baseline justify-between gap-4 border-t border-border pt-2.5">
 				<dt className={cap}>{t.total}</dt>
-				<dd className="text-base font-extrabold">
+				<dd className="m-0 text-base font-extrabold">
 					<bdi dir="ltr">
 						{total ?? "—"} {group}
 					</bdi>
@@ -683,7 +690,7 @@ function PaymentPanel({
 			</h2>
 			<div className="space-y-2">
 				<h3 className={capLabel(locale)}>{t.method}</h3>
-				<ul className="space-y-2">
+				<ul className="m-0 list-none space-y-2 p-0">
 					{methods.map(([icon, label, help]) => (
 						<li
 							key={label}

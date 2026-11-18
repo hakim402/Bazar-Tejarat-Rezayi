@@ -158,6 +158,7 @@ function Workspace({
 		[correction, setCorrection] = useState<Receipt | undefined>(),
 		[replacement, setReplacement] = useState<Claim | undefined>(),
 		[reason, setReason] = useState(""),
+		[claimReasons, setClaimReasons] = useState<Record<string, string>>({}),
 		[due, setDue] = useState(""),
 		[formKey, setFormKey] = useState(0),
 		[notice, setNotice] = useState(""),
@@ -366,8 +367,11 @@ function Workspace({
 				}
 			} else {
 				const result = await payment<Outcome>("seller", retained.path, body);
-				if (live.current === mine && owned.current === token)
+				if (live.current === mine && owned.current === token) {
+					const claimId = retained.path.match(/^claims\/([^/]+)\//)?.[1];
+					if (claimId) setClaimReasons((m) => ({ ...m, [claimId]: "" }));
 					finished(result.outcome, result.current);
+				}
 			}
 		} catch (e) {
 			fail(e, mine);
@@ -596,8 +600,10 @@ function Workspace({
 								correction={correction}
 								replacement={replacement}
 								formKey={formKey}
-								reason={reason}
-								setReason={setReason}
+								claimReasons={claimReasons}
+								onClaimReason={(cid, value) =>
+									setClaimReasons((m) => ({ ...m, [cid]: value }))
+								}
 								setDirty={setDirty}
 								review={review}
 								startCorrection={(r) => {
@@ -642,6 +648,7 @@ function Workspace({
 					{...{ locale, context: "seller" as const, selection }}
 					busy={busy || !online}
 					review={modal}
+					liveRow={row}
 					opener={opener.current}
 					cancel={() => setModal(null)}
 					confirm={() => void send(modal.packet)}
@@ -724,7 +731,6 @@ function PaymentList({
 		nf = new Intl.NumberFormat(locale),
 		detailHref = (row: Payment) =>
 			salesHref(locale, "payments", seller, row.id, undefined, {
-				page: String(page),
 				state,
 				q: search,
 			});
@@ -1370,8 +1376,8 @@ function ClaimsReceipts({
 	correction,
 	replacement,
 	formKey,
-	reason,
-	setReason,
+	claimReasons,
+	onClaimReason,
 	setDirty,
 	review,
 	startCorrection,
@@ -1386,8 +1392,8 @@ function ClaimsReceipts({
 	correction: Receipt | undefined;
 	replacement: Claim | undefined;
 	formKey: number;
-	reason: string;
-	setReason: (v: string) => void;
+	claimReasons: Record<string, string>;
+	onClaimReason: (id: string, value: string) => void;
 	setDirty: (v: boolean) => void;
 	review: (path: string, body: Record<string, unknown>, label: string) => void;
 	startCorrection: (r: Receipt) => void;
@@ -1484,9 +1490,9 @@ function ClaimsReceipts({
 													className={salesControl}
 													maxLength={1000}
 													disabled={blocked}
-													value={reason}
+													value={claimReasons[c.id] ?? ""}
 													onChange={(e) => {
-														setReason(e.target.value);
+														onClaimReason(c.id, e.target.value);
 														setDirty(true);
 													}}
 												/>
@@ -1500,13 +1506,16 @@ function ClaimsReceipts({
 														key={a}
 														type="button"
 														className={salesAction}
-														disabled={blocked || reason.trim().length < 3}
+														disabled={
+															blocked ||
+															(claimReasons[c.id] ?? "").trim().length < 3
+														}
 														onClick={() =>
 															review(
 																`claims/${c.id}/${a}/`,
 																{
 																	claim_version: c.version,
-																	reason: reason.trim(),
+																	reason: (claimReasons[c.id] ?? "").trim(),
 																},
 																a === "confirm"
 																	? t.confirmClaim

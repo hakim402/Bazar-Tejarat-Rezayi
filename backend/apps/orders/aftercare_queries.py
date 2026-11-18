@@ -9,6 +9,14 @@ from . import aftercare as projection
 from .models import Aftercare, CancellationRequest, DisputeRequest
 
 
+def _seller_pks(actor):
+    cached = getattr(actor, "_order_seller_pks", None)
+    if cached is None:
+        cached = set(access.profiles(actor.account).values_list("pk", flat=True))
+        actor._order_seller_pks = cached
+    return cached
+
+
 def request_row(request, actor=None):
     decision = getattr(request, "decision", None)
     return {
@@ -21,7 +29,7 @@ def request_row(request, actor=None):
         "can_withdraw": bool(
             actor and request.state == "pending" and actor.context == request.requester_context
             and request.requester_account_id == getattr(actor.account, "pk", None)
-            and (actor.context == "buyer" or access.profiles(actor.account).filter(pk=request.order.seller_id).exists())
+            and (actor.context == "buyer" or request.order.seller_id in _seller_pks(actor))
         ),
         "requester_context": request.requester_context,
         "requester": str(request.requester_account_id) if request.requester_account_id else None,
@@ -49,7 +57,7 @@ def amendment_row(amendment, actor=None):
         "can_withdraw": bool(
             actor and actor.context == "seller" and amendment.state == "pending"
             and amendment.actor_id == getattr(actor.account, "pk", None)
-            and access.profiles(actor.account).filter(pk=amendment.order.seller_id).exists()
+            and amendment.order.seller_id in _seller_pks(actor)
         ),
         "after_total": format(amendment.after_total, ".2f"),
         "reason": amendment.reason,
@@ -88,10 +96,10 @@ def dispute_row(dispute, actor=None):
         ),
         "can_respond": bool(
             actor and actor.context == "seller" and dispute.state == "pending" and response is None
-            and access.profiles(actor.account).filter(pk=dispute.order.seller_id).exists()
+            and dispute.order.seller_id in _seller_pks(actor)
         ),
         "requester": str(dispute.requester_account_id),
-        "evidence": [str(binding.evidence_id) for binding in dispute.evidence_bindings.order_by("evidence_id")[:3]],
+        "evidence": [str(b.evidence_id) for b in sorted(dispute.evidence_bindings.all(), key=lambda b: b.evidence_id)[:3]],
         "reason": dispute.reason,
         "assigned": dispute.assigned_to_id is not None,
         "version": dispute.version,
@@ -160,7 +168,7 @@ def order_data(actor, order):
     from apps.payments.queries import due_state
 
     eligible = projection.eligibility(order)
-    seller = actor.context == "seller" and access.profiles(actor.account).filter(pk=order.seller_id).exists()
+    seller = actor.context == "seller" and order.seller_id in _seller_pks(actor)
     buyer = actor.context == "buyer" and order.buyer_id == actor.account.pk
     capabilities = []
     if (buyer or seller) and eligible["cancel"]:
@@ -176,7 +184,8 @@ def order_data(actor, order):
     refund_dues = []
     for due in RefundDue.objects.filter(order=order).prefetch_related("reports__decision").order_by("-created_at"):
         state = due_state(due)
-        latest = due.reports.order_by("-created_at", "pk").select_related("decision").first()
+        reports = sorted(due.reports.all(), key=lambda r: (r.created_at, r.pk), reverse=True)
+        latest = reports[0] if reports else None
         refund_dues.append(
             {
                 "id": str(due.pk),
@@ -258,7 +267,7 @@ def order_data(actor, order):
         "adjustments": projection.adjustment_rows(order),
         "disputes": [
             dispute_row(x, actor)
-            for x in order.disputes.select_related("order__invoice", "response", "decision").order_by(
+            for x in order.disputes.select_related("order__invoice", "response", "decision").prefetch_related("evidence_bindings").order_by(
                 "-created_at", "pk"
             )[:20]
         ],
@@ -293,7 +302,9 @@ def aftercare_page(actor, *, page=1, seller=None, q=""):
     )
     if q:
         qs = qs.filter(
-            Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q)
+            Q(invoice__number__icontains=q)
+            | Q(snapshot__buyer__icontains=q)
+            | Q(buyer__user__display_name__icontains=q)
         )
     return {
         "count": qs.count(),
@@ -323,7 +334,7 @@ def dispute_page(actor, *, page=1, seller=None):
         qs = qs.filter(order__seller_id=seller)
     elif seller is not None:
         raise PermissionDenied()
-    qs = qs.select_related("order__invoice", "response", "decision").order_by("-created_at", "pk")
+    qs = qs.select_related("order__invoice", "response", "decision").prefetch_related("evidence_bindings").order_by("-created_at", "pk")
     return {
         "count": qs.count(),
         "page": page,
@@ -345,7 +356,7 @@ def dispute_list(actor, *, page=1, seller=None):
         qs = DisputeRequest.objects.filter(order__in=disputes.requesters(actor))
         if seller is not None:
             qs = qs.filter(order__seller_id=seller)
-    qs = qs.select_related("order__invoice", "response", "decision").order_by("-created_at", "pk")
+    qs = qs.select_related("order__invoice", "response", "decision").prefetch_related("evidence_bindings").order_by("-created_at", "pk")
     return {
         "count": qs.count(),
         "page": page,
@@ -358,7 +369,7 @@ def dispute_detail(actor, dispute_pk):
 
     qs = DisputeRequest.objects.filter(order__in=disputes.order_scope(actor))
     dispute = get_object_or_404(
-        qs.select_related("order__invoice", "response", "decision"), pk=dispute_pk
+        qs.select_related("order__invoice", "response", "decision").prefetch_related("evidence_bindings"), pk=dispute_pk
     )
     result = dispute_row(dispute, actor)
     result["order_detail"] = order_data(actor, dispute.order)

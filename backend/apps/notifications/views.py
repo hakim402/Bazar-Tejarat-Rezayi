@@ -61,6 +61,7 @@ class Profiles(PrivateView):
     def get(self, request):
         from apps.messaging import access as ma
         from apps.orders import access as oa
+        from apps.fulfilment.access import scope as fulfilment_scope
         from apps.organizations.models import BusinessProfile
         from django.db.models import Q
 
@@ -72,7 +73,11 @@ class Profiles(PrivateView):
             raise ValidationError({"query": ["unknown"]})
         messaging_ids = ma.seller_profiles_for(actor.account).values("pk")
         invoice_ids = oa.profiles(actor.account, invoices=True).values("pk")
-        rows = BusinessProfile.objects.filter(Q(pk__in=messaging_ids) | Q(pk__in=invoice_ids)).order_by("pk")
+        fulfilment_ids = fulfilment_scope(actor).values("seller_id")
+        rows = BusinessProfile.objects.filter(
+            Q(pk__in=messaging_ids) | Q(pk__in=invoice_ids) | Q(pk__in=fulfilment_ids)
+        ).order_by("pk")
+        messaging_pks = {row["pk"] for row in messaging_ids}
         page = data["page"]
         return Response(
             {
@@ -81,7 +86,7 @@ class Profiles(PrivateView):
                         "id": str(p.pk),
                         "name": p.display_name,
                         "kind": p.kind,
-                        "messaging": ma.seller_profiles_for(actor.account).filter(pk=p.pk).exists(),
+                        "messaging": p.pk in messaging_pks,
                     }
                     for p in rows[(page - 1) * 20 : page * 20]
                 ],

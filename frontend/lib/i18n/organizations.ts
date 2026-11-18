@@ -62,6 +62,7 @@ const en = {
 	fileHelp:
 		"PDF, JPEG or PNG. Up to 10 MiB per file and ten files per revision. Only you and authorized reviewers can access these documents.",
 	download: "Download evidence",
+	kib: "KiB",
 	replace: "Replace draft evidence",
 	newFile: "Add a file",
 	submit: "Submit for review",
@@ -77,6 +78,8 @@ const en = {
 	checklist: "Evidence checklist",
 	present: "Provided",
 	missing: "Missing",
+	requested: "Requested",
+	alternativeHint: "Describe the document or proof you can provide instead.",
 	reason: "Applicant-visible reason",
 	internal: "Internal reviewer note",
 	internalHelp: "Internal notes are never shown to applicants.",
@@ -156,6 +159,9 @@ const en = {
 	confirm: "Confirm",
 	fields: "Check fields",
 	show: "Open",
+	quickView: "Quick view",
+	editProfile: "Edit profile",
+	actions: "Actions",
 	noSelfReview: "Review requires an independent authorized reviewer.",
 };
 type Copy = typeof en;
@@ -222,6 +228,7 @@ const fa: Copy = {
 	fileHelp:
 		"PDF، JPEG یا PNG؛ هر فایل تا ۱۰ میگابایت و هر نسخه تا ده فایل. تنها شما و بررسی‌کنندگان باصلاحیت به اسناد دسترسی دارند.",
 	download: "دریافت سند",
+	kib: "کیلوبایت",
 	replace: "جایگزینی سند پیش‌نویس",
 	newFile: "افزودن فایل",
 	submit: "ارسال برای بررسی",
@@ -238,6 +245,9 @@ const fa: Copy = {
 	checklist: "فهرست اسناد",
 	present: "فراهم‌شده",
 	missing: "فراهم نشده",
+	requested: "درخواست شده",
+	alternativeHint:
+		"سند یا اثباتی را که می‌توانید به جای آن ارائه کنید توضیح دهید.",
 	reason: "دلیل قابل مشاهده برای درخواست‌دهنده",
 	internal: "یادداشت داخلی بررسی‌کننده",
 	internalHelp: "یادداشت‌های داخلی به درخواست‌دهنده نشان داده نمی‌شوند.",
@@ -315,6 +325,9 @@ const fa: Copy = {
 	confirm: "تأیید",
 	fields: "فیلدها را بررسی کنید",
 	show: "باز کردن",
+	quickView: "نمای سریع",
+	editProfile: "ویرایش پروفایل",
+	actions: "اقدامات",
 	noSelfReview: "بررسی باید توسط بررسی‌کنندهٔ مستقل و باصلاحیت انجام شود.",
 };
 const ps: Copy = {
@@ -380,6 +393,7 @@ const ps: Copy = {
 	fileHelp:
 		"PDF، JPEG یا PNG؛ هر فایل تر ۱۰ میګابایټه او هره نسخه تر لسو فایلونو. یوازې تاسو او باصلاحیته کتونکي اسناد لیدلی شي.",
 	download: "سند ښکته کړئ",
+	kib: "کیلوبایټ",
 	replace: "د مسودې سند بدل کړئ",
 	newFile: "فایل زیات کړئ",
 	submit: "کتنې ته وسپارئ",
@@ -394,6 +408,8 @@ const ps: Copy = {
 	checklist: "د اسنادو لړلیک",
 	present: "ورکړل شوی",
 	missing: "نه دی ورکړل شوی",
+	requested: "غوښتل شوی",
+	alternativeHint: "هغه سند یا ثبوت تشریح کړئ چې پر ځای یې وړاندې کولی شئ.",
 	reason: "غوښتونکي ته ښکاره دلیل",
 	internal: "د کتونکي داخلي یادښت",
 	internalHelp: "داخلي یادښتونه غوښتونکو ته نه ښودل کېږي.",
@@ -468,6 +484,9 @@ const ps: Copy = {
 	confirm: "تایید",
 	fields: "فیلډونه وګورئ",
 	show: "پرانیستل",
+	quickView: "چټک لید",
+	editProfile: "پروفایل سم کړئ",
+	actions: "کړنې",
 	noSelfReview: "کتنه خپلواک باصلاحیته کتونکي ته اړتیا لري.",
 };
 const ar: Copy = {
@@ -533,6 +552,7 @@ const ar: Copy = {
 	fileHelp:
 		"PDF أو JPEG أو PNG. حتى ١٠ ميبيبايت للملف وعشرة ملفات لكل نسخة. لا يصل إلى المستندات إلا أنت والمراجعون المخولون.",
 	download: "تنزيل المستند",
+	kib: "كيلوبايت",
 	replace: "استبدال مستند المسودة",
 	newFile: "إضافة ملف",
 	submit: "تقديم للمراجعة",
@@ -548,6 +568,8 @@ const ar: Copy = {
 	checklist: "قائمة المستندات",
 	present: "مقدّم",
 	missing: "غير مقدّم",
+	requested: "مطلوب",
+	alternativeHint: "صف المستند أو الإثبات الذي يمكنك تقديمه بدلاً من ذلك.",
 	reason: "سبب ظاهر لمقدم الطلب",
 	internal: "ملاحظة داخلية للمراجع",
 	internalHelp: "لا تظهر الملاحظات الداخلية لمقدمي الطلبات.",
@@ -623,6 +645,9 @@ const ar: Copy = {
 	confirm: "تأكيد",
 	fields: "تحقق من الحقول",
 	show: "فتح",
+	quickView: "عرض سريع",
+	editProfile: "تعديل الملف",
+	actions: "إجراءات",
 	noSelfReview: "تتطلب المراجعة مراجعاً مستقلاً مخولاً.",
 };
 export const organizationCopy: Record<Locale, Copy> = {

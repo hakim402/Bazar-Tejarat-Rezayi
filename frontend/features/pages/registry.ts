@@ -32,6 +32,7 @@ export function destinationAllowed(
 		return (
 			value === "/" ||
 			value === "/help" ||
+			value === "/contact" ||
 			!!cmsPaths?.has(value) ||
 			!!marketplaceRoute(value) ||
 			/^\/catalogue-preview\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(

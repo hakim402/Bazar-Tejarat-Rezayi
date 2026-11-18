@@ -78,7 +78,7 @@ class Command(BaseCommand):
                     services.review(reviewer, revision.pk, {"version": store.version, "action": "approve"})
                 for index in range(30 if name == "seller" else 15 if name == "company" else 0):
                     category = ("food", "clothing", "electronics", "cosmetics")[index % 4]
-                    created = catalogue.create(actor, {"seller": profile.pk, "currency": "USD" if index % 3 == 0 else "AFN", "pricing_mode": "negotiable" if index % 5 == 0 else "fixed"})
+                    created = catalogue.create(actor, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": "USD" if index % 3 == 0 else "AFN", "pricing_mode": "negotiable" if index % 5 == 0 else "fixed"})
                     product = Product.objects.get(pk=created["id"])
                     image = upload(actor, product.pk, product.version, image_file())
                     product.refresh_from_db()

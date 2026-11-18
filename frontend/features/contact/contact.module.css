@@ -1,0 +1,237 @@
+.page {
+	position: relative;
+	isolation: isolate;
+	background: var(--surface);
+}
+.page::before {
+	position: absolute;
+	z-index: -1;
+	inset: 0 0 auto;
+	height: 350px;
+	background: linear-gradient(
+		115deg,
+		color-mix(in srgb, var(--color-brand) 6%, var(--surface)),
+		color-mix(in srgb, var(--color-brand) 13%, var(--surface))
+	);
+	content: "";
+}
+.inner {
+	max-width: 1050px;
+	margin-inline: auto;
+	padding: 58px 24px 90px;
+}
+.heading {
+	max-width: 640px;
+	margin-inline: auto;
+	margin-bottom: 48px;
+	text-align: center;
+}
+.heading h1 {
+	margin: 0;
+	color: var(--ink);
+	font-size: clamp(1.8rem, 3vw, 2.4rem);
+	line-height: 1.5;
+}
+.heading p {
+	margin: 10px 0 0;
+	color: var(--muted);
+	font-size: 0.95rem;
+	line-height: 1.9;
+}
+.card {
+	display: grid;
+	grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
+	gap: 0;
+	border: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
+	border-radius: 22px;
+	padding: 8px;
+	background: var(--surface);
+	box-shadow: 0 8px 40px rgb(14 49 80 / 7%);
+}
+.information {
+	position: relative;
+	isolation: isolate;
+	min-width: 0;
+	min-height: 430px;
+	overflow: hidden;
+	border-radius: 15px;
+	padding: 32px 27px;
+	background: var(--color-brand);
+	color: #fff;
+}
+.informationContent {
+	position: relative;
+	z-index: 1;
+}
+.information h2 {
+	margin: 0;
+	font-size: 1.2rem;
+	line-height: 1.6;
+	color: #fff;
+}
+.informationIntro {
+	margin: 10px 0 0;
+	font-size: 0.8rem;
+	line-height: 1.9;
+	color: rgb(255 255 255 / 88%);
+}
+.details {
+	display: grid;
+	gap: 24px;
+	margin-top: 36px;
+	font-style: normal;
+}
+.details a,
+.details p {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	min-width: 0;
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: #fff;
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+.details a {
+	min-height: 34px;
+	align-items: center;
+}
+.details a:hover {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+.details svg {
+	width: 19px;
+	height: 19px;
+	flex-shrink: 0;
+	margin-top: 3px;
+}
+.details bdi {
+	min-width: 0;
+}
+.circle {
+	position: absolute;
+	z-index: 0;
+	width: 205px;
+	height: 205px;
+	inset-inline-end: -42px;
+	bottom: -76px;
+	border-radius: 50%;
+	background: linear-gradient(
+		145deg,
+		rgb(255 255 255 / 45%),
+		rgb(255 255 255 / 12%)
+	);
+	pointer-events: none;
+}
+.form {
+	min-width: 0;
+	padding: 28px 42px 24px;
+}
+.contactForm {
+	display: grid;
+	gap: 25px;
+}
+.nameEmail {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 28px;
+}
+.field {
+	min-width: 0;
+}
+.label {
+	display: block;
+	color: var(--muted);
+	font-size: 0.75rem;
+	font-weight: 400;
+	line-height: 1.7;
+}
+.messageLabel {
+	color: var(--action);
+}
+.lineField {
+	height: 35px;
+	border: 0;
+	border-bottom: 1px solid var(--line);
+	border-radius: 0;
+	padding: 4px 0;
+	background: transparent;
+	color: var(--ink);
+	font-size: 0.875rem;
+	box-shadow: none;
+	outline: none;
+}
+.lineField:is(select) {
+	padding-inline-end: 1.75rem;
+}
+.lineField:focus-visible {
+	border-color: var(--action);
+	box-shadow: 0 1px 0 var(--action);
+	outline: 2px solid transparent;
+}
+.lineField[aria-invalid="true"] {
+	border-color: var(--error);
+}
+.message {
+	height: auto;
+	min-height: 110px;
+	resize: vertical;
+	line-height: 1.8;
+	border-color: var(--action);
+}
+.send {
+	justify-self: start;
+	min-height: 40px;
+	border-radius: 5px;
+	padding-inline: 22px;
+	font-size: 0.8rem;
+}
+.privacy {
+	margin: -10px 0 0;
+	max-width: 440px;
+	color: var(--muted);
+	font-size: 0.65rem;
+	line-height: 1.8;
+}
+@media (max-width: 700px) {
+	.inner {
+		padding: 35px 16px 65px;
+	}
+	.heading {
+		margin-bottom: 30px;
+	}
+	.heading p {
+		font-size: 0.875rem;
+	}
+	.card {
+		grid-template-columns: minmax(0, 1fr);
+		padding: 7px;
+		border-radius: 20px;
+	}
+	.information {
+		min-height: 230px;
+		padding: 25px;
+	}
+	.details {
+		margin-top: 24px;
+		gap: 17px;
+	}
+	.circle {
+		width: 150px;
+		height: 150px;
+		bottom: -65px;
+	}
+	.form {
+		padding: 29px 20px 22px;
+	}
+	.nameEmail {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
+	}
+	.contactForm {
+		gap: 24px;
+	}
+}

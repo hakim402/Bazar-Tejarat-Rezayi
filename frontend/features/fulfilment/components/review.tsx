@@ -98,11 +98,11 @@ export function DeliveryReview({
 					<p>{review.receipt.description}</p>
 				</section>
 			)}
-			<dl className="space-y-3">
+			<dl className="m-0 space-y-3">
 				{Object.entries(review.fields).map(([label, value]) => (
 					<div key={label}>
 						<dt className="text-sm text-muted">{label}</dt>
-						<dd className="break-words whitespace-pre-wrap">
+						<dd className="m-0 break-words whitespace-pre-wrap">
 							<bdi>{value}</bdi>
 						</dd>
 					</div>

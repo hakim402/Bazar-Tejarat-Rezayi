@@ -11,7 +11,7 @@ from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
 from unfold.decorators import action
 from ..forms import PostForm, HERO_TEXT
-from ..models import SiteSettings, HeroSlide, SiteMedia, LOCALES
+from ..models import SiteSettings, SiteMedia, LOCALES
 from ..services import draft_for, save_post, delete_post
 from .helpers import ServiceFormMixin, asset_img, asset_video, slide_thumbnail, slide_state, submit_pressed, with_initial
 

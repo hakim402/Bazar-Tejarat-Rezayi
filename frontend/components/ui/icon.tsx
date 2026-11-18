@@ -79,7 +79,11 @@ const paths = {
 	trash: "M4 7h16 M9 7V4h6v3 M6 7l1 14h10l1-14 M10 11v6 M14 11v6",
 	minus: "M5 12h14",
 	share: "M12 3v12 m-4-8 4-4 4 4 M5 12v8h14v-8",
+	send: "m22 2-7 20-4-9-9-4Z M22 2 11 13",
+	paperclip:
+		"m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48",
 	"zoom-in": "M20 20l-5-5 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0 M10 7v6 M7 10h6",
+	logout: "M9 5H4v14h5 M9 12h12 m-4-4 4 4-4 4",
 } as const;
 export type IconName = keyof typeof paths;
 export function iconName(
@@ -98,7 +102,8 @@ export function Icon({
 		name.startsWith("arrow-") ||
 		name.startsWith("chevron") ||
 		name.startsWith("trending-") ||
-		name === "return";
+		name === "return" ||
+		name === "logout";
 	const mirror = directional && !/\b(?:ltr|rtl):rotate-180\b/.test(className);
 
 	return (

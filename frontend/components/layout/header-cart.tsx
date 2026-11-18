@@ -116,7 +116,7 @@ export function HeaderCart({ locale }: { locale: Locale }) {
 							<ul
 								role="status"
 								aria-label={t.loading}
-								className="divide-y divide-border/60"
+								className="m-0 list-none divide-y divide-border/60 p-0"
 							>
 								{[0, 1, 2].map((row) => (
 									<li
@@ -148,7 +148,7 @@ export function HeaderCart({ locale }: { locale: Locale }) {
 								</Link>
 							</div>
 						) : (
-							<ul className="divide-y divide-border/60">
+							<ul className="m-0 list-none divide-y divide-border/60 p-0">
 								{lines.map((row) => (
 									<li key={`${row.id}:${row.version}`}>
 										<Link

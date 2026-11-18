@@ -33,11 +33,22 @@ from ..services import (
 
 
 def identity_data(user):
+    from apps.site.queries import media
+
     return {
         "id": str(user.pk),
         "email": user.email,
         "display_name": user.display_name,
         "email_verified": user.email_verified,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "phone": user.phone,
+        "bio": user.bio,
+        "gender": user.gender,
+        "date_of_birth": user.date_of_birth,
+        "preferred_locale": user.preferred_locale,
+        "avatar": media(user.avatar),
+        "date_joined": user.date_joined,
     }
 
 
@@ -152,10 +163,56 @@ class SessionView(AuthView):
 class ProfileView(AuthView):
     @extend_schema(request=c.ProfileUpdate, responses=c.AuthResult)
     def patch(self, request, context):
-        from ..services import update_display_name
+        from ..services import update_profile
         data = self.data(c.ProfileUpdate)
-        user = update_display_name(request, context, data["display_name"])
+        user = update_profile(request, context, data)
         return Response({"status": "updated", "identity": identity_data(user)})
+
+
+class ProfileAvatarView(AuthView):
+    @extend_schema(request=c.AvatarUpload, responses=c.AuthResult)
+    def post(self, request, context):
+        from ..services.profile import set_avatar
+        serializer = c.AvatarUpload(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = set_avatar(request, context, serializer.validated_data["file"])
+        return Response({"status": "updated", "identity": identity_data(user)})
+
+    @extend_schema(request=c.Empty, responses=c.AuthResult)
+    def delete(self, request, context):
+        from ..services.profile import clear_avatar
+        user = clear_avatar(request, context)
+        return Response({"status": "updated", "identity": identity_data(user)})
+
+
+class AddressListView(AuthView):
+    @extend_schema(responses=c.AddressData(many=True))
+    def get(self, request, context):
+        from ..services.profile import list_addresses
+        return Response(c.AddressData(list_addresses(request, context), many=True).data)
+
+    @extend_schema(request=c.AddressPayload, responses={201: c.AddressData})
+    def post(self, request, context):
+        from ..services.profile import create_address
+        data = self.data(c.AddressPayload)
+        address = create_address(request, context, data)
+        return Response(c.AddressData(address).data, status=201)
+
+
+class AddressDetailView(AuthView):
+    @extend_schema(request=c.AddressPayload, responses=c.AddressData)
+    def patch(self, request, context, pk):
+        from ..services.profile import update_address
+        serializer = c.AddressPayload(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        address = update_address(request, context, pk, serializer.validated_data)
+        return Response(c.AddressData(address).data)
+
+    @extend_schema(request=c.Empty, responses=c.AuthResult)
+    def delete(self, request, context, pk):
+        from ..services.profile import delete_address
+        delete_address(request, context, pk)
+        return Response({"status": "deleted"})
 
 
 class LinkView(AuthView):

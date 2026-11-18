@@ -19,11 +19,11 @@ export function DeliverySummary({
 	const t = fulfilmentCopy[locale];
 	if (seller) {
 		const money = (fields: readonly (readonly [string, string | null])[]) => (
-			<dl className="grid min-w-0 grid-cols-2 gap-4">
+			<dl className="m-0 grid min-w-0 grid-cols-2 gap-4">
 				{fields.map(([label, value]) => (
 					<div key={label} className="min-w-0 space-y-1">
 						<dt className="text-xs leading-relaxed text-muted">{label}</dt>
-						<dd className="font-semibold tabular-nums wrap-anywhere">
+						<dd className="m-0 font-semibold tabular-nums wrap-anywhere">
 							{value === null ? (
 								<span className="text-warning">{t.unknownCharge}</span>
 							) : (
@@ -100,16 +100,16 @@ export function DeliverySummary({
 							[t.deliveryRemaining, row.delivery_remaining],
 							[t.deliveryExcess, row.delivery_excess],
 						])}
-						<dl className="space-y-3 border-t border-border pt-3 text-sm">
+						<dl className="m-0 space-y-3 border-t border-border pt-3 text-sm">
 							<div>
 								<dt className="text-xs text-muted">{t.provider}</dt>
-								<dd className="mt-1 wrap-anywhere">
+								<dd className="m-0 mt-1 wrap-anywhere">
 									<bdi>{row.provider || "—"}</bdi>
 								</dd>
 							</div>
 							<div>
 								<dt className="text-xs text-muted">{t.chargePayee}</dt>
-								<dd className="mt-1 wrap-anywhere">
+								<dd className="m-0 mt-1 wrap-anywhere">
 									<bdi>{row.charge_provider || "—"}</bdi>
 								</dd>
 							</div>
@@ -172,7 +172,7 @@ export function DeliverySummary({
 					{t.method}: {fulfilmentState(locale, row.payment_method)}
 				</span>
 			</div>
-			<dl className="grid gap-4 sm:grid-cols-2 desktop:grid-cols-3">
+			<dl className="m-0 grid gap-4 sm:grid-cols-2 desktop:grid-cols-3">
 				{[
 					[t.goodsConfirmed, row.goods_confirmed],
 					[t.goodsRemaining, row.goods_remaining],
@@ -184,7 +184,7 @@ export function DeliverySummary({
 				].map(([label, value]) => (
 					<div key={label}>
 						<dt className="text-sm text-muted">{label}</dt>
-						<dd className="font-bold break-words">
+						<dd className="m-0 font-bold break-words">
 							{value === null ? (
 								t.unknownCharge
 							) : (

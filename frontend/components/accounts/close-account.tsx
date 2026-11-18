@@ -7,6 +7,7 @@ import { ACCOUNT_SESSION_CHANGED } from "../../features/identity/api/accounts";
 import { Alert } from "../ui/alert";
 import { Button } from "../ui/button";
 import { CheckField, Field, Input } from "../ui/form-field";
+import { Icon } from "../ui/icon";
 
 type Blocker = components["schemas"]["BlockersEnum"];
 type Status = components["schemas"]["ClosureStatus"];
@@ -115,9 +116,11 @@ const copy = {
 export function CloseAccount({
 	locale,
 	context,
+	flat = false,
 }: {
 	locale: Locale;
 	context: "buyer" | "seller";
+	flat?: boolean;
 }) {
 	const t = copy[locale];
 	const path = `auth/${context}/closure/`;
@@ -170,74 +173,125 @@ export function CloseAccount({
 		}
 	}
 
+	const header = (
+		<>
+			<h2
+				id={`close-${context}-heading`}
+				className={flat ? "m-0 text-base font-semibold" : "text-xl font-bold"}
+			>
+				{t.title}
+			</h2>
+			<p
+				className={
+					flat
+						? "m-0 max-w-3xl text-xs text-muted"
+						: "max-w-3xl text-sm leading-relaxed text-muted"
+				}
+			>
+				{t.body}
+			</p>
+		</>
+	);
+	const content = (
+		<>
+			{loading && (
+				<p role="status" className="text-muted">
+					{t.loading}
+				</p>
+			)}
+			{error && <Alert role="alert">{error}</Alert>}
+			{done && (
+				<Alert variant="success" role="status">
+					{t.closed}
+				</Alert>
+			)}
+			{blockers && blockers.length > 0 && (
+				<div className="space-y-2">
+					<p className="font-bold">{t.blocked}</p>
+					<ul className="list-disc space-y-1 ps-6 text-sm">
+						{blockers.map((code) => (
+							<li key={code}>{t.blockers[code]}</li>
+						))}
+					</ul>
+				</div>
+			)}
+			{blockers && blockers.length === 0 && !done && (
+				<form onSubmit={submit} className="max-w-md space-y-2">
+					<p className="text-sm text-muted">{t.ready}</p>
+					<Field name={`close-${context}-password`} label={t.password}>
+						<Input
+							id={`field-close-${context}-password`}
+							name="password"
+							type="password"
+							autoComplete="current-password"
+							required
+							dir="ltr"
+						/>
+					</Field>
+					<CheckField
+						name={`close-${context}-confirm`}
+						checked={confirm}
+						onChange={(event) => setConfirm(event.currentTarget.checked)}
+						label={t.confirm}
+					/>
+					<Button
+						type="submit"
+						variant="secondary"
+						className="text-danger"
+						disabled={busy || !confirm}
+					>
+						{t.submit}
+					</Button>
+				</form>
+			)}
+		</>
+	);
 	return (
 		<section
 			aria-labelledby={`close-${context}-heading`}
-			className="space-y-3 rounded-card border border-border bg-surface p-5"
+			className={
+				flat
+					? "overflow-hidden rounded-xl border border-solid border-border bg-surface"
+					: "space-y-3 rounded-card border border-border bg-surface p-5"
+			}
 			data-testid="close-account"
 		>
-			<h2 id={`close-${context}-heading`} className="text-xl font-bold">
-				{t.title}
-			</h2>
-			<p className="max-w-3xl text-sm leading-relaxed text-muted">{t.body}</p>
+			{flat ? (
+				<div className="flex items-start gap-3 border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
+					<span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-danger-surface text-danger">
+						<Icon name="alert-triangle" className="size-4" />
+					</span>
+					<div className="min-w-0 space-y-1">{header}</div>
+				</div>
+			) : (
+				header
+			)}
 			<details
+				className={flat ? "group" : undefined}
 				onToggle={(event) => {
 					if (event.currentTarget.open && blockers === null && !loading)
 						void load();
 				}}
 			>
-				<summary className="min-h-11 cursor-pointer py-3 font-bold text-danger">
+				<summary
+					className={
+						flat
+							? "flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-danger [&::-webkit-details-marker]:hidden sm:px-5"
+							: "min-h-11 cursor-pointer py-3 font-bold text-danger"
+					}
+				>
 					{t.open}
-				</summary>
-				{loading && (
-					<p role="status" className="text-muted">
-						{t.loading}
-					</p>
-				)}
-				{error && <Alert role="alert">{error}</Alert>}
-				{done && (
-					<Alert variant="success" role="status">
-						{t.closed}
-					</Alert>
-				)}
-				{blockers && blockers.length > 0 && (
-					<div className="space-y-2">
-						<p className="font-bold">{t.blocked}</p>
-						<ul className="list-disc space-y-1 ps-6 text-sm">
-							{blockers.map((code) => (
-								<li key={code}>{t.blockers[code]}</li>
-							))}
-						</ul>
-					</div>
-				)}
-				{blockers && blockers.length === 0 && !done && (
-					<form onSubmit={submit} className="max-w-md space-y-2">
-						<p className="text-sm text-muted">{t.ready}</p>
-						<Field name={`close-${context}-password`} label={t.password}>
-							<Input
-								id={`field-close-${context}-password`}
-								name="password"
-								type="password"
-								autoComplete="current-password"
-								required
-								dir="ltr"
-							/>
-						</Field>
-						<CheckField
-							name={`close-${context}-confirm`}
-							checked={confirm}
-							onChange={(event) => setConfirm(event.currentTarget.checked)}
-							label={t.confirm}
+					{flat && (
+						<Icon
+							name="chevron-down"
+							className="size-4 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
 						/>
-						<Button
-							type="submit"
-							variant="secondary"
-							className="text-danger"
-							disabled={busy || !confirm}
-						>
-							{t.submit}
-						</Button>
-					</form>
+					)}
+				</summary>
+				{flat ? (
+					<div className="space-y-3 px-4 pb-4 sm:px-5">{content}</div>
+				) : (
+					content
 				)}
 			</details>
 		</section>

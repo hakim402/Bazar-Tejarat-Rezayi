@@ -1,7 +1,16 @@
 "use client";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
+import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import { Textarea } from "../../../components/shadcn/textarea";
+import { Icon, type IconName } from "../../../components/ui/icon";
+import { cn } from "../../../lib/shadcn-utils";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
 import {
 	action as defaultAction,
 	control as defaultControl,
@@ -29,6 +38,48 @@ import type { Context, Domain, Mode, Reviewed, Workspace } from "../types";
 import { DecreaseLines } from "./line-editor";
 import { AftercareEvidence } from "./evidence";
 
+const modeIcon: Partial<Record<Mode, IconName>> = {
+	cancel: "return",
+	cancel_withdraw: "return",
+	amend: "sliders",
+	amend_withdraw: "sliders",
+	excess: "wallet",
+	report: "receipt",
+	refund_withdraw: "receipt",
+	delivery_refund: "truck",
+	dispute_open: "shield",
+	dispute_withdraw: "shield",
+	dispute_respond: "shield",
+	review_submit: "star",
+	review_withdraw: "star",
+};
+
+function BuyerField({
+	label,
+	htmlFor,
+	help,
+	children,
+}: {
+	label: ReactNode;
+	htmlFor?: string;
+	help?: ReactNode;
+	children: ReactNode;
+}) {
+	return (
+		<div className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
+			{htmlFor ? (
+				<label htmlFor={htmlFor} className="m-0">
+					{label}
+				</label>
+			) : (
+				<span>{label}</span>
+			)}
+			{children}
+			{help && <span className="text-xs font-normal text-muted">{help}</span>}
+		</div>
+	);
+}
+
 export function AftercareActionForm({
 	locale,
 	context,
@@ -40,6 +91,7 @@ export function AftercareActionForm({
 	onDirty,
 	onDomain,
 	choose,
+	initialMode,
 }: {
 	locale: Locale;
 	context: Context;
@@ -51,6 +103,7 @@ export function AftercareActionForm({
 	onDirty: (dirty: boolean) => void;
 	onDomain: (domain: Domain) => void;
 	choose: (next: () => void) => void;
+	initialMode?: Mode;
 }) {
 	const t = aftercareCopy[locale],
 		sales = sellerSalesCopy[locale],
@@ -62,7 +115,12 @@ export function AftercareActionForm({
 	const labelClass = isSeller
 		? "block min-w-0 space-y-2 text-sm font-medium"
 		: undefined;
-	const [mode, setMode] = useState<Mode>(() => modes[0] ?? "cancel");
+	const uid = useId();
+	const [mode, setMode] = useState<Mode>(
+		() =>
+			(initialMode && modes.includes(initialMode) ? initialMode : modes[0]) ??
+			"cancel",
+	);
 	const [draft, setDraft] = useState<Draft>(emptyDraft);
 	const [base, setBase] = useState(() => structuredClone(data));
 	const [invalid, setInvalid] = useState(false);
@@ -134,7 +192,13 @@ export function AftercareActionForm({
 	function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (locked || !available || stale) return;
-		const packet = buildAction(locale, mode === "dispute_open" ? { ...base, payment: data.payment } : base, mode, draft, crypto.randomUUID());
+		const packet = buildAction(
+			locale,
+			mode === "dispute_open" ? { ...base, payment: data.payment } : base,
+			mode,
+			draft,
+			crypto.randomUUID(),
+		);
 		if (!packet || file) {
 			setInvalid(true);
 			return;
@@ -149,38 +213,58 @@ export function AftercareActionForm({
 	}
 	const targets =
 		mode === "dispute_withdraw" || mode === "dispute_respond"
-			? (data.order.disputes ?? []).filter((row) => mode === "dispute_withdraw" ? row.can_withdraw : row.can_respond === true).map((row) => ({ id: row.id, label: `${row.id} · ${row.reason}` }))
+			? (data.order.disputes ?? [])
+					.filter((row) =>
+						mode === "dispute_withdraw"
+							? row.can_withdraw
+							: row.can_respond === true,
+					)
+					.map((row) => ({
+						id: row.id,
+						label: isSeller
+							? `${row.id} · ${row.reason}`
+							: `${aftercareState(locale, row.state)} · ${row.reason}`,
+					}))
 			: mode === "cancel_withdraw"
-			? data.order.cancellations
-					.filter((row) => row.can_withdraw)
-					.map((row) => ({ id: row.id, label: `${row.id} · ${row.reason}` }))
-			: mode === "amend_withdraw"
-				? data.order.amendments
+				? data.order.cancellations
 						.filter((row) => row.can_withdraw)
 						.map((row) => ({
 							id: row.id,
-							label: `${row.id} · ${row.after_total} ${data.order.currency} · ${row.reason}`,
+							label: isSeller ? `${row.id} · ${row.reason}` : row.reason,
 						}))
-				: mode === "refund_withdraw"
-					? (data.payment?.refund_reports ?? [])
+				: mode === "amend_withdraw"
+					? data.order.amendments
 							.filter((row) => row.can_withdraw)
 							.map((row) => ({
 								id: row.id,
-								label: `${row.id} · ${row.amount} ${data.order.currency} · ${row.reference}`,
+								label: isSeller
+									? `${row.id} · ${row.after_total} ${data.order.currency} · ${row.reason}`
+									: `${row.after_total} ${data.order.currency} · ${row.reason}`,
 							}))
-					: mode === "report"
-						? (data.payment?.refund_dues ?? [])
-								.filter((row) => row.can_report)
+					: mode === "refund_withdraw"
+						? (data.payment?.refund_reports ?? [])
+								.filter((row) => row.can_withdraw)
 								.map((row) => ({
 									id: row.id,
-									label: `${aftercareState(locale, row.cause)} · ${row.amount} ${row.currency} · ${row.id}`,
+									label: isSeller
+										? `${row.id} · ${row.amount} ${data.order.currency} · ${row.reference}`
+										: `${row.amount} ${data.order.currency} · ${row.reference}`,
 								}))
-						: mode === "delivery_refund"
-							? (data.delivery?.refund_providers ?? []).map((row) => ({
-									id: row.id,
-									label: `${row.name} · ${row.refundable} ${data.order.currency}`,
-								}))
-							: null;
+						: mode === "report"
+							? (data.payment?.refund_dues ?? [])
+									.filter((row) => row.can_report)
+									.map((row) => ({
+										id: row.id,
+										label: isSeller
+											? `${aftercareState(locale, row.cause)} · ${row.amount} ${row.currency} · ${row.id}`
+											: `${aftercareState(locale, row.cause)} · ${row.amount} ${row.currency}`,
+									}))
+							: mode === "delivery_refund"
+								? (data.delivery?.refund_providers ?? []).map((row) => ({
+										id: row.id,
+										label: `${row.name} · ${row.refundable} ${data.order.currency}`,
+									}))
+								: null;
 	const due = data.payment?.refund_dues.find((row) => row.id === draft.target);
 	const bound =
 		mode === "excess"
@@ -210,14 +294,40 @@ export function AftercareActionForm({
 				<p className="text-sm text-muted">{t.noActions}</p>
 			</section>
 		) : (
-			<p>{t.noActions}</p>
+			<p className="m-0 text-sm text-muted">{t.noActions}</p>
 		);
+	const groups: [string, Mode[]][] = [
+		[t.groupCancel, ["cancel", "cancel_withdraw"]],
+		[t.groupChange, ["amend", "amend_withdraw"]],
+		[t.groupRefund, ["excess", "report", "refund_withdraw", "delivery_refund"]],
+		[t.groupDispute, ["dispute_open", "dispute_withdraw", "dispute_respond"]],
+		[t.groupReview, ["review_submit", "review_withdraw"]],
+	];
 	return (
-		<section className={`${panel} space-y-4`}>
-			<h2 className="text-xl font-bold" data-aftercare-actions tabIndex={-1}>
-				{isSeller ? sales.actions : t.exact}
+		<section
+			className={
+				isSeller ? `${panel} space-y-4` : "flex min-w-0 flex-col gap-4"
+			}
+		>
+			<h2
+				className={
+					isSeller ? "text-xl font-bold" : "m-0 text-base font-semibold"
+				}
+				data-aftercare-actions
+				tabIndex={-1}
+			>
+				{isSeller ? sales.actions : t.chooseAction}
 			</h2>
-			{!available && <p role="status">{t.actionChanged}</p>}
+			{!isSeller && (
+				<p className="m-0 rounded-xl bg-info px-4 py-3 text-sm leading-relaxed text-action">
+					{t.helpIntro}
+				</p>
+			)}
+			{!available && (
+				<p role="status" className="m-0 text-sm text-warning">
+					{t.actionChanged}
+				</p>
+			)}
 			{isSeller ? (
 				<fieldset disabled={locked} className="min-w-0 space-y-2">
 					<legend className="mb-2 text-sm font-medium">{t.exact}</legend>
@@ -235,32 +345,77 @@ export function AftercareActionForm({
 					/>
 				</fieldset>
 			) : (
-				<label>
-					{t.exact}
-					<select
-						className={control}
-						value={available ? mode : ""}
-						disabled={locked}
-						onChange={(event) => {
-							const next = event.target.value as Mode;
-							choose(() => discard(next));
-						}}
-					>
-						{!available && (
-							<option value="" disabled>
-								{t.exact}
-							</option>
-						)}
-						{modes.map((value) => (
-							<option key={value} value={value}>
-								{modeLabel(locale, value)}
-							</option>
-						))}
-					</select>
-				</label>
+				<div className="flex min-w-0 flex-col gap-3">
+					{groups.map(([label, groupModes]) => {
+						const inGroup = groupModes.filter((value) => modes.includes(value));
+						if (!inGroup.length) return null;
+						return (
+							<fieldset
+								key={label}
+								disabled={locked}
+								className="m-0 min-w-0 border-0 p-0"
+							>
+								<legend className="mb-1.5 p-0 text-xs font-medium text-muted">
+									{label}
+								</legend>
+								<div className="grid gap-2 sm:grid-cols-2">
+									{inGroup.map((value) => {
+										const active = available && mode === value;
+										return (
+											<Button
+												key={value}
+												type="button"
+												variant="outline"
+												aria-pressed={active}
+												onClick={() => choose(() => discard(value))}
+												className={cn(
+													"h-auto justify-start gap-3 rounded-xl px-3 py-2.5",
+													active &&
+														"border-action bg-info text-action hover:bg-info",
+												)}
+											>
+												<span
+													className={cn(
+														"flex size-8 shrink-0 items-center justify-center rounded-lg",
+														active
+															? "bg-surface text-action"
+															: "bg-info text-action",
+													)}
+												>
+													<Icon
+														name={modeIcon[value] ?? "help"}
+														className="size-4"
+													/>
+												</span>
+												<span className="min-w-0 flex-1 truncate text-start text-sm font-medium">
+													{modeLabel(locale, value)}
+												</span>
+												{active && (
+													<Icon name="check" className="size-4 shrink-0" />
+												)}
+											</Button>
+										);
+									})}
+								</div>
+							</fieldset>
+						);
+					})}
+				</div>
 			)}
-			<form aria-label={t.exact} onSubmit={submit} className="space-y-4" noValidate>
-				<fieldset disabled={locked || !available} className="space-y-4">
+			<form
+				aria-label={isSeller ? t.exact : t.helpTitle}
+				onSubmit={submit}
+				className={isSeller ? "space-y-4" : "flex min-w-0 flex-col gap-4"}
+				noValidate
+			>
+				<fieldset
+					disabled={locked || !available}
+					className={
+						isSeller
+							? "space-y-4"
+							: "flex min-w-0 flex-col gap-4 rounded-xl border border-solid border-border bg-page p-4"
+					}
+				>
 					{targets &&
 						(isSeller ? (
 							<div className="min-w-0 space-y-2">
@@ -289,27 +444,29 @@ export function AftercareActionForm({
 									)}
 							</div>
 						) : (
-							<label>
-								{mode === "delivery_refund" ? t.provider : t.target}
-								<select
-									className={control}
+							<BuyerField
+								label={mode === "delivery_refund" ? t.provider : t.target}
+								htmlFor={`${uid}-target`}
+							>
+								<NativeSelect
+									id={`${uid}-target`}
 									value={draft.target}
 									onChange={(event) => target(event.target.value)}
 								>
-									<option value="">—</option>
+									<NativeSelectOption value="">—</NativeSelectOption>
 									{draft.target &&
 										!targets.some((row) => row.id === draft.target) && (
-											<option value={draft.target} disabled>
+											<NativeSelectOption value={draft.target} disabled>
 												{t.actionChanged}
-											</option>
+											</NativeSelectOption>
 										)}
 									{targets.map((row) => (
-										<option key={row.id} value={row.id}>
+										<NativeSelectOption key={row.id} value={row.id}>
 											{row.label}
-										</option>
+										</NativeSelectOption>
 									))}
-								</select>
-							</label>
+								</NativeSelect>
+							</BuyerField>
 						))}
 					{mode === "amend" && (
 						<DecreaseLines
@@ -325,167 +482,368 @@ export function AftercareActionForm({
 						/>
 					)}
 					{(mode === "cancel" || mode === "cancel_withdraw") && (
-						<p>{t.cancelNote}</p>
+						<p className={isSeller ? undefined : "m-0 text-sm text-muted"}>
+							{t.cancelNote}
+						</p>
 					)}
 					{(mode === "excess" || financial) && (
 						<>
 							{bound && (
-								<p>
+								<p className={isSeller ? undefined : "m-0 text-sm text-muted"}>
 									{t.limit}:{" "}
 									<bdi>
 										{bound} {data.order.currency}
 									</bdi>
 								</p>
 							)}
-							<label className={labelClass}>
-								{t.amount} (<bdi>{data.order.currency}</bdi>)
-								<input
-									className={control}
-									dir="ltr"
-									inputMode="decimal"
-									maxLength={25}
-									value={draft.amount}
-									readOnly={mode === "report"}
-									onChange={(event) => patch({ amount: event.target.value })}
-								/>
-							</label>
+							{isSeller ? (
+								<label className={labelClass}>
+									{t.amount} (<bdi>{data.order.currency}</bdi>)
+									<input
+										className={control}
+										dir="ltr"
+										inputMode="decimal"
+										maxLength={25}
+										value={draft.amount}
+										readOnly={mode === "report"}
+										onChange={(event) => patch({ amount: event.target.value })}
+									/>
+								</label>
+							) : (
+								<BuyerField
+									label={
+										<>
+											{t.amount} (<bdi>{data.order.currency}</bdi>)
+										</>
+									}
+									htmlFor={`${uid}-amount`}
+								>
+									<Input
+										id={`${uid}-amount`}
+										dir="ltr"
+										inputMode="decimal"
+										maxLength={25}
+										value={draft.amount}
+										readOnly={mode === "report"}
+										onChange={(event) => patch({ amount: event.target.value })}
+										className="rounded-lg"
+									/>
+								</BuyerField>
+							)}
 						</>
 					)}
 					{mode === "report" && due?.previous && (
-						<p className="break-words">
+						<p
+							className={
+								isSeller ? "break-words" : "m-0 break-words text-sm text-muted"
+							}
+						>
 							{t.before}: <bdi>{due.previous}</bdi>
 						</p>
 					)}
-					{mode.startsWith("dispute_") && <p>{t.disputeNote}</p>}
-					{mode.startsWith("review_") && <p>{t.reviewNote}</p>}
-					{mode === "review_submit" && (
-						<label className={labelClass}>
-							{t.reviewRating}
-							<select aria-label={t.reviewRating} className={control} value={draft.rating} onChange={(event) => patch({ rating: event.target.value })}>
-								<option value="">—</option>
-								{[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}/5</option>)}
-							</select>
-						</label>
+					{mode.startsWith("dispute_") && (
+						<p className={isSeller ? undefined : "m-0 text-sm text-muted"}>
+							{t.disputeNote}
+						</p>
 					)}
-					{mode === "review_submit" || mode === "dispute_respond" ? (
-						<label className={labelClass}>
-							{mode === "review_submit" ? t.reviewText : t.disputeResponse}
-							<textarea className={control} dir="auto" maxLength={2000} rows={4} value={draft.text} onChange={(event) => patch({ text: event.target.value })} />
-						</label>
-					) : financial || mode === "dispute_open" ? (
-						<>
-							{financial ? <>
-							<p>{mode === "report" ? t.refundNote : t.deliveryNote}</p>
-							{isSeller ? (
-								<div className="grid min-w-0 gap-4 sm:grid-cols-2">
-									<label className={labelClass}>
-										{t.sentAt}
-										<input
-											className={control}
-											type="datetime-local"
-											dir="ltr"
-											step="1"
-											value={draft.at}
-											onChange={(event) => patch({ at: event.target.value })}
-										/>
-										<span className="text-sm text-muted">
-											{t.inputTimezone}
-										</span>
-									</label>
-									<label className={labelClass}>
-										{t.reference}
-										<input
-											className={control}
-											autoComplete="off"
-											maxLength={160}
-											value={draft.reference}
-											onChange={(event) =>
-												patch({ reference: event.target.value })
-											}
-										/>
-									</label>
-								</div>
-							) : (
-								<>
-									<label>
-										{t.sentAt}
-										<input
-											className={control}
-											type="datetime-local"
-											dir="ltr"
-											step="1"
-											value={draft.at}
-											onChange={(event) => patch({ at: event.target.value })}
-										/>
-										<span className="text-sm text-muted">
-											{t.inputTimezone}
-										</span>
-									</label>
-									<label>
-										{t.reference}
-										<input
-											className={control}
-											autoComplete="off"
-											maxLength={160}
-											value={draft.reference}
-											onChange={(event) =>
-												patch({ reference: event.target.value })
-											}
-										/>
-									</label>
-								</>
-							)}
+					{mode.startsWith("review_") && (
+						<p className={isSeller ? undefined : "m-0 text-sm text-muted"}>
+							{t.reviewNote}
+						</p>
+					)}
+					{mode === "review_submit" &&
+						(isSeller ? (
 							<label className={labelClass}>
-								{t.description}
+								{t.reviewRating}
+								<select
+									aria-label={t.reviewRating}
+									className={control}
+									value={draft.rating}
+									onChange={(event) => patch({ rating: event.target.value })}
+								>
+									<option value="">—</option>
+									{[1, 2, 3, 4, 5].map((value) => (
+										<option key={value} value={value}>
+											{value}/5
+										</option>
+									))}
+								</select>
+							</label>
+						) : (
+							<BuyerField label={t.reviewRating} htmlFor={`${uid}-rating`}>
+								<NativeSelect
+									id={`${uid}-rating`}
+									aria-label={t.reviewRating}
+									value={draft.rating}
+									onChange={(event) => patch({ rating: event.target.value })}
+								>
+									<NativeSelectOption value="">—</NativeSelectOption>
+									{[1, 2, 3, 4, 5].map((value) => (
+										<NativeSelectOption key={value} value={value}>
+											{value}/5
+										</NativeSelectOption>
+									))}
+								</NativeSelect>
+							</BuyerField>
+						))}
+					{mode === "review_submit" || mode === "dispute_respond" ? (
+						isSeller ? (
+							<label className={labelClass}>
+								{mode === "review_submit" ? t.reviewText : t.disputeResponse}
 								<textarea
 									className={control}
-									maxLength={500}
-									rows={isSeller ? 4 : undefined}
-									value={draft.description}
-									onChange={(event) =>
-										patch({ description: event.target.value })
-									}
+									dir="auto"
+									maxLength={2000}
+									rows={4}
+									value={draft.text}
+									onChange={(event) => patch({ text: event.target.value })}
 								/>
 							</label>
-							</> : <label className={labelClass}>{t.disputeReason}<textarea className={control} dir="auto" minLength={3} maxLength={1000} rows={4} value={draft.reason} onChange={(event) => patch({ reason: event.target.value })} /></label>}
-							{canUpload && (
+						) : (
+							<BuyerField
+								label={
+									mode === "review_submit" ? t.reviewText : t.disputeResponse
+								}
+								htmlFor={`${uid}-text`}
+							>
+								<Textarea
+									id={`${uid}-text`}
+									dir="auto"
+									maxLength={2000}
+									rows={4}
+									value={draft.text}
+									onChange={(event) => patch({ text: event.target.value })}
+									className="rounded-lg"
+								/>
+							</BuyerField>
+						)
+					) : financial || mode === "dispute_open" ? (
+						<>
+							{financial ? (
+								<>
+									<p
+										className={isSeller ? undefined : "m-0 text-sm text-muted"}
+									>
+										{mode === "report" ? t.refundNote : t.deliveryNote}
+									</p>
+									{isSeller ? (
+										<div className="grid min-w-0 gap-4 sm:grid-cols-2">
+											<label className={labelClass}>
+												{t.sentAt}
+												<input
+													className={control}
+													type="datetime-local"
+													dir="ltr"
+													step="1"
+													value={draft.at}
+													onChange={(event) =>
+														patch({ at: event.target.value })
+													}
+												/>
+												<span className="text-sm text-muted">
+													{t.inputTimezone}
+												</span>
+											</label>
+											<label className={labelClass}>
+												{t.reference}
+												<input
+													className={control}
+													autoComplete="off"
+													maxLength={160}
+													value={draft.reference}
+													onChange={(event) =>
+														patch({ reference: event.target.value })
+													}
+												/>
+											</label>
+										</div>
+									) : (
+										<div className="grid min-w-0 gap-4 sm:grid-cols-2">
+											<BuyerField
+												label={t.sentAt}
+												htmlFor={`${uid}-at`}
+												help={t.inputTimezone}
+											>
+												<Input
+													id={`${uid}-at`}
+													type="datetime-local"
+													dir="ltr"
+													step="1"
+													value={draft.at}
+													onChange={(event) =>
+														patch({ at: event.target.value })
+													}
+													className="rounded-lg"
+												/>
+											</BuyerField>
+											<BuyerField
+												label={t.reference}
+												htmlFor={`${uid}-reference`}
+											>
+												<Input
+													id={`${uid}-reference`}
+													autoComplete="off"
+													maxLength={160}
+													value={draft.reference}
+													onChange={(event) =>
+														patch({ reference: event.target.value })
+													}
+													className="rounded-lg"
+												/>
+											</BuyerField>
+										</div>
+									)}
+									{isSeller ? (
+										<label className={labelClass}>
+											{t.description}
+											<textarea
+												className={control}
+												maxLength={500}
+												rows={4}
+												value={draft.description}
+												onChange={(event) =>
+													patch({ description: event.target.value })
+												}
+											/>
+										</label>
+									) : (
+										<BuyerField
+											label={t.description}
+											htmlFor={`${uid}-description`}
+										>
+											<Textarea
+												id={`${uid}-description`}
+												maxLength={500}
+												rows={3}
+												value={draft.description}
+												onChange={(event) =>
+													patch({ description: event.target.value })
+												}
+												className="rounded-lg"
+											/>
+										</BuyerField>
+									)}
+								</>
+							) : isSeller ? (
 								<label className={labelClass}>
-									{t.evidence}
-									<input
-										ref={fileInput}
-										className={
-											isSeller
-												? `${control} file:me-3 file:rounded-lg file:border-0 file:bg-info file:px-3 file:py-1 file:text-action`
-												: undefined
-										}
-										type="file"
-										accept="image/jpeg,image/png,image/webp"
-										disabled={draft.images.length >= 3}
-										onChange={(event) => {
-											setFile(event.target.files?.[0] ?? null);
-											onDirty(true);
-										}}
+									{t.disputeReason}
+									<textarea
+										className={control}
+										dir="auto"
+										minLength={3}
+										maxLength={1000}
+										rows={4}
+										value={draft.reason}
+										onChange={(event) => patch({ reason: event.target.value })}
 									/>
 								</label>
+							) : (
+								<BuyerField label={t.disputeReason} htmlFor={`${uid}-reason`}>
+									<Textarea
+										id={`${uid}-reason`}
+										dir="auto"
+										minLength={3}
+										maxLength={1000}
+										rows={4}
+										value={draft.reason}
+										onChange={(event) => patch({ reason: event.target.value })}
+										className="rounded-lg"
+									/>
+								</BuyerField>
 							)}
-							<p className="text-sm text-muted">{t.filesNote}</p>
-							<button
-								type="button"
-								className={action}
-								disabled={
-									!file || !canUpload || draft.images.length >= 3 || stale
-								}
-								onClick={() => {
-									if (!file || !validEvidence(file, draft.images.length)) {
-										setInvalid(true);
-										return;
+							{canUpload &&
+								(isSeller ? (
+									<label className={labelClass}>
+										{t.evidence}
+										<input
+											ref={fileInput}
+											className={`${control} file:me-3 file:rounded-lg file:border-0 file:bg-info file:px-3 file:py-1 file:text-action`}
+											type="file"
+											accept="image/jpeg,image/png,image/webp"
+											disabled={draft.images.length >= 3}
+											onChange={(event) => {
+												setFile(event.target.files?.[0] ?? null);
+												onDirty(true);
+											}}
+										/>
+									</label>
+								) : (
+									<BuyerField
+										label={t.evidence}
+										htmlFor={`${uid}-file`}
+										help={t.filesNote}
+									>
+										<Input
+											ref={fileInput}
+											id={`${uid}-file`}
+											type="file"
+											accept="image/jpeg,image/png,image/webp"
+											disabled={draft.images.length >= 3}
+											onChange={(event) => {
+												setFile(event.target.files?.[0] ?? null);
+												onDirty(true);
+											}}
+											className="rounded-lg file:me-3 file:rounded-md file:border-0 file:bg-info file:px-3 file:py-1 file:text-action"
+										/>
+									</BuyerField>
+								))}
+							{isSeller && <p className="text-sm text-muted">{t.filesNote}</p>}
+							{isSeller ? (
+								<button
+									type="button"
+									className={action}
+									disabled={
+										!file || !canUpload || draft.images.length >= 3 || stale
 									}
-									upload(file, evidenceDomain);
-								}}
-							>
-								{t.uploads}
-							</button>
-							{file && (
+									onClick={() => {
+										if (!file || !validEvidence(file, draft.images.length)) {
+											setInvalid(true);
+											return;
+										}
+										upload(file, evidenceDomain);
+									}}
+								>
+									{t.uploads}
+								</button>
+							) : (
+								<div className="flex flex-wrap gap-2">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="rounded-lg"
+										disabled={
+											!file || !canUpload || draft.images.length >= 3 || stale
+										}
+										onClick={() => {
+											if (!file || !validEvidence(file, draft.images.length)) {
+												setInvalid(true);
+												return;
+											}
+											upload(file, evidenceDomain);
+										}}
+									>
+										{t.uploads}
+									</Button>
+									{file && (
+										<Button
+											type="button"
+											variant="ghost"
+											size="sm"
+											className="rounded-lg"
+											onClick={() =>
+												choose(() => {
+													setFile(null);
+													if (fileInput.current) fileInput.current.value = "";
+												})
+											}
+										>
+											{t.removeImage}
+										</Button>
+									)}
+								</div>
+							)}
+							{isSeller && file && (
 								<button
 									type="button"
 									className={action}
@@ -501,30 +859,55 @@ export function AftercareActionForm({
 							)}
 							<div className="flex flex-wrap gap-3">
 								{draft.images.map((id) => (
-									<div key={id} className="space-y-2">
+									<div
+										key={id}
+										className={isSeller ? "space-y-2" : "flex flex-col gap-2"}
+									>
 										{canUpload && (
-											<AftercareEvidence {...{ id, locale, context, domain: evidenceDomain }} />
+											<AftercareEvidence
+												{...{ id, locale, context, domain: evidenceDomain }}
+											/>
 										)}
-										<button
-											type="button"
-											className={action}
-											onClick={() =>
-												choose(() =>
-													patch({
-														images: draft.images.filter(
-															(value) => value !== id,
-														),
-													}),
-												)
-											}
-										>
-											{t.removeImage}
-										</button>
+										{isSeller ? (
+											<button
+												type="button"
+												className={action}
+												onClick={() =>
+													choose(() =>
+														patch({
+															images: draft.images.filter(
+																(value) => value !== id,
+															),
+														}),
+													)
+												}
+											>
+												{t.removeImage}
+											</button>
+										) : (
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												className="self-start rounded-lg"
+												onClick={() =>
+													choose(() =>
+														patch({
+															images: draft.images.filter(
+																(value) => value !== id,
+															),
+														}),
+													)
+												}
+											>
+												{t.removeImage}
+											</Button>
+										)}
 									</div>
 								))}
 							</div>
 						</>
-					) : (
+					) : isSeller ? (
 						<label className={labelClass}>
 							{t.reason}
 							<textarea
@@ -532,34 +915,103 @@ export function AftercareActionForm({
 								dir="auto"
 								minLength={3}
 								maxLength={1000}
-								rows={isSeller ? 4 : undefined}
+								rows={4}
 								value={draft.reason}
 								onChange={(event) => patch({ reason: event.target.value })}
 							/>
 						</label>
+					) : (
+						<BuyerField label={t.reason} htmlFor={`${uid}-reason`}>
+							<Textarea
+								id={`${uid}-reason`}
+								dir="auto"
+								minLength={3}
+								maxLength={1000}
+								rows={3}
+								value={draft.reason}
+								onChange={(event) => patch({ reason: event.target.value })}
+								className="rounded-lg"
+							/>
+						</BuyerField>
 					)}
 					{invalid && (
-						<p role="alert" tabIndex={-1} ref={(node) => node?.focus()}>
+						<p
+							role="alert"
+							tabIndex={-1}
+							ref={(node) => node?.focus()}
+							className={isSeller ? undefined : "m-0 text-sm text-danger"}
+						>
 							{t.invalid}
 						</p>
 					)}
-					{stale && <p role="status">{t.stale}</p>}
-					{rebased && <p role="status">{t.rebased}</p>}
-					<div className="flex flex-wrap gap-3">
-						<button
-							type="button"
-							className={action}
-							onClick={() => {
-								setBase(structuredClone(data));
-								setRebased(true);
-								setInvalid(false);
-							}}
+					{stale && (
+						<p
+							role="status"
+							className={isSeller ? undefined : "m-0 text-sm text-warning"}
 						>
-							{t.reload}
-						</button>
-						<button className={action} type="submit" disabled={stale || !!file}>
-							{t.exact}
-						</button>
+							{t.stale}
+						</p>
+					)}
+					{rebased && (
+						<p
+							role="status"
+							className={isSeller ? undefined : "m-0 text-sm text-muted"}
+						>
+							{t.rebased}
+						</p>
+					)}
+					<div
+						className={
+							isSeller
+								? "flex flex-wrap gap-3"
+								: "flex flex-wrap items-center gap-3 border-0 border-t border-solid border-border pt-4"
+						}
+					>
+						{isSeller ? (
+							<>
+								<button
+									type="button"
+									className={action}
+									onClick={() => {
+										setBase(structuredClone(data));
+										setRebased(true);
+										setInvalid(false);
+									}}
+								>
+									{t.reload}
+								</button>
+								<button
+									className={action}
+									type="submit"
+									disabled={stale || !!file}
+								>
+									{t.exact}
+								</button>
+							</>
+						) : (
+							<>
+								<Button
+									type="submit"
+									className="rounded-lg"
+									disabled={stale || !!file}
+								>
+									{t.reviewRequest}
+								</Button>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="rounded-lg"
+									onClick={() => {
+										setBase(structuredClone(data));
+										setRebased(true);
+										setInvalid(false);
+									}}
+								>
+									{t.reload}
+								</Button>
+							</>
+						)}
 					</div>
 				</fieldset>
 			</form>

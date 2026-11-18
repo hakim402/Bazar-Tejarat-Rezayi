@@ -47,7 +47,7 @@ export function CatalogueOverview({
 	list: ProductList;
 	seller?: string | null;
 	filters?: QueryReader;
-	onDelete: (id: string, title: string) => void;
+	onDelete: (id: string, title: string, version: number) => void;
 	onAction: (id: string, action: "publish" | "unpublish") => void;
 }) {
 	const t = sellerProductsCopy[locale],
@@ -244,7 +244,9 @@ export function CatalogueOverview({
 												<DropdownMenuSeparator />
 												<DropdownMenuItem
 													variant="destructive"
-													onSelect={() => onDelete(product.id, title)}
+													onSelect={() =>
+														onDelete(product.id, title, product.version)
+													}
 												>
 													<Trash2 />
 													{productFlowCopy[locale].delete}

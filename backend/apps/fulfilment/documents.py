@@ -78,6 +78,8 @@ def snapshot(actor, pk, locale):
         ),
         order=order,
     )
+    from apps.orders.aftercare import effective_lines
+
     recipient = shipment.preparation.recipient
     provider = shipment.preparation.arrangement.provider
     AuditEvent.objects.create(
@@ -103,12 +105,12 @@ def snapshot(actor, pk, locale):
         "destination": order.snapshot.get("terms", {}).get("destination", {}),
         "lines": [
             {
-                "title": localized(line, locale),
-                "sku": line.snapshot.get("sku", ""),
-                "quantity": format(line.quantity, ".3f"),
-                "unit": line.snapshot.get("unit_labels", {}).get(locale, line.snapshot.get("unit", "")),
+                "title": localized(item["line"], locale),
+                "sku": item["line"].snapshot.get("sku", ""),
+                "quantity": format(item["quantity"], ".3f"),
+                "unit": item["line"].snapshot.get("unit_labels", {}).get(locale, item["line"].snapshot.get("unit", "")),
             }
-            for line in order.lines.all()
+            for item in effective_lines(order)
         ],
     }
 

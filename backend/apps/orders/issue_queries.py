@@ -13,7 +13,11 @@ def page(actor, *, seller=None, tab="attention", q="", page=1):
 
     orders = access.scope(actor, invoices=True, seller=seller)
     if q:
-        orders = orders.filter(Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q))
+        orders = orders.filter(
+            Q(invoice__number__icontains=q)
+            | Q(snapshot__buyer__icontains=q)
+            | Q(buyer__user__display_name__icontains=q)
+        )
     dues = RefundDue.objects.filter(order__in=orders)
     disputes = DisputeRequest.objects.filter(order__in=orders)
     if tab == "attention":
@@ -66,6 +70,7 @@ def page(actor, *, seller=None, tab="attention", q="", page=1):
         records[kind] = {row.pk: row for row in queryset.filter(pk__in=ids)}
     results = []
     permissions = {}
+    actor_profiles = set(access.profiles(actor.account).values_list("pk", flat=True))
     for entry in entries:
         kind = entry["issue_kind"]
         row = records[kind].get(entry["issue_id"])
@@ -89,7 +94,7 @@ def page(actor, *, seller=None, tab="attention", q="", page=1):
         else:
             decision = getattr(row, "decision", None)
             amount, state = decision.amount if decision else None, row.state
-            actionable = bool(row.state == "pending" and getattr(row, "response", None) is None and access.profiles(actor.account).filter(pk=order.seller_id).exists())
+            actionable = bool(row.state == "pending" and getattr(row, "response", None) is None and order.seller_id in actor_profiles)
         results.append({
             "key": f"{kind}:{row.pk}", "kind": kind,
             "order": {"id": order.pk, "seller": order.seller_id, "number": order.invoice.number,

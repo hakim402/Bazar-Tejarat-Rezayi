@@ -3,19 +3,18 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Input } from "../../../components/shadcn/input";
 import { Textarea } from "../../../components/shadcn/textarea";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
+import { buttonVariants } from "../../../components/shadcn/button";
+import { Icon } from "../../../components/ui/icon";
 import { cn } from "../../../lib/shadcn-utils";
 import type { Locale } from "../../../lib/i18n/locales";
 import { useCommerceGuard } from "../../orders/components/unsaved";
 import {
-	action as buyerAction,
-	control as buyerControl,
-	panel as buyerPanel,
-} from "../../orders/components/controls";
-import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
-import {
 	salesAction,
 	salesControl,
-	salesPanel,
 } from "../../sales/components/seller-sales-ui";
 import { fulfilmentCopy } from "../copy";
 import { aftercareCopy } from "../../aftercare/copy";
@@ -34,6 +33,28 @@ import type {
 } from "../types";
 import { StockSelection } from "./stock-selection";
 import { DeliveryEvidence } from "./evidence";
+
+const fieldLabels =
+	"m-0 flex min-w-0 flex-col gap-4 border-0 p-0 text-sm [&_label]:flex [&_label]:flex-col [&_label]:gap-1.5 [&_label]:font-medium [&_label:has(input[type=checkbox])]:flex-row [&_label:has(input[type=checkbox])]:items-center [&_label:has(input[type=checkbox])]:gap-3";
+const fieldFrame = cn(
+	fieldLabels,
+	"[&_p]:m-0 [&_p]:text-xs [&_p]:leading-relaxed [&_p]:text-muted",
+);
+const help = "m-0 text-xs leading-relaxed text-muted";
+const notice = "m-0 rounded-lg px-3 py-2 text-sm";
+const secondaryButton = cn(
+	buttonVariants({ variant: "secondary", size: "sm" }),
+	"h-auto min-h-8 whitespace-normal rounded-lg py-1.5",
+);
+const primaryButton = cn(
+	buttonVariants({ size: "sm" }),
+	"h-auto min-h-8 whitespace-normal rounded-lg py-1.5",
+);
+const quietButton = cn(
+	buttonVariants({ variant: "ghost", size: "xs" }),
+	"text-danger hover:bg-danger-surface hover:text-danger",
+);
+
 export function DeliveryActionForm({
 	locale,
 	context,
@@ -77,20 +98,19 @@ export function DeliveryActionForm({
 	};
 	const t = fulfilmentCopy[locale],
 		r = aftercareCopy[locale],
-		s = sellerSalesCopy[locale],
 		isSeller = context === "seller",
-		action = isSeller
-			? cn(salesAction, "min-h-10 rounded-lg text-sm shadow-none")
-			: buyerAction,
+		action = cn(salesAction, "min-h-10 rounded-lg text-sm shadow-none"),
 		control = isSeller
 			? cn(
 					salesControl,
 					"h-10 min-h-10 rounded-lg border-solid text-sm shadow-none",
 				)
-			: buyerControl,
-		FieldInput = isSeller ? Input : "input",
-		FieldTextarea = isSeller ? Textarea : "textarea",
-		panel = isSeller ? salesPanel : buyerPanel,
+			: "h-8 text-sm",
+		textareaControl = cn(
+			control,
+			"h-auto resize-y",
+			isSeller ? "min-h-24" : "min-h-20",
+		),
 		prefix = useId(),
 		c = row.capabilities,
 		modes = availableModes(row, context, locale);
@@ -358,13 +378,13 @@ export function DeliveryActionForm({
 			? moneyUnits(refundProvider.refundable, true)
 			: null;
 	const selector = (
-		<label
-			className={isSeller ? "block min-w-0 max-w-2xl space-y-2" : undefined}
-		>
-			{t.exact}
-			<select
-				aria-label={t.exact}
-				className={control}
+		<div className={cn("min-w-0 space-y-1.5", isSeller && "max-w-2xl")}>
+			<label htmlFor={`${prefix}-mode`} className="block text-sm font-medium">
+				{t.exact}
+			</label>
+			<NativeSelect
+				id={`${prefix}-mode`}
+				className={isSeller ? "h-10" : "h-8"}
 				value={available ? mode : ""}
 				disabled={locked || busy}
 				onChange={(event) => {
@@ -373,17 +393,17 @@ export function DeliveryActionForm({
 				}}
 			>
 				{!available && (
-					<option value="" disabled>
+					<NativeSelectOption value="" disabled>
 						{t.exact}
-					</option>
+					</NativeSelectOption>
 				)}
 				{modes.map(([value, label]) => (
-					<option key={value} value={value}>
+					<NativeSelectOption key={value} value={value}>
 						{label}
-					</option>
+					</NativeSelectOption>
 				))}
-			</select>
-		</label>
+			</NativeSelect>
+		</div>
 	);
 	const form = (
 		<form
@@ -394,63 +414,62 @@ export function DeliveryActionForm({
 		>
 			<fieldset
 				disabled={locked || busy || !available}
-				className={
-					isSeller
-						? guided
-							? "m-0 min-w-0 space-y-4 border-0 p-0 text-sm [&_label]:block [&_label]:space-y-1.5 [&_label]:font-medium [&_label:has(input[type=checkbox])]:flex [&_p]:m-0 [&_p]:text-xs [&_p]:leading-relaxed [&_p]:text-muted"
-							: "m-0 min-w-0 space-y-4 rounded-xl border border-solid border-border p-4 text-sm sm:p-5 [&_label]:block [&_label]:space-y-1.5 [&_label]:font-medium [&_label:has(input[type=checkbox])]:flex [&_p]:text-xs [&_p]:text-muted"
-						: "space-y-4"
-				}
+				className={isSeller ? fieldFrame : fieldLabels}
 			>
-				{isSeller && !guided && (
-					<legend className="px-2 text-sm font-semibold">
-						{modes.find(([value]) => value === mode)?.[1] ?? t.exact}
-					</legend>
-				)}
 				{mode === "recipient" && (
 					<>
-						<label htmlFor={`${prefix}-name`}>{t.recipientName}</label>
-						<FieldInput
-							id={`${prefix}-name`}
-							className={control}
-							value={name}
-							maxLength={120}
-							autoComplete="off"
-							onChange={(event) => setName(event.target.value)}
-						/>
-						<label htmlFor={`${prefix}-phone`}>{t.phone}</label>
-						<FieldInput
-							id={`${prefix}-phone`}
-							className={control}
-							dir="ltr"
-							value={phone}
-							maxLength={40}
-							autoComplete="off"
-							onChange={(event) => setPhone(event.target.value)}
-						/>
+						<div
+							className={isSeller ? "contents" : "grid gap-3 sm:grid-cols-2"}
+						>
+							<label htmlFor={`${prefix}-name`}>
+								{t.recipientName}
+								<Input
+									id={`${prefix}-name`}
+									className={control}
+									value={name}
+									maxLength={120}
+									autoComplete="off"
+									placeholder={t.recipientName}
+									onChange={(event) => setName(event.target.value)}
+								/>
+							</label>
+							<label htmlFor={`${prefix}-phone`}>
+								{t.phone}
+								<Input
+									id={`${prefix}-phone`}
+									className={control}
+									dir="ltr"
+									value={phone}
+									maxLength={40}
+									autoComplete="off"
+									placeholder={t.phone}
+									onChange={(event) => setPhone(event.target.value)}
+								/>
+							</label>
+						</div>
 						<label htmlFor={`${prefix}-address`}>{t.address}</label>
-						<FieldTextarea
+						<Textarea
 							id={`${prefix}-address`}
-							className={
-								isSeller ? cn(control, "h-auto min-h-24 resize-y") : control
-							}
+							className={textareaControl}
 							value={address}
 							maxLength={1500}
 							autoComplete="off"
+							placeholder={t.address}
 							onChange={(event) => setAddress(event.target.value)}
 						/>
-						<p>{t.unchangedDestination}</p>
+						<p className={help}>{t.unchangedDestination}</p>
 					</>
 				)}
 				{mode === "arrange" && (
 					<>
 						<label htmlFor={`${prefix}-field-1`}>
 							{t.provider}
-							<FieldInput
+							<Input
 								id={`${prefix}-field-1`}
 								className={control}
 								value={provider}
 								maxLength={160}
+								placeholder={t.provider}
 								onChange={(event) => setProvider(event.target.value)}
 							/>
 						</label>
@@ -458,14 +477,10 @@ export function DeliveryActionForm({
 							className="flex items-center gap-3"
 							htmlFor={`${prefix}-field-2`}
 						>
-							<FieldInput
+							<Input
 								id={`${prefix}-field-2`}
 								type="checkbox"
-								className={
-									isSeller
-										? "size-4 shrink-0 rounded border-control p-0 accent-action shadow-none"
-										: undefined
-								}
+								className="size-4 shrink-0 rounded border-control p-0 accent-action shadow-none"
 								checked={selfDelivery}
 								onChange={(event) => setSelfDelivery(event.target.checked)}
 							/>
@@ -476,14 +491,13 @@ export function DeliveryActionForm({
 				{mode === "recipient" || mode === "arrange" ? (
 					<label htmlFor={`${prefix}-field-3`}>
 						{t.instructions}
-						<FieldTextarea
+						<Textarea
 							id={`${prefix}-field-3`}
-							className={
-								isSeller ? cn(control, "h-auto min-h-24 resize-y") : control
-							}
+							className={textareaControl}
 							aria-label={t.instructions}
 							value={instructions}
 							maxLength={1000}
+							placeholder={t.instructions}
 							onChange={(event) => setInstructions(event.target.value)}
 						/>
 					</label>
@@ -492,8 +506,8 @@ export function DeliveryActionForm({
 					<>
 						{!guided ? (
 							<>
-								<p>{t.stockNote}</p>
-								<ul>
+								<p className={help}>{t.stockNote}</p>
+								<ul className="m-0 list-none space-y-1 p-0 text-xs text-muted">
 									{row.goods.map((g) => (
 										<li key={`${g.variant}:${g.tier}`}>
 											<bdi>
@@ -504,7 +518,7 @@ export function DeliveryActionForm({
 								</ul>
 							</>
 						) : row.payment_method === "cod" ? (
-							<p>{t.stockNote}</p>
+							<p className={help}>{t.stockNote}</p>
 						) : null}
 						{row.payment_method === "cod" && (
 							<StockSelection
@@ -523,13 +537,13 @@ export function DeliveryActionForm({
 						)}
 					</>
 				)}
-				{mode === "partial" && <p>{t.partialNote}</p>}
+				{mode === "partial" && <p className={help}>{t.partialNote}</p>}
 				{mode === "correction" && (
-					<label>
-						{t.receipts}
-						<select
-							className={control}
-							aria-label={t.receipts}
+					<div className="space-y-1.5">
+						<label htmlFor={`${prefix}-receipt`}>{t.receipts}</label>
+						<NativeSelect
+							id={`${prefix}-receipt`}
+							className={isSeller ? "h-10" : "h-8"}
 							value={target}
 							onChange={(event) => {
 								const next = event.target.value;
@@ -558,24 +572,24 @@ export function DeliveryActionForm({
 								});
 							}}
 						>
-							<option value="">—</option>
+							<NativeSelectOption value="">—</NativeSelectOption>
 							{row.receipts
 								.filter((receipt) => receipt.can_correct)
 								.map((receipt) => (
-									<option key={receipt.id} value={receipt.id}>
+									<NativeSelectOption key={receipt.id} value={receipt.id}>
 										{receipt.amount} {row.currency} · v{receipt.version} ·{" "}
 										{receipt.id}
-									</option>
+									</NativeSelectOption>
 								))}
-						</select>
-					</label>
+						</NativeSelect>
+					</div>
 				)}
 				{mode === "withdraw" && (
-					<label>
-						{t.claims}
-						<select
-							className={control}
-							aria-label={t.claims}
+					<div className="space-y-1.5">
+						<label htmlFor={`${prefix}-claim`}>{t.claims}</label>
+						<NativeSelect
+							id={`${prefix}-claim`}
+							className={isSeller ? "h-10" : "h-8"}
 							value={target}
 							onChange={(event) => {
 								const next = event.target.value;
@@ -586,23 +600,24 @@ export function DeliveryActionForm({
 								});
 							}}
 						>
-							<option value="">—</option>
+							<NativeSelectOption value="">—</NativeSelectOption>
 							{row.claims
 								.filter((claim) => claim.can_withdraw)
 								.map((claim) => (
-									<option key={claim.id} value={claim.id}>
+									<NativeSelectOption key={claim.id} value={claim.id}>
 										{claim.amount} {claim.currency} · {claim.description}
-									</option>
+									</NativeSelectOption>
 								))}
-						</select>
-					</label>
+						</NativeSelect>
+					</div>
 				)}
 				{mode === "refund" && (
 					<>
-						<label>
-							{t.provider}
-							<select
-								className={control}
+						<div className="space-y-1.5">
+							<label htmlFor={`${prefix}-provider`}>{t.provider}</label>
+							<NativeSelect
+								id={`${prefix}-provider`}
+								className={isSeller ? "h-10" : "h-8"}
 								value={provider}
 								onChange={(event) => {
 									const next = event.target.value;
@@ -613,36 +628,37 @@ export function DeliveryActionForm({
 									});
 								}}
 							>
-								<option value="">—</option>
+								<NativeSelectOption value="">—</NativeSelectOption>
 								{row.refund_providers.map((item) => (
-									<option key={item.id} value={item.id}>
+									<NativeSelectOption key={item.id} value={item.id}>
 										{item.name} · {item.id} · {r.limit}: {item.refundable}{" "}
 										{row.currency}
-									</option>
+									</NativeSelectOption>
 								))}
-							</select>
-						</label>
+							</NativeSelect>
+						</div>
 						{refundProvider && (
-							<p>
+							<p className={help}>
 								{r.limit}:{" "}
 								<bdi>
 									{refundProvider.refundable} {row.currency}
 								</bdi>
 							</p>
 						)}
-						<p>{r.deliveryNote}</p>
+						<p className={help}>{r.deliveryNote}</p>
 					</>
 				)}
 				{money && (
 					<label htmlFor={`${prefix}-field-4`}>
 						{t.amount} (<bdi>{row.currency}</bdi>)
-						<FieldInput
+						<Input
 							id={`${prefix}-field-4`}
 							className={control}
 							dir="ltr"
 							inputMode="decimal"
 							value={amount}
 							maxLength={25}
+							placeholder={t.amount}
 							onChange={(event) => setAmount(event.target.value)}
 							aria-invalid={
 								invalid &&
@@ -658,7 +674,7 @@ export function DeliveryActionForm({
 				{timed && (
 					<label htmlFor={`${prefix}-field-5`}>
 						{timeLabel}
-						<FieldInput
+						<Input
 							id={`${prefix}-field-5`}
 							className={control}
 							dir="ltr"
@@ -675,11 +691,12 @@ export function DeliveryActionForm({
 				{(mode === "tracking" || mode === "refund") && (
 					<label htmlFor={`${prefix}-field-6`}>
 						{mode === "refund" ? r.reference : t.tracking}
-						<FieldInput
+						<Input
 							id={`${prefix}-field-6`}
 							className={control}
 							value={reference}
 							maxLength={160}
+							placeholder={mode === "refund" ? r.reference : t.tracking}
 							onChange={(event) => setReference(event.target.value)}
 						/>
 					</label>
@@ -688,37 +705,32 @@ export function DeliveryActionForm({
 					<>
 						<label htmlFor={`${prefix}-field-7`}>
 							{t.description}
-							<FieldTextarea
+							<Textarea
 								id={`${prefix}-field-7`}
-								className={
-									isSeller ? cn(control, "h-auto min-h-24 resize-y") : control
-								}
+								className={textareaControl}
 								aria-label={t.description}
 								value={description}
 								maxLength={500}
+								placeholder={t.description}
 								onChange={(event) => setDescription(event.target.value)}
 							/>
 						</label>
-						{mode !== "refund" && <p>{t.claimNote}</p>}
+						{mode !== "refund" && <p className={help}>{t.claimNote}</p>}
 						<label htmlFor={`${prefix}-field-8`}>
 							{t.evidence}
-							<FieldInput
+							<Input
 								id={`${prefix}-field-8`}
-								className={
-									isSeller
-										? "h-auto min-h-10 w-full rounded-lg border border-solid border-border p-2 text-sm file:me-3 file:rounded-md file:border-0 file:bg-info file:px-3 file:py-1.5 file:text-action"
-										: undefined
-								}
+								className="h-auto min-h-10 w-full rounded-lg border border-solid border-border p-2 text-sm file:me-3 file:rounded-md file:border-0 file:bg-info file:px-3 file:py-1.5 file:text-action"
 								type="file"
 								accept="image/jpeg,image/png,image/webp"
 								disabled={images.length >= 3}
 								onChange={(event) => setFile(event.target.files?.[0] ?? null)}
 							/>
 						</label>
-						<p className="text-sm text-muted">{t.filesNote}</p>
+						<p className={help}>{t.filesNote}</p>
 						<button
 							type="button"
-							className={action}
+							className={isSeller ? action : secondaryButton}
 							disabled={!file || images.length >= 3}
 							onClick={() => {
 								if (
@@ -739,6 +751,7 @@ export function DeliveryActionForm({
 								);
 							}}
 						>
+							{!isSeller && <Icon name="image" className="size-3.5" />}
 							{t.uploads}
 						</button>
 						<div className="flex flex-wrap gap-3">
@@ -747,13 +760,14 @@ export function DeliveryActionForm({
 									<DeliveryEvidence {...{ id, context, locale }} />
 									<button
 										type="button"
-										className={action}
+										className={isSeller ? action : quietButton}
 										onClick={() =>
 											setImages((values) =>
 												values.filter((value) => value !== id),
 											)
 										}
 									>
+										{!isSeller && <Icon name="close" className="size-3" />}
 										{t.removeImage}
 									</button>
 								</div>
@@ -764,33 +778,57 @@ export function DeliveryActionForm({
 				{mode !== "arrange" && mode !== "claim" && mode !== "refund" && (
 					<label htmlFor={`${prefix}-field-9`}>
 						{t.reason}
-						<FieldTextarea
+						<Textarea
 							id={`${prefix}-field-9`}
-							className={
-								isSeller ? cn(control, "h-auto min-h-24 resize-y") : control
-							}
+							className={textareaControl}
 							aria-label={t.reason}
 							value={reason}
 							minLength={3}
 							maxLength={1000}
+							placeholder={t.reason}
 							onChange={(event) => setReason(event.target.value)}
 						/>
 					</label>
 				)}
-				{invalid && <p role="alert">{t.error}</p>}
-				{previewError && <p role="alert">{t.notReady}</p>}
+				{invalid && (
+					<p
+						role="alert"
+						className={cn(notice, "bg-danger-surface font-medium text-danger")}
+					>
+						{t.error}
+					</p>
+				)}
+				{previewError && (
+					<p
+						role="alert"
+						className={cn(notice, "bg-danger-surface font-medium text-danger")}
+					>
+						{t.notReady}
+					</p>
+				)}
 				{base.version !== row.version ||
 				base.goods_version !== row.goods_version ? (
-					<p role="status">{t.stale}</p>
+					<p
+						role="status"
+						className={cn(notice, "bg-warning-surface text-warning")}
+					>
+						{t.stale}
+					</p>
 				) : null}
-				<div className="flex flex-wrap gap-3">
+				<div
+					className={cn(
+						"flex flex-wrap gap-3",
+						!isSeller && "items-center justify-end gap-2 pt-1",
+					)}
+				>
 					<button
 						type="button"
-						className={action}
+						className={isSeller ? action : secondaryButton}
 						onClick={reload}
-						title={isSeller ? t.reload : undefined}
+						title={t.reload}
 					>
-						{isSeller ? t.refresh : t.reload}
+						{!isSeller && <Icon name="history" className="size-3.5" />}
+						{t.refresh}
 					</button>
 					<button
 						className={
@@ -799,34 +837,33 @@ export function DeliveryActionForm({
 										action,
 										"border-action bg-action text-white hover:bg-action/90 hover:text-white",
 									)
-								: action
+								: primaryButton
 						}
 						type="submit"
 					>
+						{!isSeller && <Icon name="send" className="size-3.5" />}
 						{modes.find(([value]) => value === mode)?.[1] ?? t.review}
 					</button>
 				</div>
 			</fieldset>
 		</form>
 	);
-	if (guided)
-		return (
-			<>
-				{guard.feedback}
-				{!available && <p role="status">{t.actionChanged}</p>}
-				{form}
-			</>
-		);
 	return (
-		<section className={panel}>
-			<h2 className="text-xl font-bold" tabIndex={-1} data-fulfilment-actions>
-				{isSeller ? s.actions : t.exact}
-			</h2>
-			{isSeller && <p className="text-sm text-muted">{t.exact}</p>}
+		<div className="min-w-0 space-y-4" tabIndex={-1} data-fulfilment-actions>
 			{guard.feedback}
-			{!available && <p role="status">{t.actionChanged}</p>}
-			{selector}
+			{!available && (
+				<p
+					role="status"
+					className={cn(
+						notice,
+						"border border-warning bg-warning-surface text-warning",
+					)}
+				>
+					{t.actionChanged}
+				</p>
+			)}
+			{!guided && selector}
 			{form}
-		</section>
+		</div>
 	);
 }

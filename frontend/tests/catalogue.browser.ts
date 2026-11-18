@@ -521,6 +521,7 @@ test("active company catalogue membership revocation denies next action in same 
 		seller: list.body.sellers[0].id,
 		currency: "USD",
 		pricing_mode: "negotiable",
+		command_id: randomUUID(),
 	});
 	expect(created.status).toBe(201);
 	disposablePython(
@@ -535,6 +536,7 @@ test("active company catalogue membership revocation denies next action in same 
 				seller: list.body.sellers[0].id,
 				currency: "USD",
 				pricing_mode: "fixed",
+				command_id: randomUUID(),
 			})
 		).status,
 	).toBe(403);

@@ -4,10 +4,12 @@ from django.contrib.admin import action
 from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
 from apps.runtime.locks import lock as durable_lock
+from apps.site.media import discard_created, schedule_media_cleanup, store_upload
 
 from .copy import COPY as ADMIN_COPY
 from ..models import Account, User
@@ -26,6 +28,13 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
     fieldsets = [
         (None, {"fields": ["email", "display_name", "is_active", "is_staff", "is_superuser", "groups", "attest_staff_email", "authority_version"]}),
         (
+            _("Profile"),
+            {
+                "fields": ["first_name", "last_name", "phone", "preferred_locale", "gender", "date_of_birth", "bio", "avatar_preview", "avatar_file", "avatar_clear"],
+                "description": _("Optional buyer profile details. The photo is private to the identity and served through the authorized media endpoint."),
+            },
+        ),
+        (
             _("Protected identity state"),
             {
                 "fields": ["email_verified", "owner_authority", "credential_epoch"],
@@ -34,10 +43,11 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
                 ),
             },
         ),
+        (_("Important dates"), {"fields": ["last_login", "date_joined"]}),
     ]
     add_fieldsets = [(None, {"fields": ["email", "display_name", "password1", "password2", "is_staff", "is_superuser", "groups", "attest_staff_email", "authority_version"]})]
     filter_horizontal = ["groups"]
-    readonly_fields = ["email", "email_verified", "owner_authority", "credential_epoch"]
+    readonly_fields = ["email", "email_verified", "owner_authority", "credential_epoch", "avatar_preview", "last_login", "date_joined"]
     actions = ["verify_email_for_development"]
 
     def get_actions(self, request):
@@ -53,6 +63,16 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         return self.readonly_fields if obj else []
+
+    def avatar_preview(self, obj):
+        if obj.avatar_id:
+            return format_html(
+                '<img src="/api/v1/site/media/{}/" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:9999px" />',
+                obj.avatar_id,
+            )
+        return "—"
+
+    avatar_preview.short_description = "Current photo"
 
     def get_urls(self):
         # Shared-credential password changes use the audited session-invalidating workflow.
@@ -84,17 +104,33 @@ class IdentityAdmin(UserAdmin, ModelAdmin):
         attested = obj.is_staff and form.cleaned_data.get("attest_staff_email") and not obj.email_verified
         if attested:
             obj.email_verified = True
-        super().save_model(request, obj, form, change)
+        previous_avatar = current.avatar_id if current else None
+        created = []
+        try:
+            if form.cleaned_data.get("avatar_clear"):
+                obj.avatar = None
+            file = form.cleaned_data.get("avatar_file")
+            if file:
+                obj.avatar = store_upload(file, "image", created)
+            super().save_model(request, obj, form, change)
+        except Exception:
+            discard_created(created)
+            raise
+        if previous_avatar and previous_avatar != obj.avatar_id:
+            schedule_media_cleanup([previous_avatar])
         if obj.is_staff and not obj.is_superuser:
             Account.objects.get_or_create(user=obj, context="staff")
         if attested:
             audit("staff_email_attested", request=request, user=obj, context="owner", fields=["email_verified"])
+        changed = [field for field in form.changed_data if field in {"email", "display_name", "first_name", "last_name", "phone", "preferred_locale", "gender", "date_of_birth", "bio", "is_active", "is_staff", "is_superuser", "groups"}]
+        if previous_avatar != obj.avatar_id:
+            changed.append("avatar")
         audit(
             "owner_identity_updated" if change else "owner_identity_provisioned",
             request=request,
             user=obj,
             context="owner",
-            fields=[field for field in form.changed_data if field in {"email", "display_name", "is_active", "is_staff", "is_superuser", "groups"}],
+            fields=changed,
         )
 
     def save_related(self, request, form, formsets, change):

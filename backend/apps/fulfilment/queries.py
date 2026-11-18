@@ -138,12 +138,16 @@ def dimensions(order):
     past = bool(order.completion_at)
     physical = "delivered" if order.delivered else "dispatched" if order.dispatched else "not_dispatched"
     if not order.dispatched and order.preparation_id:
-        physical = (
-            "prepared"
-            if order.prepared_recipient_id == order.current_recipient_id
+        physical = "needs_preparation"
+        if (
+            order.prepared_recipient_id == order.current_recipient_id
             and order.prepared_arrangement_id == order.current_arrangement_id
-            else "needs_preparation"
-        )
+        ):
+            preparation = m.Preparation.objects.filter(pk=order.preparation_id).first()
+            if preparation is not None:
+                preparation.order = order
+                if selection.demand_matches(preparation):
+                    physical = "prepared"
     financial = goods.projection(order)
     return {
         "version": order.fulfilment_version,
@@ -393,9 +397,7 @@ def detail(actor, pk, *, seller=None, page=1):
             "amount": format(x.amount, ".2f"),
             "currency": x.currency,
             "reason": x.reason,
-            "state": x.decision.action
-            if getattr(x, "decision", None) and m.ChargeDecision.objects.filter(pk=x.decision.pk).exists()
-            else "pending",
+            "state": x.decision.action if getattr(x, "decision", None) else "pending",
         }
         for x in proposals
     ]
@@ -414,12 +416,10 @@ def detail(actor, pk, *, seller=None, page=1):
                 "currency": x.currency,
                 "paid_at": x.paid_at,
                 "description": x.description,
-                "state": x.decision.action
-                if getattr(x, "decision", None) and m.ClaimDecision.objects.filter(pk=x.decision.pk).exists()
-                else "pending",
+                "state": x.decision.action if getattr(x, "decision", None) else "pending",
                 "can_withdraw": bool(
                     x.event.account_id == getattr(access.account_for(actor), "pk", None)
-                    and not m.ClaimDecision.objects.filter(claim=x).exists()
+                    and getattr(x, "decision", None) is None
                 ),
                 "evidence": [str(i.evidence_id) for i in x.images.all()],
             }

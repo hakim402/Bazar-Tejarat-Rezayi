@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { BuyerAccount, BuyerAccountProvider } from "./buyer-account";
-import { BuyerNotifications } from "./buyer-notifications";
+import { BuyerAccountProvider } from "./buyer-account";
 import type { CSSProperties, ReactNode } from "react";
 import type { Locale } from "../../../../../../lib/i18n/locales";
 import { NavigationGuard } from "../../../../../../components/layout/navigation-guard";
+import { HeaderCart } from "../../../../../../components/layout/header-cart";
+import { HeaderNotifications } from "../../../../../../components/layout/header-notifications";
+import { HeaderSessionProvider } from "../../../../../../components/layout/header-session";
+import { HeaderProfile } from "../../../../../../components/layout/header-profile";
 import { BuyerNavigation } from "./buyer-navigation";
 import { BrandLogo } from "../../../../../../components/brand/brand-logo";
 import { SkipLink } from "../../../../../../components/ui/skip-link";
 import { messages } from "../../../../../../lib/i18n/messages";
-import { BuyerPreferences } from "./buyer-preferences";
+import { PreferencesMenu } from "../../../../../../components/layout/preferences";
 
 export function BuyerShell({
 	locale,
@@ -43,13 +46,17 @@ export function BuyerShell({
 								id="buyer-jump-to-page"
 								className="flex min-w-11 justify-end lg:justify-center"
 							/>
-							<div className="flex min-w-0 shrink-0 items-center gap-2">
-								<BuyerNotifications locale={locale} />
-								<div className="hidden shrink-0 sm:block">
-									<BuyerPreferences locale={locale} />
+							<HeaderSessionProvider>
+								<div className="flex min-w-0 shrink-0 items-center gap-2">
+									<HeaderNotifications
+										locale={locale}
+										className="hidden min-[420px]:block"
+									/>
+									<HeaderCart locale={locale} />
+									<PreferencesMenu locale={locale} />
+									<HeaderProfile locale={locale} />
 								</div>
-								<BuyerAccount locale={locale} />
-							</div>
+							</HeaderSessionProvider>
 						</div>
 					</header>
 					<BuyerNavigation locale={locale}>

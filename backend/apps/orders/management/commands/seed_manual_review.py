@@ -323,7 +323,7 @@ class Seed:
                 if variant.product.published_id is None:
                     self.pending_action("catalogue", "Publish product (native admin)", variant.product_id)
                 continue
-            created = catalogue.create(seller, {"seller": profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+            created = catalogue.create(seller, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
             product = Product.objects.get(pk=created["id"])
             image = product_upload(seller, product.pk, product.version, image_file())
             product.refresh_from_db()

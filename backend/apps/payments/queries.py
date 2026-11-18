@@ -1,7 +1,7 @@
 """Exact indexed projections; GET never initializes financial records."""
 
 from decimal import Decimal
-from django.db.models import OuterRef, Subquery, Sum, Value, F, DecimalField, IntegerField, DateTimeField, Count, Q
+from django.db.models import OuterRef, Subquery, Sum, Value, F, DecimalField, IntegerField, DateTimeField, Count, Q, Exists
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -140,6 +140,17 @@ def page(actor, *, page=1, seller=None, state="", q=""):
         .select_related("invoice", "seller__account", "buyer__user")
         .order_by("-accepted_at", "pk")
     )
+    if actor.context == "seller":
+        from apps.verification.models import ReviewCase as Verification
+
+        qs = qs.annotate(
+            _financial_member=Exists(access.profiles(access.account_for(actor)).filter(pk=OuterRef("seller_id"))),
+            _verified=Exists(
+                Verification.objects.filter(
+                    profile_id=OuterRef("seller_id"), revision=OuterRef("seller__revision"), status="approved"
+                )
+            ),
+        )
     if q:
         qs = qs.filter(
             Q(invoice__number__icontains=q) | Q(buyer__user__display_name__icontains=q)
@@ -151,7 +162,7 @@ def page(actor, *, page=1, seller=None, state="", q=""):
     elif state == "partial":
         qs = qs.filter(payment_total__gt=0, payment_total__lt=F("accepted_total"))
     elif state == "paid":
-        qs = qs.filter(payment_total=F("accepted_total"))
+        qs = qs.filter(payment_total=F("accepted_total"), accepted_total__gt=0)
     elif state == "overpaid":
         qs = qs.filter(payment_total__gt=F("accepted_total"))
     return {"count": qs.count(), "page": page, "results": [row(actor, x) for x in qs[(page - 1) * 20 : page * 20]]}
@@ -248,8 +259,10 @@ def detail(actor, pk, *, page=1, seller=None):
         .prefetch_related("evidence_bindings", "claim__evidence_bindings")
         .order_by("-created_at", "pk")
     )
-    result["claims"] = [claim_row(x) for x in claims[(page - 1) * 20 : page * 20]]
-    result["receipts"] = [receipt_row(x) for x in receipts[(page - 1) * 20 : page * 20]]
+    # Records always return their first page; the incoming page paginates history only,
+    # so a list page number can never empty the collections the action guards read.
+    result["claims"] = [claim_row(x) for x in claims[:20]]
+    result["receipts"] = [receipt_row(x) for x in receipts[:20]]
     corrections = (
         Correction.objects.filter(receipt__order=order, case__isnull=False)
         .select_related("case")
@@ -269,7 +282,7 @@ def detail(actor, pk, *, page=1, seller=None):
             "case": str(x.case.pk),
             "evidence": evidence_ids(x),
         }
-        for x in corrections[(page - 1) * 20 : page * 20]
+        for x in corrections[:20]
     ]
     result["cases"] = [
         {
@@ -279,11 +292,11 @@ def detail(actor, pk, *, page=1, seller=None):
             "version": x.version,
             "assigned": x.assigned_to_id is not None,
         }
-        for x in order.payment_cases.order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
+        for x in order.payment_cases.order_by("-created_at", "pk")[:20]
     ]
     result["extensions"] = [
         {"id": str(x.pk), "before_at": x.before_at, "due_at": x.due_at, "reason": x.reason, "generation": x.generation}
-        for x in order.due_extensions.order_by("-generation")[(page - 1) * 20 : page * 20]
+        for x in order.due_extensions.order_by("-generation")[:20]
     ]
     from django.db.models import Prefetch
     from .models import StockPlanLine
@@ -301,7 +314,7 @@ def detail(actor, pk, *, page=1, seller=None):
             "state": getattr(getattr(x, "case", None), "state", "original"),
             "lines": plan_lines(x, accepted_goods),
         }
-        for x in plans[(page - 1) * 20 : page * 20]
+        for x in plans[:20]
     ]
     events = Event.objects.filter(order=order).order_by("-version")
     result["history_count"] = events.count()
@@ -342,15 +355,13 @@ def detail(actor, pk, *, page=1, seller=None):
             **due_status(due, can_report=result["capabilities"]["refund"]),
             "created_at": due.created_at,
         }
-        for due in order.refund_dues.prefetch_related("reports__decision").order_by("-created_at", "pk")[
-            (page - 1) * 20 : page * 20
-        ]
+        for due in order.refund_dues.prefetch_related("reports__decision").order_by("-created_at", "pk")[:20]
     ]
     reports = (
         RefundReport.objects.filter(due__order=order)
         .select_related("due", "decision")
         .prefetch_related("evidence_bindings")
-        .order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
+        .order_by("-created_at", "pk")[:20]
     )
     result["refund_reports"] = [
         {
@@ -376,7 +387,8 @@ def detail(actor, pk, *, page=1, seller=None):
 
 
 def due_status(due, *, can_report):
-    latest = due.reports.order_by("-created_at", "pk").select_related("decision").first()
+    reports = sorted(due.reports.all(), key=lambda r: (r.created_at, r.pk), reverse=True)
+    latest = reports[0] if reports else None
     state = due_state(due)
     return {
         "state": state,
@@ -386,6 +398,13 @@ def due_status(due, *, can_report):
 
 
 def due_state(due):
+    if "reports" in getattr(due, "_prefetched_objects_cache", {}):
+        reports = list(due.reports.all())
+        if any(getattr(r, "decision", None) and r.decision.action == "confirmed" for r in reports):
+            return "confirmed"
+        if any(getattr(r, "decision", None) is None for r in reports):
+            return "reported"
+        return "due"
     confirmed = RefundDecision.objects.filter(report__due=due, action="confirmed").exists()
     if confirmed:
         return "confirmed"

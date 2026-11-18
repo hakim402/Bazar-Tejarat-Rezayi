@@ -77,6 +77,18 @@ const en = {
 	returnCart:
 		"Change selected products or tiers in the cart; an existing request keeps its original selection.",
 	explanationVersion: "Seller finalization explanation v1",
+	description: "Agree prices and quantities with sellers before you order.",
+	backToRequests: "Back to requests",
+	viewRequest: "View request",
+	yourProposal: "Your proposal",
+	requestDetails: "Request details",
+	emptyHelp:
+		"Add negotiable products to your cart, then request terms from their sellers.",
+	submittedToast: "Requests submitted.",
+	resubmittedToast: "Request resubmitted.",
+	withdrawnToast: "Request withdrawn.",
+	toastError: "The action could not be completed.",
+	recoveredToast: "Request status updated.",
 };
 type Copy = { [K in keyof typeof en]: string };
 export const negotiationCopy: Record<Locale, Copy> = {
@@ -160,6 +172,18 @@ export const negotiationCopy: Record<Locale, Copy> = {
 		returnCart:
 			"محصول یا نوع قیمت را در سبد تغییر دهید؛ انتخاب‌های درخواست موجود ثابت است.",
 		explanationVersion: "توضیح نهایی‌سازی فروشنده، نسخهٔ ۱",
+		description: "پیش از سفارش، قیمت و مقدار را با فروشندگان توافق کنید.",
+		backToRequests: "بازگشت به درخواست‌ها",
+		viewRequest: "دیدن درخواست",
+		yourProposal: "پیشنهاد شما",
+		requestDetails: "جزئیات درخواست",
+		emptyHelp:
+			"محصولات قابل مذاکره را به سبد اضافه کنید، سپس از فروشندگان آن‌ها شرایط بخواهید.",
+		submittedToast: "درخواست‌ها ارسال شد.",
+		resubmittedToast: "درخواست دوباره ارسال شد.",
+		withdrawnToast: "درخواست پس گرفته شد.",
+		toastError: "اقدام تکمیل نشد.",
+		recoveredToast: "وضعیت درخواست به‌روز شد.",
 	},
 	ps: {
 		...en,
@@ -239,6 +263,18 @@ export const negotiationCopy: Record<Locale, Copy> = {
 		returnCart:
 			"محصول او د قیمت ډول په ټوکرۍ کې بدل کړئ؛ د موجودې غوښتنې انتخاب ثابت دی.",
 		explanationVersion: "د پلورونکي وروستۍ پرېکړې تشریح ۱",
+		description: "تر فرمایش مخکې، قیمت او مقدار له پلورونکو سره توافق کړئ.",
+		backToRequests: "غوښتنو ته ستنېدل",
+		viewRequest: "غوښتنه کتل",
+		yourProposal: "ستاسو وړاندیز",
+		requestDetails: "د غوښتنې جزئیات",
+		emptyHelp:
+			"د خبرو اترو وړ توکي ټوکرۍ ته زیات کړئ، بیا یې له پلورونکو شرایط وغواړئ.",
+		submittedToast: "غوښتنې ولېږل شوې.",
+		resubmittedToast: "غوښتنه بیا ولېږل شوه.",
+		withdrawnToast: "غوښتنه بېرته واخیستل شوه.",
+		toastError: "کړنه بشپړه نه شوه.",
+		recoveredToast: "د غوښتنې حالت تازه شو.",
 	},
 	ar: {
 		...en,
@@ -316,5 +352,17 @@ export const negotiationCopy: Record<Locale, Copy> = {
 		returnCart:
 			"غيّر المنتجات أو أساس السعر في السلة؛ يحتفظ الطلب الحالي باختياره الأصلي.",
 		explanationVersion: "توضيح إنهاء البائع، النسخة ١",
+		description: "اتفق على الأسعار والكميات مع البائعين قبل الطلب.",
+		backToRequests: "العودة إلى الطلبات",
+		viewRequest: "عرض الطلب",
+		yourProposal: "مقترحك",
+		requestDetails: "تفاصيل الطلب",
+		emptyHelp:
+			"أضف المنتجات القابلة للتفاوض إلى السلة، ثم اطلب الشروط من بائعيها.",
+		submittedToast: "تم إرسال الطلبات.",
+		resubmittedToast: "تمت إعادة إرسال الطلب.",
+		withdrawnToast: "تم سحب الطلب.",
+		toastError: "تعذر إكمال الإجراء.",
+		recoveredToast: "تم تحديث حالة الطلب.",
 	},
 };

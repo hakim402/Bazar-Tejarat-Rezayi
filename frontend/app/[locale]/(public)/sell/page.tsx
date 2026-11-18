@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "../../../../lib/i18n/locales";
 import { cmsMetadata } from "../../../../features/pages/metadata";
-import { SellContent } from "./components/sell-content";
+import { PublicPage } from "../../../../features/pages/components/public-page";
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: Props) {
@@ -12,5 +12,5 @@ export async function generateMetadata({ params }: Props) {
 export default async function Page({ params }: Props) {
 	const { locale } = await params;
 	if (!isLocale(locale)) notFound();
-	return <SellContent locale={locale} />;
+	return <PublicPage locale={locale} slug="sell" expect="page" />;
 }

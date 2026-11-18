@@ -88,7 +88,9 @@ export async function proxy(request: NextRequest) {
 		if (!site || site.maintenance.enabled)
 			return statusResponse(request, locale, 503);
 		const published =
-			path === "/" || site.pages.some((page) => page.path === path);
+			path === "/" ||
+			path === "/contact" ||
+			site.pages.some((page) => page.path === path);
 		if (!marketplace && path !== "/cart" && !published)
 			return statusResponse(request, locale, 404);
 		if (marketplace || path === "/") {

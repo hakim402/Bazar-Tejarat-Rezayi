@@ -114,7 +114,7 @@ class MessagingFixture(CatalogueFixture):
         from apps.catalogue.media import upload as catalogue_upload
         from apps.catalogue.models import Product, ProductImage
 
-        created = catalogue.create(self.seller, {"seller": profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+        created = catalogue.create(self.seller, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
         self.product = Product.objects.get(pk=created["id"])
         uploaded = catalogue_upload(self.seller, self.product.pk, self.product.version, image_file())
         self.image = ProductImage.objects.get(pk=uploaded["id"])

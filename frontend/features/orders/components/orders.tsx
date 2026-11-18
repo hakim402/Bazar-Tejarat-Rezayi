@@ -1,7 +1,13 @@
 "use client";
 import toast from "react-hot-toast";
-import { SellerOrdersTable } from "./seller-orders-table";
+import {
+	SellerOrdersTable,
+	OrderProducts,
+	OrderStatuses,
+} from "./seller-orders-table";
 import { SellerOrderDetail } from "./seller-order-detail";
+import { BuyerOrderDetail } from "./buyer-order-detail";
+import { BuyerInvoices, BuyerInvoiceDetail } from "./buyer-invoices";
 import { orderListCopy } from "../list-copy";
 import { SessionEntry } from "./session-entry";
 import {
@@ -17,7 +23,12 @@ import {
 } from "../../sales/components/seller-sales-ui";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import { Icon } from "../../../components/ui/icon";
-import { StatusBadge } from "../../../components/ui/status-badge";
+import {
+	StatusBadge,
+	statusVariant,
+} from "../../../components/ui/status-badge";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { ProductThumbnail, Money } from "./order-ui";
 import { AftercareSection } from "../../aftercare/section";
 import Link from "next/link";
 import { fulfilmentHref } from "../../fulfilment/api";
@@ -38,10 +49,30 @@ import {
 	downloadInvoice,
 	type Order,
 	type Submission,
+	type SubmissionOutcome,
 	type Profile,
 	type Page,
 } from "../api";
 import { commerceCopy } from "../copy";
+import { deliveryListCopy } from "../../fulfilment/list-copy";
+import { aftercareHref } from "../../aftercare/api";
+import {
+	BuyerTableFrame,
+	BuyerToolbar,
+	BuyerTableRegion,
+	BuyerRowMenu,
+	buyerRow,
+	buyerCell,
+} from "./buyer-ui";
+import {
+	FileText,
+	Wallet,
+	Truck,
+	RotateCcw,
+	ShoppingBag,
+	Eye,
+	History,
+} from "lucide-react";
 import { action, control, Failure, panel, Disclosure } from "./controls";
 export type CommerceMode = "orders" | "invoices" | "checkouts";
 export function OrdersWorkspace({
@@ -73,7 +104,7 @@ export function OrdersWorkspace({
 		return <p role="alert">{t.unavailable}</p>;
 	return (
 		<Reader
-			key={`${s.session.identity.id}:${s.session.accounts[0].id}:${context}:${mode}:${id ?? ""}:${locale}:${seller}:${page}`}
+			key={`${s.session.identity.id}:${s.session.accounts[0].id}:${context}:${mode}:${id ?? ""}:${locale}:${seller}:${page}:${context === "buyer" ? `${search.get("q") ?? ""}:${search.get("state") ?? ""}` : ""}`}
 			locale={locale}
 			context={context}
 			mode={mode}
@@ -152,7 +183,7 @@ function Reader({
 			}
 			const q = id
 				? `?locale=${locale}`
-				: `?page=${page}${seller ? `&seller=${seller}` : ""}&locale=${locale}`;
+				: `?page=${page}${seller ? `&seller=${seller}` : ""}&locale=${locale}${context === "buyer" ? `&q=${encodeURIComponent(search.get("q") ?? "")}&state=${encodeURIComponent(search.get("state") ?? "")}` : ""}`;
 			const value = await commerce<typeof data>(
 				`orders/${context}/${mode}/${id ? `${id}/` : ""}${q}`,
 				undefined,
@@ -189,7 +220,7 @@ function Reader({
 			controller.abort();
 			download.current?.abort();
 		};
-	}, [context, mode, id, seller, locale, page, reload, router]);
+	}, [context, mode, id, seller, locale, page, reload, router, search.get]);
 	async function resume(sub: Submission) {
 		if (owned.current) return;
 		const mine = live.current,
@@ -205,11 +236,13 @@ function Reader({
 				if (id) setData(value);
 				else setReload((x) => x + 1);
 				setError(null);
+				toast.success(t.resumed);
 			}
 		} catch (e) {
 			if (live.current === mine && owned.current === write) {
 				if (accessLost(e)) setData(null);
 				setError(e);
+				toast.error(t.resumeFailed);
 			}
 		} finally {
 			if (live.current === mine && owned.current === write) {
@@ -228,12 +261,11 @@ function Reader({
 		setBusy(true);
 		try {
 			await downloadInvoice(context, order.invoice, locale, c.signal);
-			if (live.current === mine && context === "seller" && mode === "orders")
+			if (live.current === mine)
 				toast.success(orderListCopy[locale].downloaded);
 		} catch (e) {
 			if (live.current === mine && owned.current === write) {
-				if (context === "seller" && mode === "orders")
-					toast.error(orderListCopy[locale].downloadError);
+				toast.error(orderListCopy[locale].downloadError);
 				if (accessLost(e)) setData(null);
 				setError(e);
 			}
@@ -490,6 +522,69 @@ function Reader({
 			</SalesFrame>
 		);
 	}
+	if (context === "buyer" && mode === "checkouts") {
+		return (
+			<BuyerCheckouts
+				locale={locale}
+				data={data}
+				error={error}
+				page={page}
+				busy={busy}
+				id={id}
+				onResume={(sub) => void resume(sub)}
+				onReload={() => setReload((v) => v + 1)}
+			/>
+		);
+	}
+	if (context === "buyer" && mode === "orders" && !id) {
+		return (
+			<BuyerOrders
+				locale={locale}
+				data={data}
+				error={error}
+				page={page}
+				busy={busy}
+				onReload={() => setReload((v) => v + 1)}
+			/>
+		);
+	}
+	if (context === "buyer" && mode === "orders" && id) {
+		return (
+			<BuyerOrderDetail
+				locale={locale}
+				data={data}
+				error={error}
+				busy={busy}
+				onDownload={(order) => void pdf(order)}
+				onReload={() => setReload((v) => v + 1)}
+			/>
+		);
+	}
+	if (context === "buyer" && mode === "invoices" && !id) {
+		return (
+			<BuyerInvoices
+				locale={locale}
+				data={data}
+				error={error}
+				page={page}
+				busy={busy}
+				onDownload={(order) => void pdf(order)}
+				onReload={() => setReload((v) => v + 1)}
+			/>
+		);
+	}
+	if (context === "buyer" && mode === "invoices" && id) {
+		return (
+			<BuyerInvoiceDetail
+				locale={locale}
+				data={data}
+				error={error}
+				busy={busy}
+				onDownload={(order) => void pdf(order)}
+				onReload={() => setReload((v) => v + 1)}
+			/>
+		);
+	}
 	return (
 		<section className="min-w-0 space-y-5" data-testid="orders-workspace">
 			<h1 className="text-3xl font-bold">{title}</h1>
@@ -525,7 +620,7 @@ function Reader({
 						<div className="space-y-4">
 							{data.results.map((row) =>
 								"outcomes" in row ? (
-									<SubmissionCard
+									<SubmissionResult
 										key={row.id}
 										row={row}
 										locale={locale}
@@ -588,7 +683,7 @@ function Reader({
 						</div>
 					</>
 				) : "outcomes" in data ? (
-					<SubmissionCard
+					<SubmissionResult
 						row={data}
 						locale={locale}
 						busy={busy}
@@ -624,7 +719,313 @@ function Reader({
 		</section>
 	);
 }
-function SubmissionCard({
+const cardAction =
+	"inline-flex min-h-9 items-center justify-center gap-1.5 rounded-control border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-action no-underline transition-colors hover:bg-info disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
+const cardPrimary =
+	"inline-flex min-h-9 items-center justify-center gap-1.5 rounded-control border border-primary bg-primary px-3 py-1.5 text-sm font-semibold text-on-primary no-underline transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
+function checkoutStats(row: Submission) {
+	const accepted = row.outcomes.filter((o) => o.state === "accepted"),
+		pendingCount = row.outcomes.filter((o) => o.state === "pending").length,
+		failedCount = row.outcomes.filter((o) => o.state === "failed").length,
+		cents = accepted.reduce(
+			(sum, o) => sum + BigInt((o.goods_total ?? "0").replace(".", "")),
+			BigInt(0),
+		);
+	return {
+		accepted,
+		pendingCount,
+		failedCount,
+		fullyAccepted:
+			accepted.length > 0 && pendingCount === 0 && failedCount === 0,
+		grandTotal: `${cents / BigInt(100)}.${String(cents % BigInt(100)).padStart(2, "0")}`,
+	};
+}
+function BuyerCheckouts({
+	locale,
+	data,
+	error,
+	page,
+	busy,
+	id,
+	onResume,
+	onReload,
+}: {
+	locale: Locale;
+	data: Page<Order> | Order | Page<Submission> | Submission | null;
+	error: unknown;
+	page: number;
+	busy: boolean;
+	id?: string;
+	onResume: (sub: Submission) => void;
+	onReload: () => void;
+}) {
+	const t = commerceCopy[locale],
+		ol = orderListCopy[locale],
+		nf = new Intl.NumberFormat(locale),
+		router = useRouter(),
+		list = data && "results" in data ? data : null,
+		single = data && "outcomes" in data ? data : null,
+		rows = list
+			? list.results.filter((r): r is Submission => "outcomes" in r)
+			: [];
+	const pageHref = (next: number) =>
+		`/${locale}/account/buyer/checkouts?page=${next}`;
+	const identity = (row: Submission) => (
+		<div className="space-y-1.5">
+			<Link
+				href={`/${locale}/account/buyer/checkouts/${row.id}`}
+				className="text-sm font-semibold text-action no-underline hover:text-foreground"
+			>
+				<bdi>{row.id.slice(0, 8).toUpperCase()}</bdi>
+			</Link>
+			<time
+				dateTime={row.created_at}
+				className="block max-w-40 text-xs leading-relaxed text-muted"
+			>
+				{localTimestamp(row.created_at, locale)}
+			</time>
+		</div>
+	);
+	const outcomes = (row: Submission) => (
+		<div className="min-w-0 space-y-2">
+			{row.outcomes.map((o) => (
+				<div
+					key={o.seller}
+					className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+				>
+					<span
+						className="min-w-0 max-w-48 truncate text-sm font-medium"
+						dir="auto"
+						title={o.seller_name || o.seller}
+					>
+						{o.seller_name || o.seller}
+					</span>
+					<span className="text-xs text-muted">
+						<bdi>{nf.format(o.item_count)}</bdi> {t.items}
+					</span>
+					{o.state === "failed" && (
+						<span className="w-full text-xs text-warning">
+							{failureText(locale, o.code)}
+						</span>
+					)}
+					{o.price_changed && (
+						<span className="w-full text-xs font-medium text-action">
+							{t.priceChanged}
+						</span>
+					)}
+				</div>
+			))}
+		</div>
+	);
+	const badges = (row: Submission) => {
+		const stats = checkoutStats(row);
+		return (
+			<div className="flex flex-wrap items-center gap-1.5">
+				{stats.accepted.length > 0 && (
+					<StatusBadge
+						variant="success"
+						dot={false}
+						className="shrink-0 whitespace-nowrap"
+					>
+						{nf.format(stats.accepted.length)} {t.accepted}
+					</StatusBadge>
+				)}
+				{stats.pendingCount > 0 && (
+					<StatusBadge
+						variant="warning"
+						dot={false}
+						className="shrink-0 whitespace-nowrap"
+					>
+						{nf.format(stats.pendingCount)} {t.pendingShort}
+					</StatusBadge>
+				)}
+				{stats.failedCount > 0 && (
+					<StatusBadge
+						variant="danger"
+						dot={false}
+						className="shrink-0 whitespace-nowrap"
+					>
+						{nf.format(stats.failedCount)} {t.failed}
+					</StatusBadge>
+				)}
+			</div>
+		);
+	};
+	const amount = (row: Submission) => {
+		const stats = checkoutStats(row);
+		return stats.fullyAccepted ? (
+			<p className="m-0 whitespace-nowrap text-sm font-semibold">
+				<Money amount={stats.grandTotal} currency={row.currency} />
+			</p>
+		) : (
+			<p className="m-0 text-sm text-muted">{ol.unknown}</p>
+		);
+	};
+	const products = (row: Submission) => {
+		const items = row.outcomes.flatMap((o) => o.items);
+		const first = items[0];
+		if (!first) return <span className="text-sm text-muted">—</span>;
+		return (
+			<div className="min-w-0 max-w-72">
+				<div className="flex min-w-0 items-start gap-3">
+					<ProductThumbnail src={first.image} />
+					<div className="min-w-0 flex-1">
+						<p
+							className="m-0 truncate text-sm font-semibold text-foreground"
+							title={first.title}
+						>
+							{first.title}
+						</p>
+						<p className="m-0 mt-1 text-xs text-muted">
+							{ol.sku}: <bdi>{first.sku}</bdi>
+						</p>
+					</div>
+				</div>
+				{items.length > 1 && (
+					<p className="m-0 mt-1 text-xs text-muted">
+						+{nf.format(items.length - 1)} {ol.more}
+					</p>
+				)}
+			</div>
+		);
+	};
+	const menu = (row: Submission) => {
+		const links = [
+			{
+				href: `/${locale}/account/buyer/checkouts/${row.id}`,
+				label: t.viewCheckout,
+				Icon: Eye,
+			},
+			...row.outcomes
+				.filter((o) => o.state === "accepted" && o.invoice && o.number)
+				.map((o) => ({
+					href: invoiceHref(locale, "buyer", o.invoice ?? ""),
+					label: `${t.invoice} · ${o.number}`,
+					Icon: FileText,
+				})),
+		];
+		const actions = row.pending
+			? [
+					{
+						label: t.resume,
+						Icon: History,
+						onSelect: () => onResume(row),
+						disabled: busy,
+					},
+				]
+			: [];
+		return (
+			<BuyerRowMenu
+				locale={locale}
+				label={`${ol.actions}: ${row.id.slice(0, 8).toUpperCase()}`}
+				links={links}
+				actions={actions}
+			/>
+		);
+	};
+	return (
+		<section
+			className="flex min-w-0 flex-col gap-5"
+			data-testid="orders-workspace"
+		>
+			<header className="min-w-0">
+				{id && (
+					<Link
+						href={`/${locale}/account/buyer/checkouts`}
+						className="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-action no-underline hover:underline"
+					>
+						<Icon name="arrow" className="size-4 ltr:rotate-180" />
+						{t.history}
+					</Link>
+				)}
+				<h1 className="m-0 text-2xl font-bold">
+					{id ? t.checkoutResult : t.history}
+				</h1>
+				{!id && (
+					<p className="m-0 mt-1 text-sm text-muted">{t.checkoutDescription}</p>
+				)}
+			</header>
+			<Failure locale={locale} error={error} />
+			{single ? (
+				<SubmissionResult
+					row={single}
+					locale={locale}
+					busy={busy}
+					resume={() => onResume(single)}
+				/>
+			) : (
+				<BuyerTableFrame
+					locale={locale}
+					title={t.history}
+					count={list?.count ?? null}
+					page={page}
+					onPage={(next) => router.push(pageHref(next))}
+					pageHref={pageHref}
+					onRefresh={onReload}
+					busy={busy || (!data && !error)}
+				>
+					{!data && !error ? (
+						<p className="m-0 px-5 py-10 text-sm text-muted" role="status">
+							{t.loading}
+						</p>
+					) : rows.length === 0 ? (
+						<EmptyState borderless icon="inbox" title={t.checkoutEmpty} />
+					) : (
+						<>
+							<BuyerTableRegion
+								label={t.history}
+								head={[
+									t.reference,
+									t.sellers,
+									ol.products,
+									t.total,
+									ol.status,
+									ol.actions,
+								]}
+								minWidth="72rem"
+							>
+								{rows.map((row) => (
+									<tr key={row.id} className={buyerRow}>
+										<td className={buyerCell}>{identity(row)}</td>
+										<td className={`${buyerCell} min-w-64`}>{outcomes(row)}</td>
+										<td className={buyerCell}>{products(row)}</td>
+										<td className={buyerCell}>{amount(row)}</td>
+										<td className={buyerCell}>{badges(row)}</td>
+										<td className="px-4 py-3 align-top">
+											<div className="flex items-center justify-end">
+												{menu(row)}
+											</div>
+										</td>
+									</tr>
+								))}
+							</BuyerTableRegion>
+							<ul className="m-0 list-none divide-y divide-border p-0 lg:hidden">
+								{rows.map((row) => (
+									<li key={row.id} className="space-y-4 p-4">
+										<div className="flex items-start justify-between gap-3">
+											{identity(row)}
+											{menu(row)}
+										</div>
+										{outcomes(row)}
+										{products(row)}
+										<div className="grid grid-cols-1 gap-3 rounded-xl border border-solid border-border p-3 sm:grid-cols-2">
+											{amount(row)}
+											{badges(row)}
+										</div>
+										{row.pending && (
+											<p className="m-0 text-xs text-muted">{t.retryHelp}</p>
+										)}
+									</li>
+								))}
+							</ul>
+						</>
+					)}
+				</BuyerTableFrame>
+			)}
+		</section>
+	);
+}
+function SubmissionResult({
 	row,
 	locale,
 	busy,
@@ -635,82 +1036,202 @@ function SubmissionCard({
 	busy: boolean;
 	resume: () => void;
 }) {
-	const t = commerceCopy[locale];
+	const t = commerceCopy[locale],
+		nf = new Intl.NumberFormat(locale),
+		{ accepted, pendingCount, failedCount, fullyAccepted, grandTotal } =
+			checkoutStats(row);
 	return (
-		<article className={panel} data-testid="submission-result">
-			<Link
-				className="inline-flex min-h-11 items-center break-all text-action"
-				href={`/${locale}/account/buyer/checkouts/${row.id}`}
-			>
-				<bdi>{row.id}</bdi>
-			</Link>
-			<p>
-				<bdi>
-					{row.currency} · {localTimestamp(row.created_at, locale)}
-				</bdi>
-			</p>
-			{row.outcomes.map((o) => (
-				<section
-					className="space-y-2 rounded-control border border-border p-3"
-					key={o.seller}
-				>
-					<p>
-						<bdi>{o.seller}</bdi>
-					</p>
-					<p role="status">
-						{o.state === "accepted"
-							? t.accepted
-							: o.state === "pending"
-								? t.pending
-								: failureText(locale, o.code)}
-					</p>
-					{o.goods_total && (
-						<p>
-							{t.total}:{" "}
-							<bdi>
-								{o.goods_total} {row.currency}
-							</bdi>
-						</p>
-					)}
-					{o.accepted_at && (
-						<p>
-							<bdi>{localTimestamp(o.accepted_at, locale)}</bdi>
-						</p>
-					)}
-					{o.price_changed && (
-						<p role="status" className="text-action">
-							{t.priceChanged}
-						</p>
-					)}
-					{o.invoice && o.number && (
-						<Link
-							className={action}
-							href={invoiceHref(locale, "buyer", o.invoice)}
-						>
-							<bdi>{o.number}</bdi> · {t.invoices}
-						</Link>
-					)}
-				</section>
-			))}
-			{row.outcomes.some((o) => o.state === "failed") && (
-				<Link className={action} href={`/${locale}/cart`}>
-					{t.cart} · {t.choose} · {t.retail} / {t.wholesale}
-				</Link>
-			)}
-			{row.pending && (
-				<>
-					<p>{t.retryHelp}</p>
-					<button
-						type="button"
-						className={action}
-						disabled={busy}
-						onClick={resume}
+		<article
+			className="min-w-0 overflow-hidden rounded-card border border-border bg-surface"
+			data-testid="submission-result"
+		>
+			<div className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 sm:p-5">
+				<div className="flex min-w-0 items-center gap-2.5">
+					<span
+						className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary"
+						aria-hidden="true"
 					>
-						{t.resume}
-					</button>
-				</>
-			)}
+						<Icon name="receipt" className="size-4" />
+					</span>
+					<div className="min-w-0">
+						<p className="m-0 text-sm font-bold">
+							<bdi>{row.id.slice(0, 8).toUpperCase()}</bdi>
+						</p>
+						<p className="m-0 mt-0.5 truncate text-caption text-muted">
+							<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
+							<bdi>{row.currency}</bdi>
+						</p>
+					</div>
+				</div>
+				<div className="flex flex-wrap items-center gap-1.5">
+					{accepted.length > 0 && (
+						<StatusBadge variant="success" dot={false}>
+							{nf.format(accepted.length)} {t.accepted}
+						</StatusBadge>
+					)}
+					{pendingCount > 0 && (
+						<StatusBadge variant="warning" dot={false}>
+							{nf.format(pendingCount)} {t.pendingShort}
+						</StatusBadge>
+					)}
+					{failedCount > 0 && (
+						<StatusBadge variant="danger" dot={false}>
+							{nf.format(failedCount)} {t.failed}
+						</StatusBadge>
+					)}
+				</div>
+			</div>
+			<div className="divide-y divide-border">
+				{row.outcomes.map((o) => (
+					<OutcomeRow
+						key={o.seller}
+						o={o}
+						locale={locale}
+						currency={row.currency}
+					/>
+				))}
+			</div>
+			<div className="space-y-2.5 border-t border-border bg-page/60 p-4 sm:p-5">
+				<p className="m-0 text-sm font-semibold">
+					{t.total}:{" "}
+					{fullyAccepted ? (
+						<Money amount={grandTotal} currency={row.currency} />
+					) : (
+						<span className="font-normal text-muted">
+							{orderListCopy[locale].unknown}
+						</span>
+					)}
+				</p>
+				{row.pending && (
+					<>
+						<button
+							type="button"
+							className={cardPrimary}
+							disabled={busy}
+							onClick={resume}
+						>
+							<Icon name="history" className="size-4" />
+							{t.resume}
+						</button>
+						<p className="m-0 text-caption text-muted">{t.retryHelp}</p>
+					</>
+				)}
+			</div>
 		</article>
+	);
+}
+function OutcomeRow({
+	o,
+	locale,
+	currency,
+}: {
+	o: SubmissionOutcome;
+	locale: Locale;
+	currency: string;
+}) {
+	const t = commerceCopy[locale],
+		stateLabel =
+			o.state === "accepted"
+				? t.accepted
+				: o.state === "pending"
+					? t.pendingShort
+					: t.failed;
+	return (
+		<div className="space-y-2.5 p-4 sm:p-5">
+			<div className="flex items-center justify-between gap-2">
+				<div className="flex min-w-0 flex-1 items-center gap-1.5">
+					<Icon name="store" className="size-4 shrink-0 text-muted" />
+					<span className="min-w-0 truncate text-sm font-semibold" dir="auto">
+						{o.seller_name || o.seller}
+					</span>
+				</div>
+				<StatusBadge variant={statusVariant(o.state)} className="shrink-0">
+					{stateLabel}
+				</StatusBadge>
+			</div>
+			{o.items.length > 0 ? (
+				<div className="flex flex-wrap items-center gap-2">
+					<div className="flex items-center gap-1.5">
+						{o.items.slice(0, 3).map((it) => (
+							<span key={it.line} title={it.title}>
+								<ProductThumbnail src={it.image} className="size-9" />
+							</span>
+						))}
+					</div>
+					<span className="text-caption text-muted">
+						<bdi>{o.item_count}</bdi> {t.items}
+					</span>
+				</div>
+			) : (
+				<p className="text-caption text-muted">
+					<bdi>{o.item_count}</bdi> {t.items}
+				</p>
+			)}
+			{(o.destination.country || o.destination.city || o.method) && (
+				<div className="flex flex-wrap gap-1.5 text-caption text-muted">
+					{(o.destination.country || o.destination.city) && (
+						<span className="inline-flex items-center gap-1 rounded-control bg-page px-2 py-0.5">
+							<Icon name="map-pin" className="size-3.5" />
+							<bdi>{o.destination.country}</bdi>
+							{o.destination.city && (
+								<>
+									{" · "}
+									<span dir="auto">{o.destination.city}</span>
+								</>
+							)}
+						</span>
+					)}
+					{o.method && (
+						<span className="inline-flex items-center gap-1 rounded-control bg-page px-2 py-0.5">
+							<Icon name="wallet" className="size-3.5" />
+							{o.method === "cod" ? t.cod : t.advance}
+						</span>
+					)}
+				</div>
+			)}
+			{o.state === "accepted" && (
+				<div className="space-y-2">
+					<p className="text-sm">
+						<span className="font-semibold">
+							<Money amount={o.goods_total ?? "0"} currency={currency} />
+						</span>
+						{o.accepted_at && (
+							<span className="ms-2 text-caption text-muted">
+								<bdi>{localTimestamp(o.accepted_at, locale)}</bdi>
+							</span>
+						)}
+					</p>
+					<div className="flex flex-wrap gap-2">
+						{o.order && (
+							<Link
+								className={cardPrimary}
+								href={`/${locale}/account/buyer/orders/${o.order}`}
+							>
+								<Icon name="shopping-bag" className="size-4" />
+								{t.viewOrder}
+							</Link>
+						)}
+						{o.invoice && o.number && (
+							<Link
+								className={cardAction}
+								href={invoiceHref(locale, "buyer", o.invoice)}
+							>
+								<Icon name="receipt" className="size-4" />
+								<bdi>{o.number}</bdi>
+							</Link>
+						)}
+					</div>
+				</div>
+			)}
+			{o.state === "failed" && (
+				<p className="text-sm text-warning">{failureText(locale, o.code)}</p>
+			)}
+			{o.price_changed && (
+				<p role="status" className="text-caption font-medium text-action">
+					{t.priceChanged}
+				</p>
+			)}
+		</div>
 	);
 }
 function failureText(locale: Locale, code: string) {
@@ -732,6 +1253,209 @@ function failureText(locale: Locale, code: string) {
 		: code === "terms_unconfigured"
 			? `${t.unavailable} · ${t.terms}`
 			: t.unavailable;
+}
+
+function BuyerOrders({
+	locale,
+	data,
+	error,
+	page,
+	busy,
+	onReload,
+}: {
+	locale: Locale;
+	data: Page<Order> | Order | Page<Submission> | Submission | null;
+	error: unknown;
+	page: number;
+	busy: boolean;
+	onReload: () => void;
+}) {
+	const t = commerceCopy[locale],
+		p = paymentCopy[locale],
+		l = deliveryListCopy[locale],
+		ol = orderListCopy[locale],
+		router = useRouter(),
+		search = useSearchParams(),
+		q = search.get("q") ?? "",
+		state = search.get("state") ?? "",
+		[searchDraft, setSearchDraft] = useState(q),
+		list = data && "results" in data ? data : null,
+		rows = list
+			? list.results.filter((r): r is Order => !("outcomes" in r))
+			: [],
+		filtered = Boolean(q || state),
+		href = (next: number, nextState = state, nextQ = q) =>
+			`?page=${next}${nextState ? `&state=${encodeURIComponent(nextState)}` : ""}${nextQ ? `&q=${encodeURIComponent(nextQ)}` : ""}`,
+		tabs: [string, string][] = [
+			["", p.all],
+			["unpaid", paymentState(locale, "unpaid")],
+			["partial", paymentState(locale, "partial")],
+			["paid", paymentState(locale, "paid")],
+			["overdue", paymentState(locale, "overdue")],
+		],
+		detailHref = (order: Order) =>
+			`/${locale}/account/buyer/orders/${order.id}`,
+		identity = (order: Order) => (
+			<div className="flex flex-col gap-1.5">
+				<Link
+					href={detailHref(order)}
+					className="text-sm font-semibold text-action no-underline hover:text-foreground"
+				>
+					<bdi>{order.number}</bdi>
+				</Link>
+				<time
+					dateTime={order.accepted_at}
+					className="block max-w-36 text-xs leading-relaxed text-muted"
+				>
+					{localTimestamp(order.accepted_at, locale)}
+				</time>
+			</div>
+		),
+		amount = (order: Order) => (
+			<div className="flex flex-col gap-1">
+				<p className="m-0 whitespace-nowrap text-sm font-semibold tabular-nums">
+					<Money amount={order.goods_total} currency={order.currency} />
+				</p>
+				<p className="m-0 text-xs text-muted">
+					{order.payment_method === "cod" ? t.cod : t.advance}
+				</p>
+				<p className="m-0 text-xs text-muted">
+					{p.remaining}:{" "}
+					<Money amount={order.payment.remaining} currency={order.currency} />
+				</p>
+			</div>
+		),
+		menu = (order: Order) => (
+			<BuyerRowMenu
+				locale={locale}
+				label={`${ol.actions}: ${order.number}`}
+				links={[
+					{
+						href: detailHref(order),
+						label: t.viewOrder,
+						Icon: ShoppingBag,
+					},
+					...(order.invoice
+						? [
+								{
+									href: invoiceHref(locale, "buyer", order.invoice),
+									label: ol.invoice,
+									Icon: FileText,
+								},
+							]
+						: []),
+					{
+						href: paymentHref(locale, "buyer", order.id),
+						label: ol.payments,
+						Icon: Wallet,
+					},
+					{
+						href: fulfilmentHref(locale, "buyer", order.id),
+						label: ol.delivery,
+						Icon: Truck,
+					},
+					{
+						href: aftercareHref(locale, "buyer", order.id),
+						label: ol.aftercare,
+						Icon: RotateCcw,
+					},
+				]}
+			/>
+		);
+	return (
+		<section className="min-w-0 space-y-4" data-testid="orders-workspace">
+			<header>
+				<h1 className="m-0 text-2xl font-bold">{t.orders}</h1>
+				<p className="m-0 mt-1 text-sm text-muted">{t.ordersDescription}</p>
+			</header>
+			<BuyerToolbar
+				locale={locale}
+				tabs={tabs}
+				state={state}
+				onTab={(value) => router.push(href(1, value, q))}
+				searchPlaceholder={l.search}
+				searchAction={l.searchAction}
+				searchDraft={searchDraft}
+				setSearchDraft={setSearchDraft}
+				onSearch={() => router.push(href(1, state, searchDraft.trim()))}
+				onClear={() => {
+					setSearchDraft("");
+					router.push(href(1, "", ""));
+				}}
+			/>
+			<Failure locale={locale} error={error} />
+			<BuyerTableFrame
+				locale={locale}
+				title={t.orders}
+				count={list?.count ?? null}
+				page={page}
+				onPage={(next) => router.push(href(next))}
+				pageHref={href}
+				onRefresh={onReload}
+				busy={busy}
+			>
+				{!data && !error ? (
+					<p role="status" className="m-0 px-5 py-10 text-sm text-muted">
+						{t.loading}
+					</p>
+				) : rows.length === 0 ? (
+					<div className="px-5 py-6">
+						<EmptyState
+							borderless
+							icon="inbox"
+							title={
+								filtered ? sellerSalesCopy[locale].noMatches : t.ordersEmpty
+							}
+							description={
+								filtered ? sellerSalesCopy[locale].noMatchesHelp : undefined
+							}
+						/>
+					</div>
+				) : (
+					<>
+						<BuyerTableRegion
+							label={t.orders}
+							minWidth="64rem"
+							head={[ol.order, ol.products, ol.total, ol.status, ol.actions]}
+						>
+							{rows.map((order) => (
+								<tr key={order.id} className={buyerRow}>
+									<td className={buyerCell}>{identity(order)}</td>
+									<td className={`${buyerCell} min-w-72`}>
+										<OrderProducts order={order} locale={locale} />
+									</td>
+									<td className={buyerCell}>{amount(order)}</td>
+									<td className={buyerCell}>
+										<OrderStatuses order={order} locale={locale} />
+									</td>
+									<td className="px-4 py-3 text-end align-top">
+										<div className="flex items-center justify-end">
+											{menu(order)}
+										</div>
+									</td>
+								</tr>
+							))}
+						</BuyerTableRegion>
+						<ul className="m-0 list-none divide-y divide-border p-0 lg:hidden">
+							{rows.map((order) => (
+								<li key={order.id} className="flex flex-col gap-3 p-4">
+									<div className="flex items-start justify-between gap-3">
+										{identity(order)}
+										{menu(order)}
+									</div>
+									<OrderProducts order={order} locale={locale} />
+									<div className="grid grid-cols-1 gap-3 rounded-xl border border-solid border-border p-3 sm:grid-cols-2">
+										{amount(order)}
+										<OrderStatuses order={order} locale={locale} />
+									</div>
+								</li>
+							))}
+						</ul>
+					</>
+				)}
+			</BuyerTableFrame>
+		</section>
+	);
 }
 
 function OrderDocument({

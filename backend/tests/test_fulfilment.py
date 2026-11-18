@@ -1209,7 +1209,7 @@ class FulfilmentBatchTests(FulfilmentFixture, TestCase):
         from apps.catalogue.models import Product, Variant
         from tests.test_catalogue import image_file
 
-        created = catalogue.create(self.seller, {"seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+        created = catalogue.create(self.seller, {"command_id": uuid.uuid4(), "seller": self.profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
         product = Product.objects.get(pk=created["id"])
         image = upload(self.seller, product.pk, product.version, image_file())
         product.refresh_from_db()

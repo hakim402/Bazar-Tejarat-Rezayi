@@ -2,7 +2,6 @@
 
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum
 from apps.inventory.models import Bucket
 from apps.inventory.services import expired, active
 from . import access
@@ -14,10 +13,13 @@ def selection(actor, pk, *, page=1):
         from rest_framework.exceptions import PermissionDenied
 
         raise PermissionDenied()
+    from apps.orders.aftercare import effective_lines
+
     goods = list(order.lines.select_related("variant__unit").order_by("variant_id", "pk"))
-    demand = {
-        str(x["variant_id"]): x["quantity"] for x in order.lines.values("variant_id").annotate(quantity=Sum("quantity"))
-    }
+    demand = {}
+    for item in effective_lines(order):
+        key = str(item["line"].variant_id)
+        demand[key] = demand.get(key, Decimal(0)) + item["quantity"]
     qs = (
         Bucket.objects.filter(position_id__in=demand)
         .select_related("batch", "position__variant__unit", "position__variant__product__published")

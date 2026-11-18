@@ -102,7 +102,7 @@ class Command(BaseCommand):
         with override_settings(OWNER_MFA_REQUIRED=False):
             publisher = actor(identities["root"], "owner")
             seller = actor(identities["company2"], "seller")
-            created = catalogue.create(seller, {"seller": second.pk, "currency": "AFN", "pricing_mode": "fixed"})
+            created = catalogue.create(seller, {"command_id": uuid.uuid4(), "seller": second.pk, "currency": "AFN", "pricing_mode": "fixed"})
             product = Product.objects.get(pk=created["id"])
             uploaded = upload(seller, product.pk, product.version, image_file())
             product.refresh_from_db()

@@ -13,7 +13,6 @@ from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
 from ..forms import ContentPageForm
 from ..media import store_upload, discard_created
-from ..models import ContentPage
 from .helpers import asset_img, require_owner, state_badge
 from .inlines import ContentPageLocaleInline
 

@@ -126,7 +126,7 @@ function WorkspaceContent({
 		/>
 	) : (
 		<AftercareList
-			key={`${scope}:${locale}:${page}`}
+			key={`${scope}:${locale}:${page}:${query.get("q") ?? ""}`}
 			{...{ locale, context, seller, page }}
 		/>
 	);

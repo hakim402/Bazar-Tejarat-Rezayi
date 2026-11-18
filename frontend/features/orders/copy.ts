@@ -84,10 +84,16 @@ export const commerceCopy: Record<
 		| "negotiable"
 		| "negotiableShort"
 		| "saved"
+		| "submitted"
+		| "submitFailed"
+		| "resumed"
+		| "resumeFailed"
+		| "actionFailed"
 		| "review"
 		| "resume"
 		| "destination"
 		| "history"
+		| "checkoutResult"
 		| "documentError"
 		| "termsHelp"
 		| "retryHelp"
@@ -100,7 +106,29 @@ export const commerceCopy: Record<
 		| "cart_changed"
 		| "tier_unavailable"
 		| "seller_unavailable"
-		| "frozen",
+		| "frozen"
+		| "reference"
+		| "failed"
+		| "pendingShort"
+		| "checkoutDescription"
+		| "checkoutEmpty"
+		| "ordersDescription"
+		| "ordersEmpty"
+		| "received"
+		| "viewOrder"
+		| "invoice"
+		| "dispute"
+		| "cancellation"
+		| "deliveryCharge"
+		| "chargePending"
+		| "chargeUnsettled"
+		| "sellers"
+		| "viewCheckout"
+		| "invoicesDescription"
+		| "invoicesEmpty"
+		| "searchInvoice"
+		| "backToInvoices"
+		| "printHelp",
 		string
 	>
 > = {
@@ -199,10 +227,16 @@ export const commerceCopy: Record<
 		negotiable: "Negotiable — saved for later negotiation",
 		negotiableShort: "Negotiable",
 		saved: "Saved to cart",
+		submitted: "Order submitted.",
+		submitFailed: "Could not submit the order.",
+		resumed: "Checkout resumed.",
+		resumeFailed: "Could not resume the checkout.",
+		actionFailed: "Could not save the change.",
 		review: "Review current estimate",
 		resume: "Resume pending sellers",
 		destination: "Destination",
 		history: "Submission history",
+		checkoutResult: "Checkout result",
 		documentError:
 			"Invoice rendering is temporarily unavailable. The accepted order is retained.",
 		termsHelp:
@@ -227,6 +261,31 @@ export const commerceCopy: Record<
 		seller_unavailable:
 			"This seller or listing is currently unavailable. These selections were retained.",
 		frozen: "Accepted prices and quantities stay fixed on this agreement.",
+		reference: "Reference",
+		failed: "Failed",
+		pendingShort: "Pending",
+		checkoutDescription:
+			"Track each checkout attempt and its outcome per seller.",
+		checkoutEmpty: "No checkout submissions yet.",
+		sellers: "Sellers",
+		viewCheckout: "View checkout",
+		invoicesDescription:
+			"The accepted invoice for each order — products, amounts and payment status.",
+		invoicesEmpty: "No invoices yet.",
+		searchInvoice: "Search invoice number",
+		backToInvoices: "Back to Invoices",
+		printHelp:
+			"Open the printable document in a new tab, then use your browser’s print command.",
+		ordersDescription: "Track your accepted orders, payments and delivery.",
+		ordersEmpty: "No accepted orders yet.",
+		received: "Received",
+		viewOrder: "View order",
+		invoice: "Invoice",
+		dispute: "Dispute",
+		cancellation: "Cancellation",
+		deliveryCharge: "Delivery charge",
+		chargePending: "Pending separately",
+		chargeUnsettled: "Unsettled",
 	},
 	"fa-AF": {
 		reconcile: "بررسی درخواست و ویرایش",
@@ -322,10 +381,16 @@ export const commerceCopy: Record<
 		negotiable: "توافقی — برای مذاکرهٔ بعدی ذخیره شده",
 		negotiableShort: "توافقی",
 		saved: "به سبد افزوده شد",
+		submitted: "سفارش ثبت شد.",
+		submitFailed: "ثبت سفارش ناموفق بود.",
+		resumed: "ادامهٔ تسویه از سر گرفته شد.",
+		resumeFailed: "ادامهٔ تسویه ناموفق بود.",
+		actionFailed: "ذخیرهٔ تغییر ناموفق بود.",
 		review: "دیدن برآورد فعلی",
 		resume: "ادامهٔ فروشندگان در انتظار",
 		destination: "مقصد",
 		history: "پیشینهٔ درخواست‌ها",
+		checkoutResult: "نتیجهٔ تسویه",
 		documentError: "ایجاد سند موقتاً در دسترس نیست. سفارش پذیرفته‌شده محفوظ است.",
 		termsHelp:
 			"تنها مالک کسب‌وکار تأییدشده می‌تواند مقصدها و روش‌های مجاز را تنظیم کند. خرید در آغاز غیرفعال است.",
@@ -349,6 +414,31 @@ export const commerceCopy: Record<
 		seller_unavailable:
 			"فروشنده یا محصول فعلاً در دسترس نیست. انتخاب‌ها در سبد محفوظ است.",
 		frozen: "قیمت‌ها و مقدارهای پذیرفته‌شده در این توافق ثابت می‌ماند.",
+		reference: "شناسه",
+		failed: "ناموفق",
+		pendingShort: "در انتظار",
+		checkoutDescription:
+			"هر درخواست تسویه و نتیجهٔ آن برای هر فروشنده را پیگیری کنید.",
+		checkoutEmpty: "هنوز درخواست تسویه‌ای ثبت نشده است.",
+		sellers: "فروشندگان",
+		viewCheckout: "دیدن تسویه",
+		invoicesDescription:
+			"صورت‌حساب پذیرفته‌شدهٔ هر سفارش — محصولات، مبلغ‌ها و وضعیت پرداخت.",
+		invoicesEmpty: "هنوز صورت‌حسابی نیست.",
+		searchInvoice: "جستجوی شمارهٔ صورت‌حساب",
+		backToInvoices: "بازگشت به صورت‌حساب‌ها",
+		printHelp:
+			"سند قابل چاپ را در زبانهٔ تازه باز کنید، سپس از فرمان چاپ مرورگر استفاده کنید.",
+		ordersDescription: "سفارش‌های پذیرفته‌شده، پرداخت‌ها و تحویل را پیگیری کنید.",
+		ordersEmpty: "هنوز سفارش پذیرفته‌شده‌ای وجود ندارد.",
+		received: "دریافت‌شده",
+		viewOrder: "دیدن سفارش",
+		invoice: "صورتحساب",
+		dispute: "اختلاف",
+		cancellation: "لغو",
+		deliveryCharge: "هزینهٔ تحویل",
+		chargePending: "جداگانه در انتظار",
+		chargeUnsettled: "تسویه‌نشده",
 	},
 	ps: {
 		reconcile: "غوښتنه وڅېړئ او سمون ورکړئ",
@@ -442,10 +532,16 @@ export const commerceCopy: Record<
 		negotiable: "توافقي — د وروسته خبرو لپاره ساتل شوی",
 		negotiableShort: "توافقي",
 		saved: "په سبد کې وساتل شو",
+		submitted: "غوښتنه ثبت شوه.",
+		submitFailed: "غوښتنه ثبت نه شوه.",
+		resumed: "تصفیه بیا پیل شوه.",
+		resumeFailed: "تصفیه بیا پیل نه شوه.",
+		actionFailed: "بدلون خوندي نه شو.",
 		review: "اوسنی اټکل کتل",
 		resume: "په تمه پلورونکي بیا هڅول",
 		destination: "موخه",
 		history: "د غوښتنو مخینه",
+		checkoutResult: "د تسویې پایله",
 		documentError: "د سند جوړول لنډمهاله نشته. منل شوې سپارښتنه ساتل شوې ده.",
 		termsHelp:
 			"یوازې د تایید شوې سوداګرۍ مالک مجازې موخې او طریقې تنظیمولای شي. پېر په پیل کې غیر فعال دی.",
@@ -468,6 +564,30 @@ export const commerceCopy: Record<
 		seller_unavailable:
 			"پلورونکی یا محصول اوس نشته. انتخابونه په سبد کې ساتل شوي دي.",
 		frozen: "په دې هوکړه کې منل شوې بیې او مقدارونه ثابت پاتې کېږي.",
+		reference: "پېژند",
+		failed: "ناکام",
+		pendingShort: "په تمه",
+		checkoutDescription: "د هرې تسویې هڅه او د هر پلورونکي پایله تعقیب کړئ.",
+		checkoutEmpty: "تر اوسه د تسویې هڅه نه ده ثبت شوې.",
+		sellers: "پلورونکي",
+		viewCheckout: "تسویه وګورئ",
+		invoicesDescription:
+			"د هرې سپارښتنې منل شوی بل — محصولات، مبلغونه او د تادیې حالت.",
+		invoicesEmpty: "تر اوسه بل نشته.",
+		searchInvoice: "د بل شمېره پلټل",
+		backToInvoices: "بلونو ته ستنېدل",
+		printHelp:
+			"د چاپ وړ سند په نوې ټب کې پرانیزئ، بیا د براوزر د چاپ بولنه وکاروئ.",
+		ordersDescription: "منل شوي سپارښتنې، تادیې او لېږد تعقیب کړئ.",
+		ordersEmpty: "تر اوسه منل شوې سپارښتنه نشته.",
+		received: "ترلاسه شوی",
+		viewOrder: "سپارښتنه کتل",
+		invoice: "بل",
+		dispute: "شخړه",
+		cancellation: "لغوه",
+		deliveryCharge: "د لېږد لګښت",
+		chargePending: "جلا په تمه",
+		chargeUnsettled: "نه دی تصفیه شوی",
 	},
 	ar: {
 		reconcile: "تحقق من الطلب ثم عدّل",
@@ -562,10 +682,16 @@ export const commerceCopy: Record<
 		negotiable: "تفاوضي — محفوظ للتفاوض لاحقاً",
 		negotiableShort: "تفاوضي",
 		saved: "أضيف إلى السلة",
+		submitted: "تم إرسال الطلب.",
+		submitFailed: "تعذر إرسال الطلب.",
+		resumed: "تم استئناف الدفع.",
+		resumeFailed: "تعذر استئناف الدفع.",
+		actionFailed: "تعذر حفظ التغيير.",
 		review: "عرض التقدير الحالي",
 		resume: "استئناف البائعين المعلقين",
 		destination: "الوجهة",
 		history: "سجل الطلبات",
+		checkoutResult: "نتيجة محاولة الدفع",
 		documentError: "إنشاء المستند غير متاح مؤقتاً. الطلب المقبول محفوظ.",
 		termsHelp:
 			"فقط مالك المنشأة المعتمدة يمكنه إعداد الوجهات والطرق المسموحة. الشراء معطل افتراضياً.",
@@ -586,5 +712,29 @@ export const commerceCopy: Record<
 		seller_unavailable:
 			"البائع أو المنتج غير متاح حالياً. اختياراتك محفوظة في السلة.",
 		frozen: "تبقى الأسعار والكميات المقبولة ثابتة في هذا الاتفاق.",
+		reference: "المرجع",
+		failed: "فشل",
+		pendingShort: "قيد الانتظار",
+		checkoutDescription: "تتبّع كل محاولة دفع ونتيجتها لكل بائع.",
+		checkoutEmpty: "لا توجد محاولات دفع بعد.",
+		sellers: "البائعون",
+		viewCheckout: "عرض محاولة الدفع",
+		invoicesDescription:
+			"الفاتورة المقبولة لكل طلب — المنتجات والمبالغ وحالة الدفع.",
+		invoicesEmpty: "لا توجد فواتير بعد.",
+		searchInvoice: "البحث برقم الفاتورة",
+		backToInvoices: "العودة إلى الفواتير",
+		printHelp:
+			"افتح المستند القابل للطباعة في علامة تبويب جديدة، ثم استخدم أمر الطباعة في متصفحك.",
+		ordersDescription: "تتبّع طلباتك المقبولة والمدفوعات والتسليم.",
+		ordersEmpty: "لا توجد طلبات مقبولة بعد.",
+		received: "المستلم",
+		viewOrder: "عرض الطلب",
+		invoice: "فاتورة",
+		dispute: "نزاع",
+		cancellation: "إلغاء",
+		deliveryCharge: "رسوم التوصيل",
+		chargePending: "قيد التحديد منفصلاً",
+		chargeUnsettled: "غير مسوّى",
 	},
 };

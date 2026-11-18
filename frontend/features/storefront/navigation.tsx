@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
 import { accessCopy } from "../../lib/i18n/access";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Locale } from "../../lib/i18n/locales";
 import { Icon, type IconName } from "../../components/ui/icon";
 import { HeaderCart } from "../../components/layout/header-cart";
 import { HeaderNotifications } from "../../components/layout/header-notifications";
-import { Preferences } from "../../components/layout/preferences";
+import { PreferencesMenu } from "../../components/layout/preferences";
 import { publicRequest } from "../marketplace/api";
 import type { CategoryPage } from "../marketplace/types";
 import { marketplaceCopy } from "../marketplace/copy";
@@ -14,7 +14,6 @@ import { storefrontCopy } from "./copy";
 export function StorefrontNavigation({ locale }: { locale: Locale }) {
 	const t = storefrontCopy[locale],
 		[query, setQuery] = useState("");
-	const preferences = useRef<HTMLDetailsElement>(null);
 	const [taxonomy, setTaxonomy] = useState<CategoryPage | null>(null),
 		[taxonomyFailed, setTaxonomyFailed] = useState(false);
 	useEffect(() => {
@@ -33,9 +32,6 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 			.toLocaleLowerCase(locale)
 			.includes(query.trim().toLocaleLowerCase(locale)),
 	);
-	function closeMenus() {
-		if (preferences.current) preferences.current.open = false;
-	}
 	return (
 		<>
 			<div className="relative order-last flex w-full min-w-0 items-center gap-2 desktop:order-none desktop:flex-1 desktop:gap-3">
@@ -118,32 +114,7 @@ export function StorefrontNavigation({ locale }: { locale: Locale }) {
 					className="hidden min-[420px]:block"
 				/>
 				<HeaderCart locale={locale} />
-				<details
-					ref={preferences}
-					className="group/preferences relative"
-					onKeyDown={(event) => {
-						if (event.key === "Escape") {
-							closeMenus();
-							preferences.current?.querySelector("summary")?.focus();
-						}
-					}}
-				>
-					<summary
-						aria-label={t.preferences}
-						className="flex size-9 list-none items-center justify-center rounded-full text-muted hover:bg-info desktop:size-11 [&::-webkit-details-marker]:hidden"
-					>
-						<Icon name="globe" />
-					</summary>
-					<div className="absolute end-0 top-full z-40 mt-3 hidden w-72 max-w-[85vw] rounded-2xl border border-border bg-surface p-5 shadow-card group-open/preferences:block max-[767px]:fixed max-[767px]:inset-x-3 max-[767px]:top-16 max-[767px]:w-auto max-[767px]:max-w-none">
-						<div className="mb-4 flex items-center gap-2">
-							<span className="flex size-8 items-center justify-center rounded-lg bg-info text-action">
-								<Icon name="sliders" className="size-4" />
-							</span>
-							<p className="text-sm font-bold">{t.preferences}</p>
-						</div>
-						<Preferences locale={locale} />
-					</div>
-				</details>
+				<PreferencesMenu locale={locale} />
 			</div>
 		</>
 	);

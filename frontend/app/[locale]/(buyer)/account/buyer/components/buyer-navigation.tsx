@@ -7,9 +7,6 @@ import { negotiationCopy } from "../../../../../../features/negotiations/copy";
 import Link from "next/link";
 import { commerceCopy } from "../../../../../../features/orders/copy";
 import { communicationCopy } from "../../../../../../features/messaging/copy";
-import { accountSettingsCopy } from "../../../../../../lib/i18n/account-settings";
-import { organizationCopy } from "../../../../../../lib/i18n/organizations";
-import { authCopy } from "../../../../../../lib/i18n/auth";
 import {
 	createContext,
 	useContext,
@@ -22,9 +19,14 @@ import {
 import { usePathname } from "next/navigation";
 import { direction, type Locale } from "../../../../../../lib/i18n/locales";
 import { buyerShellCopy } from "../../../../../../lib/i18n/buyer-shell";
+import { inventoryCopy } from "../../../../../../lib/i18n/inventory";
 import { Icon, type IconName } from "../../../../../../components/ui/icon";
-import { BuyerPreferences } from "./buyer-preferences";
-import { BuyerSidebarAccount } from "./buyer-account";
+import {
+	CountPill,
+	HeaderBadge,
+} from "../../../../../../components/layout/header-menu";
+import { useUnreadCount } from "../../../../../../features/notifications/hooks";
+import { BuyerSidebarAccount, useBuyerAccount } from "./buyer-account";
 import {
 	JumpToPage,
 	type BuyerDestination,
@@ -47,7 +49,6 @@ interface NavigationGroup extends BuyerNavigationGroup {
 
 function buyerRoute(locale: Locale, route: string) {
 	if (route === "") return `/${locale}/account/buyer`;
-	if (route === "cart") return `/${locale}/cart`;
 	return `/${locale}/account/buyer/${route}`;
 }
 
@@ -83,16 +84,27 @@ function NavigationTree({
 					key={page.route}
 					href={page.href}
 					aria-current={page.active ? "page" : undefined}
+					aria-label={page.badge ? `${page.label} (${page.badge})` : undefined}
 					onNavigate={onNavigate}
 					className={`${linkClass} ${collapsed ? "justify-center px-0!" : ""}`}
-					title={collapsed ? page.label : undefined}
+					title={
+						collapsed
+							? page.badge
+								? `${page.label} (${page.badge})`
+								: page.label
+							: undefined
+					}
 				>
-					<Icon name={page.icon} className="size-5" />
+					<span className="relative shrink-0">
+						<Icon name={page.icon} className="size-5" />
+						{collapsed && <HeaderBadge count={page.badge ?? 0} />}
+					</span>
 					<span
 						className={collapsed ? "sr-only" : "min-w-0 flex-1 wrap-anywhere"}
 					>
 						{page.label}
 					</span>
+					{!collapsed && !!page.badge && <CountPill count={page.badge} />}
 				</Link>
 			));
 		}
@@ -153,9 +165,34 @@ function NavigationTree({
 	});
 }
 
-const BuyerNavigationContext = createContext<readonly BuyerDestination[] | null>(
-	null,
-);
+const BuyerNavigationContext = createContext<
+	readonly BuyerDestination[] | null
+>(null);
+
+function HelpLink({
+	locale,
+	collapsed = false,
+	onNavigate,
+}: {
+	locale: Locale;
+	collapsed?: boolean;
+	onNavigate?: () => void;
+}) {
+	const label = buyerShellCopy[locale].helpContact;
+	return (
+		<Link
+			href={`/${locale}/contact`}
+			onNavigate={onNavigate}
+			title={collapsed ? label : undefined}
+			className={`flex min-h-11 min-w-0 items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-info hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none ${collapsed ? "justify-center px-0!" : ""}`}
+		>
+			<Icon name="help" className="size-5" />
+			<span className={collapsed ? "sr-only" : "min-w-0 flex-1 wrap-anywhere"}>
+				{label}
+			</span>
+		</Link>
+	);
+}
 
 export function useBuyerNavigation() {
 	return useContext(BuyerNavigationContext);
@@ -178,6 +215,8 @@ export function BuyerNavigation({
 	const [collapsed, setCollapsed] = useState(false);
 	const sidebarId = useId();
 	const path = usePathname();
+	const { session } = useBuyerAccount();
+	const { count: unread } = useUnreadCount("buyer", "", !!session);
 
 	const groups: NavGroup[] = [
 		{
@@ -189,16 +228,6 @@ export function BuyerNavigation({
 		{
 			key: "shopping",
 			label: copy.shopping,
-			icon: "cart",
-			collapsible: true,
-			links: [
-				["cart", commerceCopy[locale].cart, "cart"],
-				["checkouts", commerceCopy[locale].history, "history"],
-			],
-		},
-		{
-			key: "ordersDelivery",
-			label: copy.ordersDelivery,
 			icon: "shopping-bag",
 			collapsible: true,
 			links: [
@@ -209,8 +238,8 @@ export function BuyerNavigation({
 			],
 		},
 		{
-			key: "paymentsAgreements",
-			label: copy.paymentsAgreements,
+			key: "payments",
+			label: copy.payments,
 			icon: "wallet",
 			collapsible: true,
 			links: [
@@ -233,22 +262,16 @@ export function BuyerNavigation({
 			links: [["notifications", copy.notifications, "bell"]],
 		},
 		{
-			key: "business",
-			label: copy.business,
-			icon: "team",
-			collapsible: true,
-			links: [["organizations", organizationCopy[locale].title, "team"]],
-		},
-		{
 			key: "settings",
-			label: copy.settingsSecurity,
+			label: copy.settings,
 			icon: "gear",
 			collapsible: true,
 			links: [
-				["settings", accountSettingsCopy[locale].title, "gear"],
-				["profile", authCopy[locale].profile, "user-circle"],
-				["password", authCopy[locale].password, "shield-lock"],
-				["link", copy.sellerAccess, "link"],
+				["profile", copy.accountProfile, "user-circle"],
+				["settings", copy.accountSettings, "gear"],
+				["password", inventoryCopy[locale].password, "shield-lock"],
+				["organizations", copy.myBusinesses, "team"],
+				["link", copy.becomeSeller, "link"],
 			],
 		},
 	];
@@ -256,7 +279,6 @@ export function BuyerNavigation({
 	const isActive = (route: string) => {
 		const href = buyerRoute(locale, route);
 		if (route === "") return path === href;
-		if (route === "cart") return path === href;
 		return path === href || path.startsWith(`${href}/`);
 	};
 
@@ -271,6 +293,7 @@ export function BuyerNavigation({
 			icon,
 			href: buyerRoute(locale, route),
 			active: isActive(route),
+			badge: route === "notifications" && unread > 0 ? unread : undefined,
 		})),
 	}));
 	const destinations = visibleGroups.flatMap((group) => group.links);
@@ -282,10 +305,11 @@ export function BuyerNavigation({
 				pathname={path}
 				onNavigate={() => drawer.current?.close()}
 			/>
+			<HelpLink locale={locale} onNavigate={() => drawer.current?.close()} />
 		</nav>
 	);
 
-	const mobileRoutes = ["", "orders", "cart", "messages"];
+	const mobileRoutes = ["", "orders", "messages"];
 	const moreActive = destinations.some(
 		(page) => page.active && !mobileRoutes.includes(page.route),
 	);
@@ -333,6 +357,7 @@ export function BuyerNavigation({
 							onExpand={() => setCollapsed(false)}
 							onNavigate={() => drawer.current?.close()}
 						/>
+						<HelpLink locale={locale} collapsed={collapsed} />
 					</nav>
 					<BuyerSidebarAccount locale={locale} collapsed={collapsed} />
 				</aside>
@@ -342,7 +367,7 @@ export function BuyerNavigation({
 			</div>
 			<nav
 				aria-label={copy.navigation}
-				className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 gap-1 border-t border-border bg-surface pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] pl-[max(0.25rem,env(safe-area-inset-left))] pr-[max(0.25rem,env(safe-area-inset-right))] sm:hidden"
+				className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 gap-1 border-t border-border bg-surface pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] pl-[max(0.25rem,env(safe-area-inset-left))] pr-[max(0.25rem,env(safe-area-inset-right))] sm:hidden"
 			>
 				{mobileRoutes.map((route) => {
 					const configured = groups
@@ -472,9 +497,6 @@ export function BuyerNavigation({
 						{navigation}
 					</div>
 					<BuyerSidebarAccount locale={locale} />
-					<div className="shrink-0 border-t border-border px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-						<BuyerPreferences locale={locale} drawer />
-					</div>
 				</div>
 			</dialog>
 		</BuyerNavigationContext.Provider>

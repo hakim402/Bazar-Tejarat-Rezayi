@@ -2,7 +2,10 @@
 import { Button } from "../ui/button";
 import { Field, Input } from "../ui/form-field";
 import { Alert } from "../ui/alert";
-import { useEffect, useState, type FormEvent } from "react";
+import { Button as ShadcnButton } from "../shadcn/button";
+import { Input as ShadcnInput } from "../shadcn/input";
+import { FormActions, FormField } from "../ui/dialog-form";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import {
 	authMutation,
 	googleAvailability,
@@ -13,25 +16,52 @@ import { authCopy } from "../../lib/i18n/auth";
 import { googleCopy } from "../../lib/i18n/google";
 import type { Locale } from "../../lib/i18n/locales";
 
+export function GoogleMark() {
+	return (
+		<svg aria-hidden="true" width="20" height="20" viewBox="0 0 48 48">
+			<path
+				fill="#EA4335"
+				d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
+			/>
+			<path
+				fill="#4285F4"
+				d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6C44.4 38.03 46.98 31.88 46.98 24.55Z"
+			/>
+			<path
+				fill="#FBBC05"
+				d="M10.53 28.59a14.41 14.41 0 0 1 0-9.18l-7.98-6.19a23.87 23.87 0 0 0 0 21.56l7.98-6.19Z"
+			/>
+			<path
+				fill="#34A853"
+				d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"
+			/>
+		</svg>
+	);
+}
+
 export function GoogleButton({
 	locale,
 	context,
 	action = "signin",
 	sourceContext,
 	compact = false,
+	embedded = false,
 }: {
 	locale: Locale;
 	context: "buyer" | "seller";
 	action?: "signin" | "register" | "link" | "add-role";
 	sourceContext?: "buyer" | "seller";
 	compact?: boolean;
+	embedded?: boolean;
 }) {
 	const t = googleCopy[locale],
 		a = authCopy[locale];
+	const base = useId();
 	const [available, setAvailable] = useState(false),
 		[loaded, setLoaded] = useState(false),
 		[busy, setBusy] = useState(false),
-		[error, setError] = useState("");
+		[error, setError] = useState(""),
+		[password, setPassword] = useState("");
 	useEffect(() => {
 		let current = true;
 		void googleAvailability()
@@ -85,6 +115,53 @@ export function GoogleButton({
 			setBusy(false);
 		}
 	}
+	const googleMark = <GoogleMark />;
+	if (embedded)
+		return (
+			<div className="google-entry space-y-4">
+				{error && (
+					<Alert variant="danger" role="alert">
+						{error}
+					</Alert>
+				)}
+				<form className="space-y-4" onSubmit={start} aria-busy={busy}>
+					{action === "link" && available && (
+						<FormField
+							id={`${base}-password`}
+							label={a.currentPassword}
+							required
+						>
+							<ShadcnInput
+								id={`${base}-password`}
+								name="password"
+								type="password"
+								required
+								dir="ltr"
+								autoComplete="current-password"
+								maxLength={128}
+								disabled={busy}
+								value={password}
+								onChange={(event) => setPassword(event.target.value)}
+							/>
+						</FormField>
+					)}
+					<FormActions>
+						<ShadcnButton
+							type="submit"
+							variant="outline"
+							disabled={!available || busy}
+							className="google-button gap-2"
+						>
+							{googleMark}
+							{busy ? t.loading : t.button}
+						</ShadcnButton>
+					</FormActions>
+				</form>
+				{loaded && !available && (
+					<p className="m-0 text-xs leading-5 text-muted">{t.unavailable}</p>
+				)}
+			</div>
+		);
 	return (
 		<div
 			className={`google-entry border-t border-border ${compact ? "mt-3 pt-2" : "my-6 py-5"}`}
@@ -114,24 +191,7 @@ export function GoogleButton({
 					type="submit"
 					disabled={!available || busy}
 				>
-					<svg aria-hidden="true" width="20" height="20" viewBox="0 0 48 48">
-						<path
-							fill="#EA4335"
-							d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
-						/>
-						<path
-							fill="#4285F4"
-							d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6C44.4 38.03 46.98 31.88 46.98 24.55Z"
-						/>
-						<path
-							fill="#FBBC05"
-							d="M10.53 28.59a14.41 14.41 0 0 1 0-9.18l-7.98-6.19a23.87 23.87 0 0 0 0 21.56l7.98-6.19Z"
-						/>
-						<path
-							fill="#34A853"
-							d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"
-						/>
-					</svg>
+					{googleMark}
 					{busy ? t.loading : t.button}
 				</Button>
 			</form>
@@ -143,7 +203,15 @@ export function GoogleButton({
 				</p>
 			)}
 			{action === "link" && (
-				<p className="account-hint mt-3 mb-5 text-base text-muted">{t.link}</p>
+				<p
+					className={
+						embedded
+							? "account-hint mt-2 text-xs leading-5 text-muted"
+							: "account-hint mt-3 mb-5 text-base text-muted"
+					}
+				>
+					{t.link}
+				</p>
 			)}
 			{action === "add-role" && (
 				<p className="account-hint mt-3 mb-5 text-base text-muted">

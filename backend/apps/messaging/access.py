@@ -158,8 +158,7 @@ def participant_attachment(actor, pk):
     account = actor.account
     item = get_object_or_404(Attachment.objects.select_related("message", "conversation"), pk=pk)
     if item.message_id:
-        from django.db import connection
-        if connection.vendor == "mysql" and not item.message.published:
+        if not item.message.published:
             raise NotFound()
         conversation(actor, item.conversation_id)
     else:

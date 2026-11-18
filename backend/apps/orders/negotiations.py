@@ -315,8 +315,9 @@ def preview_submission(actor, data):
     return {"results": results, "binding": False}
 
 
-def request_data(row, context, history_page=1, *, include_history=True):
-    current = row.revisions.get(number=row.revision)
+def request_data(row, context, history_page=1, *, include_history=True, current=None):
+    if current is None:
+        current = row.revisions.get(number=row.revision)
     order = getattr(row, "order", None) if row.state == "accepted" else None
     actions = []
     if row.state in ["submitted", "correction_requested"]:
@@ -331,6 +332,11 @@ def request_data(row, context, history_page=1, *, include_history=True):
     )
     numbers = [e.revision for e in events if e.action in ["submitted", "resubmitted"]]
     revisions = {r.number: r for r in row.revisions.filter(number__in=numbers)}
+    actor_ids = {e.actor_id for e in events} | {r.actor_id for r in revisions.values()}
+    actor_names = {
+        a["pk"]: a["user__display_name"]
+        for a in Account.objects.filter(pk__in=actor_ids).values("pk", "user__display_name")
+    }
     history = []
     for e in events:
         revision = revisions.get(e.revision) if e.action in ["submitted", "resubmitted"] else None
@@ -339,6 +345,7 @@ def request_data(row, context, history_page=1, *, include_history=True):
                 {
                     "revision": revision.number,
                     "actor": str(revision.actor_id),
+                    "actor_name": actor_names.get(revision.actor_id, ""),
                     "action": "buyer_proposal",
                     "proposal": revision.body,
                     "at": revision.created_at.isoformat(),
@@ -349,6 +356,7 @@ def request_data(row, context, history_page=1, *, include_history=True):
                 "version": e.version,
                 "revision": e.revision,
                 "actor": str(e.actor_id),
+                "actor_name": actor_names.get(e.actor_id, ""),
                 "action": e.action,
                 "reason": e.reason,
                 "state": e.state,
@@ -364,6 +372,7 @@ def request_data(row, context, history_page=1, *, include_history=True):
         "state": row.state,
         "version": row.version,
         "revision": row.revision,
+        "reference": row.revision,
         "created_at": row.created_at,
         "proposal": with_product_images(current.body, context, row.pk),
         "history": history,
@@ -395,10 +404,20 @@ def page(actor, query):
         )
     qs = qs.order_by("-created_at", "pk")
     p = query["page"]
+    rows = list(qs[(p - 1) * 20 : p * 20])
+    currents = {
+        (r.request_id, r.number): r
+        for r in NegotiationRevision.objects.filter(
+            request_id__in=[r.pk for r in rows], number__in=[r.revision for r in rows]
+        )
+    }
     return {
         "count": qs.count(),
         "page": p,
-        "results": [request_data(r, actor.context, include_history=False) for r in qs[(p - 1) * 20 : p * 20]],
+        "results": [
+            request_data(r, actor.context, include_history=False, current=currents[(r.pk, r.revision)])
+            for r in rows
+        ],
     }
 
 

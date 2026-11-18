@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 import { AccountError } from "../../../lib/api/private-client";
 import {
@@ -15,7 +16,14 @@ import { useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { PublicProduct } from "../../marketplace/types";
 import { useCommunicationSession, accessLost } from "../../messaging/hooks";
-import { commerce, cartPath, addQuantity, type Cart } from "../../orders/api";
+import {
+	commerce,
+	cartPath,
+	addQuantity,
+	estimate,
+	stepQuantity,
+	type Cart,
+} from "../../orders/api";
 import { commerceCopy } from "../../orders/copy";
 import { marketplaceCopy } from "../../marketplace/copy";
 import { Icon } from "../../../components/ui/icon";
@@ -158,10 +166,14 @@ function ProductCartEditor({
 				retainReference(null);
 				pending.current = null;
 				setSaved(true);
+				toast.success(t.saved);
 				announceCartChange();
 			}
 		} catch (e) {
-			if (live.current) setError(e);
+			if (live.current) {
+				setError(e);
+				toast.error(t.actionFailed);
+			}
 		} finally {
 			if (live.current) {
 				owned.current = false;
@@ -205,7 +217,10 @@ function ProductCartEditor({
 			retainReference(null);
 			pending.current = null;
 			setSaved(result.state === "applied");
-			if (result.state === "applied") announceCartChange();
+			if (result.state === "applied") {
+				announceCartChange();
+				toast.success(t.saved);
+			}
 		} catch (e) {
 			if (!live.current) return;
 			setError(e);
@@ -223,10 +238,14 @@ function ProductCartEditor({
 						current.guest_scope !== pending.current.guest_scope;
 					setGuestChanged(changed);
 					if (changed) setError(null);
+					else toast.error(t.actionFailed);
 				} catch (currentError) {
-					if (live.current) setError(currentError);
+					if (live.current) {
+						setError(currentError);
+						toast.error(t.actionFailed);
+					}
 				}
-			}
+			} else toast.error(t.actionFailed);
 		} finally {
 			if (live.current) {
 				owned.current = false;
@@ -238,24 +257,19 @@ function ProductCartEditor({
 	const market = marketplaceCopy[locale],
 		unit = v.unit_labels[locale] || v.unit,
 		price = tier === "retail" ? v.retail : v.wholesale,
+		// estimate expects canonical 3-decimal quantities; normalize raw input.
 		total =
 			price != null && validCartQuantity(quantity, v.increment)
-				? subtotal(price, quantity)
+				? estimate(price, addQuantity(quantity, "0"))
 				: null,
 		locked = busy || !!pending.current,
-		stepQuantity = (delta: 1 | -1) => {
+		step = (delta: 1 | -1) => {
 			setSaved(false);
-			if (!/^\d{1,9}(\.\d{1,3})?$/.test(quantity)) {
+			try {
+				setQuantity(stepQuantity(quantity, v.increment, delta));
+			} catch {
 				setQuantity(initialCartQuantity(v.increment));
-				return;
 			}
-			const step = milli(v.increment);
-			let n = milli(quantity) + (delta === 1 ? step : -step);
-			if (n < step) n = step;
-			if (n > BigInt("999999999999")) n = BigInt("999999999999");
-			setQuantity(
-				`${n / BigInt(1000)}.${String(n % BigInt(1000)).padStart(3, "0")}`,
-			);
 		};
 	return (
 		<section
@@ -304,7 +318,7 @@ function ProductCartEditor({
 							aria-label={market.decreaseQuantity}
 							title={market.decreaseQuantity}
 							disabled={locked}
-							onClick={() => stepQuantity(-1)}
+							onClick={() => step(-1)}
 							className="flex w-11 shrink-0 items-center justify-center border-e border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
 						>
 							<Icon name="minus" className="size-4" />
@@ -328,7 +342,7 @@ function ProductCartEditor({
 							aria-label={market.increaseQuantity}
 							title={market.increaseQuantity}
 							disabled={locked}
-							onClick={() => stepQuantity(1)}
+							onClick={() => step(1)}
 							className="flex w-11 shrink-0 items-center justify-center border-s border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
 						>
 							<Icon name="plus" className="size-4" />
@@ -403,17 +417,4 @@ function ProductCartEditor({
 			</Link>
 		</section>
 	);
-}
-function milli(value: string) {
-	const [w, f = ""] = value.split(".");
-	return BigInt(w) * BigInt(1000) + BigInt(f.padEnd(3, "0"));
-}
-function subtotal(price: string, quantity: string) {
-	if (
-		!/^\d{1,9}(\.\d{1,3})?$/.test(price) ||
-		!/^\d{1,9}(\.\d{1,3})?$/.test(quantity)
-	)
-		return null;
-	const cents = (milli(price) * milli(quantity) + BigInt(5000)) / BigInt(10000);
-	return `${cents / BigInt(100)}.${String(cents % BigInt(100)).padStart(2, "0")}`;
 }

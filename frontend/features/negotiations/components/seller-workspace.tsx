@@ -549,7 +549,7 @@ function RequestList({
 													href={detailHref(row)}
 													className="text-sm font-semibold text-action no-underline hover:text-foreground"
 												>
-													<bdi>{row.id}</bdi>
+													<bdi>#{row.reference}</bdi>
 												</Link>
 												<time
 													dateTime={row.created_at}
@@ -599,7 +599,7 @@ function RequestList({
 											href={detailHref(row)}
 											className="text-sm font-semibold text-action no-underline"
 										>
-											<bdi>{row.id}</bdi>
+											<bdi>#{row.reference}</bdi>
 										</Link>
 										<p className="m-0 break-words text-sm" dir="auto">
 											{row.buyer}

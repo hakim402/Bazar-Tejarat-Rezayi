@@ -19,6 +19,17 @@ const additions = {
 		sellerTitle: "Delivery and fulfilment",
 		intro:
 			"One whole shipment. Manual tracking. Goods payments and provider delivery charges are separate.",
+		deliveryProgress: "Delivery progress",
+		moneyDetails: "Payment & charge details",
+		recipientDetails: "Recipient details",
+		arrangementDetails: "Arrangement details",
+		historyDetails: "Delivery history & records",
+		historyHelp:
+			"Tracking, claims, receipts, corrections and the full activity log.",
+		buyerActions: "Delivery actions",
+		buyerActionsHelp:
+			"Choose an action, complete its exact fields and send it for staff review. Nothing applies until you confirm it.",
+		stageDispatch: "Dispatch",
 		recipient: "Private recipient",
 		recipientName: "Recipient name",
 		phone: "Recipient phone",
@@ -150,6 +161,16 @@ const additions = {
 		sellerTitle: "تحویل و ارسال",
 		intro:
 			"یک محموله برای تمام سفارش. پیگیری دستی است. پول کالا و هزینهٔ ارائه‌کنندهٔ تحویل جدا است.",
+		deliveryProgress: "پیشرفت تحویل",
+		moneyDetails: "جزئیات پرداخت و هزینه",
+		recipientDetails: "جزئیات گیرنده",
+		arrangementDetails: "جزئیات ترتیب تحویل",
+		historyDetails: "تاریخچه و سوابق تحویل",
+		historyHelp: "رهگیری، ادعاها، رسیدها، اصلاح‌ها و گزارش کامل فعالیت.",
+		buyerActions: "اقدامات تحویل",
+		buyerActionsHelp:
+			"یک اقدام را انتخاب کنید، فیلدهای دقیق آن را کامل کنید و برای بررسی کارمند بفرستید. تا زمانی که تأیید نکنید، چیزی اعمال نمی‌شود.",
+		stageDispatch: "ارسال",
 		recipient: "گیرندهٔ خصوصی",
 		recipientName: "نام گیرنده",
 		phone: "شمارهٔ تماس گیرنده",
@@ -281,6 +302,16 @@ const additions = {
 		sellerTitle: "سپارنه او لېږد",
 		intro:
 			"د ټول فرمایش لپاره یوه محموله. لاسي تعقیب. د توکو پیسې او د سپارلو چمتو کوونکي لګښت جلا دي.",
+		deliveryProgress: "د سپارلو پرمختګ",
+		moneyDetails: "د تادیې او لګښت جزئیات",
+		recipientDetails: "د ترلاسه کوونکي جزئیات",
+		arrangementDetails: "د سپارلو د ترتیب جزئیات",
+		historyDetails: "د سپارلو تاریخچه او اسناد",
+		historyHelp: "تعقیب، ادعاګانې، رسیدونه، سمونونه او د فعالیت بشپړ گزارش.",
+		buyerActions: "د تحویلۍ اقدامات",
+		buyerActionsHelp:
+			"یو اقدام وټاکئ، د هغه کره ځانونه ډک کړئ او د کارکوونکي کتنې ته یې ولېږئ. تر هغه چې تایید یې نه کړئ، هیڅ نه پلی کیږي.",
+		stageDispatch: "لېږد",
 		recipient: "خصوصي ترلاسه کوونکی",
 		recipientName: "د ترلاسه کوونکي نوم",
 		phone: "د ترلاسه کوونکي شمېره",
@@ -388,8 +419,7 @@ const additions = {
 		selected: "ټاکل شوی",
 		reserved: "ساتل شوی",
 		suggest: "یو معتبر انتخاب وړاندیز",
-		suggestionHint:
-			"یوازې بار شوي بستې کاروي. له تایید مخکې هره کرښه وڅېړئ.",
+		suggestionHint: "یوازې بار شوي بستې کاروي. له تایید مخکې هره کرښه وڅېړئ.",
 	},
 	ar: {
 		actionChanged:
@@ -409,6 +439,16 @@ const additions = {
 		sellerTitle: "التسليم والشحن",
 		intro:
 			"شحنة واحدة لكامل الطلب. تتبع يدوي. أموال البضائع ورسوم مقدم التوصيل منفصلة.",
+		deliveryProgress: "تقدم التوصيل",
+		moneyDetails: "تفاصيل الدفع والرسوم",
+		recipientDetails: "تفاصيل المستلم",
+		arrangementDetails: "تفاصيل ترتيب التوصيل",
+		historyDetails: "سجل التوصيل والمستندات",
+		historyHelp: "التتبع والمطالبات والإيصالات والتصحيحات وسجل النشاط الكامل.",
+		buyerActions: "إجراءات التسليم",
+		buyerActionsHelp:
+			"اختر إجراءً، وأكمل حقوله الدقيقة وأرسله لمراجعة الموظف. لا يُطبَّق شيء حتى تؤكده.",
+		stageDispatch: "الشحن",
 		recipient: "المستلم الخاص",
 		recipientName: "اسم المستلم",
 		phone: "هاتف المستلم",
@@ -518,8 +558,7 @@ const additions = {
 		selected: "المحدد",
 		reserved: "المحجوز",
 		suggest: "اقتراح تحديد صالح",
-		suggestionHint:
-			"يستخدم فقط الدفعات المحمّلة. راجع كل سطر قبل التأكيد.",
+		suggestionHint: "يستخدم فقط الدفعات المحمّلة. راجع كل سطر قبل التأكيد.",
 	},
 };
 export const fulfilmentCopy = Object.fromEntries(

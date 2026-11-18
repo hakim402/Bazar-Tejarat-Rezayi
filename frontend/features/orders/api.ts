@@ -55,22 +55,35 @@ export type Profile = {
 	invoices: boolean;
 	terms: boolean;
 };
+export type SubmissionItem = {
+	line: string;
+	title: string;
+	image: string | null;
+	quantity: string;
+	sku: string;
+};
+export type SubmissionOutcome = {
+	seller: string;
+	seller_name: string;
+	state: "pending" | "accepted" | "failed";
+	code: string;
+	order: string | null;
+	invoice: string | null;
+	number: string | null;
+	goods_total: string | null;
+	accepted_at: string | null;
+	price_changed: boolean;
+	item_count: number;
+	destination: { country: string; city: string };
+	method: string;
+	items: SubmissionItem[];
+};
 export type Submission = {
 	id: string;
 	pending: boolean;
 	currency: string;
 	created_at: string;
-	outcomes: {
-		seller: string;
-		state: "pending" | "accepted" | "failed";
-		code: string;
-		order: string | null;
-		invoice: string | null;
-		number: string | null;
-		goods_total: string | null;
-		accepted_at: string | null;
-		price_changed: boolean;
-	}[];
+	outcomes: SubmissionOutcome[];
 };
 export type Choice = {
 	seller: string;

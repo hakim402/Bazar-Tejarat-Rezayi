@@ -97,7 +97,7 @@ class Checkouts(OrderView):
             raise PermissionDenied()
         rows = (
             CheckoutSubmission.objects.filter(buyer=actor.account)
-            .prefetch_related("outcomes__order__invoice", "outcomes__order__lines")
+            .prefetch_related("outcomes__seller", "outcomes__order__invoice", "outcomes__order__lines")
             .order_by("-created_at", "pk")
         )
         page = data["page"]
@@ -106,7 +106,7 @@ class Checkouts(OrderView):
                 {
                     "count": rows.count(),
                     "page": page,
-                    "results": [queries.submission_row(x) for x in rows[(page - 1) * 20 : page * 20]],
+                    "results": [queries.submission_row(x, data["locale"]) for x in rows[(page - 1) * 20 : page * 20]],
                 }
             ).data
         )
@@ -115,8 +115,8 @@ class Checkouts(OrderView):
 class CheckoutDetail(OrderView):
     @extend_schema(operation_id="orders_submission", parameters=[c.DocumentQuery], responses=c.Submission)
     def get(self, request, pk):
-        query(request, c.DocumentQuery)
-        return Response(c.Submission(queries.submission_data(self.actor("buyer"), pk)).data)
+        data = query(request, c.DocumentQuery)
+        return Response(c.Submission(queries.submission_data(self.actor("buyer"), pk, data["locale"])).data)
 
 
 class Orders(OrderView):
@@ -144,7 +144,7 @@ class OrderDetail(OrderView):
         actor = self.actor(context)
         query(request, c.DocumentQuery)
         row = get_object_or_404(queries.order_queryset(actor), pk=pk)
-        return Response(c.OrderRow(queries.order_data(row, seller_list=actor.context == "seller")).data)
+        return Response(c.OrderRow(queries.order_data(row, seller_list=actor.context == "seller", buyer_list=actor.context == "buyer")).data)
 
 
 class InvoiceDetail(OrderView):
@@ -527,6 +527,13 @@ class OrderImage(ProtectedDocumentView):
     def get(self, request, pk, line_id):
         from apps.catalogue.views import image_response
         return image_response(queries.order_line_image(self.actor("seller"), pk, line_id), request)
+
+
+class BuyerOrderImage(ProtectedDocumentView):
+    @extend_schema(operation_id="orders_buyer_line_image", responses={(200, "image/jpeg"): bytes})
+    def get(self, request, pk, line_id):
+        from apps.catalogue.views import image_response
+        return image_response(queries.order_line_image(self.actor("buyer"), pk, line_id), request)
 
 
 class SellerIssues(OrderView):

@@ -75,7 +75,7 @@ class Command(BaseCommand):
                     },
                 )
                 result = catalogue.create(
-                    owner, {"seller": profile.pk, "currency": "AFN", "pricing_mode": "negotiable"}
+                    owner, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": "AFN", "pricing_mode": "negotiable"}
                 )
                 product = Product.objects.get(pk=result["id"])
                 image = upload(owner, product.pk, product.version, image_file())

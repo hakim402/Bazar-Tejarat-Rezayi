@@ -91,7 +91,10 @@ def public_media(request, pk):
         try:
             get_grant(request, "owner")
         except APIException:
-            raise Http404 from None
+            # A profile photo stays private but is readable by the identity that owns it.
+            from apps.accounts.models import User
+            if not (getattr(request.user, "is_authenticated", False) and User.objects.filter(pk=request.user.pk, avatar_id=pk).exists()):
+                raise Http404 from None
     if request.method not in {"GET", "HEAD"}:
         return HttpResponse(status=405, headers={"Allow": "GET, HEAD"})
     try:

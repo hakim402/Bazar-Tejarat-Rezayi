@@ -64,6 +64,7 @@ class Query(Strict):
 
 class Outcome(s.Serializer):
     seller = s.UUIDField()
+    seller_name = s.CharField()
     state = s.CharField()
     code = s.CharField(allow_blank=True)
     order = s.UUIDField(allow_null=True)
@@ -72,6 +73,10 @@ class Outcome(s.Serializer):
     goods_total = s.CharField(allow_null=True)
     accepted_at = s.DateTimeField(allow_null=True)
     price_changed = s.BooleanField()
+    item_count = s.IntegerField()
+    destination = s.JSONField()
+    method = s.CharField(allow_blank=True)
+    items = s.ListField(child=s.JSONField())
 
 
 class Submission(s.Serializer):

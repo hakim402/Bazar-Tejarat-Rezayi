@@ -10,6 +10,7 @@ class DecimalString(s.CharField):
 
 
 class CatalogueCreate(s.Serializer):
+    command_id = s.UUIDField()
     seller = s.UUIDField()
     currency = s.ChoiceField(choices=["AFN", "USD"])
     pricing_mode = s.ChoiceField(choices=["fixed", "negotiable"])
@@ -48,6 +49,10 @@ class CatalogueBody(s.Serializer):
 class CatalogueSave(s.Serializer):
     version = s.IntegerField(min_value=1)
     body = CatalogueBody()
+
+
+class CatalogueDelete(s.Serializer):
+    version = s.IntegerField(min_value=1)
 
 
 class CatalogueAction(s.Serializer):

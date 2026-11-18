@@ -182,7 +182,7 @@ class Command(BaseCommand):
                 .first()
             )
             for mode, sku in [("fixed", "P12-FIXED"), ("negotiable", "P12-NEG")]:
-                result = catalogue.create(owner, {"seller": profile.pk, "currency": "AFN", "pricing_mode": mode})
+                result = catalogue.create(owner, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": "AFN", "pricing_mode": mode})
                 product = Product.objects.get(pk=result["id"])
                 image = upload(owner, product.pk, product.version, image_file())
                 product.refresh_from_db()

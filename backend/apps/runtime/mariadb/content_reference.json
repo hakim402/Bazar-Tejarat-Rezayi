@@ -10,6 +10,16 @@
         "site_contentpagelocale",
         "InnoDB",
         "utf8mb4_nopad_bin"
+      ],
+      [
+        "accounts_address",
+        "InnoDB",
+        "utf8mb4_nopad_bin"
+      ],
+      [
+        "catalogue_command",
+        "InnoDB",
+        "utf8mb4_nopad_bin"
       ]
     ],
     "indexes": [
@@ -68,6 +78,62 @@
         2,
         "locale",
         null
+      ],
+      [
+        "accounts_address",
+        "accounts_address_user_id_c8c74ddf_fk_accounts_user_id",
+        1,
+        1,
+        "user_id",
+        null
+      ],
+      [
+        "accounts_address",
+        "PRIMARY",
+        0,
+        1,
+        "id",
+        null
+      ],
+      [
+        "accounts_user",
+        "accounts_user_avatar_id_5ce2f0b3_fk_site_sitemedia_id",
+        1,
+        1,
+        "avatar_id",
+        null
+      ],
+      [
+        "catalogue_command",
+        "catalogue_unique_command",
+        0,
+        1,
+        "account_id",
+        null
+      ],
+      [
+        "catalogue_command",
+        "catalogue_unique_command",
+        0,
+        2,
+        "action",
+        null
+      ],
+      [
+        "catalogue_command",
+        "catalogue_unique_command",
+        0,
+        3,
+        "key",
+        null
+      ],
+      [
+        "catalogue_command",
+        "PRIMARY",
+        0,
+        1,
+        "id",
+        null
       ]
     ],
     "checks": [
@@ -80,6 +146,11 @@
         "site_contentpage",
         "version",
         "`version` >= 0"
+      ],
+      [
+        "catalogue_command",
+        "outcome",
+        "json_valid(`outcome`)"
       ]
     ],
     "generated": []

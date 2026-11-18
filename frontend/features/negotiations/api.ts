@@ -41,12 +41,14 @@ export type RequestRow = {
 		| "withdrawn";
 	version: number;
 	revision: number;
+	reference: number;
 	created_at: string;
 	proposal: Proposal;
 	history_count: number;
 	history_page: number;
 	history: {
 		actor?: string;
+		actor_name?: string;
 		action: string;
 		version?: number;
 		revision: number;

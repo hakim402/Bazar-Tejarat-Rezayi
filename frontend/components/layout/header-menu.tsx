@@ -12,14 +12,22 @@ import {
 } from "react";
 import { Icon, type IconName } from "../ui/icon";
 
-export function HeaderBadge({ count }: { count: number }) {
-	if (count <= 0) return null;
+export function CountPill({ count }: { count: number }) {
 	return (
 		<span
 			aria-hidden="true"
-			className="absolute -end-0.5 -top-0.5 grid h-[1.125rem] min-w-[1.125rem] place-items-center rounded-full bg-primary px-1 text-[0.625rem] font-bold leading-none text-on-primary ring-2 ring-surface"
+			className="grid h-[1.125rem] min-w-[1.125rem] shrink-0 place-items-center rounded-full bg-primary px-1 text-[0.625rem] font-bold leading-none text-on-primary"
 		>
 			<bdi>{count > 99 ? "99+" : count}</bdi>
+		</span>
+	);
+}
+
+export function HeaderBadge({ count }: { count: number }) {
+	if (count <= 0) return null;
+	return (
+		<span className="absolute -end-0.5 -top-0.5 rounded-full ring-2 ring-surface">
+			<CountPill count={count} />
 		</span>
 	);
 }
@@ -33,6 +41,7 @@ export function HeaderMenu({
 	count = 0,
 	className = "",
 	triggerClassName = "",
+	triggerContent,
 	panelClassName = "",
 	panelLabel,
 	onOpen,
@@ -44,6 +53,7 @@ export function HeaderMenu({
 	count?: number;
 	className?: string;
 	triggerClassName?: string;
+	triggerContent?: ReactNode;
 	panelClassName?: string;
 	panelLabel: string;
 	onOpen?: () => void;
@@ -193,7 +203,7 @@ export function HeaderMenu({
 				onKeyDown={arrows}
 				className={`relative flex shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent transition-colors hover:bg-info aria-[expanded=true]:bg-info aria-[expanded=true]:text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none ${triggerClassName}`}
 			>
-				<Icon name={icon} />
+				{triggerContent ?? <Icon name={icon} />}
 				<HeaderBadge count={count} />
 			</button>
 			{rendered && (

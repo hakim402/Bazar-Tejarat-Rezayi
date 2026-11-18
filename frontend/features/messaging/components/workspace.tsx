@@ -13,7 +13,7 @@ import { communicationCopy } from "../copy";
 import {
 	messaging,
 	threadHref,
-	localTimestamp,
+	shortTimestamp,
 	type Context,
 	type Inbox,
 	type Profiles,
@@ -31,15 +31,22 @@ import { notification } from "../../notifications/api";
 import { NoticeList } from "../../notifications/components/notification-list";
 import { Thread } from "./thread";
 import { Enquiry } from "./enquiry";
-import { control, action, Failure } from "./controls";
+import {
+	panel,
+	actionBtn,
+	badge,
+	help,
+	ProductAvatar,
+	EmptyState,
+	Segmented,
+	Failure,
+} from "./ui";
 import {
 	messageListState,
 	sellerMessagesHref,
-	messageAction,
-	messagePanel,
 	SellerMessagesHeader,
-	SellerMessagesEmpty,
 } from "./seller-messages-ui";
+
 export function CommunicationWorkspace({
 	locale,
 	context,
@@ -62,9 +69,7 @@ export function CommunicationWorkspace({
 			<div className="space-y-4">
 				<Failure locale={locale} error={session.error} />
 				<Link
-					className={
-						context === "seller" && mode === "messages" ? messageAction : action
-					}
+					className={actionBtn}
 					href={authHref(
 						locale,
 						`${context}-sign-in`,
@@ -87,14 +92,14 @@ export function CommunicationWorkspace({
 			</div>
 		);
 		return context === "seller" && mode === "messages" ? (
-			<div className="min-w-0 space-y-6" data-seller-messages>
+			<div className="min-w-0 space-y-4" data-seller-messages>
 				<SellerMessagesHeader
 					locale={locale}
 					selected=""
 					profiles={[]}
 					thread={!!conversation}
 				/>
-				<div className={messagePanel}>{feedback}</div>
+				<div className={`${panel} p-4`}>{feedback}</div>
 			</div>
 		) : (
 			feedback
@@ -127,6 +132,7 @@ export function CommunicationWorkspace({
 		</>
 	);
 }
+
 function SellerMessagesScope({
 	identity,
 	locale,
@@ -226,10 +232,10 @@ function SellerMessagesScope({
 			controller.abort();
 		};
 	}, [selected, conversation, locale, router, retry]);
-	const list = messageListState(search);
+	const detailOpen = !!conversation;
 	return (
 		<div
-			className="min-w-0 space-y-6"
+			className="min-w-0 space-y-4"
 			data-testid="communication-workspace"
 			data-seller-messages
 		>
@@ -237,7 +243,7 @@ function SellerMessagesScope({
 				locale={locale}
 				selected={selected}
 				profiles={profiles?.results ?? []}
-				thread={!!conversation}
+				thread={detailOpen}
 				onChange={(value) => {
 					if (
 						!uuidPattern.test(value) ||
@@ -249,10 +255,10 @@ function SellerMessagesScope({
 				}}
 			/>
 			{failure ? (
-				<div className={messagePanel}>
+				<div className={`${panel} space-y-3 p-4`}>
 					<Failure locale={locale} error={failure} />
 					<button
-						className={messageAction}
+						className={actionBtn}
 						type="button"
 						onClick={() => setRetry((value) => value + 1)}
 					>
@@ -260,46 +266,51 @@ function SellerMessagesScope({
 					</button>
 				</div>
 			) : !profiles ? (
-				<p role="status" className={messagePanel}>
+				<p role="status" className={`${panel} p-4`}>
 					{t.loading}
 				</p>
 			) : !profiles.results.length ? (
-				<SellerMessagesEmpty locale={locale} noBusiness />
+				<EmptyState icon="lock" title={t.noBusiness} />
 			) : !resolved ? (
-				<p role="status" className={messagePanel}>
+				<p role="status" className={`${panel} p-4`}>
 					{t.loading}
 				</p>
 			) : (
-				<>
-					<div className="rounded-2xl border border-border bg-surface p-3 shadow-sm [&_section]:gap-3 [&_section>span]:rounded-xl [&_section>span]:bg-page [&_section>span]:px-3 [&_section>span]:py-2 [&_bdi]:font-semibold [&_bdi]:tabular-nums">
-						<CountStrip
-							context="seller"
+				<div
+					className={`${panel} grid min-w-0 overflow-hidden lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]`}
+				>
+					<aside
+						className={`min-w-0 lg:border-e lg:border-border ${detailOpen ? "hidden lg:block" : "block"}`}
+					>
+						<InboxList
+							embedded
 							locale={locale}
+							context="seller"
 							seller={selected}
 							onDenied={setFailure}
 						/>
-					</div>
-					{conversation ? (
-						<Thread
-							identity={identity}
-							context="seller"
-							locale={locale}
-							id={conversation}
-							seller={selected}
-						/>
-					) : (
-						<InboxList
-							key={`${list.page}:${list.unread}`}
-							locale={locale}
-							context="seller"
-							seller={selected}
-						/>
-					)}
-				</>
+					</aside>
+					<section
+						className={`min-w-0 p-3 sm:p-4 ${detailOpen ? "block" : "hidden lg:block"}`}
+					>
+						{conversation ? (
+							<Thread
+								identity={identity}
+								context="seller"
+								locale={locale}
+								id={conversation}
+								seller={selected}
+							/>
+						) : (
+							<EmptyState icon="mail" title={t.selectConversation} />
+						)}
+					</section>
+				</div>
 			)}
 		</div>
 	);
 }
+
 function Scope({
 	identity,
 	locale,
@@ -330,6 +341,7 @@ function Scope({
 			const all: Profiles["results"] = [];
 			let latest: Profiles;
 			do {
+				if (page > 10000) throw new Error("Messaging profile page limit");
 				latest = await (mode === "notifications"
 					? (
 							context: Context,
@@ -343,6 +355,7 @@ function Scope({
 					undefined,
 					{ signal: controller.signal },
 				);
+				if (!alive || controller.signal.aborted) return;
 				all.push(...latest.results);
 				page++;
 			} while (all.length < latest.count && latest.results.length);
@@ -365,97 +378,165 @@ function Scope({
 		return <p role="alert">{t.noAccess}</p>;
 	if (context === "seller" && selected && !uuidPattern.test(selected))
 		return <p role="alert">{t.noAccess}</p>;
-	const content: ReactNode =
-		context === "seller" && !profiles ? (
-			<p role="status">{t.loading}</p>
-		) : context === "seller" && !profiles?.results.length ? (
-			<p role="status">{t.noBusiness}</p>
-		) : context === "seller" &&
-			!profiles?.results.some((p) => p.id === selected) ? (
-			<p role="alert">{t.denied}</p>
-		) : conversation ? (
-			<Thread
-				identity={identity}
-				context={context}
-				locale={locale}
-				id={conversation}
-				seller={selected}
-			/>
-		) : product ? (
-			<Enquiry identity={identity} locale={locale} product={product} />
-		) : mode === "notifications" ? (
-			<NoticeList locale={locale} context={context} seller={selected} />
-		) : (
-			<InboxList locale={locale} context={context} seller={selected} />
+
+	const sellerSelect =
+		context === "seller" && profiles?.results.length ? (
+			<label className="block max-w-xl space-y-2">
+				<span className="font-bold">{t.business}</span>
+				<select
+					className={`${panel} min-h-11 w-full px-3 py-2 text-base text-foreground`}
+					value={selected}
+					onChange={(e) => {
+						const value = e.target.value;
+						navigate(() =>
+							router.push(`/${locale}/account/seller/${mode}?seller=${value}`),
+						);
+					}}
+				>
+					<option value="">{t.choose}</option>
+					{profiles.results.map((p) => (
+						<option key={p.id} value={p.id}>
+							{p.name}
+						</option>
+					))}
+				</select>
+			</label>
+		) : null;
+
+	if (mode === "notifications") {
+		const buyer = context === "buyer";
+		return (
+			<div
+				className={buyer ? "flex min-w-0 flex-col gap-5" : "min-w-0 space-y-4"}
+				data-testid="communication-workspace"
+			>
+				{buyer ? (
+					<header className="min-w-0">
+						<h1 className="m-0 text-2xl font-bold">{t.notifications}</h1>
+						<p className="m-0 mt-1 text-sm text-muted">{t.notificationsHelp}</p>
+					</header>
+				) : (
+					<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+						{t.notifications}
+					</h1>
+				)}
+				{sellerSelect}
+				{failure ? (
+					<Failure locale={locale} error={failure} />
+				) : context === "seller" && !profiles ? (
+					<p role="status">{t.loading}</p>
+				) : context === "seller" && !profiles?.results.length ? (
+					<p role="status">{t.noBusiness}</p>
+				) : context === "seller" &&
+					!profiles?.results.some((p) => p.id === selected) ? (
+					<p role="alert">{t.denied}</p>
+				) : (
+					<>
+						{(context === "buyer" || selected) && (
+							<CountStrip
+								context={context}
+								locale={locale}
+								seller={selected}
+								onDenied={setFailure}
+								variant={buyer ? "buyer" : undefined}
+							/>
+						)}
+						<NoticeList
+							locale={locale}
+							context={context}
+							seller={selected}
+							variant={buyer ? "buyer" : undefined}
+						/>
+					</>
+				)}
+			</div>
 		);
+	}
+
+	const detailOpen = !!conversation || !!product;
+	const detail: ReactNode = conversation ? (
+		<Thread
+			identity={identity}
+			context={context}
+			locale={locale}
+			id={conversation}
+			seller={selected}
+		/>
+	) : product ? (
+		<Enquiry identity={identity} locale={locale} product={product} />
+	) : (
+		<EmptyState icon="mail" title={t.selectConversation} />
+	);
 	return (
-		<div className="min-w-0 space-y-5" data-testid="communication-workspace">
-			<h1 className="text-3xl font-bold">
-				{mode === "notifications" ? t.notifications : t.messages}
-			</h1>
-			{context === "seller" && profiles?.results.length ? (
-				<label className="block max-w-xl space-y-2">
-					<span className="font-bold">{t.business}</span>
-					<select
-						className={control}
-						value={selected}
-						onChange={(e) => {
-							const value = e.target.value;
-							navigate(() =>
-								router.push(
-									`/${locale}/account/seller/${mode}?seller=${value}`,
-								),
-							);
-						}}
-					>
-						<option value="">{t.choose}</option>
-						{profiles.results.map((p) => (
-							<option key={p.id} value={p.id}>
-								{p.name}
-							</option>
-						))}
-					</select>
-				</label>
-			) : null}
+		<div className="min-w-0 space-y-4" data-testid="communication-workspace">
+			<header className={`${panel} px-3 py-2 sm:px-4`}>
+				<h1 className="text-lg font-bold tracking-tight">{t.messages}</h1>
+				<p className="truncate text-xs text-muted">{t.enquiryNote}</p>
+			</header>
 			{failure ? (
 				<Failure locale={locale} error={failure} />
 			) : (
-				<>
-					{(context === "buyer" || selected) && (
-						<CountStrip
-							context={context}
+				<div
+					className={`${panel} grid min-w-0 overflow-hidden lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]`}
+				>
+					<aside
+						className={`min-w-0 lg:border-e lg:border-border ${detailOpen ? "hidden lg:block" : "block"}`}
+					>
+						<InboxList
+							embedded
 							locale={locale}
+							context={context}
 							seller={selected}
 							onDenied={setFailure}
 						/>
-					)}{" "}
-					{content}
-				</>
+					</aside>
+					<section
+						className={`min-w-0 p-3 sm:p-4 ${detailOpen ? "block" : "hidden lg:block"}`}
+					>
+						{detail}
+					</section>
+				</div>
 			)}
 		</div>
 	);
 }
+
 function InboxList({
 	locale,
 	context,
 	seller,
+	embedded = false,
+	onDenied,
 }: {
 	locale: Locale;
 	context: Context;
 	seller: string;
+	embedded?: boolean;
+	onDenied?: (error: unknown) => void;
 }) {
 	const t = communicationCopy[locale],
+		copy = sellerMessagesCopy[locale],
 		search = useSearchParams(),
 		router = useRouter(),
-		path = usePathname();
+		path = usePathname(),
+		number = new Intl.NumberFormat(locale);
 	const list = messageListState(search),
-		page = context === "seller" ? list.page : Number(search.get("page") ?? 1),
-		unread = search.get("unread") === "true";
+		page = list.page,
+		unread = list.unread;
 	const [data, setData] = useState<Inbox | null>(null),
 		[error, setError] = useState<unknown>(null);
-	const select = (values: Record<string, string>) => {
+	const change = (values: { page?: number; unread?: boolean }) => {
+		if (context === "seller") {
+			router.push(
+				sellerMessagesHref(locale, seller, undefined, search, false, values),
+			);
+			return;
+		}
 		const q = new URLSearchParams(search);
-		for (const [k, v] of Object.entries(values)) v ? q.set(k, v) : q.delete(k);
+		if (values.page !== undefined)
+			values.page > 1 ? q.set("page", String(values.page)) : q.delete("page");
+		if (values.unread !== undefined)
+			values.unread ? q.set("unread", "true") : q.delete("unread");
 		router.push(`${path}?${q}`);
 	};
 	useVisiblePoll(
@@ -489,47 +570,53 @@ function InboxList({
 		},
 		[context, seller, page, unread],
 	);
-	if (context === "seller") {
-		const copy = sellerMessagesCopy[locale],
-			number = new Intl.NumberFormat(locale);
-		const change = (values: { page?: number; unread?: boolean }) =>
-			router.push(
-				sellerMessagesHref(locale, seller, undefined, search, false, values),
-			);
-		return (
-			<section className="min-w-0 space-y-4" aria-label={t.messages}>
-				<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 shadow-sm">
-					<fieldset className="flex min-w-0 flex-wrap gap-2 border-0 p-0">
-						<legend className="sr-only">{t.messages}</legend>
-						{[false, true].map((onlyUnread) => (
-							<button
-								key={String(onlyUnread)}
-								type="button"
-								aria-pressed={unread === onlyUnread}
-								className={`${messageAction} ${unread === onlyUnread ? "border-action! bg-info!" : ""}`}
-								onClick={() => change({ page: 1, unread: onlyUnread })}
-							>
-								<Icon name={onlyUnread ? "mail" : "inbox"} className="size-4" />
-								{onlyUnread ? t.unread : t.all}
-							</button>
-						))}
-					</fieldset>
-					<p className="text-sm text-muted">
-						{copy.page}{" "}
-						<bdi className="font-semibold tabular-nums text-foreground">
-							{number.format(page)}
-						</bdi>
-					</p>
-				</div>
-				{error ? (
+	return (
+		<section
+			className={embedded ? "min-w-0" : "min-w-0 space-y-3"}
+			aria-label={t.messages}
+		>
+			<div
+				className={
+					embedded
+						? "flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-4"
+						: "flex flex-wrap items-center justify-between gap-2"
+				}
+			>
+				<Segmented
+					value={unread ? "unread" : "all"}
+					onChange={(value) => change({ page: 1, unread: value === "unread" })}
+					options={[
+						{ value: "all", label: t.all, icon: "inbox" },
+						{ value: "unread", label: t.unread, icon: "mail" },
+					]}
+					ariaLabel={t.messages}
+				/>
+				{embedded && (
+					<CountStrip
+						context={context}
+						locale={locale}
+						seller={seller}
+						onDenied={onDenied}
+					/>
+				)}
+			</div>
+			{error ? (
+				<div className={embedded ? "px-3 pb-3 sm:px-4" : ""}>
 					<Failure locale={locale} error={error} />
-				) : !data ? (
-					<p role="status" className={messagePanel}>
-						{t.loading}
-					</p>
-				) : (
-					<>
-						<p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+				</div>
+			) : !data ? (
+				<p
+					role="status"
+					className={
+						embedded ? `${panel} mx-3 mb-3 p-4 sm:mx-4` : `${panel} p-4`
+					}
+				>
+					{t.loading}
+				</p>
+			) : (
+				<>
+					{!embedded && (
+						<p className={`${help} flex flex-wrap gap-x-4 gap-y-1`}>
 							<span>
 								{copy.returned}:{" "}
 								<bdi className="font-semibold tabular-nums text-foreground">
@@ -543,178 +630,126 @@ function InboxList({
 								</bdi>
 							</span>
 						</p>
-						{!data.results.length ? (
-							<SellerMessagesEmpty
-								locale={locale}
-								unread={unread}
-								laterPage={page > 1}
+					)}
+					{!data.results.length ? (
+						<div className={embedded ? "px-3 pb-3 sm:px-4" : ""}>
+							<EmptyState
+								icon={unread ? "mail" : "inbox"}
+								title={t.empty}
+								help={page > 1 ? copy.emptyPageHelp : undefined}
 							>
 								{page > 1 && (
 									<button
 										type="button"
-										className={messageAction}
+										className={actionBtn}
 										onClick={() => change({ page: 1 })}
 									>
-										{copy.firstPage}
+										{t.firstPage}
 									</button>
 								)}
-							</SellerMessagesEmpty>
-						) : (
-							<ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-								{data.results.map((row) => (
-									<li
-										key={row.id}
-										className="border-b border-border last:border-0"
+							</EmptyState>
+						</div>
+					) : (
+						<ul
+							className={
+								embedded
+									? "m-0 list-none divide-y divide-border overflow-hidden p-0"
+									: `${panel} m-0 list-none divide-y divide-border overflow-hidden p-0`
+							}
+						>
+							{data.results.map((row) => (
+								<li key={row.id}>
+									<Link
+										prefetch={false}
+										className="flex min-w-0 items-start gap-3 py-3 pe-3 ps-2 text-foreground no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-action motion-reduce:transition-none sm:pe-4"
+										href={
+											context === "seller"
+												? sellerMessagesHref(locale, row.seller, row.id, search)
+												: threadHref(locale, context, row.id, seller)
+										}
 									>
-										<Link
-											prefetch={false}
-											className="flex min-h-11 min-w-0 items-start gap-3 p-4 text-foreground no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-action motion-reduce:transition-none sm:gap-4"
-											href={sellerMessagesHref(
-												locale,
-												row.seller,
-												row.id,
-												search,
-											)}
-										>
-											<span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-info text-action">
-												<Icon name="box" className="size-5" />
-											</span>
-											<div className="min-w-0 flex-1 space-y-1.5">
-												<div className="flex flex-wrap items-center justify-between gap-2">
-													<strong
-														className="min-w-0 break-words text-base"
-														dir="auto"
-													>
-														{row.snapshot.title}
-													</strong>
-													{row.unread && (
-														<span className="rounded-full bg-info px-2.5 py-1 text-xs font-semibold text-action">
-															{t.unread}
-														</span>
-													)}
-												</div>
-												<p
-													className="break-words text-sm text-muted"
+										<ProductAvatar
+											locale={locale}
+											product={row.snapshot.product}
+											label={row.snapshot.title}
+										/>
+										<div className="min-w-0 flex-1 space-y-1">
+											<div className="flex items-baseline justify-between gap-2">
+												<strong
+													className="min-w-0 truncate text-sm font-semibold"
 													dir="auto"
 												>
-													{row.snapshot.seller} ·{" "}
-													<bdi dir="ltr">{row.snapshot.currency}</bdi>
-												</p>
+													{row.snapshot.title}
+												</strong>
 												<time
 													dateTime={row.updated_at}
-													className="inline-flex flex-wrap items-center gap-1.5 text-xs text-muted"
+													className="shrink-0 text-xs text-muted"
 												>
-													<Icon name="clock" className="size-3.5" />
-													<bdi>{localTimestamp(row.updated_at, locale)}</bdi>
-													<span>· {t.timezone}</span>
+													<bdi>{shortTimestamp(row.updated_at, locale)}</bdi>
 												</time>
 											</div>
-											<Icon name="chevron" className="mt-3 size-4 text-muted" />
-										</Link>
-									</li>
-								))}
-							</ul>
-						)}
-						<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
-							<p className="text-sm text-muted">
-								{copy.page}{" "}
-								<bdi className="tabular-nums">{number.format(page)}</bdi>
-							</p>
-							<div className="flex flex-wrap gap-2">
+											<p className="truncate text-sm text-muted" dir="auto">
+												{row.snapshot.seller} ·{" "}
+												<bdi dir="ltr">{row.snapshot.currency}</bdi>
+											</p>
+										</div>
+										{row.unread && <span className={badge}>{t.unread}</span>}
+									</Link>
+								</li>
+							))}
+						</ul>
+					)}
+					{embedded ? (
+						data.count > 20 && (
+							<div className="flex items-center justify-end gap-1 px-3 py-3 sm:px-4">
 								<button
-									className={messageAction}
+									className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-action transition-colors hover:bg-info disabled:cursor-not-allowed disabled:opacity-40"
 									type="button"
 									disabled={page <= 1}
 									onClick={() => change({ page: page - 1 })}
+									aria-label={t.previous}
+									title={t.previous}
 								>
-									{t.previous}
+									<Icon name="arrow" className="size-4 ltr:rotate-180" />
 								</button>
+								<span className={`${help} px-1 tabular-nums`}>
+									<bdi>{number.format(page)}</bdi>
+								</span>
 								<button
-									className={messageAction}
+									className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-action transition-colors hover:bg-info disabled:cursor-not-allowed disabled:opacity-40"
 									type="button"
 									disabled={page >= 10000 || page * 20 >= data.count}
 									onClick={() => change({ page: page + 1 })}
+									aria-label={t.next}
+									title={t.next}
 								>
-									{t.next}
+									<Icon name="arrow" className="size-4" />
 								</button>
 							</div>
-						</div>
-					</>
-				)}
-			</section>
-		);
-	}
-	return (
-		<section className="space-y-4" aria-label={t.messages}>
-			<label className="inline-flex min-h-11 items-center gap-3">
-				<input
-					type="checkbox"
-					checked={unread}
-					onChange={(e) =>
-						select({ unread: e.target.checked ? "true" : "", page: "" })
-					}
-				/>
-				{t.unread}
-			</label>
-			{error ? (
-				<Failure locale={locale} error={error} />
-			) : !data ? (
-				<p role="status">{t.loading}</p>
-			) : !data.results.length ? (
-				<p>{t.empty}</p>
-			) : (
-				<ul className="space-y-3">
-					{data.results.map((row) => (
-						<li
-							key={row.id}
-							className="rounded-card border border-border bg-surface p-4"
-						>
-							<Link
-								prefetch={false}
-								className="block min-h-11 space-y-2 text-foreground no-underline"
-								href={threadHref(locale, context, row.id, seller)}
+						)
+					) : (
+						<div className="flex flex-wrap items-center justify-between gap-2">
+							<button
+								className={actionBtn}
+								type="button"
+								disabled={page <= 1}
+								onClick={() => change({ page: page - 1 })}
 							>
-								<div className="flex flex-wrap items-center justify-between gap-2">
-									<strong className="break-words" dir="auto">
-										{row.snapshot.title}
-									</strong>
-									{row.unread && (
-										<span className="rounded-control bg-info px-2 py-1 text-sm font-bold text-action">
-											{t.unread}
-										</span>
-									)}
-								</div>
-								<p className="break-words text-sm text-muted" dir="auto">
-									{row.snapshot.seller}
-								</p>
-								<time dateTime={row.updated_at} className="text-sm text-muted">
-									<bdi>{localTimestamp(row.updated_at, locale)}</bdi> ·{" "}
-									{t.timezone}
-								</time>
-							</Link>
-						</li>
-					))}
-				</ul>
-			)}
-			{data && (
-				<div className="flex flex-wrap gap-3">
-					<button
-						className={action}
-						type="button"
-						disabled={page <= 1}
-						onClick={() => select({ page: String(page - 1) })}
-					>
-						{t.previous}
-					</button>
-					<button
-						className={action}
-						type="button"
-						disabled={page * 20 >= data.count}
-						onClick={() => select({ page: String(page + 1) })}
-					>
-						{t.next}
-					</button>
-				</div>
+								<Icon name="arrow" className="size-4 ltr:rotate-180" />
+								{t.previous}
+							</button>
+							<button
+								className={actionBtn}
+								type="button"
+								disabled={page >= 10000 || page * 20 >= data.count}
+								onClick={() => change({ page: page + 1 })}
+							>
+								{t.next}
+								<Icon name="arrow" className="size-4" />
+							</button>
+						</div>
+					)}
+				</>
 			)}
 		</section>
 	);

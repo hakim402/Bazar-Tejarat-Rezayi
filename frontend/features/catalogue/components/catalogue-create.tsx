@@ -126,6 +126,7 @@ export function CatalogueCreate({
 				return;
 			}
 			const result = await api<Operation>("seller", "products/", {
+				command_id: crypto.randomUUID(),
 				seller,
 				currency,
 				pricing_mode: mode,

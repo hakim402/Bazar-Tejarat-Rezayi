@@ -5,6 +5,7 @@ import { Button } from "../../../components/shadcn/button";
 import { Input } from "../../../components/shadcn/input";
 import { deliveryListCopy } from "../list-copy";
 import { SellerDeliveryList } from "./seller-delivery-list";
+import { BuyerDeliveries } from "./buyer-list";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -15,11 +16,9 @@ import {
 	accessLost,
 } from "../../messaging/hooks";
 import { SessionEntry } from "../../orders/components/session-entry";
-import { action, control } from "../../orders/components/controls";
-import { fulfilment, fulfilmentHref } from "../api";
+import { fulfilment } from "../api";
 import { fulfilmentCopy } from "../copy";
 import type { Context, Summary } from "../types";
-import { DeliverySummary } from "./summary";
 import { DeliveryDetail } from "./detail";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import {
@@ -301,141 +300,17 @@ function DeliveryList({
 		);
 	}
 	return (
-		<div className="min-w-0 space-y-5">
-			<h1 className="text-2xl font-bold">
-				{context === "buyer" ? t.buyerTitle : t.sellerTitle}
-			</h1>
-			<p>{t.intro}</p>
-			<form
-				className="flex flex-wrap items-end gap-3"
-				onSubmit={(event) => {
-					event.preventDefault();
-					router.push(
-						fulfilmentHref(
-							locale,
-							context,
-							undefined,
-							seller,
-							1,
-							state,
-							searchDraft.trim(),
-						),
-					);
-				}}
-			>
-				<label>
-					{t.search}
-					<input
-						type="search"
-						className={control}
-						value={searchDraft}
-						maxLength={100}
-						onChange={(event) => setSearchDraft(event.target.value)}
-					/>
-				</label>
-				<button className={action} type="submit">
-					{t.search}
-				</button>
-			</form>
-			<label>
-				{t.filter}
-				<select
-					className={control}
-					value={state}
-					onChange={(event) =>
-						router.push(
-							fulfilmentHref(
-								locale,
-								context,
-								undefined,
-								seller,
-								1,
-								event.target.value,
-								search,
-							),
-						)
-					}
-				>
-					{[
-						["", t.all],
-						["not_dispatched", t.not_dispatched],
-						["dispatched", t.dispatched],
-						["delivered", t.delivered],
-						["blocked", t.blockers],
-					].map(([value, label]) => (
-						<option key={value} value={value}>
-							{label}
-						</option>
-					))}
-				</select>
-			</label>
-			{error ? (
-				<p role="alert">{t.error}</p>
-			) : !data ? (
-				<p role="status">{t.loading}</p>
-			) : data.results.length ? (
-				<ul className="space-y-4">
-					{data.results.map((row) => (
-						<li key={row.id}>
-							<Link
-								className="block min-h-11 font-bold"
-								prefetch={false}
-								href={fulfilmentHref(locale, context, row.id, undefined)}
-							>
-								<bdi>{row.number}</bdi>
-							</Link>
-							<DeliverySummary {...{ locale, row }} />
-						</li>
-					))}
-				</ul>
-			) : (
-				<p>{t.empty}</p>
-			)}
-			{data && (
-				<div className="flex flex-wrap gap-3">
-					<button
-						type="button"
-						className={action}
-						disabled={page <= 1}
-						onClick={() =>
-							router.push(
-								fulfilmentHref(
-									locale,
-									context,
-									undefined,
-									seller,
-									page - 1,
-									state,
-									search,
-								),
-							)
-						}
-					>
-						{t.previous}
-					</button>
-					<bdi>{page}</bdi>
-					<button
-						type="button"
-						className={action}
-						disabled={page * 20 >= data.count}
-						onClick={() =>
-							router.push(
-								fulfilmentHref(
-									locale,
-									context,
-									undefined,
-									seller,
-									page + 1,
-									state,
-									search,
-								),
-							)
-						}
-					>
-						{t.next}
-					</button>
-				</div>
-			)}
-		</div>
+		<BuyerDeliveries
+			locale={locale}
+			seller={seller}
+			page={page}
+			state={state}
+			search={search}
+			data={data}
+			error={error}
+			searchDraft={searchDraft}
+			setSearchDraft={setSearchDraft}
+			onReload={() => setRevision((value) => value + 1)}
+		/>
 	);
 }

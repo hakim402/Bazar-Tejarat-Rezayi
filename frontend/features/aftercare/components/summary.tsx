@@ -22,8 +22,8 @@ export function MoneySummary({
 		<dl
 			className={
 				seller
-					? "grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-					: "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+					? "m-0 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+					: "m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
 			}
 		>
 			{[
@@ -45,7 +45,7 @@ export function MoneySummary({
 					<dt className="text-sm text-muted">{label}</dt>
 					<dd
 						className={
-							seller ? "font-semibold tabular-nums wrap-anywhere" : undefined
+							seller ? "m-0 font-semibold tabular-nums wrap-anywhere" : "m-0"
 						}
 					>
 						<bdi>
@@ -79,9 +79,9 @@ export function AftercareSummary({
 				<h2 className="text-xl font-bold">{sellerSalesCopy[locale].details}</h2>
 			)}
 			{seller ? (
-				<dl className="rounded-xl border border-border bg-info p-3">
+				<dl className="m-0 rounded-xl border border-border bg-info p-3">
 					<dt className="text-sm text-muted">{t.originalTotal}</dt>
-					<dd className="mt-1 font-semibold tabular-nums wrap-anywhere">
+					<dd className="m-0 mt-1 font-semibold tabular-nums wrap-anywhere">
 						<bdi>
 							{row.goods_total} {row.currency}
 						</bdi>
@@ -103,14 +103,14 @@ export function AftercareSummary({
 				<p role="status">{t.cancellation_hold}</p>
 			)}
 			{!compact && (
-				<dl className="flex flex-wrap gap-5">
+				<dl className="m-0 flex flex-wrap gap-5">
 					{[
 						[t.originalDue, row.payment.original_due_at],
 						[t.effectiveDue, row.payment.effective_due_at],
 					].map(([label, date]) => (
 						<div key={label}>
 							<dt className="text-sm text-muted">{label}</dt>
-							<dd>
+							<dd className="m-0">
 								<bdi>{date ? localTimestamp(date, locale) : "—"}</bdi>
 							</dd>
 						</div>
@@ -133,7 +133,13 @@ export function AcceptedLines({
 }) {
 	const t = aftercareCopy[locale];
 	return (
-		<ul className={seller ? "grid min-w-0 gap-3 lg:grid-cols-2" : "space-y-3"}>
+		<ul
+			className={
+				seller
+					? "m-0 grid min-w-0 list-none gap-3 p-0 lg:grid-cols-2"
+					: "m-0 list-none space-y-3 p-0"
+			}
+		>
 			{lines.map((line) => (
 				<li
 					key={line.line}
@@ -157,10 +163,10 @@ export function AcceptedLines({
 						<bdi>{line.sku ?? line.line}</bdi>
 					</p>
 					{seller ? (
-						<dl className="grid gap-3 sm:grid-cols-2">
+						<dl className="m-0 grid gap-3 sm:grid-cols-2">
 							<div>
 								<dt className="text-sm text-muted">{t.quantity}</dt>
-								<dd className="tabular-nums wrap-anywhere">
+								<dd className="m-0 tabular-nums wrap-anywhere">
 									<bdi>
 										{line.quantity} {line.unit_labels?.[locale] ?? line.unit}
 									</bdi>
@@ -168,7 +174,7 @@ export function AcceptedLines({
 							</div>
 							<div>
 								<dt className="text-sm text-muted">{t.unitPrice}</dt>
-								<dd className="tabular-nums wrap-anywhere">
+								<dd className="m-0 tabular-nums wrap-anywhere">
 									<bdi>
 										{line.unit_price} {currency}
 									</bdi>
@@ -177,7 +183,7 @@ export function AcceptedLines({
 							{line.goods_amount && (
 								<div>
 									<dt className="text-sm text-muted">{t.total}</dt>
-									<dd className="font-semibold tabular-nums wrap-anywhere">
+									<dd className="m-0 font-semibold tabular-nums wrap-anywhere">
 										<bdi>
 											{line.goods_amount} {currency}
 										</bdi>

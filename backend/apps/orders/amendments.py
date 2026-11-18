@@ -55,7 +55,7 @@ def terminal(order):
     if projection.dispatched(order) or projection.completed(order):
         refuse("amendment_ineligible_dispatched")
     if projection.cancelled(order):
-        refuse("amendment_ineligible_dispatched")
+        refuse("amendment_ineligible_cancelled")
 
 
 def eligibility(order):
@@ -368,6 +368,8 @@ def decide(actor, pk, data):
         if action == "assign":
             if "assign_aftercare" not in access.aftercare_rights(actor):
                 raise PermissionDenied()
+            if amendment.state != "pending":
+                raise Conflict("This amendment already has a retained decision.")
             if data.get("assigned_to"):
                 assigned = next((u for u in reviewers(amendment) if str(u.pk) == str(data["assigned_to"])), None)
                 if assigned is None:

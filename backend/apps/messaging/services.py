@@ -204,10 +204,17 @@ def report(actor, message_id, data):
     if old:
         return old
     message = get_object_or_404(Message, pk=message_id, conversation=item)
-    result = Report.objects.create(message=message, reporter=account, category=data["category"], reason=data["reason"])
-    from .models import CaseEvent
+    # The per-command seal alone cannot serialize distinct command keys for the
+    # same reporter+message; this mutex coalesces deliberate duplicates into one
+    # open case instead of multiplying rows.
+    token = int.from_bytes(hashlib.sha256(f"{account.pk}:{action}".encode()).digest()[:8], "big", signed=True)
+    durable_lock(token)
+    result = Report.objects.filter(reporter=account, status="open", message=message).first()
+    if result is None:
+        result = Report.objects.create(message=message, reporter=account, category=data["category"], reason=data["reason"])
+        from .models import CaseEvent
 
-    CaseEvent.objects.create(report=result, actor=actor.user, action="reported", reason=data["reason"], version=1)
+        CaseEvent.objects.create(report=result, actor=actor.user, action="reported", reason=data["reason"], version=1)
     return outcome(
         account,
         action,

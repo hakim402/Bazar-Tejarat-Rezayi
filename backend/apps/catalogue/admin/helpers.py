@@ -15,9 +15,8 @@ from django.shortcuts import redirect
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
-from unfold.admin import ModelAdmin
 
-from apps.accounts.admin.access import admin_actor, is_owner, permits
+from apps.accounts.admin.access import permits
 from apps.accounts.admin.locale import admin_language
 from apps.organizations.admin import ReadOnlyAdmin
 

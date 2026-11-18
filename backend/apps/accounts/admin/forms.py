@@ -1,9 +1,11 @@
 """Admin forms for identity provisioning and staff account status changes."""
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from unfold.widgets import UnfoldAdminPasswordToggleWidget
 
+from apps.site.media import inspect_upload
 from .copy import COPY as ADMIN_COPY
 from ..models import Account, User
 
@@ -54,9 +56,22 @@ class AddIdentityForm(StaffProvisioningFormMixin, UserCreationForm):
 class ChangeIdentityForm(StaffProvisioningFormMixin, UserChangeForm):
     attest_staff_email = StaffProvisioningFormMixin.attest_staff_email
     authority_version = StaffProvisioningFormMixin.authority_version
+    avatar_file = forms.FileField(required=False, label="Profile photo",
+        help_text="Optional JPEG, PNG or WebP image, stored in the shared site media library.")
+    avatar_clear = forms.BooleanField(required=False, label="Remove profile photo")
     class Meta(UserChangeForm.Meta):
         model = User
-        fields = ["email", "display_name", "is_active", "is_staff", "is_superuser", "groups"]
+        fields = ["email", "display_name", "first_name", "last_name", "phone", "preferred_locale", "gender", "date_of_birth", "bio", "is_active", "is_staff", "is_superuser", "groups"]
+
+    def clean_avatar_file(self):
+        file = self.cleaned_data.get("avatar_file")
+        if file:
+            try:
+                inspect_upload(file, "image")
+            except DjangoValidationError as exc:
+                raise forms.ValidationError(exc.messages)
+            file.seek(0)
+        return file
 
 
 class AccountForm(forms.ModelForm):

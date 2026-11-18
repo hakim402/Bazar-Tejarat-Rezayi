@@ -12,7 +12,7 @@ import { aftercareCopy } from "../../aftercare/copy";
 import { notification, type Preference } from "../api";
 import type { Context } from "../../messaging/api";
 import { communicationCopy } from "../../messaging/copy";
-import { action, Failure } from "../../messaging/components/controls";
+import { Failure } from "../../messaging/components/controls";
 import { accessLost, useCommunicationSession } from "../../messaging/hooks";
 import {
 	SettingsSection,
@@ -21,8 +21,14 @@ import {
 import { sellerSettingsCopy } from "../../../lib/i18n/seller-settings";
 import { sellerAccountSettingsCopy } from "../../../lib/i18n/seller-account-settings";
 import { authCopy } from "../../../lib/i18n/auth";
+import toast from "react-hot-toast";
 import { Button } from "../../../components/ui/button";
+import { Button as ShadcnButton } from "../../../components/shadcn/button";
+import { Card } from "../../../components/shadcn/card";
+import { Icon } from "../../../components/ui/icon";
 import { toggleClass } from "../../../components/ui/form-field";
+import { accountSettingsCopy } from "../../../lib/i18n/account-settings";
+import { salesTableCard } from "../../sales/components/seller-sales-ui";
 type PreferenceProps = {
 	locale: Locale;
 	context: Context;
@@ -149,7 +155,10 @@ function PreferenceEditor({
 			.then((value) => {
 				if (owns()) {
 					if (sellerMode) accept(value);
-					else setPref(value);
+					else {
+						setPref(value);
+						toast.success(t.preferenceSaved);
+					}
 					dirtyCallback.current?.(false);
 					setNotice(t.preferenceSaved);
 				}
@@ -158,6 +167,7 @@ function PreferenceEditor({
 				if (owns()) {
 					if (accessLost(failure)) loseAccess();
 					setError(failure);
+					toast.error(t.preferenceFailed);
 				}
 			})
 			.finally(() => {
@@ -279,76 +289,141 @@ function PreferenceEditor({
 			</SettingsSection>
 		);
 	if (denied) return null;
+	const account = accountSettingsCopy[locale];
+	const rows = [
+		{
+			key: "message",
+			icon: "inbox",
+			label: t.emailEnabled,
+			help: copy.messageHelp,
+			checked: enabled,
+			update: setEnabled,
+		},
+		{
+			key: "payment",
+			icon: "wallet",
+			label: paymentCopy[locale].email,
+			help: paymentCopy[locale].emailNote,
+			checked: paymentEnabled,
+			update: setPaymentEnabled,
+		},
+		{
+			key: "aftercare",
+			icon: "headset",
+			label: aftercareCopy[locale].email,
+			help: aftercareCopy[locale].emailNote,
+			checked: aftercareEnabled,
+			update: setAftercareEnabled,
+		},
+	] as const;
 	return (
-		<section
-			className="space-y-3 rounded-card border border-border bg-surface p-5"
-			aria-label={t.optionalEmail}
+		<Card
+			className={salesTableCard}
+			role="region"
+			aria-labelledby="buyer-email-preferences-heading"
 			data-testid="message-email-preference"
 		>
-			<h2 className="text-xl font-bold">{t.optionalEmail}</h2>
-			<p className="text-sm text-muted">{t.emailHelp}</p>
-			{!!error && <Failure locale={locale} error={error} />}{" "}
-			{!pref && !error ? (
-				<p role="status">{t.loading}</p>
-			) : (
-				pref && (
-					<form className="space-y-3" onSubmit={save}>
-						<label className="flex min-h-11 items-center gap-3">
-							<input
-								type="checkbox"
-								className={
-									context === "seller"
-										? "relative h-6 w-11 shrink-0 appearance-none rounded-full border border-control bg-control before:absolute before:start-0.5 before:top-0.5 before:size-4.5 before:rounded-full before:bg-surface before:content-[''] checked:border-primary checked:bg-primary checked:before:start-5.5 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 motion-reduce:transition-none"
-										: undefined
-								}
-								checked={enabled}
-								disabled={busy}
-								onChange={(e) => setEnabled(e.target.checked)}
-							/>
-							{t.emailEnabled}
-						</label>
-						<label className="flex min-h-11 items-center gap-3">
-							<input
-								type="checkbox"
-								className={
-									context === "seller"
-										? "relative h-6 w-11 shrink-0 appearance-none rounded-full border border-control bg-control before:absolute before:start-0.5 before:top-0.5 before:size-4.5 before:rounded-full before:bg-surface before:content-[''] checked:border-primary checked:bg-primary checked:before:start-5.5 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 motion-reduce:transition-none"
-										: undefined
-								}
-								checked={paymentEnabled}
-								disabled={busy}
-								onChange={(e) => setPaymentEnabled(e.target.checked)}
-							/>
-							{paymentCopy[locale].email}
-						</label>
-						<p className="text-sm text-muted">
-							{paymentCopy[locale].emailNote}
-						</p>
-						<label className="flex min-h-11 items-center gap-3">
-							<input
-								type="checkbox"
-								className={
-									context === "seller"
-										? "relative h-6 w-11 shrink-0 appearance-none rounded-full border border-control bg-control before:absolute before:start-0.5 before:top-0.5 before:size-4.5 before:rounded-full before:bg-surface before:content-[''] checked:border-primary checked:bg-primary checked:before:start-5.5 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-150 motion-reduce:transition-none"
-										: undefined
-								}
-								checked={aftercareEnabled}
-								disabled={busy}
-								onChange={(e) => setAftercareEnabled(e.target.checked)}
-							/>
-							{aftercareCopy[locale].email}
-						</label>
-						<p className="text-sm text-muted">
-							{aftercareCopy[locale].emailNote}
-						</p>
-						<button type="submit" className={action} disabled={busy}>
-							{busy ? t.sending : t.savePreference}
-						</button>
+			<div className="border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
+				<h2
+					id="buyer-email-preferences-heading"
+					className="m-0 text-base font-semibold"
+				>
+					{account.emailTitle}
+				</h2>
+				<p className="m-0 text-xs text-muted">{account.emailHelp}</p>
+			</div>
+			<div className="space-y-4 px-4 py-4 sm:px-5">
+				{!!error && <Failure locale={locale} error={error} />}
+				{reading && !pref && (
+					<p role="status" className="m-0 text-sm text-muted">
+						{t.loading}
+					</p>
+				)}
+				{pref && (
+					<form
+						onSubmit={save}
+						aria-busy={busy || reading}
+						className="space-y-4"
+					>
+						<div className="divide-y divide-border">
+							{rows.map((row) => (
+								<div
+									key={row.key}
+									className="flex items-start gap-3 py-4 first:pt-0 last:pb-0"
+								>
+									<span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted">
+										<Icon name={row.icon} className="size-4" />
+									</span>
+									<div className="min-w-0 flex-1">
+										<label
+											htmlFor={`buyer-email-${row.key}`}
+											className="m-0 block cursor-pointer text-sm font-medium leading-6"
+										>
+											{row.label}
+										</label>
+										<p
+											id={`buyer-email-${row.key}-help`}
+											className="m-0 text-xs text-muted"
+										>
+											{row.help}
+										</p>
+									</div>
+									<input
+										id={`buyer-email-${row.key}`}
+										name={`${row.key}_email`}
+										type="checkbox"
+										role="switch"
+										aria-checked={row.checked}
+										aria-describedby={`buyer-email-${row.key}-help`}
+										className={toggleClass}
+										checked={row.checked}
+										disabled={busy || reading}
+										onChange={(event) => {
+											row.update(event.target.checked);
+											setNotice("");
+										}}
+									/>
+								</div>
+							))}
+						</div>
+						<p className="m-0 text-xs text-muted">{s.securityEmail}</p>
+						<div className="flex flex-wrap items-center justify-between gap-3 border-0 border-t border-solid border-border pt-4">
+							<p role="status" className="m-0 min-h-5 text-sm text-success">
+								{notice}
+							</p>
+							<div className="flex flex-wrap items-center gap-2">
+								<ShadcnButton
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={reload}
+									disabled={busy || reading}
+								>
+									{account.reload}
+								</ShadcnButton>
+								<ShadcnButton
+									type="submit"
+									size="sm"
+									disabled={busy || reading || !dirty}
+								>
+									{busy ? t.sending : t.savePreference}
+								</ShadcnButton>
+							</div>
+						</div>
 					</form>
-				)
-			)}
-			{notice && <p role="status">{notice}</p>}
-		</section>
+				)}
+				{!pref && !reading && (
+					<ShadcnButton
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={reload}
+					>
+						{authCopy[locale].retry}
+					</ShadcnButton>
+				)}
+			</div>
+		</Card>
 	);
 }
 

@@ -26,7 +26,7 @@ class NegotiationFixture(CommerceFixture):
         super().setUp()
         self.fixed = self.variant
         result = catalogue.create(
-            self.seller, {"seller": self.profile.pk, "currency": "AFN", "pricing_mode": "negotiable"}
+            self.seller, {"command_id": uuid.uuid4(), "seller": self.profile.pk, "currency": "AFN", "pricing_mode": "negotiable"}
         )
         self.negotiable = Product.objects.get(pk=result["id"])
         image = upload(self.seller, self.negotiable.pk, self.negotiable.version, image_file())
@@ -106,7 +106,7 @@ class NegotiationFixture(CommerceFixture):
         from apps.orders import services as orders
 
         result = catalogue.create(
-            self.seller, {"seller": profile.pk, "currency": currency, "pricing_mode": "negotiable"}
+            self.seller, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": currency, "pricing_mode": "negotiable"}
         )
         product = Product.objects.get(pk=result["id"])
         image = upload(self.seller, product.pk, product.version, image_file())

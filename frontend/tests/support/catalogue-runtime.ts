@@ -134,7 +134,7 @@ from apps.accounts.models import Account
 staff=Account.objects.get(user__email='phase06-full@example.test',context='staff')
 r=Actor(SimpleNamespace(user=staff.user,account=staff),'staff')
 with patch('apps.organizations.access.get_grant',side_effect=lambda request,context:request.account),override_settings(CATALOGUE_TRANSLATION_ENABLED=False):
- result=services.create(a,{'seller':template.seller_id,'currency':'AFN','pricing_mode':'fixed'})
+ result=services.create(a,{'command_id':uuid.uuid4(),'seller':template.seller_id,'currency':'AFN','pricing_mode':'fixed'})
  p=Product.objects.get(pk=result['id'])
  body=copy.deepcopy(template.revisions.order_by('number').first().body)
  # Dedicated modes recreate the owned web tmpfs; generate a fresh image instead of copying retired bytes.

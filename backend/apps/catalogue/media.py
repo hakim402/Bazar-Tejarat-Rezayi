@@ -35,10 +35,11 @@ class CatalogueRequestLimitMiddleware:
 
     def __call__(self, request):
         if request.method in {"POST", "PATCH"} and request.path.startswith(("/api/v1/catalogue/", "/api/v1/marketplace/")):
-            limit = REQUEST_LIMIT if re.search(r"/(?:products/[0-9a-f-]+/images|seller/stores/[0-9a-f-]+/uploads)/$", request.path) else 256 * 1024
+            upload = re.search(r"/(?:products/[0-9a-f-]+/images|seller/stores/[0-9a-f-]+/uploads)/$", request.path)
+            limit = REQUEST_LIMIT if upload else 256 * 1024
             try:
                 size = int(request.META.get("CONTENT_LENGTH") or 0)
-                if size <= 0 or size > limit or len(request.body) > limit:
+                if size <= 0 or size > limit or (not upload and len(request.body) > limit):
                     raise ValueError
             except (ValueError, OSError):
                 response = JsonResponse(

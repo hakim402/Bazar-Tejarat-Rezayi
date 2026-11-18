@@ -6,81 +6,57 @@ import { buyerOverviewCopy } from "../../../../../../lib/i18n/buyer-overview";
 import { authHref } from "../../../../../../lib/routes/auth-routes";
 import { Icon } from "../../../../../../components/ui/icon";
 import { StatCard } from "../../../../../../components/ui/stat-card";
-import { DashboardCard, cardClass } from "../../../../../../components/ui/dashboard-card";
+import {
+	DashboardCard,
+	cardClass,
+} from "../../../../../../components/ui/dashboard-card";
 import { EmptyState } from "../../../../../../components/ui/empty-state";
 import { ViewAllLink } from "../../../../../../components/ui/view-all-link";
-import { StatusBadge, statusVariant } from "../../../../../../components/ui/status-badge";
-import { localTimestamp } from "../../../../../../features/messaging/api";
-import { commerceCopy } from "../../../../../../features/orders/copy";
+import {
+	StatusBadge,
+	statusVariant,
+} from "../../../../../../components/ui/status-badge";
+import {
+	messaging,
+	shortTimestamp,
+	threadHref,
+	type Inbox,
+} from "../../../../../../features/messaging/api";
 import { communicationCopy } from "../../../../../../features/messaging/copy";
-import { aftercareCopy } from "../../../../../../features/aftercare/copy";
-import { fulfilmentCopy } from "../../../../../../features/fulfilment/copy";
-import { paymentCopy } from "../../../../../../features/payments/copy";
-import { negotiationCopy } from "../../../../../../features/negotiations/copy";
-import { commerce, type Order, type Page } from "../../../../../../features/orders/api";
-import { notification, type Notices, type Counts } from "../../../../../../features/notifications/api";
+import { ProductAvatar } from "../../../../../../features/messaging/components/ui";
+import {
+	commerce,
+	type Order,
+	type Page,
+} from "../../../../../../features/orders/api";
+import {
+	ProductThumbnail,
+	buyerLineImage,
+} from "../../../../../../features/orders/components/order-ui";
+import { useUnreadCount } from "../../../../../../features/notifications/hooks";
 import { fulfilment } from "../../../../../../features/fulfilment/api";
 import { payment } from "../../../../../../features/payments/api";
-import { useBuyerAccount } from "./buyer-account";
+import { AccountBadge, useBuyerAccount } from "./buyer-account";
 import { paymentState } from "../../../../../../features/payments/copy";
 import { fulfilmentState } from "../../../../../../features/fulfilment/copy";
 
-type Notice = Notices["results"][number];
-
-function noticeLabel(locale: Locale, row: Notice) {
-	switch (row.kind) {
-		case "aftercare":
-			return aftercareCopy[locale].buyerTitle;
-		case "fulfilment":
-			return fulfilmentCopy[locale].buyerTitle;
-		case "payment":
-			return paymentCopy[locale].title;
-		case "negotiation": {
-			const copy = negotiationCopy[locale];
-			return `${copy.title} · ${
-				row.action && row.action in copy
-					? copy[row.action as keyof typeof negotiationCopy.en]
-					: copy.request
-			}`;
-		}
-		case "order_accepted":
-			return `${commerceCopy[locale].accepted} · ${commerceCopy[locale].invoices}`;
-		case "message":
-			return communicationCopy[locale].newMessage;
-		default:
-			return communicationCopy[locale].reportStatus;
-	}
-}
-
-function noticeHref(locale: Locale, row: Notice) {
-	if (row.kind === "aftercare")
-		return `/${locale}/account/buyer/cancellations/${row.aftercare ?? ""}`;
-	if (row.fulfilment)
-		return `/${locale}/account/buyer/deliveries/${row.fulfilment}`;
-	if (row.payment)
-		return `/${locale}/account/buyer/payments/${row.payment}`;
-	if (row.negotiation)
-		return `/${locale}/account/buyer/negotiations/${row.negotiation}`;
-	if (row.invoice)
-		return `/${locale}/account/buyer/invoices/${row.invoice}`;
-	if (row.conversation)
-		return `/${locale}/account/buyer/messages/${row.conversation}`;
-	return `/${locale}/account/buyer/notifications`;
-}
+const rowLinkClass =
+	"flex min-w-0 items-center gap-3 rounded-control px-2 py-2.5 text-foreground no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-action motion-reduce:transition-none";
 
 export function BuyerOverview({ locale }: { locale: Locale }) {
 	const t = buyerOverviewCopy[locale];
 	const { session } = useBuyerAccount();
 	const [orders, setOrders] = useState<Page<Order> | null>(null);
 	const [ordersError, setOrdersError] = useState(false);
-	const [notifications, setNotifications] = useState<Notices | null>(null);
-	const [notificationsError, setNotificationsError] = useState(false);
-	const [unread, setUnread] = useState<Counts | null>(null);
-	const [unreadError, setUnreadError] = useState(false);
+	const [conversations, setConversations] = useState<Inbox | null>(null);
+	const [conversationsError, setConversationsError] = useState(false);
 	const [deliveries, setDeliveries] = useState<number | null>(null);
 	const [deliveriesError, setDeliveriesError] = useState(false);
 	const [payments, setPayments] = useState<number | null>(null);
 	const [paymentsError, setPaymentsError] = useState(false);
+	const { counts: unread, error: unreadError } = useUnreadCount(
+		session ? "buyer" : null,
+	);
 
 	useEffect(() => {
 		if (!session) return;
@@ -98,31 +74,14 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 			.catch(() => {
 				if (current) setOrdersError(true);
 			});
-		void notification<Notices>(
-			"buyer",
-			"?page=1",
-			undefined,
-			"GET",
-			{ signal: controller.signal },
-		)
+		void messaging<Inbox>("buyer", "conversations/?page=1", undefined, {
+			signal: controller.signal,
+		})
 			.then((value) => {
-				if (current) setNotifications(value);
+				if (current) setConversations(value);
 			})
 			.catch(() => {
-				if (current) setNotificationsError(true);
-			});
-		void notification<Counts>(
-			"buyer",
-			"unread/",
-			undefined,
-			"GET",
-			{ signal: controller.signal },
-		)
-			.then((value) => {
-				if (current) setUnread(value);
-			})
-			.catch(() => {
-				if (current) setUnreadError(true);
+				if (current) setConversationsError(true);
 			});
 		void fulfilment<{ count: number }>(
 			"buyer",
@@ -157,7 +116,7 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 	if (!session) {
 		return (
 			<section className="min-w-0 space-y-6">
-				<h1 className="text-3xl font-bold">{t.title}</h1>
+				<h1 className="text-page-title font-bold">{t.title}</h1>
 				<div className={cardClass}>
 					<EmptyState
 						icon="user-circle"
@@ -186,27 +145,18 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 
 	return (
 		<section className="min-w-0 space-y-6" dir={direction(locale)}>
-			<div>
-				<h1 className="text-3xl font-bold">{t.title}</h1>
-				<p className="mt-2 text-muted">{t.description}</p>
+			<div className="rounded-card border border-border bg-info p-4 desktop:p-6">
+				<h1 className="text-page-title font-bold">{t.title}</h1>
+				<p className="mt-1 text-sm text-muted">{t.description}</p>
 			</div>
 
-			<div className={cardClass}>
-				<div className="flex items-start gap-4">
-					<div
-						aria-hidden="true"
-						className="flex size-14 shrink-0 items-center justify-center rounded-full bg-info text-lg font-semibold text-action"
-					>
-						<bdi>
-							{displayName
-								.split(/\s+/)
-								.map((p) => Array.from(p)[0])
-								.join("")
-								.toLocaleUpperCase(locale) || (
-								<Icon name="user-circle" className="size-7" />
-							)}
-						</bdi>
-					</div>
+			<div className="min-w-0 overflow-hidden rounded-card border border-transparent bg-surface shadow-card dark:border-border">
+				<div className="h-1 bg-primary" aria-hidden="true" />
+				<div className="flex items-start gap-4 p-4 desktop:p-6">
+					<AccountBadge
+						locale={locale}
+						className="size-14 bg-primary text-lg text-on-primary"
+					/>
 					<div className="min-w-0 flex-1 space-y-1">
 						<p className="text-lg font-semibold">
 							<bdi>{displayName}</bdi>
@@ -250,13 +200,16 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 				</div>
 			</div>
 
-			<div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			<div className="grid auto-rows-fr grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
 				<StatCard
+					compact
 					icon="shopping-bag"
 					label={t.kpiOrders}
 					value={
 						ordersError ? (
-							<span className="text-caption text-danger">{t.kpiUnavailable}</span>
+							<span className="text-caption text-danger">
+								{t.kpiUnavailable}
+							</span>
 						) : orders ? (
 							orders.count
 						) : (
@@ -267,11 +220,14 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 					locale={locale}
 				/>
 				<StatCard
+					compact
 					icon="truck"
 					label={t.kpiDeliveries}
 					value={
 						deliveriesError ? (
-							<span className="text-caption text-danger">{t.kpiUnavailable}</span>
+							<span className="text-caption text-danger">
+								{t.kpiUnavailable}
+							</span>
 						) : deliveries !== null ? (
 							deliveries
 						) : (
@@ -282,11 +238,14 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 					locale={locale}
 				/>
 				<StatCard
+					compact
 					icon="wallet"
 					label={t.kpiPayments}
 					value={
 						paymentsError ? (
-							<span className="text-caption text-danger">{t.kpiUnavailable}</span>
+							<span className="text-caption text-danger">
+								{t.kpiUnavailable}
+							</span>
 						) : payments !== null ? (
 							payments
 						) : (
@@ -297,11 +256,14 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 					locale={locale}
 				/>
 				<StatCard
+					compact
 					icon="mail"
 					label={t.kpiUnread}
 					value={
 						unreadError ? (
-							<span className="text-caption text-danger">{t.kpiUnavailable}</span>
+							<span className="text-caption text-danger">
+								{t.kpiUnavailable}
+							</span>
 						) : unread ? (
 							unread.unread_threads
 						) : (
@@ -315,6 +277,7 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<DashboardCard
+					icon="shopping-bag"
 					title={t.recentOrders}
 					action={
 						orders && orders.count > 0 ? (
@@ -343,99 +306,131 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 							borderless
 						/>
 					) : (
-						<ul className="space-y-3">
-							{orders.results.slice(0, 5).map((order) => (
-								<li key={order.id} className={listItemClass}>
-									<div className="flex min-w-0 items-start justify-between gap-3">
-										<div className="min-w-0 flex-1">
-											<Link
-												href={`/${locale}/account/buyer/orders/${order.id}`}
-												className="font-semibold text-action no-underline hover:underline"
-											>
-												<bdi>{order.number}</bdi>
-											</Link>
-											<p className="mt-1 text-sm text-muted">
-												<bdi>{order.snapshot.seller}</bdi>
-											</p>
-										</div>
-										<div className="shrink-0 text-end">
-											<p className="font-semibold">
-												<bdi>
-													{order.goods_total} {order.currency}
-												</bdi>
-											</p>
-											<div className="mt-1 flex flex-wrap gap-1">
-												<StatusBadge variant={statusVariant(order.dimensions.financial)}>
-													{paymentState(locale, order.dimensions.financial)}
-												</StatusBadge>
-												<StatusBadge variant={statusVariant(order.dimensions.fulfilment)}>
-													{fulfilmentState(locale, order.dimensions.fulfilment)}
-												</StatusBadge>
-											</div>
-										</div>
-									</div>
-									<p className="mt-2 text-caption text-muted">
-										<time dateTime={order.accepted_at}>
-											<bdi>{localTimestamp(order.accepted_at, locale)}</bdi>
-										</time>
-									</p>
-								</li>
-							))}
+						<ul className="m-0 list-none divide-y divide-border p-0">
+							{orders.results.slice(0, 5).map((order) => {
+								const line = order.lines[0];
+								return (
+									<li key={order.id}>
+										<Link
+											href={`/${locale}/account/buyer/orders/${order.id}`}
+											className={rowLinkClass}
+										>
+											<ProductThumbnail
+												src={line ? buyerLineImage(order, line) : null}
+												className="size-10 rounded-lg"
+											/>
+											<span className="min-w-0 flex-1">
+												<span className="flex items-baseline justify-between gap-2">
+													<bdi className="min-w-0 truncate text-sm font-semibold text-action">
+														{order.number}
+													</bdi>
+													<bdi className="shrink-0 text-sm font-semibold tabular-nums">
+														{order.goods_total} {order.currency}
+													</bdi>
+												</span>
+												<span className="mt-0.5 flex items-baseline justify-between gap-2 text-caption text-muted">
+													<span className="min-w-0 truncate" dir="auto">
+														{order.snapshot.seller}
+													</span>
+													<time
+														dateTime={order.accepted_at}
+														className="shrink-0"
+													>
+														<bdi>
+															{shortTimestamp(order.accepted_at, locale)}
+														</bdi>
+													</time>
+												</span>
+												<span className="mt-1.5 flex flex-wrap gap-1">
+													<StatusBadge
+														variant={statusVariant(order.dimensions.financial)}
+													>
+														{paymentState(locale, order.dimensions.financial)}
+													</StatusBadge>
+													<StatusBadge
+														variant={statusVariant(order.dimensions.fulfilment)}
+													>
+														{fulfilmentState(
+															locale,
+															order.dimensions.fulfilment,
+														)}
+													</StatusBadge>
+												</span>
+											</span>
+										</Link>
+									</li>
+								);
+							})}
 						</ul>
 					)}
 				</DashboardCard>
 
 				<DashboardCard
-					title={t.recentNotifications}
+					icon="mail"
+					title={t.recentMessages}
 					action={
-						notifications && notifications.count > 0 ? (
+						conversations && conversations.count > 0 ? (
 							<ViewAllLink
-								href={`/${locale}/account/buyer/notifications`}
-								label={t.viewAllNotifications}
+								href={`/${locale}/account/buyer/messages`}
+								label={t.viewAllMessages}
 							/>
 						) : undefined
 					}
 				>
-					{notificationsError ? (
+					{conversationsError ? (
 						<EmptyState
 							icon="alert-triangle"
 							title={t.kpiUnavailable}
 							description={t.kpiUnavailableHint}
 							borderless
 						/>
-					) : !notifications ? (
+					) : !conversations ? (
 						<p role="status" className="py-4 text-muted">
 							{t.loading}
 						</p>
-					) : notifications.results.length === 0 ? (
-						<EmptyState
-							icon="bell"
-							title={t.recentNotificationsEmpty}
-							borderless
-						/>
+					) : conversations.results.length === 0 ? (
+						<EmptyState icon="mail" title={t.recentMessagesEmpty} borderless />
 					) : (
-						<ul className="space-y-2">
-							{notifications.results.slice(0, 5).map((row) => (
+						<ul className="m-0 list-none divide-y divide-border p-0">
+							{conversations.results.slice(0, 5).map((row) => (
 								<li key={row.id}>
 									<Link
-										href={noticeHref(locale, row)}
-										className={notificationLinkClass}
+										prefetch={false}
+										href={threadHref(locale, "buyer", row.id)}
+										className={rowLinkClass}
 									>
-										<span className="flex min-w-0 flex-wrap items-center gap-2">
-											<span className="min-w-0 break-words font-medium">
-												{noticeLabel(locale, row)}
+										<ProductAvatar
+											locale={locale}
+											product={row.snapshot.product}
+											label={row.snapshot.title}
+										/>
+										<span className="min-w-0 flex-1">
+											<span className="flex items-baseline justify-between gap-2">
+												<strong
+													className="min-w-0 truncate text-sm font-semibold"
+													dir="auto"
+												>
+													{row.snapshot.title}
+												</strong>
+												<time
+													dateTime={row.updated_at}
+													className="shrink-0 text-caption text-muted"
+												>
+													<bdi>{shortTimestamp(row.updated_at, locale)}</bdi>
+												</time>
 											</span>
-											{!row.read && (
-												<span className="rounded-control bg-info px-2 py-0.5 text-caption text-action">
-													{communicationCopy[locale].unread}
-												</span>
-											)}
+											<span
+												className="mt-0.5 block truncate text-caption text-muted"
+												dir="auto"
+											>
+												{row.snapshot.seller}
+											</span>
 										</span>
-										<span className="break-words text-caption text-muted">
-											<time dateTime={row.created_at}>
-												<bdi>{localTimestamp(row.created_at, locale)}</bdi>
-											</time>
-										</span>
+										{row.unread && (
+											<span className="shrink-0 rounded-full bg-info px-2 py-0.5 text-caption font-semibold text-action">
+												{communicationCopy[locale].unread}
+											</span>
+										)}
 									</Link>
 								</li>
 							))}
@@ -444,28 +439,48 @@ export function BuyerOverview({ locale }: { locale: Locale }) {
 				</DashboardCard>
 			</div>
 
-			<DashboardCard title={t.quickActions}>
-				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+			<DashboardCard icon="grid" title={t.quickActions}>
+				<div className="grid auto-rows-fr grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
 					<Link href={`/${locale}`} className={quickActionPrimary}>
-						<Icon name="store" className="size-5" />
+						<span
+							className={`${quickActionChip} bg-on-primary/15`}
+							aria-hidden="true"
+						>
+							<Icon name="store" className="size-4 sm:size-5" />
+						</span>
 						{t.browseMarketplace}
 					</Link>
 					<Link href={`/${locale}/cart`} className={quickActionSecondary}>
-						<Icon name="cart" className="size-5" />
+						<span
+							className={`${quickActionChip} bg-info text-action`}
+							aria-hidden="true"
+						>
+							<Icon name="cart" className="size-4 sm:size-5" />
+						</span>
 						{t.viewCart}
 					</Link>
 					<Link
 						href={`/${locale}/account/buyer/messages`}
 						className={quickActionSecondary}
 					>
-						<Icon name="mail" className="size-5" />
+						<span
+							className={`${quickActionChip} bg-info text-action`}
+							aria-hidden="true"
+						>
+							<Icon name="mail" className="size-4 sm:size-5" />
+						</span>
 						{t.viewMessages}
 					</Link>
 					<Link
 						href={`/${locale}/account/buyer/settings`}
 						className={quickActionSecondary}
 					>
-						<Icon name="gear" className="size-5" />
+						<span
+							className={`${quickActionChip} bg-info text-action`}
+							aria-hidden="true"
+						>
+							<Icon name="gear" className="size-4 sm:size-5" />
+						</span>
 						{t.viewSettings}
 					</Link>
 				</div>
@@ -478,11 +493,9 @@ const primaryButton =
 	"inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-4 py-2 text-sm font-semibold text-on-primary no-underline transition-colors hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
 const secondaryButton =
 	"inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-border bg-surface px-4 py-2 text-sm font-semibold text-action no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
-const listItemClass =
-	"rounded-control border border-border bg-page p-3 transition-colors hover:bg-info";
-const notificationLinkClass =
-	"flex min-h-11 flex-col gap-1 rounded-control px-3 py-2 text-foreground no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
 const quickActionPrimary =
-	"inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-4 py-3 text-sm font-semibold text-on-primary no-underline transition-colors hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
+	"flex min-h-11 flex-col items-center justify-center gap-1 rounded-control bg-primary px-1.5 py-2.5 text-center text-caption font-semibold text-on-primary no-underline shadow-sm transition-colors wrap-anywhere hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none sm:gap-2 sm:px-4 sm:py-4 sm:text-sm";
 const quickActionSecondary =
-	"inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-border bg-surface px-4 py-3 text-sm font-semibold text-action no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
+	"flex min-h-11 flex-col items-center justify-center gap-1 rounded-control border border-border bg-surface px-1.5 py-2.5 text-center text-caption font-semibold text-action no-underline shadow-sm transition-colors wrap-anywhere hover:bg-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none sm:gap-2 sm:px-4 sm:py-4 sm:text-sm";
+const quickActionChip =
+	"flex size-8 shrink-0 items-center justify-center rounded-lg sm:size-10 sm:rounded-xl";

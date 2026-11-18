@@ -22,7 +22,7 @@ a=Actor(SimpleNamespace(user=template.seller.account.user,account=template.selle
 staff=Account.objects.get(user__email='phase06-full@example.test',context='staff')
 r=Actor(SimpleNamespace(user=staff.user,account=staff),'staff')
 with patch('apps.organizations.access.get_grant',side_effect=lambda request,context:request.account),override_settings(CATALOGUE_TRANSLATION_ENABLED=False):
- result=services.create(a,{'seller':template.seller_id,'currency':'AFN','pricing_mode':'fixed'})
+ result=services.create(a,{'command_id':uuid.uuid4(),'seller':template.seller_id,'currency':'AFN','pricing_mode':'fixed'})
  p=Product.objects.get(pk=result['id'])
  body=copy.deepcopy(template.revisions.order_by('number').first().body)
  body.update(title='DEMO · هدفون بی‌سیم آبی' if kind=='headphones' else 'DEMO · زعفران در ظرف شیشه‌ای',description='نمونهٔ نمایشی برای بررسی طراحی. این محصول و قیمت برای فروش واقعی نیست. تصاویر و مشخصات تنها در دیتابیس جداگانهٔ آزمایش ذخیره می‌شوند.',brand='DEMO')

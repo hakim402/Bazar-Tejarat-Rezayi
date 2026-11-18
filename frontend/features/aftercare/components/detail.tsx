@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import type { Locale } from "../../../lib/i18n/locales";
 import { AccountError } from "../../../lib/api/private-client";
 import { ReportForm } from "../../messaging/components/report";
@@ -35,6 +36,7 @@ import {
 } from "./history";
 import { AftercareActionForm } from "./action-form";
 import { AftercareReview } from "./review";
+import { BuyerAftercare } from "./buyer-detail";
 import { SellerIssueSummary } from "./seller-issue-summary";
 
 export function AftercareDetail({
@@ -91,11 +93,13 @@ export function AftercareDetail({
 				uuidPattern.test(result.id)
 			) {
 				setUploaded({ id: result.id, domain: intent.domain });
+				if (context === "buyer") toast.success(t.saved);
 			} else {
 				setFormEpoch((value) => value + 1);
 				setDirty(false);
 				setUploaded(null);
 				setSaved(true);
+				if (context === "buyer") toast.success(t.saved);
 			}
 			setAwaiting(true);
 			source.refresh();
@@ -113,11 +117,18 @@ export function AftercareDetail({
 		},
 	});
 	const source = useAftercareData(context, orderId, command.locked, disputeId);
+	useEffect(() => {
+		if (context === "buyer" && command.error)
+			toast.error(command.error === "throttled" ? t.throttled : t.error);
+	}, [context, command.error, t]);
 	useLayoutEffect(() => {
 		if (source.data) setResolvedOrderId(source.data.order.id);
 	}, [source.data]);
 	const [reportDirty, setReportDirty] = useState(false);
-	const guard = useCommerceGuard(locale, dirty || reportDirty || !!review || command.locked);
+	const guard = useCommerceGuard(
+		locale,
+		dirty || reportDirty || !!review || command.locked,
+	);
 	// The navigation guard may outlive a form. Keep its deferred private draft
 	// callback here so revocation can erase it instead of retaining the old form.
 	const choice = useRef<(() => void) | null>(null);
@@ -220,16 +231,52 @@ export function AftercareDetail({
 			upload: true,
 		});
 	}
+	if (!isSeller) {
+		return (
+			<BuyerAftercare
+				locale={locale}
+				context={context}
+				embedded={embedded}
+				disputeId={disputeId}
+				seller={seller}
+				scope={scope}
+				data={data}
+				source={source}
+				command={command}
+				blocked={blocked}
+				online={online}
+				saved={saved}
+				guardFeedback={guard.feedback}
+				formEpoch={formEpoch}
+				uploaded={uploaded}
+				upload={upload}
+				choose={choose}
+				review={review}
+				opener={opener.current}
+				onReview={(packet, element) => {
+					opener.current = element;
+					setSaved(false);
+					setReview(packet);
+				}}
+				closeReview={() => setReview(null)}
+				confirmReview={() => {
+					if (!review || !data || blocked || isStale(review, data)) return;
+					const packet = review.intent;
+					setReview(null);
+					void command.send(packet);
+				}}
+				onDirty={setDirty}
+				onDomain={setActiveDomain}
+				onReportDirty={setReportDirty}
+			/>
+		);
+	}
 	return (
-		<SalesFrame seller={isSeller}>
-			<div
-				className={
-					isSeller
-						? "min-w-0 space-y-5 [&_dialog]:rounded-2xl [&_dialog]:shadow-lifted [&_dialog_button]:min-h-11 [&_dialog_button]:rounded-xl [&_dialog_button]:font-semibold"
-						: "min-w-0 space-y-5"
-				}
-			>
-				{embedded ? <h2 className="text-xl font-bold">{t.title}</h2> : isSeller ? (
+		<SalesFrame seller>
+			<div className="min-w-0 space-y-5 [&_dialog]:rounded-2xl [&_dialog]:shadow-lifted [&_dialog_button]:min-h-11 [&_dialog_button]:rounded-xl [&_dialog_button]:font-semibold">
+				{embedded ? (
+					<h2 className="text-xl font-bold">{t.title}</h2>
+				) : (
 					<SalesHeader
 						locale={locale}
 						section="aftercare"
@@ -252,33 +299,8 @@ export function AftercareDetail({
 							</p>
 						}
 					/>
-				) : (
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<h1 className="text-2xl font-bold">
-							{disputeId ? t.disputes : t.title}
-							{data && (
-								<>
-									{" "}
-									· <bdi>{data.order.number}</bdi>
-								</>
-							)}
-						</h1>
-						<Link
-							className={action}
-							prefetch={false}
-							href={aftercareHref(locale, context, undefined, seller)}
-						>
-							{t.buyerTitle}
-						</Link>
-					</div>
 				)}
-				<p
-					className={
-						isSeller
-							? "max-w-3xl text-sm leading-relaxed text-muted"
-							: undefined
-					}
-				>
+				<p className="max-w-3xl text-sm leading-relaxed text-muted">
 					{t.intro}
 				</p>
 				{guard.feedback}
@@ -316,42 +338,30 @@ export function AftercareDetail({
 					<p role="status">{t.loading}</p>
 				) : (
 					<>
-						{isSeller && (
-							<SalesRelated
-								locale={locale}
-								seller={data.order.seller}
-								links={[
-									{ section: "orders", id: data.order.id },
-									...(data.order.invoice
-										? [{ section: "invoices" as const, id: data.order.invoice }]
-										: []),
-									...(data.payment
-										? [{ section: "payments" as const, id: data.order.id }]
-										: []),
-									...(data.delivery
-										? [{ section: "fulfilment" as const, id: data.order.id }]
-										: []),
-								]}
-							/>
-						)}
-						{isSeller && (
-							<SellerIssueSummary
-								locale={locale}
-								data={data}
-								seller={data.order.seller || seller}
-							/>
-						)}
-						<AftercareSummary
-							{...{ locale, row: data.order, seller: isSeller }}
+						<SalesRelated
+							locale={locale}
+							seller={data.order.seller}
+							links={[
+								{ section: "orders", id: data.order.id },
+								...(data.order.invoice
+									? [{ section: "invoices" as const, id: data.order.invoice }]
+									: []),
+								...(data.payment
+									? [{ section: "payments" as const, id: data.order.id }]
+									: []),
+								...(data.delivery
+									? [{ section: "fulfilment" as const, id: data.order.id }]
+									: []),
+							]}
 						/>
+						<SellerIssueSummary
+							locale={locale}
+							data={data}
+							seller={data.order.seller || seller}
+						/>
+						<AftercareSummary {...{ locale, row: data.order, seller: true }} />
 						<details className={panel}>
-							<summary
-								className={
-									isSeller
-										? "min-h-11 cursor-pointer py-2 font-semibold text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
-										: "cursor-pointer py-2 font-bold"
-								}
-							>
+							<summary className="min-h-11 cursor-pointer py-2 font-semibold text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
 								{t.effectiveLines}
 							</summary>
 							<AcceptedLines
@@ -359,7 +369,7 @@ export function AftercareDetail({
 									locale,
 									lines: data.order.effective_lines,
 									currency: data.order.currency,
-									seller: isSeller,
+									seller: true,
 								}}
 							/>
 						</details>
@@ -457,11 +467,46 @@ export function AftercareDetail({
 								setReview(packet);
 							}}
 						/>
-						<OrderHistory {...{ locale, row: data.order, seller: isSeller }} />
-						<ReportForm key={`${scope}:report`} locale={locale} context={context} id={data.order.id} target="order" onDirty={setReportDirty} onDenied={(error) => { if (error instanceof AccountError && error.status === 401) source.deny(); }} />
+						<OrderHistory {...{ locale, row: data.order, seller: true }} />
+						<ReportForm
+							key={`${scope}:report`}
+							locale={locale}
+							context={context}
+							id={data.order.id}
+							target="order"
+							onDirty={setReportDirty}
+							onDenied={(error) => {
+								if (error instanceof AccountError && error.status === 401)
+									source.deny();
+							}}
+						/>
 						<nav className="flex flex-wrap gap-3" aria-label={t.disputes}>
-							<Link className={action} prefetch={false} href={disputeHref(locale, context, undefined, data.order.seller)}>{t.disputes}</Link>
-							{disputeId && <Link className={action} prefetch={false} href={aftercareHref(locale, context, data.order.id, data.order.seller)}>{t.openWorkspace}</Link>}
+							<Link
+								className={action}
+								prefetch={false}
+								href={disputeHref(
+									locale,
+									context,
+									undefined,
+									data.order.seller,
+								)}
+							>
+								{t.disputes}
+							</Link>
+							{disputeId && (
+								<Link
+									className={action}
+									prefetch={false}
+									href={aftercareHref(
+										locale,
+										context,
+										data.order.id,
+										data.order.seller,
+									)}
+								>
+									{t.openWorkspace}
+								</Link>
+							)}
 						</nav>
 						{review && (
 							<AftercareReview

@@ -84,6 +84,7 @@ const en = {
 	logout: "Sign out of this account",
 	logoutAll: "Sign out of all accounts in this browser",
 	signedOut: "Signed out.",
+	signOutFailed: "Could not sign out. Try again.",
 	enroll: "Set up your authenticator",
 	home: "Home",
 	loading: "Checking account…",
@@ -92,6 +93,10 @@ const en = {
 	passwordHelp: "At least 12 characters; use a strong unique password.",
 	linkHelp:
 		"Prove this is the same person using your current password. Existing suspended or archived accounts cannot be recreated here.",
+	linkIntro:
+		"Your buyer account stays unchanged. Confirm it is you to add a seller account.",
+	linkPassword: "Confirm with password",
+	linked: "Seller account added.",
 	privateView: "Private account",
 	invalidLink: "Open your private email link again, or request a new link.",
 	draftLink: "Read draft notice",
@@ -180,6 +185,7 @@ const fa: Copy = {
 	logout: "خروج از این حساب",
 	logoutAll: "خروج از همهٔ حساب‌ها در این مرورگر",
 	signedOut: "از حساب خارج شدید.",
+	signOutFailed: "خروج ناموفق بود. دوباره تلاش کنید.",
 	enroll: "تنظیم برنامهٔ تأیید",
 	home: "خانه",
 	loading: "در حال بررسی حساب…",
@@ -188,6 +194,10 @@ const fa: Copy = {
 	passwordHelp: "دست‌کم ۱۲ نویسه؛ از رمز قوی و یکتا استفاده کنید.",
 	linkHelp:
 		"با رمز فعلی ثابت کنید که هر دو حساب متعلق به شماست. حساب معلق یا بایگانی‌شده از این راه دوباره ساخته نمی‌شود.",
+	linkIntro:
+		"حساب خریدار شما بدون تغییر می‌ماند. برای افزودن حساب فروشنده، تأیید کنید که خود شما هستید.",
+	linkPassword: "تأیید با رمز عبور",
+	linked: "حساب فروشنده اضافه شد.",
 	privateView: "حساب خصوصی",
 	invalidLink:
 		"پیوند خصوصی ایمیل را دوباره باز کنید یا پیوند تازه درخواست دهید.",
@@ -277,6 +287,7 @@ const ps: Copy = {
 	logout: "له دې حسابه وتل",
 	logoutAll: "په دې لټونګر کې له ټولو حسابونو وتل",
 	signedOut: "ووتلئ.",
+	signOutFailed: "وتل ونه شول. بیا هڅه وکړئ.",
 	enroll: "تاییدوونکی برابر کړئ",
 	home: "کور",
 	loading: "حساب کتل کېږي…",
@@ -285,6 +296,10 @@ const ps: Copy = {
 	passwordHelp: "لږ تر لږه ۱۲ توري؛ پیاوړی او ځانګړی پټنوم وکاروئ.",
 	linkHelp:
 		"په اوسني پټنوم خپل هویت ثابت کړئ. ځنډول شوي یا ارشیف شوي حسابونه دلته بیا نه جوړېږي.",
+	linkIntro:
+		"ستاسو اخیستونکی حساب بې بدلونه پاتې کېږي. د پلورونکي حساب زیاتولو لپاره تایید کړئ چې دا تاسو یاست.",
+	linkPassword: "په پټنوم تایید",
+	linked: "پلورونکی حساب زیات شو.",
 	privateView: "شخصي حساب",
 	invalidLink: "د برېښنالیک شخصي تړونی بیا پرانیزئ یا نوی وغواړئ.",
 	draftLink: "مسوده ولولئ",
@@ -372,6 +387,7 @@ const ar: Copy = {
 	logout: "الخروج من هذا الحساب",
 	logoutAll: "الخروج من جميع الحسابات في هذا المتصفح",
 	signedOut: "تم تسجيل الخروج.",
+	signOutFailed: "تعذر تسجيل الخروج. حاول مجددًا.",
 	enroll: "إعداد تطبيق المصادقة",
 	home: "الرئيسية",
 	loading: "جارٍ التحقق من الحساب…",
@@ -380,6 +396,9 @@ const ar: Copy = {
 	passwordHelp: "12 حرفاً على الأقل؛ استخدم كلمة مرور قوية وفريدة.",
 	linkHelp:
 		"أثبت هويتك بكلمة مرورك الحالية. لا يمكن إعادة إنشاء الحسابات المعلقة أو المؤرشفة هنا.",
+	linkIntro: "يبقى حساب المشتري كما هو. أكّد هويتك لإضافة حساب بائع.",
+	linkPassword: "التأكيد بكلمة المرور",
+	linked: "تمت إضافة حساب البائع.",
 	privateView: "حساب خاص",
 	invalidLink: "افتح رابط البريد الخاص مجدداً أو اطلب رابطاً جديداً.",
 	draftLink: "قراءة المسودة",

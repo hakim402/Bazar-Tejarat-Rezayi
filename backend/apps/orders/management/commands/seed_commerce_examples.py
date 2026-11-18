@@ -299,7 +299,7 @@ class Command(BaseCommand):
                     status="approved",
                     snapshot={"display_name": "فروشگاه آزمایشی • Synthetic commerce " + letter.upper()},
                 )
-                created = catalogue.create(owner, {"seller": profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
+                created = catalogue.create(owner, {"command_id": uuid.uuid4(), "seller": profile.pk, "currency": "AFN", "pricing_mode": "fixed"})
                 product = Product.objects.get(pk=created["id"])
                 image = upload(owner, product.pk, product.version, image_file())
                 product.refresh_from_db()

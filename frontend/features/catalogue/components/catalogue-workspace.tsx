@@ -218,6 +218,7 @@ export function CatalogueWorkspace({
 	const [deleteTarget, setDeleteTarget] = useState<{
 		id: string;
 		title: string;
+		version: number;
 	} | null>(null);
 	const [epoch, setEpoch] = useState(0),
 		[priceDirty, setPriceDirty] = useState(false),
@@ -513,8 +514,8 @@ export function CatalogueWorkspace({
 			(fresh) => install(fresh, packet.revision),
 		);
 	}
-	function askDelete(productId: string, title: string) {
-		setDeleteTarget({ id: productId, title });
+	function askDelete(productId: string, title: string, version: number) {
+		setDeleteTarget({ id: productId, title, version });
 		deleteDialog.current?.showModal();
 	}
 	async function deleteProduct() {
@@ -532,7 +533,7 @@ export function CatalogueWorkspace({
 			await api<{ deleted: boolean }>(
 				context,
 				`products/${target.id}/`,
-				{},
+				{ version: target.version },
 				"DELETE",
 			);
 			if (mine !== generation.current) return;
@@ -608,7 +609,9 @@ export function CatalogueWorkspace({
 							<button
 								type="button"
 								disabled={busy || sourceDirty || priceDirty || blocked}
-								onClick={() => askDelete(item.id, body?.title || copy.untitled)}
+								onClick={() =>
+									askDelete(item.id, body?.title || copy.untitled, item.version)
+								}
 								className="min-h-11 rounded-xl border border-danger/30 bg-surface px-3 text-sm font-semibold text-danger disabled:opacity-50"
 							>
 								{productFlowCopy[locale].delete}

@@ -817,7 +817,7 @@ test("R4 stale cart version reconciles rejection, retains editable input and use
 
 function stepTwoProduct() {
 	return JSON.parse(
-		disposablePython(`import json
+		disposablePython(`import json,uuid
 from copy import deepcopy
 from django.test import override_settings
 from apps.accounts.models import User
@@ -834,7 +834,7 @@ with override_settings(OWNER_MFA_REQUIRED=False,CATALOGUE_TRANSLATION_ENABLED=Fa
  profile,_=BusinessProfile.objects.get_or_create(account=owner.account,kind='individual',defaults={'display_name':'Synthetic two-unit seller'})
  ReviewCase.objects.get_or_create(profile=profile,status='approved',defaults={'snapshot':{'display_name':'Synthetic two-unit seller'}})
  original=Product.objects.filter(seller__kind='company',seller__account=owner.account,published__isnull=False).first()
- product=Product.objects.get(pk=catalogue.create(owner,{'seller':profile.pk,'currency':'AFN','pricing_mode':'fixed'})['id'])
+ product=Product.objects.get(pk=catalogue.create(owner,{'command_id':uuid.uuid4(),'seller':profile.pk,'currency':'AFN','pricing_mode':'fixed'})['id'])
  image=upload(owner,product.pk,product.version,image_file());product.refresh_from_db()
  body={k:deepcopy(original.published.body[k]) for k in ['locale','title','description','brand','category','attributes']}
  body['images']=[{'id':image['id'],'alt':'Synthetic pair specimen','variant':None}]

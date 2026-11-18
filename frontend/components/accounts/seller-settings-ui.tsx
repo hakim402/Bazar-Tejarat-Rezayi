@@ -1,19 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import {
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-	type ReactNode,
-} from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import type { Locale } from "../../lib/i18n/locales";
 import { sellerSettingsCopy } from "../../lib/i18n/seller-settings";
 import { sellerHref, uuidPattern } from "../../lib/routes/account-routes";
 import { useUnsavedNavigation } from "../layout/navigation-guard";
+import { DiscardDialog } from "../ui/discard-dialog";
 import { Icon, type IconName } from "../ui/icon";
-import { Button } from "../ui/button";
 
 export const settingsControl =
 	"w-full min-w-0 min-h-12 rounded-xl border border-control bg-surface px-3.5 py-3 text-base text-foreground shadow-sm focus:border-action disabled:cursor-not-allowed disabled:opacity-50";
@@ -190,7 +184,6 @@ export function SettingsActions({
 export function useSettingsGuard(locale: Locale, dirty: boolean) {
 	const [pending, setPending] = useState<(() => void) | null>(null);
 	const focus = useRef<HTMLElement | null>(null);
-	const dialog = useRef<HTMLDialogElement>(null);
 	const t = sellerSettingsCopy[locale];
 	const guard = useCallback((next: () => void) => {
 		focus.current =
@@ -200,11 +193,7 @@ export function useSettingsGuard(locale: Locale, dirty: boolean) {
 		setPending(() => next);
 	}, []);
 	useUnsavedNavigation(dirty, guard);
-	useEffect(() => {
-		if (pending && !dialog.current?.open) dialog.current?.showModal();
-	}, [pending]);
 	const cancel = () => {
-		dialog.current?.close();
 		setPending(null);
 		focus.current?.focus();
 	};
@@ -215,46 +204,21 @@ export function useSettingsGuard(locale: Locale, dirty: boolean) {
 		},
 		[dirty, guard],
 	);
-	const feedback = pending ? (
-		<dialog
-			ref={dialog}
-			aria-labelledby="settings-discard-title"
-			aria-describedby="settings-discard-help"
-			onCancel={(event) => {
-				event.preventDefault();
-				cancel();
+	const feedback = (
+		<DiscardDialog
+			locale={locale}
+			open={pending !== null}
+			title={t.dirtyTitle}
+			help={t.dirtyHelp}
+			cancelLabel={t.stay}
+			confirmLabel={t.discard}
+			onCancel={cancel}
+			onConfirm={() => {
+				const next = pending;
+				setPending(null);
+				next?.();
 			}}
-			className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
-		>
-			<span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-warning-surface text-warning">
-				<Icon name="alert-triangle" />
-			</span>
-			<h2 id="settings-discard-title" className="text-xl font-semibold">
-				{t.dirtyTitle}
-			</h2>
-			<p
-				id="settings-discard-help"
-				className="mt-2 text-base leading-relaxed text-muted"
-			>
-				{t.dirtyHelp}
-			</p>
-			<div className="mt-6 flex flex-col gap-3 sm:flex-row">
-				<Button type="button" variant="secondary" autoFocus onClick={cancel}>
-					{t.stay}
-				</Button>
-				<Button
-					type="button"
-					onClick={() => {
-						const next = pending;
-						dialog.current?.close();
-						setPending(null);
-						next();
-					}}
-				>
-					{t.discard}
-				</Button>
-			</div>
-		</dialog>
-	) : null;
+		/>
+	);
 	return { choose, feedback };
 }

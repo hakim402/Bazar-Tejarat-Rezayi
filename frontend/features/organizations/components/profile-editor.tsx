@@ -6,16 +6,20 @@ import {
 	settingsControl,
 } from "../../../components/accounts/seller-settings-ui";
 import { sellerAccountSettingsCopy } from "../../../lib/i18n/seller-account-settings";
-import { Field, Input, Select } from "../../../components/ui/form-field";
 import { Button } from "../../../components/ui/button";
-import { SectionCard } from "../../../components/ui/section-card";
-import { StickyActionBar } from "../../../components/ui/sticky-action-bar";
+import { Button as ShadcnButton } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
+import { FormActions, FormField } from "../../../components/ui/dialog-form";
 import { Icon } from "../../../components/ui/icon";
 import { organizationCopy } from "../../../lib/i18n/organizations";
 import type { Locale } from "../../../lib/i18n/locales";
 import { type Profile, profileFields } from "../api/organizations";
 type Copy = (typeof organizationCopy)[Locale];
-const groups: {
+export const profileGroups: {
 	title: keyof Copy;
 	help?: keyof Copy;
 	keys: readonly (typeof profileFields)[number][];
@@ -73,88 +77,110 @@ function DefaultProfileEditor({
 	onSave: (data: Record<string, unknown>) => Promise<unknown>;
 }) {
 	const t = organizationCopy[locale];
+	const [values, setValues] = useState(
+		() =>
+			Object.fromEntries(
+				profileFields.map((key) => [key, profile?.[key] ?? ""]),
+			) as Record<(typeof profileFields)[number], string>,
+	);
+	const creationKinds =
+		kinds ?? (context === "buyer" ? ["business"] : ["individual", "company"]);
+	const [kind, setKind] = useState<string>(creationKinds[0]);
 	function submit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const data = new FormData(e.currentTarget);
-		const fields: Record<string, unknown> = {};
-		for (const key of profileFields) fields[key] = String(data.get(key) ?? "");
+		const fields: Record<string, unknown> = { ...values };
 		if (profile) fields.version = profile.version;
-		else fields.kind = data.get("kind");
+		else fields.kind = kind;
 		void onSave(fields);
 	}
 	function field(key: (typeof profileFields)[number]) {
+		const id = `org-profile-${key}`,
+			invalid = errors.includes(key);
 		return (
-			<Field key={key} name={key} label={t[key]}>
-				<Input
-					name={key}
-					aria-invalid={errors.includes(key)}
-					defaultValue={profile?.[key] ?? ""}
-					maxLength={
-						key === "location"
-							? 500
-							: key === "display_name"
-								? 150
-								: key === "contact_phone"
-									? 40
-									: 200
-					}
+			<div
+				key={key}
+				className={key === "location" ? "sm:col-span-2" : undefined}
+			>
+				<FormField
+					id={id}
+					label={t[key]}
 					required={key === "display_name"}
-					dir={key === "contact_phone" ? "ltr" : undefined}
-				/>
-			</Field>
+					error={invalid ? t.fields : undefined}
+				>
+					<Input
+						id={id}
+						name={key}
+						value={values[key]}
+						onChange={(event) =>
+							setValues((current) => ({
+								...current,
+								[key]: event.target.value,
+							}))
+						}
+						type={key === "contact_phone" ? "tel" : "text"}
+						dir={key === "contact_phone" ? "ltr" : undefined}
+						maxLength={
+							key === "location"
+								? 500
+								: key === "display_name"
+									? 150
+									: key === "contact_phone"
+										? 40
+										: 200
+						}
+						required={key === "display_name"}
+						aria-invalid={invalid}
+						aria-describedby={invalid ? `${id}-error` : undefined}
+					/>
+				</FormField>
+			</div>
 		);
 	}
 	return (
 		<form onSubmit={submit} className="min-w-0 space-y-5" aria-busy={busy}>
 			{profile ? (
-				groups.map((group) => (
-					<SectionCard
-						key={group.title}
-						title={t[group.title]}
-						description={group.help ? t[group.help] : undefined}
-						icon={
-							group.help && (
-								<Icon name="lock" className="size-4 shrink-0 text-muted" />
-							)
-						}
-					>
-						<div className="grid grid-cols-1 gap-4 desktop:grid-cols-2">
+				profileGroups.map((group) => (
+					<section key={group.title} className="space-y-3">
+						<div className="space-y-0.5">
+							<h3 className="m-0 flex items-center gap-1.5 text-sm font-semibold">
+								{group.help && (
+									<Icon name="lock" className="size-3.5 text-muted" />
+								)}
+								{t[group.title]}
+							</h3>
+							{group.help && (
+								<p className="m-0 text-xs text-muted">{t[group.help]}</p>
+							)}
+						</div>
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							{group.keys.map(field)}
 						</div>
-					</SectionCard>
+					</section>
 				))
 			) : (
-				<SectionCard>
-					<div className="grid grid-cols-1 gap-4 desktop:grid-cols-2">
-						<Field name="kind" label={t.profile}>
-							<Select name="kind">
-								{(
-									kinds ??
-									(context === "buyer"
-										? ["business"]
-										: ["individual", "company"])
-								).map((kind) => (
-									<option key={kind} value={kind}>
-										{t[kind as "individual" | "company" | "business"]}
-									</option>
-								))}
-							</Select>
-						</Field>
-						{profileFields.map(field)}
-					</div>
-				</SectionCard>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<FormField id="org-profile-kind" label={t.profile}>
+						<NativeSelect
+							id="org-profile-kind"
+							name="kind"
+							value={kind}
+							onChange={(event) => setKind(event.target.value)}
+						>
+							{creationKinds.map((value) => (
+								<NativeSelectOption key={value} value={value}>
+									{t[value]}
+								</NativeSelectOption>
+							))}
+						</NativeSelect>
+					</FormField>
+					{profileFields.map(field)}
+				</div>
 			)}
-			{profile ? (
-				<StickyActionBar>
-					<Button type="submit" disabled={busy}>
-						{t.save}
-					</Button>
-				</StickyActionBar>
-			) : (
-				<Button type="submit" disabled={busy}>
-					{t.create}
-				</Button>
-			)}
+			<FormActions>
+				<ShadcnButton type="submit" disabled={busy}>
+					{profile ? t.save : t.create}
+				</ShadcnButton>
+			</FormActions>
 		</form>
 	);
 }
@@ -318,7 +344,7 @@ function SellerProfileEditor({
 					{copy.fieldError}
 				</p>
 			)}
-			{groups.map((group) => (
+			{profileGroups.map((group) => (
 				<SettingsSection
 					key={group.title}
 					title={t[group.title]}

@@ -6,6 +6,8 @@ export type Capability =
 	| "correction"
 	| "extension"
 	| "selection"
+	| "refund"
+	| "excess_refund"
 	| "details"
 	| "evidence";
 export type Claim = {
@@ -128,6 +130,32 @@ export type Detail = Payment & {
 		allocation: string | null;
 		shortage: string;
 	} | null;
+	refund_dues: {
+		id: string;
+		cause: string;
+		amount: string;
+		currency: string;
+		assigned: boolean;
+		version: number;
+		state: string;
+		can_report: boolean;
+		previous: string | null;
+		created_at: string;
+	}[];
+	refund_reports: {
+		id: string;
+		due: string;
+		previous: string | null;
+		amount: string;
+		sent_at: string;
+		reference: string;
+		description: string;
+		state: string;
+		reason: string;
+		evidence: string[];
+		can_withdraw: boolean;
+		created_at: string;
+	}[];
 };
 export type Profile = {
 	id: string;

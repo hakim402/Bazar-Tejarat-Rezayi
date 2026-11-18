@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import { AccountError } from "../../../lib/api/private-client";
 import { SessionEntry } from "./session-entry";
 import Link from "next/link";
@@ -88,6 +89,7 @@ function Checkout({
 		);
 	const live = useRef<object | null>(null),
 		owned = useRef<object | null>(null),
+		form = useRef<HTMLFormElement>(null),
 		termRequests = useRef(new Map<string, object>());
 	const loadTerms = useCallback(
 		async (id: string, mine: object, signal?: AbortSignal) => {
@@ -249,6 +251,7 @@ function Checkout({
 			} else {
 				settleIntent(scope);
 				setPending(undefined);
+				toast.success(t.submitted);
 				router.push(`/${locale}/account/buyer/checkouts/${value.id}`);
 			}
 		} catch (e) {
@@ -260,6 +263,7 @@ function Checkout({
 					setChoices({});
 				}
 				setError(e);
+				toast.error(t.submitFailed);
 			}
 		} finally {
 			if (live.current === mine && owned.current === write) {
@@ -294,6 +298,7 @@ function Checkout({
 				<p role="status">{t.loading}</p>
 			) : (
 				<form
+					ref={form}
 					className="space-y-5"
 					onSubmit={(e) => {
 						e.preventDefault();
@@ -353,7 +358,7 @@ function Checkout({
 							key={id}
 							data-testid="checkout-seller"
 							data-seller={id}
-							className={panel}
+							className={`${panel} m-0 min-w-0 border-solid`}
 						>
 							<legend
 								className="break-words font-bold"
@@ -396,7 +401,7 @@ function Checkout({
 							) : (
 								<fieldset
 									disabled={!sellers.includes(id)}
-									className="space-y-3 border-0 p-0"
+									className="m-0 min-w-0 space-y-3 border-0 p-0"
 								>
 									<label className="block space-y-2">
 										{t.country}
@@ -492,7 +497,9 @@ function Checkout({
 						type="button"
 						className={action}
 						disabled={busy || !!pending || !lines.length}
-						onClick={() => void send(true)}
+						onClick={() => {
+							if (form.current?.reportValidity()) void send(true);
+						}}
 					>
 						{t.review}
 					</button>{" "}
@@ -514,7 +521,10 @@ function Checkout({
 				<section className={panel} aria-label={t.review}>
 					{result.results.map((row) => (
 						<p key={row.seller}>
-							<bdi>{row.seller}</bdi> ·{" "}
+							<bdi>
+								{cart?.lines.find((line) => line.seller === row.seller)
+									?.seller_name || t.business}
+							</bdi>{" "}
 							{row.code === "ready" ? t.goods : t.unavailable}{" "}
 							{row.total && (
 								<bdi>

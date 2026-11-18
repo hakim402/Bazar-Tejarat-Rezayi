@@ -164,7 +164,7 @@ export function StockSelection({
 			className={
 				context === "seller"
 					? "m-0 min-w-0 space-y-4 rounded-xl border border-solid border-border p-4 text-sm [&_label]:space-y-1.5"
-					: "space-y-4"
+					: "m-0 min-w-0 space-y-4 border-0 p-0"
 			}
 		>
 			<legend className="font-bold">{t.selection}</legend>

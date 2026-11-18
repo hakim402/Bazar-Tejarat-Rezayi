@@ -159,6 +159,13 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 					<div className="min-w-0 space-y-4">
 						<h2 className="text-base">{t.contact}</h2>
 						<address className="space-y-2 not-italic">
+							<Link
+								href={`/${locale}/contact`}
+								className="flex min-h-10 items-center gap-2 text-sm text-action no-underline hover:underline"
+							>
+								<Icon name="mail" className="size-4" />
+								{t.contact}
+							</Link>
 							{contact?.phone && (
 								<a
 									href={`tel:${contact.phone.replace(/[ ()-]/g, "")}`}
