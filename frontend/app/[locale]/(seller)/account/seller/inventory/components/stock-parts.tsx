@@ -10,9 +10,14 @@ import {
 	Store,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Badge } from "../../../../../../../components/shadcn/badge";
 import { Button } from "../../../../../../../components/shadcn/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogTitle,
+} from "../../../../../../../components/shadcn/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -21,6 +26,7 @@ import {
 	DropdownMenuTrigger,
 } from "../../../../../../../components/shadcn/dropdown-menu";
 import { EmptyState } from "../../../../../../../components/ui/empty-state";
+import { Pager } from "../../../../../../../components/pager";
 import { Icon } from "../../../../../../../components/ui/icon";
 import {
 	inventoryRequest,
@@ -212,34 +218,21 @@ export function StockModal({
 	children: ReactNode;
 	onClose: () => void;
 }) {
-	const ref = useRef<HTMLDialogElement>(null);
-	useEffect(() => {
-		const dialog = ref.current;
-		if (!dialog) return;
-		const previous = document.activeElement;
-		dialog.showModal();
-		dialog.querySelector("h2")?.focus({ preventScroll: true });
-		return () => {
-			dialog.close();
-			if (previous instanceof HTMLElement && previous.isConnected)
-				previous.focus({ preventScroll: true });
-		};
-	}, []);
 	return (
-		<dialog
-			ref={ref}
-			aria-label={title}
-			onCancel={(event) => {
-				event.preventDefault();
-				onClose();
+		<Dialog
+			open
+			onOpenChange={(next) => {
+				if (!next) onClose();
 			}}
-			className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] min-w-0 max-w-xl overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-5 text-foreground shadow-lifted wrap-anywhere backdrop:bg-foreground/40 desktop:p-6"
 		>
-			<h2 tabIndex={-1} className="mb-4 text-lg font-bold">
-				{title}
-			</h2>
-			{children}
-		</dialog>
+			<DialogContent
+				showCloseButton={false}
+				className="block max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] min-w-0 max-w-xl overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-5 text-foreground shadow-lifted wrap-anywhere desktop:p-6"
+			>
+				<DialogTitle className="mb-4 text-lg font-bold">{title}</DialogTitle>
+				{children}
+			</DialogContent>
+		</Dialog>
 	);
 }
 
@@ -336,7 +329,10 @@ export function MovementTable({
 						label: after ? copy.heldAfter : copy.heldChange,
 						value: after ? row.held_after : row.held_delta,
 						tone: "",
-						sign: false,
+						sign:
+							!after &&
+							!row.held_delta.startsWith("-") &&
+							row.held_delta !== "0.000",
 					},
 				].map(({ label, value, tone, sign }) => (
 					<div key={label} className="min-w-0">
@@ -374,7 +370,9 @@ export function MovementTable({
 			<div className="min-w-0">
 				<dt className="text-xs text-muted">{t.date}</dt>
 				<dd className="m-0 mt-1 wrap-anywhere">
-					<time dateTime={row.at}>{dateFormat.format(new Date(row.at))}</time>
+					<time dateTime={row.at}>{Number.isNaN(new Date(row.at).getTime())
+						? row.at
+						: dateFormat.format(new Date(row.at))}</time>
 				</dd>
 			</div>
 			<div className="min-w-0">
@@ -529,25 +527,15 @@ function InventoryHistory({
 						rows={history.results}
 						compact
 					/>
-					<div className="mt-4 flex items-center justify-between gap-3">
-						<Button
-							variant="outline"
-							disabled={page <= 1}
-							onClick={() => setPage((n) => n - 1)}
-						>
-							{t.previous}
-						</Button>
-						<span className="text-sm">
-							{new Intl.NumberFormat(locale).format(page)}
-						</span>
-						<Button
-							variant="outline"
-							disabled={page * history.page_size >= history.count}
-							onClick={() => setPage((n) => n + 1)}
-						>
-							{t.next}
-						</Button>
-					</div>
+					<Pager
+						locale={locale}
+						page={page}
+						count={history.count}
+						pageSize={history.page_size}
+						onPage={setPage}
+						labels={{ prev: t.previous, next: t.next, page: t.page }}
+						className="mt-4 flex items-center justify-center gap-3"
+					/>
 				</>
 			)}
 			<Button variant="outline" className="mt-4 w-full" onClick={onClose}>

@@ -236,7 +236,7 @@ export function ConfirmDialog({
 	locale: Locale;
 	open: boolean;
 	title: string;
-	body: string;
+	body: ReactNode;
 	confirmLabel: string;
 	destructive?: boolean;
 	busy: boolean;

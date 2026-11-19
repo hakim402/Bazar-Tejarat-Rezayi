@@ -85,6 +85,16 @@ class Conversations(PrivateView):
         return Response(c.ConversationPage(queries.inbox(actor, **data)).data)
 
 
+class RecentConversations(PrivateView):
+    @extend_schema(
+        operation_id="messaging_seller_recent", parameters=[c.RecentQuery], responses=c.RecentConversations
+    )
+    def get(self, request):
+        actor = self.actor("seller")
+        data = query(request, c.RecentQuery)
+        return Response(c.RecentConversations(queries.recent(actor, **data)).data)
+
+
 class Conversation(PrivateView):
     @extend_schema(operation_id="messaging_conversation", responses=c.ConversationDetail)
     def get(self, request, context, pk):

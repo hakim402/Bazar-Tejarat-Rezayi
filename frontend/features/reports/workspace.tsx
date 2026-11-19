@@ -6,8 +6,13 @@ import { Button } from "../../components/ui/button";
 import { DashboardCard } from "../../components/ui/dashboard-card";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Alert } from "../../components/ui/alert";
-import { Field, Input, Select } from "../../components/ui/form-field";
-import { PageHeader } from "../../components/ui/page-header";
+import { Input } from "../../components/shadcn/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../components/shadcn/native-select";
+import { Label } from "../../components/shadcn/label";
+import { PageHeader, pageBannerClass } from "../../components/ui/page-header";
 import { StatCardSkeleton } from "../../components/ui/skeleton";
 import { StatCard } from "../../components/ui/stat-card";
 import type { IconName } from "../../components/ui/icon";
@@ -186,6 +191,14 @@ export function ReportsWorkspace({
 			router.replace(sellerHref(locale, "reports", seller));
 	}, [context, seller, query, router, locale]);
 
+	useEffect(() => {
+		if (!data || context !== "seller") return;
+		const hasOrders = !!data.sections.orders;
+		const hasFinance = !!data.sections.finance;
+		if (kind === "orders" && !hasOrders && hasFinance) setKind("payments");
+		else if (kind !== "orders" && !hasFinance && hasOrders) setKind("orders");
+	}, [data, context, kind]);
+
 	const apply = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (draft.start && draft.end && draft.start > draft.end) {
@@ -223,7 +236,11 @@ export function ReportsWorkspace({
 	if (context === "seller" && profiles?.length === 0)
 		return (
 			<div className="space-y-6">
-				<PageHeader title={t.sellerTitle} description={t.sellerDescription} />
+				<PageHeader
+					className={pageBannerClass}
+					title={t.sellerTitle}
+					description={t.sellerDescription}
+				/>
 				<EmptyState
 					icon="trending-up"
 					title={t.noAccess}
@@ -255,6 +272,7 @@ export function ReportsWorkspace({
 	return (
 		<div className="space-y-6">
 			<PageHeader
+				className={pageBannerClass}
 				title={context === "seller" ? t.sellerTitle : t.buyerTitle}
 				description={
 					context === "seller" ? t.sellerDescription : t.buyerDescription
@@ -262,8 +280,10 @@ export function ReportsWorkspace({
 				actions={
 					context === "seller" && data ? (
 						<div className="flex flex-wrap items-end gap-2">
-							<Field name="report-kind" compact label={t.export}>
-								<Select
+							<div className="grid min-w-0 gap-1">
+								<Label htmlFor="field-report-kind">{t.export}</Label>
+								<NativeSelect
+									id="field-report-kind"
 									name="report-kind"
 									value={kind}
 									onChange={(event) =>
@@ -272,16 +292,22 @@ export function ReportsWorkspace({
 									className="min-h-10! py-1.5! text-sm"
 								>
 									{data.sections.orders && (
-										<option value="orders">{t.exportOrders}</option>
+										<NativeSelectOption value="orders">
+											{t.exportOrders}
+										</NativeSelectOption>
 									)}
 									{data.sections.finance && (
-										<option value="payments">{t.exportPayments}</option>
+										<NativeSelectOption value="payments">
+											{t.exportPayments}
+										</NativeSelectOption>
 									)}
 									{data.sections.finance && (
-										<option value="refunds">{t.exportRefunds}</option>
+										<NativeSelectOption value="refunds">
+											{t.exportRefunds}
+										</NativeSelectOption>
 									)}
-								</Select>
-							</Field>
+								</NativeSelect>
+							</div>
 							<Button
 								variant="compact"
 								compact
@@ -299,8 +325,10 @@ export function ReportsWorkspace({
 
 			<form onSubmit={apply} className="flex flex-wrap items-end gap-3">
 				{context === "seller" && profiles && profiles.length > 0 && (
-					<Field name="report-seller" compact label={t.business}>
-						<Select
+					<div className="grid min-w-0 gap-1">
+						<Label htmlFor="field-report-seller">{t.business}</Label>
+						<NativeSelect
+							id="field-report-seller"
 							name="report-seller"
 							value={seller}
 							onChange={(event) => {
@@ -310,16 +338,17 @@ export function ReportsWorkspace({
 							className="min-h-10! py-1.5! text-sm"
 						>
 							{profiles.map((profile) => (
-								<option key={profile.id} value={profile.id}>
+								<NativeSelectOption key={profile.id} value={profile.id}>
 									{profile.name}
-								</option>
+								</NativeSelectOption>
 							))}
-						</Select>
-					</Field>
+						</NativeSelect>
+					</div>
 				)}
-				<Field name="report-start" compact label={t.from}>
+				<div className="grid min-w-0 gap-1">
+					<Label htmlFor="field-report-start">{t.from}</Label>
 					<Input
-						compact
+						id="field-report-start"
 						type="date"
 						name="report-start"
 						dir="ltr"
@@ -331,10 +360,11 @@ export function ReportsWorkspace({
 							}))
 						}
 					/>
-				</Field>
-				<Field name="report-end" compact label={t.to}>
+				</div>
+				<div className="grid min-w-0 gap-1">
+					<Label htmlFor="field-report-end">{t.to}</Label>
 					<Input
-						compact
+						id="field-report-end"
 						type="date"
 						name="report-end"
 						dir="ltr"
@@ -346,7 +376,7 @@ export function ReportsWorkspace({
 							}))
 						}
 					/>
-				</Field>
+				</div>
 				<Button type="submit" variant="compact" compact className="mt-0!">
 					{t.apply}
 				</Button>
@@ -412,29 +442,31 @@ export function ReportsWorkspace({
 								) : (
 									<div className="space-y-4">
 										{data.orders.map((row) => (
-											<dl key={row.currency}>
+											<div key={row.currency}>
 												<p className="mb-1 font-bold text-foreground">
 													{row.currency}
 												</p>
-												<Figure label={t.accepted}>
-													{number.format(row.accepted)}
-												</Figure>
-												<Figure label={t.cancelled}>
-													{number.format(row.cancelled)}
-												</Figure>
-												<Figure label={t.goodsTotal}>
-													<Amount
-														value={row.goods_total}
-														currency={row.currency}
-													/>
-												</Figure>
-												<Figure label={t.acceptedTotal}>
-													<Amount
-														value={row.accepted_total}
-														currency={row.currency}
-													/>
-												</Figure>
-											</dl>
+												<dl className="m-0">
+													<Figure label={t.accepted}>
+														{number.format(row.accepted)}
+													</Figure>
+													<Figure label={t.cancelled}>
+														{number.format(row.cancelled)}
+													</Figure>
+													<Figure label={t.goodsTotal}>
+														<Amount
+															value={row.goods_total}
+															currency={row.currency}
+														/>
+													</Figure>
+													<Figure label={t.acceptedTotal}>
+														<Amount
+															value={row.accepted_total}
+															currency={row.currency}
+														/>
+													</Figure>
+												</dl>
+											</div>
 										))}
 									</div>
 								)}
@@ -447,66 +479,70 @@ export function ReportsWorkspace({
 								) : (
 									<div className="space-y-4">
 										{data.finance.map((row) => (
-											<dl key={row.currency}>
+											<div key={row.currency}>
 												<p className="mb-1 font-bold text-foreground">
 													{row.currency}
 												</p>
-												<Figure
-													label={
-														context === "seller" ? t.goodsReceived : t.buyerPaid
-													}
-												>
-													<Amount
-														value={row.goods_received}
-														currency={row.currency}
-													/>
-												</Figure>
-												<Figure label={t.receipts}>
-													{number.format(row.goods_receipts)}
-												</Figure>
-												<Figure
-													label={
-														context === "seller"
-															? t.goodsRefunded
-															: t.buyerRefunded
-													}
-												>
-													<Amount
-														value={row.goods_refunded}
-														currency={row.currency}
-													/>
-												</Figure>
-												<Figure label={t.goodsNet}>
-													<Amount
-														value={row.goods_net}
-														currency={row.currency}
-													/>
-												</Figure>
-												<Figure label={t.refundDue}>
-													<Amount
-														value={row.refund_due_created}
-														currency={row.currency}
-													/>
-												</Figure>
-												<Figure
-													label={
-														context === "seller"
-															? t.deliveryReceived
-															: t.buyerDelivery
-													}
-												>
-													<Amount
-														value={row.delivery_received}
-														currency={row.currency}
-													/>
-												</Figure>
-												<Figure label={t.deliveryRefunded}>
-													<Amount
-														value={row.delivery_refunded}
-														currency={row.currency}
-													/>
-												</Figure>
-											</dl>
+												<dl className="m-0">
+													<Figure
+														label={
+															context === "seller"
+																? t.goodsReceived
+																: t.buyerPaid
+														}
+													>
+														<Amount
+															value={row.goods_received}
+															currency={row.currency}
+														/>
+													</Figure>
+													<Figure label={t.receipts}>
+														{number.format(row.goods_receipts)}
+													</Figure>
+													<Figure
+														label={
+															context === "seller"
+																? t.goodsRefunded
+																: t.buyerRefunded
+														}
+													>
+														<Amount
+															value={row.goods_refunded}
+															currency={row.currency}
+														/>
+													</Figure>
+													<Figure label={t.goodsNet}>
+														<Amount
+															value={row.goods_net}
+															currency={row.currency}
+														/>
+													</Figure>
+													<Figure label={t.refundDue}>
+														<Amount
+															value={row.refund_due_created}
+															currency={row.currency}
+														/>
+													</Figure>
+													<Figure
+														label={
+															context === "seller"
+																? t.deliveryReceived
+																: t.buyerDelivery
+														}
+													>
+														<Amount
+															value={row.delivery_received}
+															currency={row.currency}
+														/>
+													</Figure>
+													<Figure label={t.deliveryRefunded}>
+														<Amount
+															value={row.delivery_refunded}
+															currency={row.currency}
+														/>
+													</Figure>
+												</dl>
+											</div>
 										))}
 									</div>
 								)}
@@ -549,6 +585,7 @@ export function ReportsWorkspace({
 							{new Intl.DateTimeFormat(locale, {
 								dateStyle: "medium",
 								timeStyle: "short",
+								timeZone: "Asia/Kabul",
 							}).format(new Date(data.generated_at))}
 						</bdi>
 						{context === "seller" ? ` · ${t.exportNote}` : ""}

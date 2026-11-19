@@ -148,6 +148,7 @@ export type OrderPayment = {
 };
 export type Order = {
 	customer?: { name: string; email: string };
+	dispute_id?: string | null;
 	id: string;
 	seller: string;
 	currency: string;
@@ -168,6 +169,12 @@ export type Order = {
 	dimensions: Record<string, string>;
 	capabilities: Record<string, boolean>;
 	lines: OrderLine[];
+};
+export type OrderActivityEvent = {
+	id: string;
+	source: "orders" | "payments" | "fulfilment" | "aftercare";
+	action: string;
+	created_at: string;
 };
 export type Page<T> = { results: T[]; page: number; count: number };
 export function commerce<T>(

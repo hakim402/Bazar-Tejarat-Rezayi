@@ -39,9 +39,9 @@ const en = {
 	separationBody:
 		"Buyer and seller sign-ins are separate. Email verification, seller approval and business-buyer verification are distinct.",
 	sellerNote:
-		"Start with an individual seller account. Company setup is available later in Account settings; seller verification is still required.",
+		"Start with an individual seller account. Company setup is available later in Business profiles; seller verification is still required.",
 	buyerNote:
-		"Start with an individual buyer account. Business setup and verification are available later in Account settings.",
+		"Start with an individual buyer account. Business setup and verification are available later in My businesses.",
 	consent: "I acknowledge the development draft terms and privacy notice.",
 	policy:
 		"Development notice: policies are drafts awaiting approval. Do not enter real personal information. Public launch registration requires approved policies.",
@@ -142,9 +142,9 @@ const fa: Copy = {
 	separationBody:
 		"ورود خریدار و فروشنده جداست. تأیید ایمیل، تأیید فروشنده و تأیید کسب‌وکار خریدار یکسان نیستند.",
 	sellerNote:
-		"با حساب فروشندهٔ انفرادی آغاز کنید. راه‌اندازی شرکت بعداً در تنظیمات حساب انجام می‌شود؛ تأیید فروشنده همچنان لازم است.",
+		"با حساب فروشندهٔ انفرادی آغاز کنید. راه‌اندازی شرکت بعداً در بخش «پروفایل‌های کسب‌وکار» انجام می‌شود؛ تأیید فروشنده همچنان لازم است.",
 	buyerNote:
-		"با حساب خریدار انفرادی آغاز کنید. راه‌اندازی و تأیید حساب تجارتی بعداً در تنظیمات حساب انجام می‌شود.",
+		"با حساب خریدار انفرادی آغاز کنید. راه‌اندازی و تأیید حساب تجارتی بعداً در بخش «کسب‌وکارهای من» انجام می‌شود.",
 	consent: "اطلاعیهٔ پیش‌نویس شرایط و حریم خصوصی محیط آزمایشی را خوانده‌ام.",
 	policy:
 		"اطلاعیهٔ آزمایشی: شرایط و حریم خصوصی هنوز پیش‌نویس است. اطلاعات واقعی شخصی وارد نکنید. ثبت‌نام عمومی به متن تأییدشده نیاز دارد.",
@@ -243,9 +243,9 @@ const ps: Copy = {
 	separationBody:
 		"د پېرودونکي او پلورونکي ننوتل جلا دي. د برېښنالیک تایید، د پلورونکي تایید او د سوداګرۍ تایید یو شان نه دي.",
 	sellerNote:
-		"د انفرادي پلورونکي حساب جوړ کړئ. د شرکت جوړول وروسته د حساب په تنظیماتو کې شته؛ د پلورونکي تایید لا هم اړین دی.",
+		"د انفرادي پلورونکي حساب جوړ کړئ. د شرکت جوړول وروسته د «د سوداګرۍ پروفایلونه» په برخه کې شته؛ د پلورونکي تایید لا هم اړین دی.",
 	buyerNote:
-		"د انفرادي پېرودونکي حساب جوړ کړئ. سوداګریز حساب او تایید وروسته د حساب په تنظیماتو کې ترسره کېږي.",
+		"د انفرادي پېرودونکي حساب جوړ کړئ. سوداګریز حساب او تایید وروسته د «زما سوداګرۍ» په برخه کې ترسره کېږي.",
 	consent: "د ازمایښتي شرایطو او محرمیت مسوده مې لوستې ده.",
 	policy:
 		"ازمایښتي خبرتیا: شرایط او محرمیت لا مسوده ده. رښتیني شخصي معلومات مه لیکئ. عامه نوم‌لیکنه تایید شوې تګلارې ته اړتیا لري.",
@@ -344,9 +344,9 @@ const ar: Copy = {
 	separationBody:
 		"دخول المشتري والبائع منفصل. تأكيد البريد وموافقة البائع والتحقق التجاري للمشتري أمور مختلفة.",
 	sellerNote:
-		"ابدأ بحساب بائع فردي. إعداد الشركة متاح لاحقًا من إعدادات الحساب؛ يبقى التحقق من البائع مطلوبًا.",
+		"ابدأ بحساب بائع فردي. إعداد الشركة متاح لاحقًا من قسم «ملفات الأعمال»؛ يبقى التحقق من البائع مطلوبًا.",
 	buyerNote:
-		"ابدأ بحساب مشترٍ فردي. إعداد الأعمال والتحقق متاحان لاحقًا من إعدادات الحساب.",
+		"ابدأ بحساب مشترٍ فردي. إعداد الأعمال والتحقق متاحان لاحقًا من قسم «أعمالي».",
 	consent: "قرأت مسودة الشروط وإشعار الخصوصية للتجربة.",
 	policy:
 		"إشعار تجريبي: السياسات مسودات بانتظار الموافقة. لا تدخل بيانات شخصية حقيقية. التسجيل العام يتطلب سياسات معتمدة.",

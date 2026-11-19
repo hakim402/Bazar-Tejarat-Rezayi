@@ -1,5 +1,4 @@
 "use client";
-import type { ReactNode } from "react";
 import { Icon, type IconName } from "../../../components/ui/icon";
 import type { Locale } from "../../../lib/i18n/locales";
 import { AccountError } from "../../../lib/api/private-client";
@@ -101,31 +100,6 @@ export function ProductAvatar({
 			/>
 		);
 	return <Avatar label={label} />;
-}
-
-export function EmptyState({
-	icon = "inbox",
-	title,
-	help: helpText,
-	children,
-}: {
-	icon?: IconName;
-	title: string;
-	help?: string;
-	children?: ReactNode;
-}) {
-	return (
-		<section
-			className={`${panel} flex flex-col items-center gap-3 px-6 py-12 text-center`}
-		>
-			<span className="flex size-12 items-center justify-center rounded-2xl bg-info text-action">
-				<Icon name={icon} className="size-6" />
-			</span>
-			<h2 className="text-lg font-semibold">{title}</h2>
-			{helpText && <p className={`${help} mx-auto max-w-lg`}>{helpText}</p>}
-			{children}
-		</section>
-	);
 }
 
 export function Segmented<T extends string>({

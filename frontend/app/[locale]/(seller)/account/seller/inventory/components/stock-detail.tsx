@@ -88,7 +88,17 @@ export function StockDetail({
 					</div>
 					<StockBadge
 						locale={locale}
-						state={selected?.expired ? "expired" : position.state}
+						state={
+							selected
+								? selected.expired
+									? "expired"
+									: selected.expiring
+										? "expiring"
+										: selected.available === "0.000"
+											? "zero"
+											: "available"
+								: position.state
+						}
 					/>
 				</div>
 				<dl className="m-0 grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -9,7 +9,7 @@ import {
 import { Input } from "../../../components/shadcn/input";
 import { NativeSelect as Select } from "../../../components/shadcn/native-select";
 import { Textarea } from "../../../components/shadcn/textarea";
-import { Toggle } from "../../../components/ui/form-field";
+import { Switch } from "../../../components/shadcn/switch";
 import type { ValidationIssue } from "../../../lib/api/private-client";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -57,7 +57,7 @@ export function Feedback({
 			className="rounded-control bg-danger-surface p-4 text-danger break-words"
 		>
 			<p>{value.message}</p>
-			<ul>
+			<ul className="m-0 list-none p-0">
 				{value.issues.map((issue) => (
 					<li key={`${issue.path}-${issue.code}`}>
 						<button
@@ -237,12 +237,12 @@ export function Attributes({
 						htmlFor={fieldId(`${path}.${f.code}`)}
 						className="flex min-h-11 cursor-pointer items-center gap-3"
 					>
-						<Toggle
+						<Switch
 							id={fieldId(`${path}.${f.code}`)}
 							disabled={disabled}
 							checked={values[f.code] === true}
-							onChange={(e) =>
-								onChange({ ...values, [f.code]: e.target.checked })
+							onCheckedChange={(checked) =>
+								onChange({ ...values, [f.code]: checked === true })
 							}
 						/>
 						{f.labels[locale]}

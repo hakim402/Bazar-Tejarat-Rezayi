@@ -1,9 +1,9 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, F
+from django.db.models import Q, F, OuterRef, Subquery, Value
 from django.utils import timezone
 from apps.accounts.models import AuditEvent
 from . import access
-from .models import CheckoutSubmission, Invoice
+from .models import CheckoutSubmission, Invoice, DisputeRequest, OrderEvent, AftercareEvent
 
 
 def submission_data(actor, pk, locale="fa-AF"):
@@ -104,7 +104,10 @@ def order_data(row, *, seller_list=False, buyer_list=False):
     return {
         "id": str(row.pk),
         "seller": str(row.seller_id),
-        **({"customer": {"name": row.snapshot["buyer"], "email": row.buyer.user.email}} if seller_list else {}),
+        **({
+            "customer": {"name": row.snapshot["buyer"], "email": row.buyer.user.email},
+            "dispute_id": row.active_dispute_id,
+        } if seller_list else {}),
         "currency": row.currency,
         "goods_total": format(row.goods_total, ".2f"),
         "payment_method": row.payment_method,
@@ -160,6 +163,10 @@ def order_queryset(actor, *, seller=None, invoices=False):
 
     return (
         annotate(access.scope(actor, invoices=invoices, seller=seller))
+        .annotate(active_dispute_id=Subquery(
+            DisputeRequest.objects.filter(order_id=OuterRef("pk"), state="pending")
+            .order_by("-created_at", "pk").values("pk")[:1]
+        ))
         .select_related("invoice", "buyer__user")
         .prefetch_related("lines")
         .order_by("-accepted_at", "pk")
@@ -185,6 +192,40 @@ def order_page(actor, *, seller=None, page=1, invoices=False, q="", state=""):
     elif state == "overpaid":
         qs = qs.filter(payment_total__gt=F("accepted_total"))
     return {"count": qs.count(), "page": page, "results": [order_data(x, seller_list=actor.context == "seller" and not invoices, buyer_list=actor.context == "buyer" and not invoices) for x in qs[(page - 1) * 20 : page * 20]]}
+
+
+def order_activity(actor, pk, *, page=1):
+    from rest_framework.exceptions import PermissionDenied
+    from apps.payments import access as payment_access
+    from apps.payments.models import Event as PaymentEvent
+    from apps.fulfilment import access as fulfilment_access
+    from apps.fulfilment.models import Event as FulfilmentEvent
+
+    if actor.context != "seller":
+        raise PermissionDenied()
+
+    def permitted_sources():
+        get_object_or_404(access.scope(actor), pk=pk)
+        sources = {"orders": OrderEvent, "aftercare": AftercareEvent}
+        if payment_access.scope(actor, write=True).filter(pk=pk).exists():
+            sources["payments"] = PaymentEvent
+        if fulfilment_access.scope(actor).filter(pk=pk).exists():
+            sources["fulfilment"] = FulfilmentEvent
+        return sources
+
+    sources = permitted_sources()
+    streams = [
+        model.objects.filter(order_id=pk).order_by().annotate(source=Value(source))
+        .values("id", "source", "action", "created_at")
+        for source, model in sources.items()
+    ]
+    events = streams[0].union(*streams[1:], all=True).order_by("-created_at", "source", "id")
+    count = events.count()
+    results = list(events[(page - 1) * 20 : page * 20])
+    # Recheck every domain grant after hydration, before disclosing events or counts.
+    if sources.keys() != permitted_sources().keys():
+        raise PermissionDenied()
+    return {"results": results, "count": count, "page": page}
 
 
 def document(actor, pk, *, action="invoice_read", native=False):

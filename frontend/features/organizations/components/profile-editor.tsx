@@ -1,12 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import {
-	SettingsSection,
-	SettingsActions,
-	settingsControl,
-} from "../../../components/accounts/seller-settings-ui";
+import { SettingsActions } from "../../../components/accounts/seller-settings-ui";
 import { sellerAccountSettingsCopy } from "../../../lib/i18n/seller-account-settings";
-import { Button } from "../../../components/ui/button";
+import { sellerSettingsCopy } from "../../../lib/i18n/seller-settings";
 import { Button as ShadcnButton } from "../../../components/shadcn/button";
 import { Input } from "../../../components/shadcn/input";
 import {
@@ -42,9 +38,9 @@ type ProfileEditorProps = {
 	onSave: (data: Record<string, unknown>) => Promise<unknown>;
 	sellerSettings?: boolean;
 	sellerBusiness?: boolean;
-	// Deliberate single-kind creation; Settings keeps its company default.
 	singleCreationKind?: boolean;
 	onDirtyChange?: (dirty: boolean) => void;
+	onCancel?: () => void;
 };
 export function ProfileEditor(props: ProfileEditorProps) {
 	if (
@@ -192,6 +188,7 @@ function SellerProfileEditor({
 	errors = [],
 	onSave,
 	onDirtyChange,
+	onCancel,
 	kinds,
 	singleCreationKind,
 	sellerBusiness,
@@ -291,11 +288,16 @@ function SellerProfileEditor({
 			<div className="min-w-0 space-y-2" key={key}>
 				<label htmlFor={id} className="block text-sm font-semibold">
 					{t[key]}
+					{key === "display_name" && (
+						<span aria-hidden="true" className="ms-1 text-danger">
+							*
+						</span>
+					)}
 				</label>
-				<input
+				<Input
 					id={id}
 					name={key}
-					className={settingsControl}
+					className="min-h-11 rounded-lg shadow-none"
 					value={values[key]}
 					onChange={(event) =>
 						setValues((current) => ({ ...current, [key]: event.target.value }))
@@ -325,41 +327,51 @@ function SellerProfileEditor({
 		);
 	}
 	return (
-		<form onSubmit={submit} className="min-w-0 space-y-5" aria-busy={disabled}>
-			{!profile && (
-				<div className="space-y-2">
-					<input type="hidden" name="kind" value={creationKind} />
-					<p className="text-sm font-semibold">
-						{t.profile}: {t[creationKind]}
-					</p>
-					{creationKind === "company" && (
-						<p className="text-sm leading-relaxed text-muted">
-							{copy.companyHelp}
-						</p>
-					)}
-				</div>
-			)}
+		<form onSubmit={submit} className="grid min-w-0 gap-5" aria-busy={disabled}>
+			{!profile && <input type="hidden" name="kind" value={creationKind} />}
 			{failed && (
 				<p role="alert" className="text-sm text-danger">
 					{copy.fieldError}
 				</p>
 			)}
 			{profileGroups.map((group) => (
-				<SettingsSection
+				<fieldset
 					key={group.title}
-					title={t[group.title]}
-					description={group.help ? t[group.help] : undefined}
-					icon={group.help ? "lock" : undefined}
+					className="m-0 min-w-0 space-y-3 border-0 border-t border-solid border-border px-0 pb-0 pt-3"
 				>
+					<legend className="pe-3 text-sm font-semibold">
+						{t[group.title]}
+					</legend>
+					{group.help && (
+						<p className="m-0 flex items-start gap-2 text-xs leading-relaxed text-muted">
+							<Icon name="lock" className="mt-0.5 size-3.5 shrink-0" />
+							{t[group.help]}
+						</p>
+					)}
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						{group.keys.map(field)}
 					</div>
-				</SettingsSection>
+				</fieldset>
 			))}
 			<SettingsActions locale={locale} dirty={dirty}>
-				<Button type="submit" disabled={disabled}>
+				{onCancel && (
+					<ShadcnButton
+						type="button"
+						variant="outline"
+						disabled={disabled}
+						onClick={onCancel}
+						className="min-h-11 rounded-lg"
+					>
+						{sellerSettingsCopy[locale].cancel}
+					</ShadcnButton>
+				)}
+				<ShadcnButton
+					type="submit"
+					disabled={disabled}
+					className="min-h-11 rounded-lg"
+				>
 					{profile ? t.save : t.create}
-				</Button>
+				</ShadcnButton>
 			</SettingsActions>
 		</form>
 	);

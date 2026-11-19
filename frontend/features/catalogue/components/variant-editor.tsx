@@ -1,7 +1,7 @@
 "use client";
 import { useContext, useState } from "react";
 import { Button } from "./product-controls";
-import { Toggle } from "../../../components/ui/form-field";
+import { Switch } from "../../../components/shadcn/switch";
 import { Icon } from "../../../components/ui/icon";
 import type { Locale } from "../../../lib/i18n/locales";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
@@ -116,10 +116,10 @@ export function VariantEditor({
 								htmlFor={fieldId(`body.variants.${index}.active`)}
 								className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-base font-medium text-foreground"
 							>
-								<Toggle
+								<Switch
 									id={fieldId(`body.variants.${index}.active`)}
 									checked={variant.active}
-									onChange={(e) => change(index, { active: e.target.checked })}
+									onCheckedChange={(checked) => change(index, { active: checked === true })}
 								/>
 								{t.active}
 							</label>

@@ -4,6 +4,22 @@ import type { components } from "../../lib/api/schema.d";
 export type Context = "buyer" | "seller";
 export type Conversation = components["schemas"]["ConversationDetail"];
 export type Inbox = components["schemas"]["ConversationPage"];
+export type RecentConversations = {
+	results: {
+		id: string;
+		seller: string;
+		/** Current counterparty display name, not the latest message's author. */
+		counterparty: string;
+		unread: boolean;
+		updated_at: string;
+		last_message: {
+			text: string;
+			at: string;
+			own: boolean;
+			has_images: boolean;
+		} | null;
+	}[];
+};
 export type History = components["schemas"]["MessagingHistory"];
 export type Message = components["schemas"]["MessageRow"];
 export type ImageRef = components["schemas"]["ImageResult"];
@@ -60,6 +76,17 @@ export function messaging<T>(
 		`messaging/${context}/${path}`,
 		data,
 		"POST",
+		options,
+	);
+}
+export function recentConversations(
+	seller: string,
+	options?: { signal?: AbortSignal },
+) {
+	return privateRequest<RecentConversations>(
+		`messaging/seller/recent/?${new URLSearchParams({ seller })}`,
+		undefined,
+		"GET",
 		options,
 	);
 }

@@ -69,6 +69,7 @@ const additions = {
 		actualDelivery: "Delivery confirmed by",
 		handover: "Private recipient handover",
 		handoverPdf: "Protected handover PDF",
+		handoverDownloaded: "Handover downloaded",
 		claimDelivery: "Submit unconfirmed provider receipt claim",
 		correctionDelivery: "Propose delivery receipt correction",
 		claimNote:
@@ -210,6 +211,7 @@ const additions = {
 		actualDelivery: "تأییدکنندهٔ تحویل",
 		handover: "سند خصوصی تحویل به گیرنده",
 		handoverPdf: "پی‌دی‌اف محفوظ تحویل",
+		handoverDownloaded: "سند تحویل دانلود شد",
 		claimDelivery: "ارسال ادعای تأییدنشدهٔ رسید ارائه‌کننده",
 		correctionDelivery: "پیشنهاد اصلاح رسید تحویل",
 		claimNote:
@@ -351,6 +353,7 @@ const additions = {
 		actualDelivery: "د سپارنې تاییدوونکی",
 		handover: "د ترلاسه کوونکي خصوصي سند",
 		handoverPdf: "خوندي PDF سند",
+		handoverDownloaded: "د تحویل سند ښکته شو",
 		claimDelivery: "د چمتو کوونکي ناتایید شوې رسید ادعا",
 		correctionDelivery: "د سپارلو رسید د سمون وړاندیز",
 		claimNote:
@@ -488,6 +491,7 @@ const additions = {
 		actualDelivery: "أكد التسليم",
 		handover: "مستند تسليم خاص بالمستلم",
 		handoverPdf: "ملف تسليم PDF محمي",
+		handoverDownloaded: "تم تنزيل مستند التسليم",
 		claimDelivery: "إرسال مطالبة إيصال غير مؤكدة للمقدم",
 		correctionDelivery: "اقتراح تصحيح إيصال التوصيل",
 		claimNote:

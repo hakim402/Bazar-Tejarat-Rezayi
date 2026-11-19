@@ -13,14 +13,17 @@ import { communicationCopy } from "../../../../../../features/messaging/copy";
 import { sellerSalesCopy } from "../../../../../../lib/i18n/seller-sales";
 import { sellerSettingsCopy } from "../../../../../../lib/i18n/seller-settings";
 import { sellerProductsCopy } from "../../../../../../lib/i18n/seller-products";
-import { settingsDestinations } from "../../../../../../components/accounts/seller-settings-ui";
+import { sellerBusinessCopy } from "../../../../../../lib/i18n/seller-business";
+import {
+	businessSettingsDestinations,
+	settingsDestinations,
+} from "../../../../../../components/accounts/seller-settings-ui";
 import {
 	createContext,
 	useContext,
 	useState,
 	useEffect,
 	useId,
-	useRef,
 	type ReactNode,
 } from "react";
 import {
@@ -33,6 +36,12 @@ import { inventoryCopy } from "../../../../../../lib/i18n/inventory";
 import { sellerShellCopy } from "../../../../../../lib/i18n/seller-shell";
 import { sellerHref } from "../../../../../../lib/routes/account-routes";
 import { Icon, type IconName } from "../../../../../../components/ui/icon";
+import {
+	Sheet,
+	SheetContent,
+	SheetTitle,
+	SheetTrigger,
+} from "../../../../../../components/shadcn/sheet";
 import { SellerSidebarAccount } from "./seller-account";
 import {
 	JumpToPage,
@@ -174,11 +183,6 @@ export function SellerNavigation({
 	children?: ReactNode;
 }) {
 	const copy = sellerShellCopy[locale];
-	const drawer = useRef<HTMLDialogElement>(null);
-	const moreButton = useRef<HTMLButtonElement>(null);
-	const closeButton = useRef<HTMLButtonElement>(null);
-	const drawerId = useId();
-	const drawerTitleId = useId();
 	const [moreOpen, setMoreOpen] = useState(false);
 	const [collapsed, setCollapsed] = useState(false);
 	const sidebarId = useId();
@@ -251,13 +255,13 @@ export function SellerNavigation({
 	useEffect(() => {
 		void path;
 		void seller;
-		drawer.current?.close();
+		setMoreOpen(false);
 	}, [path, seller]);
 
 	useEffect(() => {
 		const desktop = window.matchMedia("(min-width: 640px)");
 		const closeOnDesktop = () => {
-			if (desktop.matches) drawer.current?.close();
+			if (desktop.matches) setMoreOpen(false);
 		};
 		desktop.addEventListener("change", closeOnDesktop);
 		return () => desktop.removeEventListener("change", closeOnDesktop);
@@ -346,7 +350,16 @@ export function SellerNavigation({
 			label: copy.business,
 			icon: "team",
 			collapsible: true,
-			links: [["organizations", t.organization, "team"]],
+			links: [
+				["organizations", sellerBusinessCopy[locale].title, "team"],
+				...businessSettingsDestinations.map(
+					(item): [string, string, IconName] => [
+						item.path,
+						sellerSettingsCopy[locale][item.key],
+						item.icon,
+					],
+				),
+			],
 		},
 		{
 			key: "notifications",
@@ -442,7 +455,7 @@ export function SellerNavigation({
 			<NavigationTree
 				groups={visibleGroups}
 				pathname={path}
-				onNavigate={() => drawer.current?.close()}
+				onNavigate={() => setMoreOpen(false)}
 			/>
 		</nav>
 	);
@@ -496,7 +509,7 @@ export function SellerNavigation({
 							pathname={path}
 							collapsed={collapsed}
 							onExpand={() => setCollapsed(false)}
-							onNavigate={() => drawer.current?.close()}
+							onNavigate={() => setMoreOpen(false)}
 						/>
 					</nav>
 					<SellerSidebarAccount locale={locale} collapsed={collapsed} />
@@ -505,6 +518,7 @@ export function SellerNavigation({
 					{children}
 				</div>
 			</div>
+			<Sheet open={moreOpen} onOpenChange={setMoreOpen}>
 			<nav
 				aria-label={copy.navigation}
 				className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 gap-1 border-t border-border bg-surface pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] pl-[max(0.25rem,env(safe-area-inset-left))] pr-[max(0.25rem,env(safe-area-inset-right))] sm:hidden"
@@ -553,88 +567,36 @@ export function SellerNavigation({
 						</span>
 					);
 				})}
-				<button
-					ref={moreButton}
-					type="button"
-					aria-haspopup="dialog"
-					aria-controls={drawerId}
-					aria-expanded={moreOpen}
-					data-active={moreActive || moreOpen ? "true" : undefined}
-					onClick={() => {
-						if (!drawer.current || drawer.current.open) return;
-						drawer.current.showModal();
-						setMoreOpen(true);
-						closeButton.current?.focus();
-					}}
-					className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-control border-0 bg-transparent px-1 py-2 text-muted hover:bg-info data-[active=true]:bg-info data-[active=true]:text-action"
-				>
-					<Icon name="more" className="size-5" />
-					<span className="max-w-full truncate text-xs font-medium">
-						{copy.more}
-					</span>
-				</button>
+				<SheetTrigger asChild>
+					<button
+						type="button"
+						data-active={moreActive || moreOpen ? "true" : undefined}
+						className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-control border-0 bg-transparent px-1 py-2 text-muted hover:bg-info data-[active=true]:bg-info data-[active=true]:text-action"
+					>
+						<Icon name="more" className="size-5" />
+						<span className="max-w-full truncate text-xs font-medium">
+							{copy.more}
+						</span>
+					</button>
+				</SheetTrigger>
 			</nav>
-			<dialog
-				ref={drawer}
-				id={drawerId}
+			<SheetContent
+				side="left"
 				dir={direction(locale)}
-				tabIndex={-1}
-				aria-labelledby={drawerTitleId}
-				onCancel={(event) => {
-					event.preventDefault();
-					event.currentTarget.close();
-				}}
-				onClose={(event) => {
-					if (event.currentTarget.open) return;
-					setMoreOpen(false);
-					if (moreButton.current?.getClientRects().length)
-						moreButton.current.focus();
-				}}
-				onClick={(event) => {
-					if (event.target !== event.currentTarget) return;
-					const rect = event.currentTarget.getBoundingClientRect();
-					if (
-						event.clientX < rect.left ||
-						event.clientX > rect.right ||
-						event.clientY < rect.top ||
-						event.clientY > rect.bottom
-					)
-						event.currentTarget.close();
-				}}
-				onKeyDown={(event) => {
-					if (event.key !== "Tab") return;
-					const controls = Array.from(
-						event.currentTarget.querySelectorAll<HTMLElement>(
-							"button, a[href], select",
-						),
-					);
-					const visibleControls = controls.filter(
-						(control) =>
-							control.tabIndex >= 0 && control.getClientRects().length,
-					);
-					const first = visibleControls[0],
-						last = visibleControls[visibleControls.length - 1];
-					if (event.shiftKey && document.activeElement === first) {
-						event.preventDefault();
-						last?.focus();
-					} else if (!event.shiftKey && document.activeElement === last) {
-						event.preventDefault();
-						first?.focus();
-					}
-				}}
-				className="fixed inset-y-0 start-0 end-auto m-0 h-dvh max-h-none w-[min(22rem,calc(100vw-3rem))] max-w-none overflow-hidden border-0 border-e border-border bg-surface p-0 text-foreground shadow-lifted backdrop:bg-overlay"
+				showCloseButton={false}
+				className="inset-y-0 start-0 end-auto m-0 h-dvh max-h-none w-[min(22rem,calc(100vw-3rem))] max-w-none gap-0 overflow-hidden border-0 border-e border-border bg-surface p-0 text-foreground shadow-lifted sm:max-w-none"
 			>
 				<div className="flex h-full flex-col">
 					<div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
-						<h2 id={drawerTitleId} className="text-body font-semibold">
+						<SheetTitle className="text-body font-semibold">
 							{copy.navigation}
-						</h2>
+						</SheetTitle>
 						<button
-							ref={closeButton}
 							type="button"
 							aria-label={copy.close}
-							onClick={() => drawer.current?.close()}
-							className="flex min-h-11 min-w-11 items-center justify-center rounded-control border-0 bg-transparent text-muted hover:bg-info hover:text-foreground"
+							title={copy.close}
+							onClick={() => setMoreOpen(false)}
+							className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-control border-0 bg-transparent text-muted hover:bg-info hover:text-foreground"
 						>
 							<Icon name="close" />
 						</button>
@@ -644,7 +606,8 @@ export function SellerNavigation({
 					</div>
 					<SellerSidebarAccount locale={locale} />
 				</div>
-			</dialog>
+			</SheetContent>
+			</Sheet>
 		</SellerNavigationContext.Provider>
 	);
 }

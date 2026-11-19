@@ -6,12 +6,18 @@ import {
 	FileText,
 	MoreHorizontal,
 	Receipt as ReceiptIcon,
-	RefreshCw,
 	Wallet,
 } from "lucide-react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
+import { Pager } from "../../../components/pager";
 import { Card } from "../../../components/shadcn/card";
+import { Input } from "../../../components/shadcn/input";
+import { Textarea } from "../../../components/shadcn/textarea";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -40,6 +46,7 @@ import {
 	salesTableCard,
 	SalesBusinessSelect,
 	SalesEmpty,
+	SalesRefreshButton,
 	SalesPagination,
 	SalesRelated,
 	salesAction,
@@ -64,6 +71,7 @@ import {
 	type Outcome,
 	type Receipt,
 	type Claim,
+	type SelectionPreview,
 } from "../api";
 import { ActionReview, type ReviewedAction } from "./action-review";
 import { FactsForm } from "./facts-form";
@@ -305,12 +313,18 @@ function Workspace({
 		selectionPage,
 		fail,
 	]);
-	function review(path: string, body: Record<string, unknown>, label: string) {
+	function review(
+		path: string,
+		body: Record<string, unknown>,
+		label: string,
+		preview?: SelectionPreview[],
+	) {
 		if (blocked || !online || !row) return;
 		opener.current = document.activeElement as HTMLElement;
 		setModal({
 			row: structuredClone(row),
 			label,
+			preview,
 			packet: {
 				key: crypto.randomUUID(),
 				path,
@@ -462,16 +476,16 @@ function Workspace({
 					<p>{t.unresolved}</p>
 					<div className="flex flex-wrap gap-3">
 						{intent && (
-							<button
+							<Button
 								type="button"
 								className={salesAction}
 								disabled={busy}
 								onClick={() => void send(intent)}
 							>
 								{t.retry}
-							</button>
+							</Button>
 						)}
-						<button
+						<Button
 							type="button"
 							className={salesAction}
 							disabled={busy}
@@ -479,7 +493,7 @@ function Workspace({
 							onClick={() => void reconcile()}
 						>
 							{t.reconcile}
-						</button>
+						</Button>
 					</div>
 				</section>
 			)}
@@ -754,7 +768,7 @@ function PaymentList({
 			>
 				<label className="grid min-w-0 gap-2">
 					{s.search}
-					<input
+					<Input
 						name="q"
 						className={salesControl}
 						maxLength={100}
@@ -762,23 +776,28 @@ function PaymentList({
 						defaultValue={search}
 					/>
 				</label>
-				<label className="grid min-w-0 gap-2">
-					{s.status}
-					<select name="state" className={salesControl} defaultValue={state}>
-						<option value="">{t.all}</option>
+				<div className="grid min-w-0 gap-2">
+					<label htmlFor="payment-state-filter">{s.status}</label>
+					<NativeSelect
+						id="payment-state-filter"
+						name="state"
+						className={salesControl}
+						defaultValue={state}
+					>
+						<NativeSelectOption value="">{t.all}</NativeSelectOption>
 						{(
 							["unpaid", "partial", "paid", "overpaid", "overdue"] as const
 						).map((v) => (
-							<option key={v} value={v}>
+							<NativeSelectOption key={v} value={v}>
 								{paymentState(locale, v)}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
-				</label>
+					</NativeSelect>
+				</div>
 				<div className="flex flex-wrap gap-2">
-					<button type="submit" className={salesAction}>
+					<Button type="submit" className={salesAction}>
 						{t.refresh}
-					</button>
+					</Button>
 					{(search || state || page > 1) && (
 						<Link
 							className={salesAction}
@@ -813,15 +832,7 @@ function PaymentList({
 								{nf.format(list.count)}
 							</Badge>
 						</h2>
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-9 rounded-lg text-xs"
-							onClick={onReload}
-						>
-							<RefreshCw className="size-3.5" aria-hidden="true" />
-							{t.refresh}
-						</Button>
+						<SalesRefreshButton label={t.refresh} onReload={onReload} />
 					</div>
 					<section
 						aria-label={t.title}
@@ -993,6 +1004,7 @@ function RowMenu({
 					variant="ghost"
 					size="icon"
 					aria-label={sellerSalesCopy[locale].actions}
+					title={sellerSalesCopy[locale].actions}
 					className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action dark:hover:bg-transparent"
 				>
 					<MoreHorizontal className="size-5" aria-hidden="true" />
@@ -1060,7 +1072,7 @@ function MoneyCards({ locale, row }: { locale: Locale; row: Detail }) {
 				))}
 			</dl>
 			{(row.overpayment !== "0.00" || row.refund_due !== "0.00") && (
-				<dl className="grid gap-3 border-t border-border pt-3 text-sm sm:grid-cols-2">
+				<dl className="m-0 grid gap-3 border-t border-border pt-3 text-sm sm:grid-cols-2">
 					{row.overpayment !== "0.00" && (
 						<div>
 							<dt className="text-xs text-muted">{t.overpayment}</dt>
@@ -1226,7 +1238,12 @@ function Overview({
 	selection: Selection | null;
 	selectionPage: number;
 	onSelectionPage: (p: number) => void;
-	review: (path: string, body: Record<string, unknown>, label: string) => void;
+	review: (
+		path: string,
+		body: Record<string, unknown>,
+		label: string,
+		preview?: SelectionPreview[],
+	) => void;
 	blocked: boolean;
 	due: string;
 	setDue: (v: string) => void;
@@ -1238,7 +1255,7 @@ function Overview({
 	const t = paymentCopy[locale];
 	return (
 		<section className={salesPanel}>
-			<dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+			<dl className="m-0 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
 				<div>
 					<dt className="text-xs text-muted">{t.method}</dt>
 					<dd className="m-0 font-medium">
@@ -1282,6 +1299,7 @@ function Overview({
 						</summary>
 						<div className="mt-4">
 							<SelectionForm
+								compact
 								{...{
 									locale,
 									row,
@@ -1324,10 +1342,10 @@ function Overview({
 							);
 						}}
 					>
-						<fieldset disabled={blocked} className="grid gap-3 sm:grid-cols-2">
+						<fieldset disabled={blocked} className="m-0 min-w-0 grid gap-3 border-0 p-0 sm:grid-cols-2">
 							<label className="grid gap-1.5">
 								{t.laterDue}
-								<input
+								<Input
 									type="datetime-local"
 									required
 									className={salesControl}
@@ -1340,11 +1358,12 @@ function Overview({
 							</label>
 							<label className="grid gap-1.5">
 								{t.reason}
-								<textarea
+								<Textarea
 									required
 									minLength={3}
 									maxLength={1000}
 									className={salesControl}
+									dir="auto"
 									value={reason}
 									onChange={(e) => {
 										setReason(e.target.value);
@@ -1352,12 +1371,12 @@ function Overview({
 									}}
 								/>
 							</label>
-							<button
+							<Button
 								type="submit"
 								className={cn(salesAction, "justify-self-start sm:col-span-2")}
 							>
 								{t.exact}
-							</button>
+							</Button>
 						</fieldset>
 					</form>
 				</details>
@@ -1422,14 +1441,14 @@ function ClaimsReceipts({
 						onRemove={onRemove}
 					/>
 					{(correction || replacement) && (
-						<button
+						<Button
 							type="button"
 							className={salesAction}
 							disabled={blocked}
 							onClick={cancelDraft}
 						>
 							{t.cancel}
-						</button>
+						</Button>
 					)}
 				</section>
 			)}
@@ -1467,7 +1486,7 @@ function ClaimsReceipts({
 									<p className="m-0 text-muted">
 										<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
 									</p>
-									<p className="m-0 whitespace-pre-wrap break-words">
+									<p className="m-0 whitespace-pre-wrap break-words" dir="auto">
 										{c.description}
 									</p>
 									{row.capabilities.evidence && (
@@ -1486,10 +1505,11 @@ function ClaimsReceipts({
 											<p className="m-0 text-xs text-muted">{s.confirmNote}</p>
 											<label className="grid gap-1.5">
 												{t.reason}
-												<textarea
+												<Textarea
 													className={salesControl}
 													maxLength={1000}
 													disabled={blocked}
+													dir="auto"
 													value={claimReasons[c.id] ?? ""}
 													onChange={(e) => {
 														onClaimReason(c.id, e.target.value);
@@ -1502,10 +1522,10 @@ function ClaimsReceipts({
 													? ["confirm", "reject"]
 													: ["withdraw"]
 												).map((a) => (
-													<button
+													<Button
 														key={a}
 														type="button"
-														className={salesAction}
+														className={a === "reject" ? cn(salesAction, "border-danger/40 text-danger hover:border-danger hover:bg-danger-surface hover:text-danger") : salesAction}
 														disabled={
 															blocked ||
 															(claimReasons[c.id] ?? "").trim().length < 3
@@ -1530,7 +1550,7 @@ function ClaimsReceipts({
 															: a === "reject"
 																? t.rejectClaim
 																: t.withdrawClaim}
-													</button>
+													</Button>
 												))}
 											</div>
 										</div>
@@ -1563,7 +1583,7 @@ function ClaimsReceipts({
 										{paymentRole(locale, "seller")} ·{" "}
 										<bdi>{localTimestamp(r.paid_at, locale)}</bdi>
 									</p>
-									<p className="m-0 whitespace-pre-wrap break-words">
+									<p className="m-0 whitespace-pre-wrap break-words" dir="auto">
 										{r.description}
 									</p>
 									{row.capabilities.evidence && (
@@ -1578,7 +1598,7 @@ function ClaimsReceipts({
 										</div>
 									)}
 									{row.capabilities.correction && (
-										<button
+										<Button
 											type="button"
 											className={salesAction}
 											disabled={
@@ -1590,7 +1610,7 @@ function ClaimsReceipts({
 											onClick={() => startCorrection(r)}
 										>
 											{t.correction}
-										</button>
+										</Button>
 									)}
 								</article>
 							))}
@@ -1621,7 +1641,7 @@ function ClaimsReceipts({
 											{paymentState(locale, c.state)}
 										</Badge>
 									</p>
-									<p className="m-0">{c.reason}</p>
+									<p className="m-0" dir="auto">{c.reason}</p>
 									<p className="m-0 text-muted">
 										<bdi>{localTimestamp(c.paid_at, locale)}</bdi>
 									</p>
@@ -1654,7 +1674,6 @@ function Activity({
 }) {
 	const t = paymentCopy[locale],
 		sales = sellerSalesCopy[locale];
-	const last = Math.max(1, Math.ceil(row.history_count / 50));
 	return (
 		<section className={salesPanel}>
 			<p className="m-0 text-sm text-muted">
@@ -1677,24 +1696,15 @@ function Activity({
 					</p>
 				))}
 			</div>
-			<div className="flex flex-wrap gap-2">
-				<button
-					type="button"
-					className={salesAction}
-					disabled={page <= 1}
-					onClick={() => onPage(page - 1)}
-				>
-					{t.previous}
-				</button>
-				<button
-					type="button"
-					className={salesAction}
-					disabled={page >= last && page * 50 >= row.history_count}
-					onClick={() => onPage(page + 1)}
-				>
-					{t.next}
-				</button>
-			</div>
+			<Pager
+				locale={locale}
+				page={page}
+				count={row.history_count}
+				pageSize={50}
+				onPage={onPage}
+				labels={{ prev: t.previous, next: t.next, page: sales.page }}
+				className="flex flex-wrap items-center gap-2"
+			/>
 		</section>
 	);
 }

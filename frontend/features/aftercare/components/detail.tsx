@@ -93,13 +93,13 @@ export function AftercareDetail({
 				uuidPattern.test(result.id)
 			) {
 				setUploaded({ id: result.id, domain: intent.domain });
-				if (context === "buyer") toast.success(t.saved);
+				toast.success(t.saved);
 			} else {
 				setFormEpoch((value) => value + 1);
 				setDirty(false);
 				setUploaded(null);
 				setSaved(true);
-				if (context === "buyer") toast.success(t.saved);
+				toast.success(t.saved);
 			}
 			setAwaiting(true);
 			source.refresh();
@@ -118,9 +118,9 @@ export function AftercareDetail({
 	});
 	const source = useAftercareData(context, orderId, command.locked, disputeId);
 	useEffect(() => {
-		if (context === "buyer" && command.error)
+		if (command.error)
 			toast.error(command.error === "throttled" ? t.throttled : t.error);
-	}, [context, command.error, t]);
+	}, [command.error, t]);
 	useLayoutEffect(() => {
 		if (source.data) setResolvedOrderId(source.data.order.id);
 	}, [source.data]);
@@ -280,6 +280,7 @@ export function AftercareDetail({
 					<SalesHeader
 						locale={locale}
 						section="aftercare"
+						description={t.intro}
 						seller={data?.order.seller ?? seller}
 						title={
 							<>
@@ -295,14 +296,16 @@ export function AftercareDetail({
 						back={salesHref(locale, "aftercare", seller, undefined, params)}
 						business={
 							<p className="text-sm font-medium wrap-anywhere">
-								<bdi>{data?.order.seller || seller || sales.allBusinesses}</bdi>
+								<bdi>{data?.order.seller_name || sales.allBusinesses}</bdi>
 							</p>
 						}
 					/>
 				)}
-				<p className="max-w-3xl text-sm leading-relaxed text-muted">
-					{t.intro}
-				</p>
+				{embedded && (
+					<p className="max-w-3xl text-sm leading-relaxed text-muted">
+						{t.intro}
+					</p>
+				)}
 				{guard.feedback}
 				{!online && <p role="status">{t.offline}</p>}
 				{source.error && <p role="alert">{t.error}</p>}

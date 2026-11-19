@@ -4,6 +4,7 @@ import type { Locale } from "../../../lib/i18n/locales";
 import { cn } from "../../../lib/shadcn-utils";
 import { localTimestamp } from "../../messaging/api";
 import { salesAction, salesHref, salesPanel } from "../../sales/components/seller-sales-ui";
+import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/seller/components/seller-navigation";
 import { aftercareCopy, aftercareState } from "../copy";
 import { sellerAftercareCopy } from "../seller-copy";
 import { availableModes, modeLabel } from "../draft";
@@ -20,6 +21,7 @@ export function SellerIssueSummary({
 }) {
 	const t = aftercareCopy[locale],
 		s = sellerAftercareCopy[locale],
+		destinations = useSellerNavigation(),
 		order = data.order,
 		modes = availableModes(data),
 		issues = [
@@ -77,9 +79,11 @@ export function SellerIssueSummary({
 						</strong>
 					</p>
 				</div>
-				<Link className={salesAction} href={salesHref(locale, "orders", seller, order.id)}>
-					{s.openOrder}
-				</Link>
+				{destinations?.some((item) => item.route === "orders") && (
+					<Link className={salesAction} href={salesHref(locale, "orders", seller, order.id)}>
+						{s.openOrder}
+					</Link>
+				)}
 			</div>
 			<ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
 				{phases.map((label, i) => {
@@ -88,7 +92,7 @@ export function SellerIssueSummary({
 						current = n === stage;
 					return (
 						<li key={label} className="flex items-center gap-2">
-							{i > 0 && <span className="text-muted" aria-hidden="true">→</span>}
+							{i > 0 && <span className="inline-block text-muted rtl:rotate-180" aria-hidden="true">→</span>}
 							<span
 								className={cn(
 									"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",

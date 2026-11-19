@@ -1,6 +1,12 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { cn } from "../../../lib/shadcn-utils";
+import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { Context, DisplayLine, StockOptions } from "../types";
 import { fulfilment } from "../api";
@@ -40,6 +46,7 @@ export function StockSelection({
 	change: (lines: DisplayLine[]) => void;
 }) {
 	const t = fulfilmentCopy[locale],
+		prefix = useId(),
 		action =
 			context === "seller"
 				? cn(salesAction, "min-h-10 rounded-lg text-sm shadow-none")
@@ -196,14 +203,14 @@ export function StockSelection({
 			<div className="flex flex-wrap items-end gap-3">
 				<label className="min-w-0 flex-1">
 					{t.optionsSearch}
-					<input
+					<Input
 						className={control}
 						value={query}
 						maxLength={100}
 						onChange={(event) => setQuery(event.target.value)}
 					/>
 				</label>
-				<button
+				<Button
 					type="button"
 					className={action}
 					onClick={() => {
@@ -212,13 +219,13 @@ export function StockSelection({
 					}}
 				>
 					{t.loadOptions}
-				</button>
+				</Button>
 			</div>
 			{canSuggest && (
 				<div className="space-y-1">
-					<button type="button" className={action} onClick={suggest}>
+					<Button type="button" className={action} onClick={suggest}>
 						{t.suggest}
-					</button>
+					</Button>
 					<p className="text-xs text-muted">{t.suggestionHint}</p>
 					{suggestionFailed && <p role="alert">{t.noSelection}</p>}
 					{suggested && <p role="status">{t.selected}</p>}
@@ -230,9 +237,10 @@ export function StockSelection({
 					key={line.client_id ?? line.bucket}
 					className="grid min-w-0 gap-3 rounded-control border border-border p-3 sm:grid-cols-2"
 				>
-					<label>
-						{t.batch}
-						<select
+					<div className="space-y-1.5">
+						<label htmlFor={`${prefix}-batch-${index}`}>{t.batch}</label>
+						<NativeSelect
+							id={`${prefix}-batch-${index}`}
 							className={control}
 							aria-label={t.batch}
 							value={line.bucket}
@@ -252,20 +260,20 @@ export function StockSelection({
 									);
 							}}
 						>
-							<option value="">—</option>
+							<NativeSelectOption value="">—</NativeSelectOption>
 							{[...choices.values()].map((value) => (
-								<option key={value.bucket} value={value.bucket}>
+								<NativeSelectOption key={value.bucket} value={value.bucket}>
 									{value.sku} · {value.batch_code || "—"} ·{" "}
 									{value.expires_on || "—"} · {t.available}{" "}
 									{options?.results.find((x) => x.bucket === value.bucket)
 										?.available ?? "—"}
-								</option>
+								</NativeSelectOption>
 							))}
-						</select>
-					</label>
+						</NativeSelect>
+					</div>
 					<label>
 						{t.quantity}
-						<input
+						<Input
 							className={control}
 							dir="ltr"
 							inputMode="decimal"
@@ -282,16 +290,16 @@ export function StockSelection({
 							}
 						/>
 					</label>
-					<button
+					<Button
 						type="button"
 						className={action}
 						onClick={() => change(lines.filter((_, i) => i !== index))}
 					>
 						{t.removeBucket}
-					</button>
+					</Button>
 				</div>
 			))}
-			<button
+			<Button
 				type="button"
 				className={action}
 				disabled={lines.length >= 100}
@@ -314,25 +322,25 @@ export function StockSelection({
 				}
 			>
 				{t.addBucket}
-			</button>
+			</Button>
 			<div className="flex flex-wrap gap-3">
-				<button
+				<Button
 					type="button"
 					className={action}
 					disabled={page <= 1}
 					onClick={() => setPage((value) => value - 1)}
 				>
 					{t.previous}
-				</button>
+				</Button>
 				<bdi>{page}</bdi>
-				<button
+				<Button
 					type="button"
 					className={action}
 					disabled={!options || page * 50 >= options.count}
 					onClick={() => setPage((value) => value + 1)}
 				>
 					{t.next}
-				</button>
+				</Button>
 			</div>
 		</fieldset>
 	);

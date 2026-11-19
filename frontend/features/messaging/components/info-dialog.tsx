@@ -1,22 +1,24 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { Locale } from "../../../lib/i18n/locales";
+import { direction, type Locale } from "../../../lib/i18n/locales";
 import { privateRequest } from "../../../lib/api/private-client";
 import type { PublicProduct } from "../../marketplace/types";
 import { mediaUrl } from "../../marketplace/api";
 import { Icon } from "../../../components/ui/icon";
+import { Button } from "../../../components/shadcn/button";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "../../../components/shadcn/dialog";
 import { localTimestamp, type Conversation } from "../api";
 import { communicationCopy } from "../copy";
-import {
-	panel,
-	actionBtn,
-	primaryBtn,
-	iconBtn,
-	badge,
-	help,
-	Failure,
-} from "./ui";
+import { iconBtn, badge, help, Failure } from "./ui";
 
 export function ConversationInfo({
 	locale,
@@ -32,9 +34,9 @@ export function ConversationInfo({
 	unread: boolean;
 }) {
 	const t = communicationCopy[locale],
-		dialog = useRef<HTMLDialogElement>(null),
 		controller = useRef<AbortController | null>(null);
-	const [product, setProduct] = useState<PublicProduct | null>(null),
+	const [open, setOpen] = useState(false),
+		[product, setProduct] = useState<PublicProduct | null>(null),
 		[error, setError] = useState<unknown>(null),
 		[busy, setBusy] = useState(false);
 	useEffect(() => () => controller.current?.abort(), []);
@@ -58,45 +60,38 @@ export function ConversationInfo({
 			if (!request.signal.aborted) setBusy(false);
 		}
 	}
-	const open = () => {
-		dialog.current?.showModal();
-		if (!product && !error && !busy) void load();
-	};
 	const cover = product?.images[0];
 	return (
-		<>
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				setOpen(next);
+				if (next && !product && !error && !busy) void load();
+			}}
+		>
 			<span className="flex shrink-0 gap-2">
-				<button
-					type="button"
-					className={iconBtn}
-					title={t.viewInfo}
-					aria-label={t.viewInfo}
-					onClick={open}
-				>
-					<Icon name="eye" className="size-4" />
-				</button>
-			</span>
-			<dialog
-				ref={dialog}
-				aria-label={t.viewInfo}
-				className={`${panel} max-h-[90dvh] w-[min(34rem,94vw)] space-y-4 overflow-auto p-4 text-foreground shadow-lifted backdrop:bg-black/50 sm:p-5`}
-			>
-				<header className="flex items-start justify-between gap-3">
-					<div className="min-w-0 space-y-1.5">
-						<h2 className="break-words text-lg font-bold" dir="auto">
-							{snapshot.title}
-						</h2>
-						{unread && <span className={badge}>{t.unread}</span>}
-					</div>
+				<DialogTrigger asChild>
 					<button
 						type="button"
 						className={iconBtn}
-						aria-label={t.close}
-						onClick={() => dialog.current?.close()}
+						title={t.viewInfo}
+						aria-label={t.viewInfo}
 					>
-						<Icon name="close" className="size-4" />
+						<Icon name="eye" className="size-4" />
 					</button>
-				</header>
+				</DialogTrigger>
+			</span>
+			<DialogContent
+				dir={direction(locale)}
+				closeLabel={t.close}
+				className="max-w-xl gap-4 rounded-2xl p-6"
+			>
+				<DialogHeader className="gap-1.5 pe-10 text-start">
+					<DialogTitle className="break-words text-lg font-bold" dir="auto">
+						{snapshot.title}
+					</DialogTitle>
+					{unread && <span className={badge}>{t.unread}</span>}
+				</DialogHeader>
 				{cover ? (
 					// biome-ignore lint/performance/noImgElement: single dialog preview of a public marketplace asset.
 					<img
@@ -117,16 +112,18 @@ export function ConversationInfo({
 					<div className="space-y-2 rounded-xl border border-border bg-page p-3">
 						<Failure locale={locale} error={error} />
 						<p className={help}>{t.productUnavailable}</p>
-						<button
+						<Button
 							type="button"
-							className={actionBtn}
+							variant="secondary"
+							size="sm"
+							className="self-start rounded-lg"
 							onClick={() => void load()}
 						>
 							{t.retry}
-						</button>
+						</Button>
 					</div>
 				) : null}
-				<dl className="divide-y divide-border rounded-xl border border-border bg-page px-3 text-sm">
+				<dl className="m-0 divide-y divide-border rounded-xl border border-border bg-page px-3 text-sm [&_dd]:m-0">
 					<div className="flex items-start justify-between gap-3 py-2.5">
 						<dt className={help}>{t.productName}</dt>
 						<dd className="min-w-0 break-words font-semibold" dir="auto">
@@ -176,24 +173,23 @@ export function ConversationInfo({
 						</div>
 					)}
 				</dl>
-				<footer className="flex flex-wrap justify-end gap-2">
-					<Link
-						prefetch={false}
-						className={primaryBtn}
-						href={`/${locale}/products/${snapshot.product}`}
-					>
-						<Icon name="eye" className="size-4" />
-						{t.product}
-					</Link>
-					<button
-						type="button"
-						className={actionBtn}
-						onClick={() => dialog.current?.close()}
-					>
-						{t.close}
-					</button>
-				</footer>
-			</dialog>
-		</>
+				<DialogFooter className="gap-2">
+					<Button asChild className="rounded-lg">
+						<Link
+							prefetch={false}
+							href={`/${locale}/products/${snapshot.product}`}
+						>
+							<Icon name="eye" className="size-4" />
+							{t.product}
+						</Link>
+					</Button>
+					<DialogClose asChild>
+						<Button type="button" variant="secondary" className="rounded-lg">
+							{t.close}
+						</Button>
+					</DialogClose>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }

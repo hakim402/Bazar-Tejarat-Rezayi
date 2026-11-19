@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Search, RotateCw } from "lucide-react";
 import { Button } from "../../../components/shadcn/button";
+import { PAGE_SIZE } from "../../../components/pager";
 import { Input } from "../../../components/shadcn/input";
 import { deliveryListCopy } from "../list-copy";
 import { SellerDeliveryList } from "./seller-delivery-list";
@@ -29,8 +30,10 @@ import {
 	SalesPagination,
 	salesHref,
 	salesAction,
+	salesFilterPanel,
 	salesPanel,
 } from "../../sales/components/seller-sales-ui";
+import { cn } from "../../../lib/shadcn-utils";
 export function FulfilmentWorkspace({
 	locale,
 	context,
@@ -120,7 +123,7 @@ function DeliveryList({
 						[...old, ...value.results].map((row) => [row.id, row]),
 					).values(),
 				]);
-				setMoreProfiles(profilePage * 20 < value.count);
+				setMoreProfiles(profilePage * PAGE_SIZE < value.count);
 			})
 			.catch((error) => {
 				if (!controller.signal.aborted) {
@@ -205,7 +208,7 @@ function DeliveryList({
 				/>
 				<section className="min-w-0 space-y-4">
 					<form
-						className="flex flex-wrap items-center gap-2"
+						className={cn(salesFilterPanel, "flex flex-wrap items-center gap-2")}
 						onSubmit={(event) => {
 							event.preventDefault();
 							router.push(href({ page: "1", q: searchDraft.trim() }));

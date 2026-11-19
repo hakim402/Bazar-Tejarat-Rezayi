@@ -28,7 +28,8 @@ import { StockList } from "./stock-list";
 import { StockDetail } from "./stock-detail";
 import { InventoryForm } from "./inventory-form";
 import { panel, linkClass } from "./stock-parts";
-import { SellerSelect } from "../../components/seller-select";
+import { SellerSelect } from "../../../../../../../components/seller-select";
+import { pageBannerClass } from "../../../../../../../components/ui/page-header";
 import { sellerShellCopy } from "../../../../../../../lib/i18n/seller-shell";
 import {
 	StatusBadge,
@@ -210,7 +211,7 @@ function InventoryContext({
 			)}
 			<header
 				dir={direction(locale)}
-				className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-center lg:justify-between lg:gap-6"
+				className={`${pageBannerClass} flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between`}
 			>
 				<div dir={direction(locale)} className="min-w-0 flex-1">
 					<h1 className="text-page-title font-bold text-foreground">
@@ -231,6 +232,7 @@ function InventoryContext({
 					</div>
 					<div className="mt-1 [&_[role=combobox]]:border-0 [&_[role=combobox]]:bg-transparent [&_[role=combobox]]:px-1 [&_[role=combobox]]:text-base [&_[role=combobox]]:shadow-none [&_[role=combobox]]:hover:bg-info [&_[role=combobox]>svg:first-child]:size-5 [&_[role=combobox]>svg:first-child]:text-action [&_[role=combobox]>span]:whitespace-normal [&_[role=combobox]>span]:wrap-anywhere">
 						<SellerSelect
+							dir={direction(locale)}
 							id="field-seller"
 							label={t.business}
 							icon="store"

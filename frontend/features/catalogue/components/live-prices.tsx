@@ -174,7 +174,10 @@ export function LivePrices({
 							const date = new Date(h.at);
 							const sku =
 								item.prices.find((price) => price.id === h.variant)?.sku ??
-								h.variant;
+								item.revisions[0]?.body.variants.find(
+									(variant) => variant.id === h.variant,
+								)?.sku ??
+								"—";
 							return (
 								<div
 									key={`${h.variant}-${h.at}-${h.version}`}

@@ -1,23 +1,35 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { SettingsSection } from "../../../components/accounts/seller-settings-ui";
 import type { SellerBusinessOptions } from "../../organizations/components/seller-business-ui";
 import { useSellerWorkflow } from "../../organizations/components/workflow-state";
 import { apiOrigin } from "../../../lib/api/client";
-import { Button } from "../../../components/ui/button";
+import { BusinessDialog } from "../../../components/accounts/seller-settings-ui";
+import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import { Label } from "../../../components/shadcn/label";
 import {
-	Field,
-	Input,
-	Select,
-	inputClass,
-} from "../../../components/ui/form-field";
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
+import { Textarea } from "../../../components/shadcn/textarea";
+import {
+	DashboardCard,
+	cardClass,
+} from "../../../components/ui/dashboard-card";
+import { Icon } from "../../../components/ui/icon";
+import {
+	StatusBadge,
+	statusVariant,
+} from "../../../components/ui/status-badge";
 import { organizationCopy, label } from "../../../lib/i18n/organizations";
+import { sellerSettingsCopy } from "../../../lib/i18n/seller-settings";
 import type { Locale } from "../../../lib/i18n/locales";
 import type {
 	Application,
 	ReviewCase,
 } from "../../organizations/api/organizations";
 import { WorkflowState } from "../../organizations/components/workflow-state";
+import { ConfirmDialog } from "../../orders/components/detail-dialog";
 
 export function EvidenceList({
 	item,
@@ -52,6 +64,21 @@ export function EvidenceList({
 		</ul>
 	);
 }
+function historyAction(t: (typeof organizationCopy)[Locale], action: string) {
+	return action.includes("internal")
+		? t.internal
+		: action.includes("assign")
+			? t.assign
+			: action.endsWith("approved")
+				? t.approved
+				: action.endsWith("rejected")
+					? t.rejected
+					: action.endsWith("needs_information")
+						? t.needs_information
+						: action.includes("upload")
+							? t.upload
+							: t.application;
+}
 export function ReviewHistory({
 	item,
 	locale,
@@ -71,21 +98,7 @@ export function ReviewHistory({
 						<time dir="ltr" className="text-sm text-muted">
 							{new Date(event.created_at).toLocaleString(locale)}
 						</time>
-						<p>
-							{event.action.includes("internal")
-								? t.internal
-								: event.action.includes("assign")
-									? t.assign
-									: event.action.endsWith("approved")
-										? t.approved
-										: event.action.endsWith("rejected")
-											? t.rejected
-											: event.action.endsWith("needs_information")
-												? t.needs_information
-												: event.action.includes("upload")
-													? t.upload
-													: t.application}
-						</p>
+						<p>{historyAction(t, event.action)}</p>
 						{event.reason && (
 							<p className="whitespace-pre-wrap break-words">{event.reason}</p>
 						)}
@@ -123,6 +136,11 @@ function SellerApplicationPanel({
 	const [category, setCategory] = useState("");
 	const [hasFile, setHasFile] = useState(false);
 	const [pendingRebase, setPendingRebase] = useState(false);
+	const [pendingAction, setPendingAction] = useState<
+		null | "submit" | "revise"
+	>(null);
+	const [uploadOpen, setUploadOpen] = useState(false);
+	const [alternativesOpen, setAlternativesOpen] = useState(false);
 	const alternativeBaseline = useRef<Record<string, string> | null>(null);
 	const appliedCase = useRef("");
 	const evidenceForm = useRef<HTMLFormElement>(null);
@@ -135,12 +153,11 @@ function SellerApplicationPanel({
 				current?.alternative_requests[key] ??
 				""),
 	);
-	const dirty =
-		alternativesDirty ||
+	const evidenceDirty =
 		hasFile ||
 		!!replaceId ||
-		(!!category && category !== current?.categories[0]) ||
-		state.busy;
+		(!!category && category !== current?.categories[0]);
+	const dirty = alternativesDirty || evidenceDirty || state.busy;
 	useEffect(() => {
 		callback.current(dirty);
 	}, [dirty]);
@@ -153,6 +170,8 @@ function SellerApplicationPanel({
 		setCategory("");
 		setHasFile(false);
 		setPendingRebase(false);
+		setUploadOpen(false);
+		setAlternativesOpen(false);
 	}, [state.denied]);
 	useEffect(() => {
 		// Rebase only an acknowledged alternative/revision command, on fresh GET data.
@@ -190,13 +209,13 @@ function SellerApplicationPanel({
 		setHasFile(false);
 		setReplaceId("");
 		setCategory("");
+		setUploadOpen(false);
+		setAlternativesOpen(false);
 		evidenceForm.current?.reset();
 	}, [current]);
 	const disabled = state.busy || state.blocked || state.loading;
 	async function action(type: string) {
-		if (!current || disabled) return;
-		if (type === "submit" && !window.confirm(t.submitConfirm)) return;
-		if (type === "revise" && !window.confirm(t.reviseHelp)) return;
+		if (!current || disabled) return false;
 		const result = await state.mutate(path, {
 			action: type,
 			version: current.version,
@@ -213,6 +232,7 @@ function SellerApplicationPanel({
 				alternativeBaseline.current = null;
 			} else setPendingRebase(true);
 		}
+		return !!result;
 	}
 	async function upload(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -231,7 +251,15 @@ function SellerApplicationPanel({
 			setHasFile(false);
 			setReplaceId("");
 			setCategory("");
+			setUploadOpen(false);
 		}
+	}
+	function closeUpload() {
+		setUploadOpen(false);
+		setHasFile(false);
+		setReplaceId("");
+		setCategory("");
+		evidenceForm.current?.reset();
 	}
 	return (
 		<section className="min-w-0 space-y-5" aria-label={t.application}>
@@ -248,6 +276,8 @@ function SellerApplicationPanel({
 							setCategory("");
 							setHasFile(false);
 							setPendingRebase(false);
+							setUploadOpen(false);
+							setAlternativesOpen(false);
 							evidenceForm.current?.reset();
 							void state.refresh();
 						}),
@@ -255,160 +285,445 @@ function SellerApplicationPanel({
 			/>
 			{current && (
 				<>
-					<SettingsSection title={t.application}>
-						<p className="font-semibold" data-testid="case-status">
-							{t.status}: {label(t, current.status)} · {t.revision}{" "}
-							{current.revision}
+					<DashboardCard
+						title={t.application}
+						icon="shield"
+						action={
+							<BusinessDialog
+								locale={locale}
+								title={t.history}
+								trigger={
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="min-h-11 sm:min-h-8"
+									>
+										<Icon name="history" className="size-4" />
+										{t.history}
+									</Button>
+								}
+							>
+								<div className="space-y-5">
+									{state.data?.revisions.map((item) => (
+										<div key={item.id} className="min-w-0">
+											<h3 className="m-0 text-sm font-semibold">
+												{t.revision} <bdi>{item.revision}</bdi>
+											</h3>
+											<ul className="m-0 mt-3 list-none space-y-4 p-0">
+												{item.history.map((event) => (
+													<li
+														key={event.id}
+														className="border-s-2 border-border ps-3"
+													>
+														<time
+															dir="ltr"
+															className="block text-xs text-muted"
+														>
+															{new Date(event.created_at).toLocaleString(
+																locale,
+															)}
+														</time>
+														<p className="m-0 mt-0.5 text-sm font-medium">
+															{historyAction(t, event.action)}
+														</p>
+														{event.reason && (
+															<p className="m-0 mt-1 text-sm whitespace-pre-wrap break-words text-muted">
+																{event.reason}
+															</p>
+														)}
+													</li>
+												))}
+											</ul>
+										</div>
+									))}
+									{!state.data?.revisions.length && (
+										<p className="m-0 text-sm text-muted">{t.empty}</p>
+									)}
+								</div>
+							</BusinessDialog>
+						}
+					>
+						<p
+							className="m-0 flex flex-wrap items-center gap-2"
+							data-testid="case-status"
+						>
+							<StatusBadge variant={statusVariant(current.status)}>
+								{label(t, current.status)}
+							</StatusBadge>
+							<span className="text-sm text-muted">
+								{t.revision} <bdi>{current.revision}</bdi>
+							</span>
 						</p>
 						{current.reason && (
-							<p className="rounded-xl bg-info p-4 whitespace-pre-wrap break-words">
+							<p className="m-0 mt-3 rounded-xl bg-info p-4 text-sm leading-relaxed whitespace-pre-wrap break-words">
 								{current.reason}
 							</p>
 						)}
-					</SettingsSection>
-					<SettingsSection title={t.checklist}>
-						<ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
-							{current.categories.map((key) => (
-								<li
-									key={key}
-									className="flex flex-wrap justify-between gap-2 rounded-xl border border-border p-4"
-								>
-									<span>{label(t, key)}</span>
-									<strong>
-										{current.evidence.some((file) => file.category === key) ||
-										current.accepted_alternatives[key]
-											? t.present
-											: t.missing}
-									</strong>
-								</li>
-							))}
+					</DashboardCard>
+					<DashboardCard title={t.checklist} icon="check-circle">
+						<ul className="m-0 list-none divide-y divide-border p-0">
+							{current.categories.map((key) => {
+								const provided =
+									current.evidence.some((file) => file.category === key) ||
+									Boolean(current.accepted_alternatives[key]);
+								return (
+									<li
+										key={key}
+										className="flex min-w-0 items-center gap-3 py-2.5"
+									>
+										<span
+											className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+												provided
+													? "bg-success/10 text-success"
+													: "bg-warning/10 text-warning"
+											}`}
+											aria-hidden="true"
+										>
+											<Icon
+												name={provided ? "check-circle" : "alert-triangle"}
+												className="size-4"
+											/>
+										</span>
+										<span className="min-w-0 flex-1 text-sm font-medium">
+											{label(t, key)}
+										</span>
+										<StatusBadge
+											size="sm"
+											variant={provided ? "success" : "warning"}
+											className="shrink-0"
+										>
+											{provided ? t.present : t.missing}
+										</StatusBadge>
+									</li>
+								);
+							})}
 						</ul>
-					</SettingsSection>
-					<SettingsSection title={t.evidence} description={t.fileHelp}>
-						<EvidenceList item={current} locale={locale} context={context} />
-						{!current.evidence.length && (
-							<p className="text-muted">{t.empty}</p>
-						)}
-						{current.status === "draft" && (
-							<form ref={evidenceForm} onSubmit={upload} aria-busy={state.busy}>
-								<fieldset disabled={disabled} className="min-w-0 space-y-4">
-									<legend className="font-semibold">{t.upload}</legend>
-									<div className="grid min-w-0 gap-4 sm:grid-cols-2">
-										<Field name="category" label={t.category}>
-											<Select
-												name="category"
-												value={category || current.categories[0] || ""}
-												onChange={(event) => setCategory(event.target.value)}
+					</DashboardCard>
+					<DashboardCard
+						title={t.evidence}
+						description={t.fileHelp}
+						icon="file"
+						action={
+							current.status === "draft" ? (
+								<BusinessDialog
+									locale={locale}
+									title={t.upload}
+									open={uploadOpen}
+									busy={state.busy}
+									onOpenChange={(open) => {
+										if (open) setUploadOpen(true);
+										else if (evidenceDirty) sellerBusiness.choose(closeUpload);
+										else closeUpload();
+									}}
+									trigger={
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="min-h-11 sm:min-h-8"
+										>
+											<Icon name="plus" className="size-4" />
+											{t.upload}
+										</Button>
+									}
+								>
+									<form
+										ref={evidenceForm}
+										onSubmit={upload}
+										aria-busy={state.busy}
+									>
+										<fieldset disabled={disabled} className="min-w-0 space-y-4">
+											<div className="grid min-w-0 gap-4 sm:grid-cols-2">
+												<div className="grid min-w-0 gap-2">
+													<Label htmlFor="field-category" className="font-bold">
+														{t.category}
+													</Label>
+													<NativeSelect
+														id="field-category"
+														name="category"
+														value={category || current.categories[0] || ""}
+														onChange={(event) =>
+															setCategory(event.target.value)
+														}
+													>
+														{current.categories.map((key) => (
+															<NativeSelectOption key={key} value={key}>
+																{label(t, key)}
+															</NativeSelectOption>
+														))}
+													</NativeSelect>
+												</div>
+												<div className="grid min-w-0 gap-2">
+													<Label
+														htmlFor="field-replace_id"
+														className="font-bold"
+													>
+														{t.replace}
+													</Label>
+													<NativeSelect
+														id="field-replace_id"
+														name="replace_id"
+														value={replaceId}
+														onChange={(event) =>
+															setReplaceId(event.target.value)
+														}
+													>
+														<NativeSelectOption value="">
+															{t.newFile}
+														</NativeSelectOption>
+														{current.evidence.map((file, index) => (
+															<NativeSelectOption key={file.id} value={file.id}>
+																{label(t, file.category)} · {index + 1}
+															</NativeSelectOption>
+														))}
+													</NativeSelect>
+												</div>
+											</div>
+											<div className="grid min-w-0 gap-2">
+												<Label htmlFor="field-file" className="font-bold">
+													{t.file}
+												</Label>
+												<Input
+													id="field-file"
+													name="file"
+													type="file"
+													accept="application/pdf,image/jpeg,image/png"
+													required
+													onChange={(event) =>
+														setHasFile(!!event.target.files?.length)
+													}
+												/>
+											</div>
+											<Button
+												type="submit"
+												disabled={disabled}
+												className="min-h-11"
 											>
-												{current.categories.map((key) => (
-													<option key={key} value={key}>
-														{label(t, key)}
-													</option>
-												))}
-											</Select>
-										</Field>
-										<Field name="replace_id" label={t.replace}>
-											<Select
-												name="replace_id"
-												value={replaceId}
-												onChange={(event) => setReplaceId(event.target.value)}
-											>
-												<option value="">{t.newFile}</option>
-												{current.evidence.map((file, index) => (
-													<option key={file.id} value={file.id}>
-														{label(t, file.category)} · {index + 1}
-													</option>
-												))}
-											</Select>
-										</Field>
-									</div>
-									<Field name="file" label={t.file}>
-										<Input
-											name="file"
-											type="file"
-											accept="application/pdf,image/jpeg,image/png"
-											required
-											onChange={(event) =>
-												setHasFile(!!event.target.files?.length)
-											}
-										/>
-									</Field>
-									<Button type="submit" disabled={disabled}>
-										{t.upload}
-									</Button>
-								</fieldset>
-							</form>
+												{t.upload}
+											</Button>
+										</fieldset>
+									</form>
+								</BusinessDialog>
+							) : undefined
+						}
+					>
+						{current.evidence.length ? (
+							<ul className="m-0 list-none divide-y divide-border p-0">
+								{current.evidence.map((file) => (
+									<li
+										key={file.id}
+										className="flex min-w-0 flex-wrap items-center gap-3 py-2.5"
+									>
+										<span
+											className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-info text-action"
+											aria-hidden="true"
+										>
+											<Icon name="file" className="size-4" />
+										</span>
+										<span className="min-w-0 flex-1 text-sm">
+											<span className="block font-medium">
+												{label(t, file.category)}
+											</span>
+											<span className="text-muted">
+												<bdi>{Math.ceil(file.size / 1024)}</bdi> {t.kib}
+											</span>
+										</span>
+										<a
+											className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-medium text-action no-underline hover:underline"
+											href={`${apiOrigin(process.env.NEXT_PUBLIC_API_URL)}/api/v1/verification/evidence/${context}/${file.id}/`}
+											referrerPolicy="no-referrer"
+										>
+											<Icon name="arrow-down" className="size-4" />
+											{t.download}
+										</a>
+									</li>
+								))}
+							</ul>
+						) : (
+							<p className="m-0 text-sm text-muted">{t.empty}</p>
 						)}
-					</SettingsSection>
+						{evidenceDirty && (
+							<p className="m-0 mt-3 text-sm font-medium text-warning">
+								{sellerSettingsCopy[locale].unsaved}
+							</p>
+						)}
+					</DashboardCard>
 					{current.status === "draft" ? (
 						<>
-							<SettingsSection
+							<DashboardCard
 								title={t.alternative}
 								description={t.alternativeHelp}
-							>
-								<fieldset disabled={disabled} className="min-w-0 space-y-3">
-									{current.categories.map((key) => (
-										<Field
-											key={key}
-											name={`alternative-${key}`}
-											label={label(t, key)}
-										>
-											<textarea
-												id={`field-alternative-${key}`}
-												className={inputClass}
-												maxLength={1000}
-												value={
-													alternatives[key] ??
-													current.alternative_requests[key] ??
-													""
-												}
-												onChange={(event) => {
-													if (!alternativeBaseline.current) {
-														alternativeBaseline.current = {
-															...current.alternative_requests,
-														};
-													}
-													setAlternatives((values) => ({
-														...values,
-														[key]: event.target.value,
-													}));
-												}}
-											/>
-										</Field>
-									))}
-									<Button
-										disabled={disabled}
-										variant="secondary"
-										onClick={() => action("save")}
+								icon="help"
+								action={
+									<BusinessDialog
+										locale={locale}
+										title={t.alternative}
+										open={alternativesOpen}
+										busy={state.busy}
+										onOpenChange={(open) => {
+											if (open) setAlternativesOpen(true);
+											else if (alternativesDirty)
+												sellerBusiness.choose(() => {
+													setAlternatives({});
+													alternativeBaseline.current = null;
+													setAlternativesOpen(false);
+												});
+											else setAlternativesOpen(false);
+										}}
+										trigger={
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												className="min-h-11 sm:min-h-8"
+											>
+												<Icon name="file" className="size-4" />
+												{t.alternative}
+											</Button>
+										}
 									>
-										{t.save}
-									</Button>
-								</fieldset>
-							</SettingsSection>
-							<div className="border-t border-border pt-5">
-								<Button disabled={disabled} onClick={() => action("submit")}>
+										<p className="m-0 text-sm leading-relaxed text-muted">
+											{t.alternativeHint}
+										</p>
+										<fieldset
+											disabled={disabled}
+											className="mt-4 min-w-0 space-y-4"
+										>
+											{current.categories.map((key) => (
+												<div key={key} className="grid min-w-0 gap-2">
+													<Label
+														htmlFor={`field-alternative-${key}`}
+														className="font-bold"
+													>
+														{label(t, key)}
+													</Label>
+													<Textarea
+														id={`field-alternative-${key}`}
+														maxLength={1000}
+														value={
+															alternatives[key] ??
+															current.alternative_requests[key] ??
+															""
+														}
+														onChange={(event) => {
+															if (!alternativeBaseline.current) {
+																alternativeBaseline.current = {
+																	...current.alternative_requests,
+																};
+															}
+															setAlternatives((values) => ({
+																...values,
+																[key]: event.target.value,
+															}));
+														}}
+													/>
+												</div>
+											))}
+											<Button
+												type="button"
+												disabled={disabled}
+												className="min-h-11"
+												onClick={async () => {
+													if (await action("save")) setAlternativesOpen(false);
+												}}
+											>
+												{t.save}
+											</Button>
+										</fieldset>
+									</BusinessDialog>
+								}
+							>
+								<ul className="m-0 list-none divide-y divide-border p-0">
+									{current.categories.map((key) => {
+										const value =
+											alternatives[key] ??
+											current.alternative_requests[key] ??
+											"";
+										const saved = Boolean(
+											current.alternative_requests[key]?.trim(),
+										);
+										return (
+											<li
+												key={key}
+												className="flex min-w-0 items-start gap-3 py-2.5"
+											>
+												<span className="min-w-0 flex-1">
+													<span className="block text-sm font-medium">
+														{label(t, key)}
+													</span>
+													<span className="mt-0.5 line-clamp-2 block text-sm break-words text-muted">
+														{value || "—"}
+													</span>
+												</span>
+												{saved && (
+													<StatusBadge
+														size="sm"
+														variant="info"
+														className="shrink-0"
+													>
+														{t.requested}
+													</StatusBadge>
+												)}
+											</li>
+										);
+									})}
+								</ul>
+								{alternativesDirty && (
+									<p className="m-0 mt-3 text-sm font-medium text-warning">
+										{sellerSettingsCopy[locale].unsaved}
+									</p>
+								)}
+							</DashboardCard>
+							<div
+								className={`${cardClass} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}
+							>
+								<p className="m-0 text-sm leading-relaxed text-muted">
+									{t.submitConfirm}
+								</p>
+								<Button
+									disabled={disabled}
+									className="min-h-11 shrink-0"
+									onClick={() => setPendingAction("submit")}
+								>
+									<Icon name="send" className="size-4" />
 									{t.submit}
 								</Button>
 							</div>
 						</>
 					) : (
-						<SettingsSection title={t.revise} description={t.reviseHelp}>
+						<DashboardCard
+							title={t.revise}
+							description={t.reviseHelp}
+							icon="history"
+						>
 							<Button
 								variant="secondary"
 								disabled={disabled}
-								onClick={() => action("revise")}
+								className="min-h-11"
+								onClick={() => setPendingAction("revise")}
 							>
+								<Icon name="plus" className="size-4" />
 								{t.revise}
 							</Button>
-						</SettingsSection>
+						</DashboardCard>
 					)}
-					<SettingsSection title={t.history}>
-						{state.data?.revisions.map((item) => (
-							<ReviewHistory key={item.id} item={item} locale={locale} />
-						))}
-					</SettingsSection>
 				</>
 			)}
+			<ConfirmDialog
+				locale={locale}
+				open={!!pendingAction}
+				title={pendingAction === "submit" ? t.submit : t.revise}
+				body={pendingAction === "submit" ? t.submitConfirm : t.reviseHelp}
+				confirmLabel={pendingAction === "submit" ? t.submit : t.revise}
+				busy={disabled}
+				onCancel={() => setPendingAction(null)}
+				onConfirm={() => {
+					const type = pendingAction;
+					setPendingAction(null);
+					if (type) void action(type);
+				}}
+			/>
 		</section>
 	);
 }

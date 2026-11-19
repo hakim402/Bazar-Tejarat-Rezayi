@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { MoreHorizontal, ShoppingBag, Truck, Wallet } from "lucide-react";
+import {
+	FileText,
+	MoreHorizontal,
+	RotateCcw,
+	ShoppingBag,
+	Truck,
+	Wallet,
+} from "lucide-react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
+import { Card } from "../../../components/shadcn/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -14,7 +22,7 @@ import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/sell
 import type { Locale } from "../../../lib/i18n/locales";
 import { cn } from "../../../lib/shadcn-utils";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
-import { salesHref } from "../../sales/components/seller-sales-ui";
+import { salesHref, salesTableCard } from "../../sales/components/seller-sales-ui";
 import { fulfilmentState } from "../copy";
 import { deliveryListCopy } from "../list-copy";
 import type { Summary } from "../types";
@@ -33,7 +41,7 @@ export function SellerDeliveryList({
 		destinations = useSellerNavigation();
 	const cell = "min-w-0 px-4 py-3 text-start align-middle lg:py-4";
 	return (
-		<div className="min-w-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-solid lg:border-border">
+		<Card className={cn(salesTableCard, "min-w-0")}>
 			<table className="block w-full border-collapse text-start lg:table">
 				<caption className="sr-only">{t.title}</caption>
 				<thead className="hidden lg:table-header-group">
@@ -56,7 +64,7 @@ export function SellerDeliveryList({
 						))}
 					</tr>
 				</thead>
-				<tbody className="grid gap-3 lg:table-row-group">
+				<tbody className="grid lg:table-row-group">
 					{rows.map((row) => {
 						const attention = !!(
 							row.cancellation_hold ||
@@ -93,7 +101,7 @@ export function SellerDeliveryList({
 						return (
 							<tr
 								key={row.id}
-								className="grid grid-cols-2 rounded-xl border border-solid border-border bg-surface shadow-none lg:table-row lg:rounded-none lg:border-0 lg:border-b lg:shadow-none"
+								className="grid grid-cols-2 border-0 border-b border-solid border-border last:border-b-0 lg:table-row"
 							>
 								<td
 									className={cn(
@@ -195,6 +203,7 @@ export function SellerDeliveryList({
 													variant="ghost"
 													size="icon"
 													aria-label={`${t.actions} · ${row.number}`}
+													title={`${t.actions} · ${row.number}`}
 													className="shrink-0 border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action dark:hover:bg-transparent"
 												>
 													<MoreHorizontal
@@ -222,18 +231,39 @@ export function SellerDeliveryList({
 															route: "orders",
 															label: s.orders,
 															icon: ShoppingBag,
+															id: row.id,
+															show: true,
 														},
 														{
 															route: "payments",
 															label: s.payments,
 															icon: Wallet,
+															id: row.id,
+															show: true,
+														},
+														{
+															route: "invoices",
+															label: s.invoices,
+															icon: FileText,
+															id: row.invoice ?? undefined,
+															show: !!row.invoice && row.capabilities.invoice,
+														},
+														{
+															route: "aftercare",
+															label: s.aftercare,
+															icon: RotateCcw,
+															id: row.id,
+															show: row.dispute_open || row.cancellation_hold,
 														},
 													] as const
 												)
-													.filter((item) =>
-														destinations?.some(
-															(destination) => destination.route === item.route,
-														),
+													.filter(
+														(item) =>
+															item.show &&
+															destinations?.some(
+																(destination) =>
+																	destination.route === item.route,
+															),
 													)
 													.map((item) => (
 														<DropdownMenuItem
@@ -246,7 +276,7 @@ export function SellerDeliveryList({
 																	locale,
 																	item.route,
 																	row.seller,
-																	row.id,
+																	item.id,
 																)}
 															>
 																<item.icon aria-hidden="true" />
@@ -263,6 +293,6 @@ export function SellerDeliveryList({
 					})}
 				</tbody>
 			</table>
-		</div>
+		</Card>
 	);
 }

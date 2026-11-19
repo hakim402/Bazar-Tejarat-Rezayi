@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Download, MoreHorizontal, Printer, ShoppingBag } from "lucide-react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
 import { Card } from "../../../components/shadcn/card";
 import {
 	DropdownMenu,
@@ -190,7 +195,8 @@ function StatusPill({ locale, order }: { locale: Locale; order: Order }) {
 			variant="secondary"
 			className={cn(
 				"whitespace-normal border-0",
-				order.payment.financial === "paid"
+				order.payment.financial === "paid" ||
+				order.payment.financial === "overpaid"
 					? "bg-success-surface text-success"
 					: order.payment.overdue
 						? "bg-warning-surface text-warning"
@@ -302,7 +308,7 @@ function InvoiceList({
 			>
 				<label className="grid min-w-0 gap-2">
 					{list.customer} / {t.invoices}
-					<input
+					<Input
 						name="q"
 						className={salesControl}
 						maxLength={100}
@@ -310,23 +316,32 @@ function InvoiceList({
 						defaultValue={search}
 					/>
 				</label>
-				<label className="grid min-w-0 gap-2">
-					{paymentCopy[locale].title}
-					<select name="state" className={salesControl} defaultValue={state}>
-						<option value="">{paymentCopy[locale].all}</option>
+				<div className="grid min-w-0 gap-2">
+					<label htmlFor="invoice-state-filter">
+						{paymentCopy[locale].title}
+					</label>
+					<NativeSelect
+						id="invoice-state-filter"
+						name="state"
+						className={salesControl}
+						defaultValue={state}
+					>
+						<NativeSelectOption value="">
+							{paymentCopy[locale].all}
+						</NativeSelectOption>
 						{(
 							["unpaid", "partial", "paid", "overpaid", "overdue"] as const
 						).map((v) => (
-							<option key={v} value={v}>
+							<NativeSelectOption key={v} value={v}>
 								{paymentState(locale, v)}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
-				</label>
+					</NativeSelect>
+				</div>
 				<div className="flex flex-wrap gap-2">
-					<button type="submit" className={salesAction}>
+					<Button type="submit" className={salesAction}>
 						{paymentCopy[locale].refresh}
-					</button>
+					</Button>
 					{(search || state || page > 1) && (
 						<Link
 							className={salesAction}
@@ -428,7 +443,7 @@ function InvoiceList({
 												className="text-xs font-medium text-action no-underline"
 												href={salesHref(locale, "orders", seller, order.id)}
 											>
-												<bdi>{order.id.slice(0, 8)}</bdi>
+												<bdi>{order.number}</bdi>
 											</Link>
 										</td>
 										<td className="px-4 py-4 align-top text-sm tabular-nums">
@@ -521,6 +536,7 @@ function RowMenu({
 					variant="ghost"
 					size="icon"
 					aria-label={list.invoice}
+					title={list.invoice}
 					className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action dark:hover:bg-transparent"
 				>
 					<MoreHorizontal className="size-5" aria-hidden="true" />

@@ -1,5 +1,20 @@
 "use client";
 import { organizationCopy } from "../../lib/i18n/organizations";
+import toast from "react-hot-toast";
+import { Camera, Pencil, Trash2 } from "lucide-react";
+import type { ProfileIdentity } from "../../features/identity/api/profile";
+import {
+	emptyProfileDraft,
+	profileDraft,
+	profileFieldNames,
+	ProfileFields,
+} from "../../features/identity/components/profile-fields";
+import { mediaUrl } from "../../features/marketplace/api";
+import { ConfirmDialog } from "../../features/orders/components/detail-dialog";
+import { buyerProfileCopy } from "../../lib/i18n/buyer-profile";
+import { Card } from "../shadcn/card";
+import { Badge } from "../shadcn/badge";
+import { salesTableCard } from "../../features/sales/components/seller-sales-ui";
 import { Button } from "../shadcn/button";
 import { Input } from "../shadcn/input";
 import { FormField } from "../ui/dialog-form";
@@ -38,7 +53,8 @@ import {
 } from "../../features/identity/api/accounts";
 import {
 	SettingsPage,
-	SettingsSection,
+	BusinessSection,
+	BusinessDialog,
 	SettingsActions,
 	settingsSecondary,
 	useSettingsGuard,
@@ -59,8 +75,9 @@ export function AccountPanel(props: AccountPanelProps) {
 		/>
 	);
 }
+type SellerSession = SessionData & { identity: ProfileIdentity };
 const emptySellerDraft = {
-	display_name: "",
+	...emptyProfileDraft,
 	current_password: "",
 	password: "",
 	repeat: "",
@@ -76,10 +93,11 @@ function SellerAccountPanel({
 }) {
 	const t = authCopy[locale],
 		s = sellerSettingsCopy[locale],
-		copy = sellerAccountSettingsCopy[locale];
+		copy = sellerAccountSettingsCopy[locale],
+		profileCopy = buyerProfileCopy[locale];
 	const query = useSearchParams().get("seller");
 	const seller = query && uuidPattern.test(query) ? query : null;
-	const [data, setData] = useState<SessionData | null>(null);
+	const [data, setData] = useState<SellerSession | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [notice, setNotice] = useState("");
@@ -87,10 +105,31 @@ function SellerAccountPanel({
 	const [draft, setDraft] = useState({ ...emptySellerDraft });
 	const [fields, setFields] = useState<string[]>([]);
 	const [available, setAvailable] = useState<boolean | null>(null);
+	const [dialog, setDialog] = useState<"profile" | "photo" | "google" | null>(
+		null,
+	);
+	const [photo, setPhoto] = useState<File | null>(null);
+	const [removePhoto, setRemovePhoto] = useState(false);
+	const [preview, setPreview] = useState("");
+	useEffect(() => {
+		if (!photo) {
+			setPreview("");
+			return;
+		}
+		const url = URL.createObjectURL(photo);
+		setPreview(url);
+		return () => URL.revokeObjectURL(url);
+	}, [photo]);
+	useEffect(() => {
+		if (error) toast.error(error);
+	}, [error]);
+	useEffect(() => {
+		if (notice) toast.success(notice);
+	}, [notice]);
 	const live = useRef<object | null>(null),
 		reads = useRef(0),
 		identity = useRef<string | null>(null);
-	const baseline = useRef(""),
+	const baseline = useRef({ ...emptyProfileDraft }),
 		inputs = useRef(draft),
 		authority = useRef(0),
 		readError = useRef(false);
@@ -101,8 +140,12 @@ function SellerAccountPanel({
 		setDraft(inputs.current);
 		setFields((current) => current.filter((field) => field !== key));
 	};
+	const profileDirty = profileFieldNames.some(
+		(key) => draft[key] !== baseline.current[key],
+	);
 	const dirty =
-		draft.display_name !== baseline.current ||
+		profileDirty ||
+		!!photo ||
 		!!(
 			draft.current_password ||
 			draft.password ||
@@ -118,10 +161,13 @@ function SellerAccountPanel({
 		deferredSessionCheck.current = false;
 		identity.current = null;
 		write.current = null;
-		baseline.current = "";
+		baseline.current = { ...emptyProfileDraft };
+		setPhoto(null);
+		setRemovePhoto(false);
 		inputs.current = { ...emptySellerDraft };
 		setDraft(inputs.current);
 		setData(null);
+		setDialog(null);
 		setBusy(false);
 		setFields([]);
 		setNotice("");
@@ -131,21 +177,22 @@ function SellerAccountPanel({
 			generation = ++reads.current;
 		if (!life) return;
 		try {
-			const value = await accountSession("seller");
+			const value = (await accountSession("seller")) as SellerSession;
 			if (live.current !== life || reads.current !== generation) return;
 			const key = `${value.identity.id}:${value.accounts[0].id}`;
 			if (identity.current !== key) {
 				clearPrivate();
 				identity.current = key;
-				baseline.current = value.identity.display_name;
-				inputs.current = {
-					...emptySellerDraft,
-					display_name: baseline.current,
-				};
+				baseline.current = profileDraft(value.identity);
+				inputs.current = { ...emptySellerDraft, ...baseline.current };
 				setDraft(inputs.current);
-			} else if (inputs.current.display_name === baseline.current) {
-				baseline.current = value.identity.display_name;
-				inputs.current = { ...inputs.current, display_name: baseline.current };
+			} else if (
+				profileFieldNames.every(
+					(key) => inputs.current[key] === baseline.current[key],
+				)
+			) {
+				baseline.current = profileDraft(value.identity);
+				inputs.current = { ...inputs.current, ...baseline.current };
 				setDraft(inputs.current);
 			}
 			setData(value);
@@ -217,7 +264,7 @@ function SellerAccountPanel({
 	async function mutate(
 		kind: string,
 		path: string,
-		payload: Record<string, unknown>,
+		payload: Record<string, unknown> | FormData,
 		expectedLife: object | null,
 		expectedIdentity: string | null,
 		method = "POST",
@@ -282,18 +329,24 @@ function SellerAccountPanel({
 			} else if (kind === "password" || kind === "logout") {
 				clearPrivate();
 				setNotice(kind === "password" ? t.passwordUpdated : t.signedOut);
-			} else if (kind === "profile") {
-				const name =
-					result.identity?.display_name ?? String(payload.display_name ?? "");
-				baseline.current = name;
-				inputs.current = { ...inputs.current, display_name: name };
+			} else if (["profile", "photo", "remove-photo"].includes(kind)) {
+				if (!result.identity) throw new Error();
+				const updated = result.identity as ProfileIdentity;
+				baseline.current = profileDraft(updated);
+				inputs.current = { ...inputs.current, ...baseline.current };
 				setDraft(inputs.current);
-				if (data)
-					setData({
-						...data,
-						identity: { ...data.identity, display_name: name },
-					});
-				setNotice(t.updated);
+				setData((current) =>
+					current ? { ...current, identity: updated } : null,
+				);
+				setPhoto(null);
+				setDialog(null);
+				setNotice(
+					kind === "profile"
+						? profileCopy.saved
+						: kind === "photo"
+							? profileCopy.photoSaved
+							: profileCopy.photoRemoved,
+				);
 				void refresh();
 			} else {
 				inputs.current = { ...inputs.current, current_password: "" };
@@ -323,7 +376,7 @@ function SellerAccountPanel({
 					kind === "google"
 						? ["password"]
 						: screen === "profile"
-							? ["display_name"]
+							? [...profileFieldNames, "file"]
 							: screen === "link"
 								? ["password", "current_password"]
 								: ["current_password", "password"];
@@ -363,7 +416,14 @@ function SellerAccountPanel({
 			screen,
 			screen === "link" ? "seller/link/buyer/" : `seller/${screen}/`,
 			screen === "profile"
-				? { display_name: draft.display_name }
+				? Object.fromEntries(
+						profileFieldNames
+							.filter((key) => draft[key] !== baseline.current[key])
+							.map((key) => [
+								key,
+								key === "date_of_birth" ? draft[key] || null : draft[key],
+							]),
+					)
 				: screen === "link"
 					? { password: draft.current_password }
 					: {
@@ -416,6 +476,39 @@ function SellerAccountPanel({
 			onChange={(value) => change(key, value)}
 		/>
 	);
+	function closeDialog() {
+		if (busy) return;
+		choose(() => {
+			if (dialog === "profile") {
+				baseline.current = data
+					? profileDraft(data.identity)
+					: { ...emptyProfileDraft };
+				inputs.current = { ...inputs.current, ...baseline.current };
+				setDraft(inputs.current);
+			} else if (dialog === "photo") setPhoto(null);
+			else change("google_password", "");
+			setError("");
+			setFields([]);
+			setDialog(null);
+		});
+	}
+	function uploadPhoto(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		if (!photo || write.current) return;
+		const form = new FormData();
+		form.append("file", photo);
+		void mutate(
+			"photo",
+			"seller/profile/avatar/",
+			form,
+			live.current,
+			identity.current,
+		);
+	}
+	const avatarUrl = data?.identity.avatar
+		? mediaUrl(data.identity.avatar.url)
+		: null;
+	const photoUrl = preview || avatarUrl;
 	const google = (
 		<form
 			onSubmit={googleSubmit}
@@ -429,7 +522,7 @@ function SellerAccountPanel({
 				type="submit"
 				variant="outline"
 				disabled={!available || busy}
-				className="google-button gap-2"
+				className="google-button h-auto min-h-11 gap-2 whitespace-normal"
 			>
 				<GoogleMark />
 				{busy ? googleCopy[locale].loading : googleCopy[locale].button}
@@ -462,125 +555,437 @@ function SellerAccountPanel({
 				<>
 					{screen === "profile" ? (
 						<>
-							<SettingsSection
-								title={s.profile}
-								description={copy.nameHelp}
-								icon="user-circle"
-							>
-								<form
-									onSubmit={submit}
-									className="max-w-2xl space-y-4"
-									aria-busy={busy}
-								>
-									{field("display_name", t.name, false)}
-									<SettingsActions
+							<Card className={salesTableCard}>
+								<div className="flex flex-col items-center gap-3 border-0 border-b border-solid border-border px-4 py-6 text-center sm:px-5">
+									<BusinessDialog
 										locale={locale}
-										dirty={draft.display_name !== baseline.current}
+										title={profileCopy.photo}
+										description={profileCopy.photoHelp}
+										open={dialog === "photo"}
+										onOpenChange={(open) =>
+											open ? setDialog("photo") : closeDialog()
+										}
+										busy={busy}
+										trigger={
+											<Button
+												type="button"
+												variant="ghost"
+												className="relative size-24 rounded-full border border-solid border-border bg-page p-0"
+												aria-label={profileCopy.changePhoto}
+												title={profileCopy.changePhoto}
+											>
+												{avatarUrl ? (
+													<img
+														src={avatarUrl}
+														alt=""
+														width={96}
+														height={96}
+														className="size-full rounded-full object-cover"
+													/>
+												) : (
+													<Icon
+														name="user-circle"
+														className="size-12 text-muted"
+													/>
+												)}
+												<span className="absolute bottom-0 end-0 flex size-8 items-center justify-center rounded-full border border-solid border-border bg-surface text-action">
+													<Camera className="size-4" aria-hidden="true" />
+												</span>
+											</Button>
+										}
 									>
-										<Button
-											type="submit"
-											disabled={busy || draft.display_name === baseline.current}
+										{error && (
+											<Alert variant="danger" role="alert">
+												{error}
+											</Alert>
+										)}
+										<form
+											onSubmit={uploadPhoto}
+											className="space-y-5"
+											aria-busy={busy}
 										>
-											{busy ? t.saving : t.editProfile}
-										</Button>
-									</SettingsActions>
-								</form>
-							</SettingsSection>
-							<SettingsSection
-								title={copy.summary}
-								description={copy.summaryHelp}
-								icon="user-circle"
-							>
-								<AccountSummary data={data} locale={locale} />
-								<p className="text-sm text-muted">
-									{organizationCopy[locale].approvalScope}
-								</p>
-								<Link
-									className={settingsSecondary}
-									href={sellerHref(locale, "organizations", seller)}
+											<div className="mx-auto flex size-28 items-center justify-center overflow-hidden rounded-full border border-solid border-border bg-page">
+												{photoUrl ? (
+													<img
+														src={photoUrl}
+														alt={profileCopy.photoPreview}
+														width={112}
+														height={112}
+														className="size-full object-cover"
+													/>
+												) : (
+													<Icon
+														name="user-circle"
+														className="size-14 text-muted"
+													/>
+												)}
+											</div>
+											<FormField
+												id="seller-profile-photo"
+												label={profileCopy.choosePhoto}
+												error={
+													fields.includes("file") ? copy.fieldError : undefined
+												}
+											>
+												<Input
+													id="seller-profile-photo"
+													type="file"
+													accept="image/jpeg,image/png,image/webp"
+													disabled={busy}
+													aria-invalid={fields.includes("file")}
+													aria-describedby={
+														fields.includes("file")
+															? "seller-profile-photo-error"
+															: undefined
+													}
+													onChange={(event) => {
+														const file = event.target.files?.[0];
+														if (!file) return;
+														setError("");
+														setFields([]);
+														if (
+															![
+																"image/jpeg",
+																"image/png",
+																"image/webp",
+															].includes(file.type) ||
+															file.size > 8 * 1024 * 1024 ||
+															file.size === 0
+														) {
+															setPhoto(null);
+															event.target.value = "";
+															setError(t.invalid);
+															setFields(["file"]);
+															return;
+														}
+														setPhoto(file);
+													}}
+												/>
+											</FormField>
+											<SettingsActions locale={locale} dirty={!!photo}>
+												{avatarUrl && (
+													<Button
+														type="button"
+														variant="outline"
+														className="text-danger"
+														disabled={busy || !!photo}
+														onClick={() => setRemovePhoto(true)}
+													>
+														<Trash2 className="size-4" aria-hidden="true" />
+														{profileCopy.removePhoto}
+													</Button>
+												)}
+												<Button
+													type="button"
+													variant="outline"
+													disabled={busy}
+													onClick={closeDialog}
+												>
+													{profileCopy.cancel}
+												</Button>
+												<Button type="submit" disabled={busy || !photo}>
+													{busy ? t.saving : profileCopy.uploadPhoto}
+												</Button>
+											</SettingsActions>
+										</form>
+										<ConfirmDialog
+											locale={locale}
+											open={removePhoto}
+											title={profileCopy.removePhoto}
+											body={copy.sharedProfileHelp}
+											confirmLabel={profileCopy.removePhoto}
+											destructive
+											busy={busy}
+											onCancel={() => setRemovePhoto(false)}
+											onConfirm={() => {
+												setRemovePhoto(false);
+												void mutate(
+													"remove-photo",
+													"seller/profile/avatar/",
+													{},
+													live.current,
+													identity.current,
+													"DELETE",
+												);
+											}}
+										/>
+									</BusinessDialog>
+									<div className="min-w-0 space-y-1">
+										<div className="flex flex-wrap items-center justify-center gap-2">
+											<h2 className="m-0 text-lg font-semibold wrap-anywhere">
+												<bdi>{data.identity.display_name}</bdi>
+											</h2>
+											<Badge
+												variant="secondary"
+												className={
+													data.identity.email_verified
+														? "border-0 bg-success-surface text-success"
+														: "border-0 bg-warning-surface text-warning"
+												}
+											>
+												{data.identity.email_verified
+													? t.verifiedLabel
+													: profileCopy.notVerified}
+											</Badge>
+										</div>
+										<p className="m-0 text-sm text-muted wrap-anywhere">
+											<bdi dir="ltr">{data.identity.email}</bdi>
+										</p>
+										<p className="m-0 text-xs text-muted">
+											{profileCopy.memberSince.replace(
+												"{date}",
+												new Intl.DateTimeFormat(locale, {
+													year: "numeric",
+													month: "long",
+													day: "numeric",
+												}).format(new Date(data.identity.date_joined)),
+											)}
+										</p>
+									</div>
+								</div>
+								<div className="flex flex-wrap items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-4 sm:px-5">
+									<div className="min-w-0 basis-full sm:flex-1 sm:basis-0">
+										<h3 className="m-0 text-base font-semibold">
+											{profileCopy.personalDetails}
+										</h3>
+										<p className="m-0 mt-1 text-xs text-muted">
+											{copy.sharedProfileHelp}
+										</p>
+									</div>
+									<BusinessDialog
+										locale={locale}
+										title={profileCopy.editProfile}
+										description={copy.sharedProfileHelp}
+										open={dialog === "profile"}
+										onOpenChange={(open) =>
+											open ? setDialog("profile") : closeDialog()
+										}
+										busy={busy}
+										trigger={
+											<Button type="button" variant="outline" size="sm">
+												<Pencil className="size-4" aria-hidden="true" />
+												{profileCopy.editProfile}
+											</Button>
+										}
+									>
+										{error && (
+											<Alert variant="danger" role="alert">
+												{error}
+											</Alert>
+										)}
+										<form
+											onSubmit={submit}
+											className="max-w-2xl space-y-4"
+											aria-busy={busy}
+										>
+											<div className="grid gap-4 sm:grid-cols-2">
+												<ProfileFields
+													locale={locale}
+													idPrefix="seller-profile"
+													draft={draft}
+													onChange={change}
+													disabled={busy}
+													errors={fields}
+												/>
+											</div>
+											<SettingsActions locale={locale} dirty={profileDirty}>
+												<Button
+													type="button"
+													variant="outline"
+													disabled={busy}
+													onClick={closeDialog}
+												>
+													{profileCopy.cancel}
+												</Button>
+												<Button type="submit" disabled={busy || !profileDirty}>
+													{busy ? t.saving : profileCopy.save}
+												</Button>
+											</SettingsActions>
+										</form>
+									</BusinessDialog>
+								</div>
+								<div className="px-4 sm:px-5">
+									<AccountSummary data={data} locale={locale} />
+								</div>
+							</Card>
+							<div className="grid items-start gap-4 lg:grid-cols-2">
+								<BusinessSection
+									title={profileCopy.security}
+									description={profileCopy.securityHelp}
 								>
-									{organizationCopy[locale].title}
-								</Link>
-							</SettingsSection>
-							<SettingsSection
-								title={copy.google}
-								description={copy.googleHelp}
-								icon="link"
-							>
-								{google}
-							</SettingsSection>
+									<div className="space-y-2">
+										{(
+											[
+												{
+													path: "password",
+													label: s.password,
+													icon: "shield-lock",
+												},
+												{ path: "link", label: s.link, icon: "link" },
+												{
+													path: "settings",
+													label: profileCopy.accountSettings,
+													icon: "gear",
+												},
+											] as const
+										).map((row) => (
+											<Button
+												key={row.path}
+												asChild
+												variant="ghost"
+												className="h-auto min-h-11 w-full justify-start whitespace-normal px-3 py-3 text-start"
+											>
+												<Link href={sellerHref(locale, row.path, seller)}>
+													<Icon
+														name={row.icon}
+														className="size-4 shrink-0 text-muted"
+													/>
+													<span className="flex-1">{row.label}</span>
+													<Icon
+														name="arrow"
+														className="size-4 shrink-0 rtl:rotate-180"
+													/>
+												</Link>
+											</Button>
+										))}
+										<BusinessDialog
+											locale={locale}
+											title={copy.google}
+											description={copy.googleHelp}
+											open={dialog === "google"}
+											onOpenChange={(open) =>
+												open ? setDialog("google") : closeDialog()
+											}
+											busy={busy}
+											trigger={
+												<Button
+													type="button"
+													variant="outline"
+													className="w-full justify-start"
+												>
+													<GoogleMark />
+													{copy.google}
+												</Button>
+											}
+										>
+											{error && (
+												<Alert variant="danger" role="alert">
+													{error}
+												</Alert>
+											)}
+											{google}
+										</BusinessDialog>
+									</div>
+								</BusinessSection>
+								<BusinessSection
+									title={organizationCopy[locale].title}
+									icon="store"
+								>
+									<p className="text-sm text-muted">
+										{organizationCopy[locale].approvalScope}
+									</p>
+									<Link
+										className={settingsSecondary}
+										href={sellerHref(locale, "organizations", seller)}
+									>
+										{organizationCopy[locale].title}
+									</Link>
+								</BusinessSection>
+							</div>
 						</>
 					) : (
 						<>
-							<SettingsSection
-								title={
-									screen === "link" ? copy.buyerPassword : t.passwordChange
-								}
-								description={
-									screen === "link" ? copy.buyerHelp : copy.passwordHelp
-								}
-								icon={screen === "link" ? "link" : "shield-lock"}
+							<Card
+								className={`${salesTableCard} flex-row items-center gap-3 p-4! sm:px-5!`}
 							>
-								<form
-									onSubmit={submit}
-									className="max-w-2xl space-y-4"
-									aria-busy={busy}
+								<span
+									className="flex size-11 shrink-0 items-center justify-center rounded-full bg-info text-action"
+									aria-hidden="true"
 								>
-									{field("current_password", t.currentPassword)}
-									{screen === "password" && (
-										<>
-											{field("password", t.newPassword)}
-											{field("repeat", t.repeat)}
-										</>
+									<Icon name="user-circle" className="size-6" />
+								</span>
+								<div className="min-w-0">
+									<p className="m-0 text-sm font-semibold wrap-anywhere">
+										<bdi>{data.identity.display_name}</bdi>
+									</p>
+									<p className="m-0 text-xs text-muted wrap-anywhere">
+										<bdi dir="ltr">{data.identity.email}</bdi>
+									</p>
+								</div>
+							</Card>
+							<div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+								<BusinessSection
+									title={
+										screen === "link" ? copy.buyerPassword : t.passwordChange
+									}
+									description={
+										screen === "link" ? copy.buyerHelp : copy.passwordHelp
+									}
+									icon={screen === "link" ? "link" : "shield-lock"}
+								>
+									<form
+										onSubmit={submit}
+										className="max-w-2xl space-y-4"
+										aria-busy={busy}
+									>
+										{field("current_password", t.currentPassword)}
+										{screen === "password" && (
+											<>
+												{field("password", t.newPassword)}
+												{field("repeat", t.repeat)}
+											</>
+										)}
+										<SettingsActions
+											locale={locale}
+											dirty={
+												!!(
+													draft.current_password ||
+													draft.password ||
+													draft.repeat
+												)
+											}
+										>
+											<Button type="submit" disabled={busy}>
+												{busy ? t.saving : t.submit}
+											</Button>
+										</SettingsActions>
+									</form>
+									{notice === t.linkDone && (
+										<Link
+											className={settingsSecondary}
+											href={`/${locale}/auth/buyer-sign-in`}
+										>
+											{t.buyer} · {t.signin}
+										</Link>
 									)}
-									<SettingsActions
-										locale={locale}
-										dirty={
-											!!(
-												draft.current_password ||
-												draft.password ||
-												draft.repeat
-											)
-										}
+								</BusinessSection>
+								<div className="space-y-4">
+									{screen === "link" && (
+										<BusinessSection
+											title={copy.buyerGoogle}
+											description={s.linkHelp}
+											icon="link"
+										>
+											{google}
+										</BusinessSection>
+									)}
+									<BusinessSection
+										title={googleCopy[locale].recovery}
+										description={copy.recoveryHelp}
+										icon="shield-lock"
 									>
-										<Button type="submit" disabled={busy}>
-											{busy ? t.saving : t.submit}
-										</Button>
-									</SettingsActions>
-								</form>
-								{notice === t.linkDone && (
-									<Link
-										className={settingsSecondary}
-										href={`/${locale}/auth/buyer-sign-in`}
-									>
-										{t.buyer} · {t.signin}
-									</Link>
-								)}
-							</SettingsSection>
-							{screen === "link" && (
-								<SettingsSection
-									title={copy.buyerGoogle}
-									description={s.linkHelp}
-									icon="link"
-								>
-									{google}
-								</SettingsSection>
-							)}
-							<SettingsSection
-								title={googleCopy[locale].recovery}
-								description={copy.recoveryHelp}
-								icon="shield-lock"
-							>
-								<Link
-									className={settingsSecondary}
-									href={`/${locale}/auth/forgot-password`}
-								>
-									{googleCopy[locale].recovery}
-								</Link>
-							</SettingsSection>
+										<Link
+											className={settingsSecondary}
+											href={`/${locale}/auth/forgot-password`}
+										>
+											{googleCopy[locale].recovery}
+										</Link>
+									</BusinessSection>
+								</div>
+							</div>
 						</>
 					)}
-					<SettingsSection
+					<BusinessSection
 						title={copy.signout}
 						description={copy.signoutHelp}
 						icon="shield-lock"
@@ -590,6 +995,7 @@ function SellerAccountPanel({
 								<Button
 									key={String(all)}
 									type="button"
+									className="h-auto min-h-11 whitespace-normal text-start"
 									variant="outline"
 									disabled={busy}
 									onClick={() => {
@@ -612,7 +1018,7 @@ function SellerAccountPanel({
 								</Button>
 							))}
 						</div>
-					</SettingsSection>
+					</BusinessSection>
 				</>
 			) : (
 				!loading && (

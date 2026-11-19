@@ -1,7 +1,7 @@
 import type { Locale } from "./locales";
 const en = {
-	title: "Settings & security",
-	overview: "Settings overview",
+	title: "Account",
+	overview: "Account settings",
 	profile: "Personal profile",
 	password: "Password & security",
 	link: "Buyer access",
@@ -16,7 +16,7 @@ const en = {
 		"Manage your personal identity, access and email preferences. These settings are not tied to a selected store.",
 	businessHelp:
 		"Manage company setup, your public storefront and checkout coverage. Business permissions still apply.",
-	overviewHelp: "One place to manage your account and business settings.",
+	overviewHelp: "Manage email preferences, privacy and your seller account.",
 	profileHelp:
 		"Your personal identity is separate from your company and public storefront.",
 	passwordHelp:
@@ -58,8 +58,8 @@ type Copy = { [K in keyof typeof en]: string };
 export const sellerSettingsCopy: Record<Locale, Copy> = {
 	en,
 	"fa-AF": {
-		title: "تنظیمات و امنیت",
-		overview: "نمای کلی تنظیمات",
+		title: "حساب",
+		overview: "تنظیمات حساب",
 		profile: "پروفایل شخصی",
 		password: "رمز عبور و امنیت",
 		link: "دسترسی خریدار",
@@ -74,7 +74,8 @@ export const sellerSettingsCopy: Record<Locale, Copy> = {
 			"هویت شخصی، دسترسی و ترجیحات ایمیل خود را مدیریت کنید. این تنظیمات به فروشگاه انتخاب‌شده وابسته نیست.",
 		businessHelp:
 			"ایجاد شرکت، فروشگاه عمومی و محدودهٔ پذیرش سفارش را مدیریت کنید. صلاحیت‌های کسب‌وکار همچنان الزامی است.",
-		overviewHelp: "یک جای مشخص برای مدیریت تنظیمات حساب و کسب‌وکار شما.",
+		overviewHelp:
+			"ترجیحات ایمیل، حریم خصوصی و حساب فروشندهٔ خود را مدیریت کنید.",
 		profileHelp: "هویت شخصی شما از شرکت و فروشگاه عمومی جدا است.",
 		passwordHelp: "از اطلاعات ورود مشترک حساب‌های خریدار و فروشنده محافظت کنید.",
 		linkHelp:
@@ -109,8 +110,8 @@ export const sellerSettingsCopy: Record<Locale, Copy> = {
 		permission: "دسترسی به نقش فعلی و تأیید کسب‌وکار شما وابسته است.",
 	},
 	ps: {
-		title: "تنظیمات او امنیت",
-		overview: "د تنظیماتو کتنه",
+		title: "حساب",
+		overview: "د حساب تنظیمات",
 		profile: "شخصي پروفایل",
 		password: "پټنوم او امنیت",
 		link: "د پېرودونکي لاسرسی",
@@ -125,7 +126,8 @@ export const sellerSettingsCopy: Record<Locale, Copy> = {
 			"خپل شخصي هویت، لاسرسی او بریښنالیک غوره‌توبونه اداره کړئ. دا تنظیمات له ټاکلي پلورنځي سره تړاو نه لري.",
 		businessHelp:
 			"د شرکت جوړول، عامه پلورنځی او د سپارښتنو سیمه اداره کړئ. د سوداګرۍ صلاحیتونه لا هم اړین دي.",
-		overviewHelp: "ستاسو د حساب او سوداګرۍ د تنظیماتو لپاره یو ځای.",
+		overviewHelp:
+			"د بریښنالیک غوره‌توبونه، محرمیت او خپل پلورونکي حساب اداره کړئ.",
 		profileHelp: "ستاسو شخصي هویت له شرکت او عامه پلورنځي څخه جلا دی.",
 		passwordHelp:
 			"د پېرودونکي او پلورونکي حسابونو ګډ د ننوتلو معلومات خوندي کړئ.",
@@ -161,8 +163,8 @@ export const sellerSettingsCopy: Record<Locale, Copy> = {
 		permission: "لاسرسی ستاسو د سوداګرۍ په اوسني رول او تصدیق پورې تړلی دی.",
 	},
 	ar: {
-		title: "الإعدادات والأمان",
-		overview: "نظرة عامة على الإعدادات",
+		title: "الحساب",
+		overview: "إعدادات الحساب",
 		profile: "الملف الشخصي",
 		password: "كلمة المرور والأمان",
 		link: "وصول المشتري",
@@ -177,7 +179,7 @@ export const sellerSettingsCopy: Record<Locale, Copy> = {
 			"أدر هويتك الشخصية ووصولك وتفضيلات البريد. هذه الإعدادات لا ترتبط بمتجر محدد.",
 		businessHelp:
 			"أدر إعداد الشركة والمتجر العام ونطاق قبول الطلبات. تبقى صلاحيات النشاط التجاري مطلوبة.",
-		overviewHelp: "مكان واحد لإدارة إعدادات حسابك ونشاطك التجاري.",
+		overviewHelp: "أدر تفضيلات البريد والخصوصية وحساب البائع الخاص بك.",
 		profileHelp: "هويتك الشخصية منفصلة عن شركتك ومتجرك العام.",
 		passwordHelp: "احمِ بيانات الدخول المشتركة لحسابَي المشتري والبائع.",
 		linkHelp:

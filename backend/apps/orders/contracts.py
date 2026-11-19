@@ -62,6 +62,23 @@ class Query(Strict):
     state = s.ChoiceField(choices=["", "unpaid", "partial", "paid", "overpaid", "overdue"], default="")
 
 
+class OrderActivityQuery(Strict):
+    page = s.IntegerField(min_value=1, max_value=10000, default=1)
+
+
+class OrderActivityEvent(s.Serializer):
+    id = s.UUIDField()
+    source = s.ChoiceField(choices=["orders", "payments", "fulfilment", "aftercare"])
+    action = s.CharField()
+    created_at = s.DateTimeField()
+
+
+class OrderActivityPage(s.Serializer):
+    results = OrderActivityEvent(many=True)
+    count = s.IntegerField()
+    page = s.IntegerField()
+
+
 class Outcome(s.Serializer):
     seller = s.UUIDField()
     seller_name = s.CharField()
@@ -100,6 +117,7 @@ class OrderCustomer(s.Serializer):
 
 class OrderRow(s.Serializer):
     customer = OrderCustomer(required=False)
+    dispute_id = s.UUIDField(allow_null=True, required=False)
     id = s.UUIDField()
     seller = s.UUIDField()
     currency = s.CharField()

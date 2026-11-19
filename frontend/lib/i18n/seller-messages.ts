@@ -10,6 +10,7 @@ const en = {
 	messagingAccess: "Messaging access",
 	individual: "Individual",
 	company: "Company",
+	businessKind: "Business",
 	noBusiness: "No messaging business available",
 	noBusinessHelp:
 		"No business with messaging permission was returned for this account. Business management does not grant messaging access.",
@@ -43,6 +44,7 @@ const fa: Copy = {
 	messagingAccess: "دسترسی پیام‌رسانی",
 	individual: "انفرادی",
 	company: "شرکت",
+	businessKind: "کسب‌وکار",
 	noBusiness: "شرکت دارای دسترسی پیام‌رسانی موجود نیست",
 	noBusinessHelp:
 		"برای این حساب شرکتی با اجازهٔ پیام‌رسانی برگردانده نشد. مدیریت شرکت اجازهٔ پیام‌رسانی نمی‌دهد.",
@@ -75,6 +77,7 @@ const ps: Copy = {
 	messagingAccess: "پیغامونو ته لاسرسی",
 	individual: "انفرادي",
 	company: "شرکت",
+	businessKind: "سوداګري",
 	noBusiness: "د پیغامونو سوداګري نشته",
 	noBusinessHelp:
 		"دې حساب ته د پیغامونو اجازه لرونکې سوداګري راونه ګرځول شوه. د سوداګرۍ مدیریت د پیغامونو اجازه نه ورکوي.",
@@ -105,6 +108,7 @@ const ar: Copy = {
 	messagingAccess: "صلاحية المراسلة",
 	individual: "فردي",
 	company: "شركة",
+	businessKind: "نشاط تجاري",
 	noBusiness: "لا يوجد نشاط متاح للمراسلة",
 	noBusinessHelp:
 		"لم يُرجع أي نشاط بصلاحية المراسلة لهذا الحساب. إدارة النشاط لا تمنح صلاحية المراسلة.",

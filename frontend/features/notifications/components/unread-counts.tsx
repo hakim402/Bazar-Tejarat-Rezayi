@@ -14,12 +14,14 @@ export function CountStrip({
 	seller,
 	onDenied,
 	variant,
+	refreshKey = 0,
 }: {
 	context: Context;
 	locale: Locale;
 	seller?: string;
 	onDenied?: (error: unknown) => void;
-	variant?: "buyer";
+	variant?: "buyer" | "summary";
+	refreshKey?: number;
 }) {
 	const [counts, setCounts] = useState<Counts | null>(null),
 		[error, setError] = useState<unknown>(null);
@@ -49,8 +51,26 @@ export function CountStrip({
 				throw e;
 			}
 		},
-		[context, seller],
+		[context, seller, refreshKey],
 	);
+	if (variant === "summary") {
+		return (
+			<p role="status" className="m-0 text-sm text-muted">
+				{error ? (
+					t.failed
+				) : counts ? (
+					<>
+						{t.noticeCount}:{" "}
+						<bdi className="font-medium tabular-nums text-foreground">
+							{new Intl.NumberFormat(locale).format(counts.unread_notices)}
+						</bdi>
+					</>
+				) : (
+					t.loading
+				)}
+			</p>
+		);
+	}
 	if (variant === "buyer") {
 		const messagesHref = `/${locale}/account/${context}/messages${seller ? `?seller=${seller}` : ""}`;
 		return (

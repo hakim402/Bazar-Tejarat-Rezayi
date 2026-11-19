@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SellerAccountProvider } from "./seller-account";
-import { SellerNotifications } from "./seller-notifications";
+import { HeaderNotifications } from "../../../../../../components/layout/header-notifications";
 import type { CSSProperties, ReactNode } from "react";
 import type { Locale } from "../../../../../../lib/i18n/locales";
 import { InvitationReturn } from "../../../../../../features/organizations/components/invitation-entry";
@@ -48,7 +48,7 @@ export function SellerShell({
 							/>
 							<HeaderSessionProvider>
 								<div className="flex min-w-0 shrink-0 items-center gap-2">
-									<SellerNotifications locale={locale} />
+									<HeaderNotifications locale={locale} />
 									<PreferencesMenu locale={locale} />
 									<HeaderProfile locale={locale} />
 								</div>

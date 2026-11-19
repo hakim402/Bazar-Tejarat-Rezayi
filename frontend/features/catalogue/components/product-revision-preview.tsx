@@ -5,6 +5,7 @@ import { Icon } from "../../../components/ui/icon";
 import { apiOrigin } from "../../../lib/api/client";
 import { catalogueCopy } from "../../../lib/i18n/catalogue";
 import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
+import { sellerInventoryCopy } from "../../../lib/i18n/seller-inventory";
 import { interfaceCopy } from "../../../lib/i18n/interface";
 import {
 	direction,
@@ -31,6 +32,7 @@ export function ProductRevisionPreview({
 	sellerPreview?: boolean;
 }) {
 	const s = sellerProductsCopy[locale];
+	const { yes, no } = sellerInventoryCopy[locale];
 	const t = catalogueCopy[locale],
 		ui = interfaceCopy[locale];
 	const [selected, setSelected] = useState(0),
@@ -176,7 +178,14 @@ export function ProductRevisionPreview({
 								onClick={() => setSelected(i)}
 								className="min-h-11 rounded-control border border-control px-3 py-2 text-sm aria-pressed:border-action aria-pressed:bg-info aria-pressed:text-action"
 							>
-								<bdi>{v.sku}</bdi> {Object.values(v.attributes).join(" · ")}
+								<bdi>{v.sku}</bdi>{" "}
+								<bdi dir="auto">
+									{Object.values(v.attributes)
+										.map((value) =>
+											typeof value === "boolean" ? (value ? yes : no) : value,
+										)
+										.join(" · ")}
+								</bdi>
 							</button>
 						))}
 					</div>
@@ -224,7 +233,11 @@ export function ProductRevisionPreview({
 								<dt className="text-sm text-muted">
 									{body.attribute_labels?.[k]?.[locale] ?? k}
 								</dt>
-								<dd className="m-0 text-sm wrap-anywhere">{String(v)}</dd>
+								<dd className="m-0 text-sm wrap-anywhere">
+									<bdi dir="auto">
+										{typeof v === "boolean" ? (v ? yes : no) : v}
+									</bdi>
+								</dd>
 							</div>
 						))}
 					</dl>

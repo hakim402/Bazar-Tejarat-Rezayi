@@ -2,8 +2,18 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "../../../components/ui/icon";
+import { Button } from "../../../components/shadcn/button";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "../../../components/shadcn/dialog";
 import { useEffect, useRef, useState } from "react";
-import type { Locale } from "../../../lib/i18n/locales";
+import { direction, type Locale } from "../../../lib/i18n/locales";
 import { apiOrigin } from "../../../lib/api/client";
 import { AccountError } from "../../../lib/api/private-client";
 import {
@@ -477,63 +487,65 @@ function ProtectedImage({
 	image: ImageRef;
 	locale: Locale;
 }) {
-	const dialog = useRef<HTMLDialogElement>(null),
-		t = communicationCopy[locale],
-		[error, setError] = useState(false),
-		[open, setOpen] = useState(false);
+	const t = communicationCopy[locale],
+		[error, setError] = useState(false);
 	const url = `${apiOrigin(process.env.NEXT_PUBLIC_API_URL)}/api/v1/messaging/${context}/attachments/${image.id}/`;
 	return (
 		<div className="max-w-full">
 			{error ? (
 				<p role="alert">{t.failed}</p>
 			) : (
-				<button
-					type="button"
-					className="min-h-11 min-w-11 max-w-full cursor-pointer rounded-xl border border-border bg-surface p-1 transition-colors hover:border-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
-					aria-label={t.enlarge}
-					onClick={() => {
-						setOpen(true);
-						dialog.current?.showModal();
-					}}
-				>
-					{/* biome-ignore lint/performance/noImgElement: authenticated no-store bytes must bypass the public image optimizer. */}
-					<img
-						loading="lazy"
-						referrerPolicy="no-referrer"
-						src={url}
-						alt={t.images}
-						width={image.width}
-						height={image.height}
-						className="size-24 rounded-lg object-cover"
-						onError={() => setError(true)}
-					/>
-				</button>
+				<Dialog>
+					<DialogTrigger asChild>
+						<button
+							type="button"
+							className="min-h-11 min-w-11 max-w-full cursor-pointer rounded-xl border border-border bg-surface p-1 transition-colors hover:border-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
+							aria-label={t.enlarge}
+						>
+							{/* biome-ignore lint/performance/noImgElement: authenticated no-store bytes must bypass the public image optimizer. */}
+							<img
+								loading="lazy"
+								referrerPolicy="no-referrer"
+								src={url}
+								alt={t.images}
+								width={image.width}
+								height={image.height}
+								className="size-24 rounded-lg object-cover"
+								onError={() => setError(true)}
+							/>
+						</button>
+					</DialogTrigger>
+					<DialogContent
+						dir={direction(locale)}
+						showCloseButton={false}
+						className="max-h-[90dvh] max-w-[92vw] gap-3 overflow-auto rounded-2xl p-4"
+					>
+						<DialogHeader className="sr-only">
+							<DialogTitle>{t.enlarge}</DialogTitle>
+						</DialogHeader>
+						{/* biome-ignore lint/performance/noImgElement: private authenticated bytes must bypass the public image optimizer. */}
+						<img
+							referrerPolicy="no-referrer"
+							src={url}
+							alt={t.images}
+							width={image.width}
+							height={image.height}
+							className="max-h-[72dvh] max-w-full object-contain"
+						/>
+						<DialogFooter>
+							<DialogClose asChild>
+								<Button
+									type="button"
+									variant="secondary"
+									className="rounded-lg"
+								>
+									{t.close}
+								</Button>
+							</DialogClose>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 			)}
-			<dialog
-				ref={dialog}
-				onClose={() => setOpen(false)}
-				className={`${panel} max-h-[90dvh] max-w-[92vw] space-y-3 overflow-auto p-4 text-foreground shadow-lifted backdrop:bg-black/50`}
-				aria-label={t.enlarge}
-			>
-				<button
-					type="button"
-					className={actionBtn}
-					onClick={() => dialog.current?.close()}
-				>
-					{t.close}
-				</button>
-				{open && (
-					// biome-ignore lint/performance/noImgElement: private authenticated bytes must bypass the public image optimizer.
-					<img
-						referrerPolicy="no-referrer"
-						src={url}
-						alt={t.images}
-						width={image.width}
-						height={image.height}
-						className="max-h-[72dvh] max-w-full object-contain"
-					/>
-				)}
-			</dialog>
 		</div>
 	);
 }

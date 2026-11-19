@@ -4,6 +4,7 @@ import type { FormEvent, ReactNode } from "react";
 import type { Locale } from "../../../lib/i18n/locales";
 import { Button } from "../../../components/shadcn/button";
 import { Input } from "../../../components/shadcn/input";
+import { Label } from "../../../components/shadcn/label";
 import { Textarea } from "../../../components/shadcn/textarea";
 import { Icon, type IconName } from "../../../components/ui/icon";
 import { cn } from "../../../lib/shadcn-utils";
@@ -16,7 +17,7 @@ import {
 	control as defaultControl,
 	panel as defaultPanel,
 } from "../../orders/components/controls";
-import { SellerSelect } from "../../../app/[locale]/(seller)/account/seller/components/seller-select";
+import { SellerSelect } from "../../../components/seller-select";
 import {
 	salesAction,
 	salesControl,
@@ -329,7 +330,7 @@ export function AftercareActionForm({
 				</p>
 			)}
 			{isSeller ? (
-				<fieldset disabled={locked} className="min-w-0 space-y-2">
+				<fieldset disabled={locked} className="m-0 min-w-0 space-y-2 border-0 p-0">
 					<legend className="mb-2 text-sm font-medium">{t.exact}</legend>
 					<SellerSelect
 						label={sales.actions}
@@ -412,8 +413,8 @@ export function AftercareActionForm({
 					disabled={locked || !available}
 					className={
 						isSeller
-							? "space-y-4"
-							: "flex min-w-0 flex-col gap-4 rounded-xl border border-solid border-border bg-page p-4"
+							? "m-0 min-w-0 space-y-4 border-0 p-0"
+							: "m-0 flex min-w-0 flex-col gap-4 rounded-xl border border-solid border-border bg-page p-4"
 					}
 				>
 					{targets &&
@@ -499,7 +500,7 @@ export function AftercareActionForm({
 							{isSeller ? (
 								<label className={labelClass}>
 									{t.amount} (<bdi>{data.order.currency}</bdi>)
-									<input
+									<Input
 										className={control}
 										dir="ltr"
 										inputMode="decimal"
@@ -553,22 +554,22 @@ export function AftercareActionForm({
 					)}
 					{mode === "review_submit" &&
 						(isSeller ? (
-							<label className={labelClass}>
-								{t.reviewRating}
-								<select
-									aria-label={t.reviewRating}
+							<div className={labelClass}>
+								<Label htmlFor={`${uid}-rating`}>{t.reviewRating}</Label>
+								<NativeSelect
+									id={`${uid}-rating`}
 									className={control}
 									value={draft.rating}
 									onChange={(event) => patch({ rating: event.target.value })}
 								>
-									<option value="">—</option>
+									<NativeSelectOption value="">—</NativeSelectOption>
 									{[1, 2, 3, 4, 5].map((value) => (
-										<option key={value} value={value}>
+										<NativeSelectOption key={value} value={value}>
 											{value}/5
-										</option>
+										</NativeSelectOption>
 									))}
-								</select>
-							</label>
+								</NativeSelect>
+							</div>
 						) : (
 							<BuyerField label={t.reviewRating} htmlFor={`${uid}-rating`}>
 								<NativeSelect
@@ -590,7 +591,7 @@ export function AftercareActionForm({
 						isSeller ? (
 							<label className={labelClass}>
 								{mode === "review_submit" ? t.reviewText : t.disputeResponse}
-								<textarea
+								<Textarea
 									className={control}
 									dir="auto"
 									maxLength={2000}
@@ -630,7 +631,7 @@ export function AftercareActionForm({
 										<div className="grid min-w-0 gap-4 sm:grid-cols-2">
 											<label className={labelClass}>
 												{t.sentAt}
-												<input
+												<Input
 													className={control}
 													type="datetime-local"
 													dir="ltr"
@@ -646,7 +647,7 @@ export function AftercareActionForm({
 											</label>
 											<label className={labelClass}>
 												{t.reference}
-												<input
+												<Input
 													className={control}
 													autoComplete="off"
 													maxLength={160}
@@ -696,10 +697,11 @@ export function AftercareActionForm({
 									{isSeller ? (
 										<label className={labelClass}>
 											{t.description}
-											<textarea
+											<Textarea
 												className={control}
 												maxLength={500}
 												rows={4}
+												dir="auto"
 												value={draft.description}
 												onChange={(event) =>
 													patch({ description: event.target.value })
@@ -715,6 +717,7 @@ export function AftercareActionForm({
 												id={`${uid}-description`}
 												maxLength={500}
 												rows={3}
+												dir="auto"
 												value={draft.description}
 												onChange={(event) =>
 													patch({ description: event.target.value })
@@ -727,7 +730,7 @@ export function AftercareActionForm({
 							) : isSeller ? (
 								<label className={labelClass}>
 									{t.disputeReason}
-									<textarea
+									<Textarea
 										className={control}
 										dir="auto"
 										minLength={3}
@@ -755,7 +758,7 @@ export function AftercareActionForm({
 								(isSeller ? (
 									<label className={labelClass}>
 										{t.evidence}
-										<input
+										<Input
 											ref={fileInput}
 											className={`${control} file:me-3 file:rounded-lg file:border-0 file:bg-info file:px-3 file:py-1 file:text-action`}
 											type="file"
@@ -789,7 +792,7 @@ export function AftercareActionForm({
 								))}
 							{isSeller && <p className="text-sm text-muted">{t.filesNote}</p>}
 							{isSeller ? (
-								<button
+								<Button
 									type="button"
 									className={action}
 									disabled={
@@ -804,7 +807,7 @@ export function AftercareActionForm({
 									}}
 								>
 									{t.uploads}
-								</button>
+								</Button>
 							) : (
 								<div className="flex flex-wrap gap-2">
 									<Button
@@ -844,7 +847,7 @@ export function AftercareActionForm({
 								</div>
 							)}
 							{isSeller && file && (
-								<button
+								<Button
 									type="button"
 									className={action}
 									onClick={() =>
@@ -855,7 +858,7 @@ export function AftercareActionForm({
 									}
 								>
 									{t.removeImage}
-								</button>
+								</Button>
 							)}
 							<div className="flex flex-wrap gap-3">
 								{draft.images.map((id) => (
@@ -869,7 +872,7 @@ export function AftercareActionForm({
 											/>
 										)}
 										{isSeller ? (
-											<button
+											<Button
 												type="button"
 												className={action}
 												onClick={() =>
@@ -883,7 +886,7 @@ export function AftercareActionForm({
 												}
 											>
 												{t.removeImage}
-											</button>
+											</Button>
 										) : (
 											<Button
 												type="button"
@@ -910,7 +913,7 @@ export function AftercareActionForm({
 					) : isSeller ? (
 						<label className={labelClass}>
 							{t.reason}
-							<textarea
+							<Textarea
 								className={control}
 								dir="auto"
 								minLength={3}
@@ -969,7 +972,7 @@ export function AftercareActionForm({
 					>
 						{isSeller ? (
 							<>
-								<button
+								<Button
 									type="button"
 									className={action}
 									onClick={() => {
@@ -979,14 +982,14 @@ export function AftercareActionForm({
 									}}
 								>
 									{t.reload}
-								</button>
-								<button
+								</Button>
+								<Button
 									className={action}
 									type="submit"
 									disabled={stale || !!file}
 								>
 									{t.exact}
-								</button>
+								</Button>
 							</>
 						) : (
 							<>

@@ -38,7 +38,7 @@ import {
 	action as defaultAction,
 	panel as defaultPanel,
 } from "../../orders/components/controls";
-import { SellerSelect } from "../../../app/[locale]/(seller)/account/seller/components/seller-select";
+import { SellerSelect } from "../../../components/seller-select";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import {
 	SalesFrame,
@@ -77,6 +77,7 @@ import { SelectionForm } from "./selection-form";
 import { PaymentEvidence } from "./evidence";
 import { SellerPayments } from "./seller-payments";
 import { Button } from "../../../components/shadcn/button";
+import { PAGE_SIZE } from "../../../components/pager";
 import { Badge } from "../../../components/shadcn/badge";
 import { Input } from "../../../components/shadcn/input";
 import { Textarea } from "../../../components/shadcn/textarea";
@@ -386,7 +387,7 @@ function Workspace({
 				);
 				if (live.current !== mine || signal?.aborted) return;
 				setProfiles(p.results);
-				setMoreProfiles(p.count > 20);
+				setMoreProfiles(p.count > PAGE_SIZE);
 				if (!seller && !id) {
 					if (p.results[0]) {
 						const href = salesHistoryHref(
@@ -449,7 +450,7 @@ function Workspace({
 			if (live.current !== mine) return;
 			setProfiles((previous) => [...previous, ...data.results]);
 			setProfilePage(next);
-			setMoreProfiles(next < 10000 && next * 20 < data.count);
+			setMoreProfiles(next < 10000 && next * PAGE_SIZE < data.count);
 		} catch (error) {
 			fail(error, mine);
 		} finally {

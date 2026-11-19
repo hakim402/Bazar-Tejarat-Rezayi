@@ -147,6 +147,14 @@ class OrderDetail(OrderView):
         return Response(c.OrderRow(queries.order_data(row, seller_list=actor.context == "seller", buyer_list=actor.context == "buyer")).data)
 
 
+class OrderActivity(OrderView):
+    @extend_schema(operation_id="orders_seller_activity", parameters=[c.OrderActivityQuery], responses=c.OrderActivityPage)
+    def get(self, request, pk):
+        actor = self.actor("seller")
+        data = query(request, c.OrderActivityQuery)
+        return Response(c.OrderActivityPage(queries.order_activity(actor, pk, page=data["page"])).data)
+
+
 class InvoiceDetail(OrderView):
     @extend_schema(operation_id="orders_invoice", parameters=[c.Query], responses=c.OrderRow)
     def get(self, request, context, pk):

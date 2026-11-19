@@ -1,13 +1,13 @@
 import type { Locale } from "./locales";
 const en = {
 	title: "Business profiles",
-	help: "Manage the profiles visible to your seller account. Each profile has its own review, approval and team access.",
+	help: "Manage your individual and company business profiles, verification and team access for eligible companies.",
 	back: "Back to profiles",
 	signInHelp:
 		"Sign in with your seller account to manage your business profiles.",
 	signIn: "Sign in",
 	individualHelp:
-		"Create an individual seller profile here. Company upgrades remain in Settings and require evidence and review.",
+		"Individual and company profiles have separate verification requirements. Team access depends on company eligibility and your role.",
 	authorityHelp:
 		"Business approval and profile management do not grant permission to sell, manage stock or view messages. Each destination checks its own current access.",
 	email: "Account email verification",
@@ -22,12 +22,12 @@ export const sellerBusinessCopy: Record<Locale, Copy> = {
 	en,
 	"fa-AF": {
 		title: "پروفایل‌های کسب‌وکار",
-		help: "پروفایل‌های قابل دسترس حساب فروشندهٔ خود را مدیریت کنید. هر پروفایل بررسی، تأیید و دسترسی تیمی جداگانه دارد.",
+		help: "پروفایل‌های کسب‌وکار فردی و شرکتی، تأیید آن‌ها و دسترسی تیمی شرکت‌های واجد شرایط را مدیریت کنید.",
 		back: "بازگشت به پروفایل‌ها",
 		signInHelp: "برای مدیریت پروفایل‌های تجارتی با حساب فروشندهٔ خود وارد شوید.",
 		signIn: "ورود",
 		individualHelp:
-			"اینجا پروفایل فروشندهٔ فردی ایجاد کنید. ارتقا به شرکت در تنظیمات انجام می‌شود و به اسناد و بررسی نیاز دارد.",
+			"پروفایل‌های فردی و شرکتی شرایط تأیید جداگانه دارند. دسترسی تیمی به واجد شرایط بودن شرکت و نقش شما بستگی دارد.",
 		authorityHelp:
 			"تأیید کسب‌وکار و مدیریت پروفایل، صلاحیت فروش، مدیریت موجودی یا دیدن پیام‌ها را نمی‌دهد. هر بخش دسترسی فعلی خود را بررسی می‌کند.",
 		email: "تأیید ایمیل حساب",
@@ -39,13 +39,13 @@ export const sellerBusinessCopy: Record<Locale, Copy> = {
 	},
 	ps: {
 		title: "د سوداګرۍ پروفایلونه",
-		help: "د خپل پلورونکي حساب د لاسرسي وړ پروفایلونه اداره کړئ. هر پروفایل خپله بیاکتنه، تایید او د ټیم لاسرسی لري.",
+		help: "خپل انفرادي او شرکتي سوداګریز پروفایلونه، تایید او د وړ شرکتونو د ټیم لاسرسی اداره کړئ.",
 		back: "پروفایلونو ته ستنېدل",
 		signInHelp:
 			"د سوداګریزو پروفایلونو د ادارې لپاره خپل پلورونکي حساب ته ننوځئ.",
 		signIn: "ننوتل",
 		individualHelp:
-			"دلته د انفرادي پلورونکي پروفایل جوړ کړئ. شرکت ته لوړول په تنظیماتو کې کېږي او اسنادو او بیاکتنې ته اړتیا لري.",
+			"انفرادي او شرکتي پروفایلونه د تایید جلا شرایط لري. د ټیم لاسرسی د شرکت په وړتیا او ستاسو په رول پورې اړه لري.",
 		authorityHelp:
 			"د سوداګرۍ تایید او د پروفایل اداره د پلور، موجودۍ ادارې یا پیغامونو لیدلو اجازه نه ورکوي. هره برخه خپل اوسنی لاسرسی ګوري.",
 		email: "د حساب برېښنالیک تایید",
@@ -57,12 +57,12 @@ export const sellerBusinessCopy: Record<Locale, Copy> = {
 	},
 	ar: {
 		title: "ملفات الأعمال",
-		help: "أدر الملفات المتاحة لحساب البائع. لكل ملف مراجعته واعتماده وصلاحيات فريقه المستقلة.",
+		help: "أدر ملفات أعمالك الفردية وملفات الشركات والتحقق منها وصلاحيات فرق الشركات المؤهلة.",
 		back: "العودة إلى الملفات",
 		signInHelp: "سجّل الدخول بحساب البائع لإدارة ملفات نشاطك التجاري.",
 		signIn: "تسجيل الدخول",
 		individualHelp:
-			"أنشئ ملف بائع فردي هنا. تبقى الترقية إلى شركة في الإعدادات وتتطلب أدلة ومراجعة.",
+			"للملفات الفردية وملفات الشركات متطلبات تحقق مختلفة. تعتمد صلاحيات الفريق على أهلية الشركة ودورك.",
 		authorityHelp:
 			"اعتماد النشاط وإدارة الملف لا يمنحان صلاحية البيع أو إدارة المخزون أو عرض الرسائل. تتحقق كل وجهة من صلاحياتها الحالية.",
 		email: "التحقق من بريد الحساب",

@@ -21,7 +21,8 @@ import {
 	NativeSelectOption,
 } from "../../../../../../../components/shadcn/native-select";
 import { Textarea } from "../../../../../../../components/shadcn/textarea";
-import { CheckField } from "../../../../../../../components/ui/form-field";
+import { Checkbox } from "../../../../../../../components/shadcn/checkbox";
+import { Label } from "../../../../../../../components/shadcn/label";
 import { Alert } from "../../../../../../../components/ui/alert";
 import { useUnsavedNavigation } from "../../../../../../../components/layout/navigation-guard";
 import { AccountError } from "../../../../../../../lib/api/private-client";
@@ -902,33 +903,49 @@ function StockForm({
 											)}
 											{!locked && (
 												<>
-													<CheckField
-														compact
-														name="expiry_required"
-														label={flow.expiry}
-														checked={policyRequired}
-														onChange={(e) => {
-															setRequired(e.target.checked);
-															if (e.target.checked) setTracking("batch");
-														}}
-													/>
+													<div className="flex items-start gap-2 py-1">
+														<Checkbox
+															id="field-expiry_required"
+															name="expiry_required"
+															className="mt-0.5 size-4 shrink-0"
+															checked={policyRequired}
+															onCheckedChange={(checked) => {
+																setRequired(checked === true);
+																if (checked === true) setTracking("batch");
+															}}
+														/>
+														<Label
+															htmlFor="field-expiry_required"
+															className="cursor-pointer text-xs leading-5"
+														>
+															{flow.expiry}
+														</Label>
+													</div>
 													<details className="text-sm">
 														<summary className="cursor-pointer text-muted">
 															{flow.advanced}
 														</summary>
 														<div className="mt-3 space-y-2">
-															<CheckField
-																compact
-																name="separate"
-																label={flow.separate}
-																checked={policyTracking === "batch"}
-																disabled={policyRequired}
-																onChange={(e) =>
-																	setTracking(
-																		e.target.checked ? "batch" : "plain",
-																	)
-																}
-															/>
+															<div className="flex items-start gap-2 py-1">
+																<Checkbox
+																	id="field-separate"
+																	name="separate"
+																	className="mt-0.5 size-4 shrink-0"
+																	checked={policyTracking === "batch"}
+																	disabled={policyRequired}
+																	onCheckedChange={(checked) =>
+																		setTracking(
+																			checked === true ? "batch" : "plain",
+																		)
+																	}
+																/>
+																<Label
+																	htmlFor="field-separate"
+																	className="cursor-pointer text-xs leading-5"
+																>
+																	{flow.separate}
+																</Label>
+															</div>
 															<p className="text-xs text-muted">
 																{flow.batchHelp}
 															</p>
@@ -1009,6 +1026,7 @@ function StockForm({
 										>
 											<Input
 												id="field-reference"
+												name="reference"
 												value={reference}
 												maxLength={120}
 												onChange={(e) => setReference(e.target.value)}

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, MoreHorizontal, Package, RefreshCw } from "lucide-react";
+import { Check, MoreHorizontal, Package } from "lucide-react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
 import { Card } from "../../../components/shadcn/card";
@@ -19,10 +19,10 @@ import {
 	type QueryReader,
 } from "../../../lib/routes/account-routes";
 import { SessionEntry } from "../../orders/components/session-entry";
-import { useCommerceGuard } from "../../orders/components/unsaved";
 import { commerce, type Profile } from "../../orders/api";
 import { ProductThumbnail } from "../../orders/components/order-ui";
 import { commerceCopy } from "../../orders/copy";
+import { orderListCopy } from "../../orders/list-copy";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import { useCommunicationSession } from "../../messaging/hooks";
 import { localTimestamp } from "../../messaging/api";
@@ -33,6 +33,7 @@ import {
 	salesTableCard,
 	SalesBusinessSelect,
 	SalesEmpty,
+	SalesRefreshButton,
 	SalesPagination,
 	salesAction,
 	salesControl,
@@ -264,6 +265,7 @@ function nextLabel(locale: Locale, row: RequestRow) {
 }
 
 function ProductCell({ locale, row }: { locale: Locale; row: RequestRow }) {
+	const ol = orderListCopy[locale];
 	const line = (item: Line, index: number) => {
 		const product = productContext(row.proposal, item.variant, index),
 			text = productText(product, locale, item.variant),
@@ -312,7 +314,8 @@ function ProductCell({ locale, row }: { locale: Locale; row: RequestRow }) {
 			{row.proposal.lines.length > 1 && (
 				<details>
 					<summary className="cursor-pointer text-xs font-medium text-action">
-						+{row.proposal.lines.length - 1}
+						+{new Intl.NumberFormat(locale).format(row.proposal.lines.length - 1)}{" "}
+						{ol.more}
 					</summary>
 					<div className="mt-3 space-y-3">
 						{row.proposal.lines.slice(1).map((item, i) => line(item, i + 1))}
@@ -344,7 +347,6 @@ function RequestList({
 		nf = new Intl.NumberFormat(locale),
 		router = useRouter(),
 		search = useSearchParams(),
-		guard = useCommerceGuard(locale, false),
 		[rows, setRows] = useState<{ results: RequestRow[]; count: number } | null>(
 			null,
 		),
@@ -381,13 +383,11 @@ function RequestList({
 		};
 	}, [locale, seller, page, filterState, filterQuery, reload]);
 	const go = (changes: Record<string, string>) =>
-		guard.choose(() =>
-			router.push(
-				salesHref(locale, "negotiations", seller, undefined, params, {
-					page: "1",
-					...changes,
-				}),
-			),
+		router.push(
+			salesHref(locale, "negotiations", seller, undefined, params, {
+				page: "1",
+				...changes,
+			}),
 		);
 	const detailHref = (row: RequestRow) =>
 		salesHref(locale, "negotiations", seller, row.id, search);
@@ -490,15 +490,10 @@ function RequestList({
 								{nf.format(rows.count)}
 							</Badge>
 						</h2>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setReload((v) => v + 1)}
-							className="h-9 rounded-lg text-xs"
-						>
-							<RefreshCw className="size-3.5" aria-hidden="true" />
-							{negotiationCopy[locale].reload}
-						</Button>
+						<SalesRefreshButton
+							label={negotiationCopy[locale].reload}
+							onReload={() => setReload((v) => v + 1)}
+						/>
 					</div>
 					<section
 						aria-label={negotiationCopy[locale].title}

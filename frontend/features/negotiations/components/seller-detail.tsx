@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import { Textarea } from "../../../components/shadcn/textarea";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -21,6 +23,7 @@ import {
 	DropdownMenuTrigger,
 } from "../../../components/shadcn/dropdown-menu";
 import { Icon } from "../../../components/ui/icon";
+import { AccountError } from "../../../lib/api/private-client";
 import type { Locale } from "../../../lib/i18n/locales";
 import { cn } from "../../../lib/shadcn-utils";
 import type { QueryReader } from "../../../lib/routes/account-routes";
@@ -169,6 +172,7 @@ export function RequestDetail({
 		setResult(next);
 		setDirty(false);
 		setReload((v) => v + 1);
+		toast.success(t.recoveredToast);
 	}
 	async function send(action: string, confirm = false) {
 		if (owned.current || !row) return;
@@ -251,6 +255,8 @@ export function RequestDetail({
 				if (accessLost(e)) {
 					setReady(false);
 					setRow(null);
+				} else if (e instanceof AccountError) {
+					toast.error(t.error);
 				}
 			}
 		} finally {
@@ -274,7 +280,10 @@ export function RequestDetail({
 			);
 			if (live.current === mine) done(next);
 		} catch (e) {
-			if (live.current === mine) setError(e);
+			if (live.current === mine) {
+				setError(e);
+				if (e instanceof AccountError && !accessLost(e)) toast.error(t.error);
+			}
 		} finally {
 			if (live.current === mine && owned.current === write) {
 				owned.current = null;
@@ -409,14 +418,14 @@ export function RequestDetail({
 			{commandKey && (intent || referenceOnly) && (
 				<section className={salesPanel} role="status">
 					<p>{result?.pending ? commerceCopy[locale].pending : t.pending}</p>
-					<button
+					<Button
 						type="button"
 						className={salesAction}
 						disabled={busy}
 						onClick={() => void recover()}
 					>
 						{t.recover}
-					</button>
+					</Button>
 				</section>
 			)}
 
@@ -572,14 +581,14 @@ export function RequestDetail({
 									reason={String(finalReview.packet.body.reason)}
 								/>
 							)}
-							<button
+							<Button
 								type="button"
 								className={salesAction}
 								disabled={busy || !finalReview}
 								onClick={() => void send("finalize", true)}
 							>
 								{t.finalize}
-							</button>
+							</Button>
 						</>
 					) : (
 						<>
@@ -592,17 +601,17 @@ export function RequestDetail({
 								disabled={busy}
 								onChange={setReason}
 							/>
-							<button
+							<Button
 								type="button"
 								className={salesAction}
 								disabled={busy || reason.trim().length < 3}
 								onClick={() => void send(confirmation)}
 							>
 								{t.confirm}
-							</button>
+							</Button>
 						</>
 					)}
-					<button
+					<Button
 						type="button"
 						className={salesAction}
 						disabled={busy}
@@ -613,7 +622,7 @@ export function RequestDetail({
 						}}
 					>
 						{t.cancel}
-					</button>
+					</Button>
 				</Confirmation>
 			)}
 		</div>
@@ -862,7 +871,7 @@ function ReviewStage({
 		incomplete = !choice.method || !choice.country || !choice.city;
 	return (
 		<div className="space-y-4">
-			<ul className="m-0 space-y-4 p-0">
+			<ul className="m-0 list-none space-y-4 p-0">
 				{row.proposal.lines.map((line, i) => (
 					<li key={`${line.variant}:${line.tier}`}>
 						<ProductRow locale={locale} row={row} line={line} index={i} />
@@ -875,7 +884,7 @@ function ReviewStage({
 					{goodsTotal(row.proposal.lines)} {row.currency}
 				</bdi>
 			</p>
-			<dl className="grid gap-3 rounded-xl border border-border p-3 text-sm sm:grid-cols-3">
+			<dl className="m-0 grid gap-3 rounded-xl border border-border p-3 text-sm sm:grid-cols-3">
 				<div>
 					<dt className="text-xs text-muted">{s.destination}</dt>
 					<dd className="m-0 font-medium">
@@ -929,7 +938,7 @@ function ReviewStage({
 					</Button>
 				)}
 				{canChange && (
-					<button
+					<Button
 						type="button"
 						className={salesAction}
 						disabled={blocked}
@@ -937,10 +946,10 @@ function ReviewStage({
 					>
 						<RotateCcw className="size-4" aria-hidden="true" />
 						{s.requestChanges}
-					</button>
+					</Button>
 				)}
 				{canDecline && (
-					<button
+					<Button
 						type="button"
 						className={salesAction}
 						disabled={blocked}
@@ -948,10 +957,10 @@ function ReviewStage({
 					>
 						<ShieldX className="size-4" aria-hidden="true" />
 						{s.decline}
-					</button>
+					</Button>
 				)}
 				{canFinalize && state === "submitted" && (
-					<button
+					<Button
 						type="button"
 						className={salesAction}
 						disabled={blocked}
@@ -959,7 +968,7 @@ function ReviewStage({
 					>
 						<Package className="size-4" aria-hidden="true" />
 						{s.continueTerms}
-					</button>
+					</Button>
 				)}
 			</div>
 		</div>
@@ -1011,7 +1020,7 @@ function TermsStage({
 						<fieldset
 							key={`${line.variant}:${line.tier}`}
 							disabled={blocked}
-							className="space-y-3 rounded-xl border border-border p-4"
+							className="m-0 min-w-0 space-y-3 rounded-xl border border-border p-4"
 						>
 							<legend className="max-w-full break-words px-2 text-sm font-semibold">
 								<span dir="auto">{text.title}</span> ·{" "}
@@ -1030,7 +1039,7 @@ function TermsStage({
 							<div className="grid gap-3 sm:grid-cols-2">
 								<label className="grid gap-1.5">
 									{t.quantity} · {commerceCopy[locale][line.tier]}
-									<input
+									<Input
 										className={salesControl}
 										dir="ltr"
 										inputMode="decimal"
@@ -1045,7 +1054,7 @@ function TermsStage({
 								</label>
 								<label className="grid gap-1.5">
 									{t.offer} · {row.currency}
-									<input
+									<Input
 										className={salesControl}
 										dir="ltr"
 										inputMode="decimal"
@@ -1081,7 +1090,7 @@ function TermsStage({
 				</p>
 			)}
 			<div className="flex flex-wrap gap-2">
-				<button
+				<Button
 					type="button"
 					className={salesAction}
 					disabled={blocked}
@@ -1089,8 +1098,8 @@ function TermsStage({
 				>
 					<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 					{s.backToRequests}
-				</button>
-				<button
+				</Button>
+				<Button
 					type="button"
 					className={salesAction}
 					disabled={blocked || !valid}
@@ -1098,7 +1107,7 @@ function TermsStage({
 				>
 					{s.continueConfirm}
 					<ChevronRight className="size-4 rtl:rotate-180" aria-hidden="true" />
-				</button>
+				</Button>
 			</div>
 		</div>
 	);
@@ -1131,7 +1140,7 @@ function ConfirmStage({
 	return (
 		<div className="space-y-4">
 			<h3 className="m-0 text-sm font-semibold">{s.summary}</h3>
-			<ul className="m-0 space-y-2 p-0">
+			<ul className="m-0 list-none space-y-2 p-0">
 				{value.lines.map((line, i) => {
 					const product = productContext(value, line.variant, i),
 						text = productText(product, locale, line.variant);
@@ -1159,7 +1168,7 @@ function ConfirmStage({
 					{goodsTotal(value.lines)} {row.currency}
 				</bdi>
 			</p>
-			<dl className="grid gap-3 text-sm sm:grid-cols-2">
+			<dl className="m-0 grid gap-3 text-sm sm:grid-cols-2">
 				<div>
 					<dt className="text-xs text-muted">{s.destination}</dt>
 					<dd className="m-0 font-medium">
@@ -1184,7 +1193,7 @@ function ConfirmStage({
 				onChange={onReason}
 			/>
 			<div className="flex flex-wrap gap-2">
-				<button
+				<Button
 					type="button"
 					className={salesAction}
 					disabled={blocked}
@@ -1192,15 +1201,15 @@ function ConfirmStage({
 				>
 					<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 					{s.stageTerms}
-				</button>
-				<button
+				</Button>
+				<Button
 					type="button"
 					className={salesAction}
 					disabled={blocked || !valid || reason.trim().length < 3}
 					onClick={onFinalize}
 				>
 					{t.finalize}
-				</button>
+				</Button>
 			</div>
 		</div>
 	);
@@ -1224,20 +1233,21 @@ function ReasonField({
 		<div className="space-y-2">
 			<div className="flex flex-wrap gap-2">
 				{chips.map((chip) => (
-					<button
+					<Button
 						key={chip}
 						type="button"
-						className="inline-flex min-h-9 items-center rounded-full border border-border bg-surface px-3 text-xs font-medium text-muted hover:border-action hover:text-action"
+						variant="ghost"
+						className="inline-flex min-h-9 items-center rounded-full border border-border bg-surface px-3 text-xs font-medium text-muted hover:border-action hover:bg-transparent hover:text-action"
 						disabled={disabled}
 						onClick={() => onChange(chip)}
 					>
 						{chip}
-					</button>
+					</Button>
 				))}
 			</div>
 			<label className="grid gap-1.5">
 				{t.reason}
-				<textarea
+				<Textarea
 					aria-label={t.reason}
 					dir="auto"
 					required

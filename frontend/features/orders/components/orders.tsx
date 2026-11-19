@@ -16,18 +16,27 @@ import {
 	SalesBusinessSelect,
 	SalesEmpty,
 	SalesPagination,
-	SalesRelated,
 	salesHref,
 	salesAction,
+	salesControl,
+	salesFilterPanel,
 	salesPanel,
 } from "../../sales/components/seller-sales-ui";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import { Icon } from "../../../components/ui/icon";
+import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
+import { cn } from "../../../lib/shadcn-utils";
 import {
 	StatusBadge,
 	statusVariant,
 } from "../../../components/ui/status-badge";
 import { EmptyState } from "../../../components/ui/empty-state";
+import { PAGE_SIZE } from "../../../components/pager";
 import { ProductThumbnail, Money } from "./order-ui";
 import { AftercareSection } from "../../aftercare/section";
 import Link from "next/link";
@@ -104,7 +113,7 @@ export function OrdersWorkspace({
 		return <p role="alert">{t.unavailable}</p>;
 	return (
 		<Reader
-			key={`${s.session.identity.id}:${s.session.accounts[0].id}:${context}:${mode}:${id ?? ""}:${locale}:${seller}:${page}:${context === "buyer" ? `${search.get("q") ?? ""}:${search.get("state") ?? ""}` : ""}`}
+			key={`${s.session.identity.id}:${s.session.accounts[0].id}:${context}:${mode}:${id ?? ""}:${locale}:${seller}:${page}:${search.get("q") ?? ""}:${search.get("state") ?? ""}`}
 			locale={locale}
 			context={context}
 			mode={mode}
@@ -183,7 +192,7 @@ function Reader({
 			}
 			const q = id
 				? `?locale=${locale}`
-				: `?page=${page}${seller ? `&seller=${seller}` : ""}&locale=${locale}${context === "buyer" ? `&q=${encodeURIComponent(search.get("q") ?? "")}&state=${encodeURIComponent(search.get("state") ?? "")}` : ""}`;
+				: `?page=${page}${seller ? `&seller=${seller}` : ""}&locale=${locale}&q=${encodeURIComponent(search.get("q") ?? "")}&state=${encodeURIComponent(search.get("state") ?? "")}`;
 			const value = await commerce<typeof data>(
 				`orders/${context}/${mode}/${id ? `${id}/` : ""}${q}`,
 				undefined,
@@ -320,6 +329,71 @@ function Reader({
 						/>
 					)}
 					<Failure locale={locale} error={error} />
+					{!id && section === "orders" && profiles.length > 0 && (
+						<form
+							onSubmit={(event) => {
+								event.preventDefault();
+								const form = new FormData(event.currentTarget);
+								router.push(
+									salesHref(locale, "orders", seller, undefined, search, {
+										page: "1",
+										q: String(form.get("q") ?? ""),
+										state: String(form.get("state") ?? ""),
+									}),
+								);
+							}}
+							className={cn(
+								salesFilterPanel,
+								"grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,13rem)_auto]",
+							)}
+						>
+							<label className="grid min-w-0 gap-2">
+								{orderListCopy[locale].customer} / {commerceCopy[locale].orders}
+								<Input
+									name="q"
+									className={salesControl}
+									maxLength={100}
+									dir="auto"
+									defaultValue={search.get("q") ?? ""}
+								/>
+							</label>
+							<div className="grid min-w-0 gap-2">
+								<label htmlFor="seller-orders-state-filter">
+									{paymentCopy[locale].title}
+								</label>
+								<NativeSelect
+									id="seller-orders-state-filter"
+									name="state"
+									className={salesControl}
+									defaultValue={search.get("state") ?? ""}
+								>
+									<NativeSelectOption value="">
+										{paymentCopy[locale].all}
+									</NativeSelectOption>
+									{(
+										["unpaid", "partial", "paid", "overpaid", "overdue"] as const
+									).map((v) => (
+										<NativeSelectOption key={v} value={v}>
+											{paymentState(locale, v)}
+										</NativeSelectOption>
+									))}
+								</NativeSelect>
+							</div>
+							<div className="flex flex-wrap gap-2">
+								<Button type="submit" className={salesAction}>
+									{paymentCopy[locale].refresh}
+								</Button>
+								{(search.get("q") || search.get("state") || page > 1) && (
+									<Link
+										className={salesAction}
+										href={salesHref(locale, "orders", seller)}
+									>
+										{sellerSalesCopy[locale].clear}
+									</Link>
+								)}
+							</div>
+						</form>
+					)}
 					{!data && !error && (
 						<div className={`${salesPanel} min-h-40`} role="status">
 							<p className="text-sm text-muted">{t.loading}</p>
@@ -335,6 +409,7 @@ function Reader({
 									locale={locale}
 									count={data.count}
 									page={page}
+									filtered={Boolean(search.get("q") || search.get("state"))}
 									canInvoice={profiles.some(
 										(profile) => profile.id === seller && profile.invoices,
 									)}
@@ -458,7 +533,7 @@ function Reader({
 									/>
 								</>
 							)
-						) : "outcomes" in data ? null : section === "orders" ? (
+						) : "outcomes" in data ? null : (
 							<SellerOrderDetail
 								order={data}
 								locale={locale}
@@ -477,35 +552,6 @@ function Reader({
 									search,
 								)}
 							/>
-						) : (
-							<>
-								<SalesRelated
-									locale={locale}
-									seller={data.seller}
-									links={[
-										...(section === "invoices"
-											? [{ section: "orders" as const, id: data.id }]
-											: [{ section: "invoices" as const, id: data.invoice }]),
-										{ section: "payments", id: data.id },
-										{ section: "fulfilment", id: data.id },
-									]}
-								/>
-								<OrderDocument
-									order={data}
-									locale={locale}
-									context={context}
-									seller={data.seller}
-									busy={busy}
-									pdf={() => void pdf(data)}
-								/>
-								<AftercareSection
-									interactive={mode === "orders"}
-									locale={locale}
-									context={context}
-									orderId={data.id}
-									seller={data.seller}
-								/>
-							</>
 						))}
 					{(id || section !== "orders") && !orderDetail && (
 						<button
@@ -671,7 +717,7 @@ function Reader({
 							<button
 								type="button"
 								className={action}
-								disabled={page * 20 >= data.count}
+								disabled={page * PAGE_SIZE >= data.count}
 								onClick={() =>
 									router.push(
 										`?page=${page + 1}${seller ? `&seller=${seller}` : ""}`,

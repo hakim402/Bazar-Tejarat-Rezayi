@@ -1,27 +1,34 @@
 "use client";
 import Link from "next/link";
-import { accountSettingsCopy } from "../../../lib/i18n/account-settings";
 import { useState } from "react";
-import { organizationCopy, label } from "../../../lib/i18n/organizations";
-import type { Locale } from "../../../lib/i18n/locales";
+import toast from "react-hot-toast";
+import { accountSettingsCopy } from "../../../lib/i18n/account-settings";
+import { Button } from "../../../components/shadcn/button";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "../../../components/shadcn/native-select";
+import { BusinessDialog } from "../../../components/accounts/seller-settings-ui";
+import { DashboardCard } from "../../../components/ui/dashboard-card";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { Icon } from "../../../components/ui/icon";
+import { StatCard } from "../../../components/ui/stat-card";
+import { pageBannerClass } from "../../../components/ui/page-header";
 import {
 	StatusBadge,
 	statusVariant,
 } from "../../../components/ui/status-badge";
-import { EmptyState } from "../../../components/ui/empty-state";
 import { TabNav } from "../../../components/ui/tabs";
+import { organizationCopy, label } from "../../../lib/i18n/organizations";
+import type { Locale } from "../../../lib/i18n/locales";
+import { sellerBusinessCopy } from "../../../lib/i18n/seller-business";
+import { sellerSettingsCopy } from "../../../lib/i18n/seller-settings";
+import { sellerHref } from "../../../lib/routes/account-routes";
 import { ApplicationPanel } from "../../verification/components/application-panel";
 import { profilePath, type Profile } from "../api/organizations";
 import { ProfileEditor } from "./profile-editor";
-import { TeamPanel } from "./team-panel";
-import { useSearchParams } from "next/navigation";
-import { sellerHref, uuidPattern } from "../../../lib/routes/account-routes";
-import { sellerBusinessCopy } from "../../../lib/i18n/seller-business";
-import {
-	SettingsSection,
-	settingsSecondary,
-} from "../../../components/accounts/seller-settings-ui";
 import { useSellerBusinessGuard } from "./seller-business-ui";
+import { TeamPanel } from "./team-panel";
 import { useSellerWorkflow, WorkflowState } from "./workflow-state";
 
 type WorkspaceProps = {
@@ -37,6 +44,9 @@ export function OrganizationWorkspace(props: WorkspaceProps) {
 	) : null;
 }
 
+const rowLinkClass =
+	"flex min-w-0 items-center gap-3 rounded-control px-2 py-3 text-foreground no-underline transition-colors hover:bg-info focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-action motion-reduce:transition-none";
+
 function SellerOrganizationWorkspace({
 	locale,
 	profileId,
@@ -50,21 +60,16 @@ function SellerOrganizationWorkspace({
 	);
 	const t = organizationCopy[locale],
 		copy = sellerBusinessCopy[locale];
-	const query = useSearchParams().get("seller");
 	const profiles =
 		state.data && "profiles" in state.data ? state.data.profiles : [];
 	const selected =
 		profileId && state.data && "id" in state.data && state.data.id === profileId
 			? state.data
 			: null;
-	// Query context is useful only when it is one of the actually returned directory profiles.
-	const scope =
-		selected?.id ??
-		(query &&
-		uuidPattern.test(query) &&
-		profiles.some((item) => item.id === query)
-			? query
-			: null);
+	const [creationKind, setCreationKind] = useState<"individual" | "company">(
+		"individual",
+	);
+	const [createOpen, setCreateOpen] = useState(false);
 	const [tab, setTab] = useState("profile");
 	const [profileEpoch, setProfileEpoch] = useState(0);
 	const allowed = selected
@@ -86,149 +91,286 @@ function SellerOrganizationWorkspace({
 			});
 		});
 	const disabled = state.busy || state.blocked || state.loading;
+	const approvedCount = profiles.filter(
+		(profile) => profile.review_status === "approved",
+	).length;
+	const reviewCount = profiles.filter(
+		(profile) => profile.review_status === "under_review",
+	).length;
 	return (
 		<div className="min-w-0 space-y-6" data-testid="seller-business-workspace">
 			{guard.feedback}
-			<header className="space-y-3">
-				{profileId && (
-					<Link
-						className={settingsSecondary}
-						href={sellerHref(locale, "organizations", selected?.id)}
-					>
-						{copy.back}
-					</Link>
-				)}
-				<h1 className="text-page-title font-bold break-words">
-					{selected?.display_name ?? copy.title}
-				</h1>
-				<p className="max-w-3xl text-muted leading-relaxed">{copy.help}</p>
-				{(!profileId || selected) && (
-					<nav className="flex flex-wrap gap-3" aria-label={t.title}>
-						<Link
-							className={settingsSecondary}
-							href={sellerHref(locale, "", scope)}
-						>
-							{t.back}
-						</Link>
-						<Link
-							className={settingsSecondary}
-							href={sellerHref(locale, "settings", scope)}
-						>
-							{accountSettingsCopy[locale].title}
-						</Link>
-					</nav>
-				)}
-			</header>
-			<WorkflowState locale={locale} state={{ ...state, refresh: reload }} />
+			{!profileId && (
+				<header className={pageBannerClass}>
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+						<div className="min-w-0 space-y-1">
+							<p className="m-0 text-xs font-semibold text-action">
+								{sellerSettingsCopy[locale].businessScope}
+							</p>
+							<h1 className="m-0 text-page-title font-bold">{copy.title}</h1>
+							<p className="m-0 max-w-2xl text-sm leading-relaxed text-muted">
+								{copy.help}
+							</p>
+						</div>
+						{state.data && (
+							<BusinessDialog
+								locale={locale}
+								title={t.create}
+								description={copy.individualHelp}
+								open={createOpen}
+								busy={state.busy}
+								onOpenChange={(open) => {
+									if (open) setCreateOpen(true);
+									else
+										guard.choose(() => {
+											setCreateOpen(false);
+											setProfileEpoch((value) => value + 1);
+										});
+								}}
+								trigger={
+									<Button
+										type="button"
+										disabled={disabled}
+										className="min-h-11 shrink-0 rounded-lg"
+									>
+										<Icon name="plus" className="size-4" />
+										{t.create}
+									</Button>
+								}
+							>
+								<WorkflowState
+									locale={locale}
+									state={{ ...state, notice: "", refresh: reload }}
+								/>
+								<div className="space-y-2">
+									<label
+										htmlFor="seller-business-kind"
+										className="block text-sm font-medium"
+									>
+										{t.profile}
+									</label>
+									<NativeSelect
+										id="seller-business-kind"
+										value={creationKind}
+										disabled={disabled}
+										onChange={(event) => {
+											const kind = event.target.value as
+												| "individual"
+												| "company";
+											if (kind !== creationKind)
+												guard.choose(() => setCreationKind(kind));
+										}}
+									>
+										<NativeSelectOption value="individual">
+											{t.individual}
+										</NativeSelectOption>
+										<NativeSelectOption value="company">
+											{t.company}
+										</NativeSelectOption>
+									</NativeSelect>
+									{creationKind === "company" && (
+										<p className="m-0 text-sm leading-relaxed text-muted">
+											{accountSettingsCopy[locale].description}
+										</p>
+									)}
+								</div>
+								<ProfileEditor
+									key={`new:${creationKind}:${profileEpoch}`}
+									locale={locale}
+									context="seller"
+									sellerBusiness
+									singleCreationKind
+									kinds={[creationKind]}
+									busy={disabled}
+									errors={state.fields}
+									onDirtyChange={guard.profileDirty}
+									onCancel={() =>
+										guard.choose(() => {
+											setCreateOpen(false);
+											setProfileEpoch((value) => value + 1);
+										})
+									}
+									onSave={async (data) => {
+										const result = await state.mutate(
+											profilePath("seller"),
+											data,
+										);
+										if (!result) return false;
+										toast.success(t.saved);
+										setCreateOpen(false);
+										return true;
+									}}
+								/>
+							</BusinessDialog>
+						)}
+					</div>
+				</header>
+			)}
+			{!createOpen && (
+				<WorkflowState locale={locale} state={{ ...state, refresh: reload }} />
+			)}
 			{!profileId && state.data && (
 				<>
-					<div className="grid min-w-0 gap-4 md:grid-cols-2">
-						{profiles.map((profile) => (
-							<SettingsSection key={profile.id} title={profile.display_name}>
-								<p className="flex flex-wrap gap-2 items-center">
-									<span>{label(t, profile.kind)}</span>
-									<StatusBadge variant={statusVariant(profile.review_status)}>
-										{label(t, profile.review_status)}
-									</StatusBadge>
-								</p>
-								<p>
-									{t.entitlement}:{" "}
-									<strong>
-										{profile.entitlement ? t.eligible : t.ineligible}
-									</strong>
-								</p>
-								<Link
-									className={settingsSecondary}
-									href={sellerHref(
-										locale,
-										`organizations/${profile.id}`,
-										profile.id,
-									)}
-								>
-									{t.show}
-								</Link>
-							</SettingsSection>
-						))}
-					</div>
-					{!profiles.length && (
-						<EmptyState
+					<div className="grid auto-rows-fr grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3">
+						<StatCard
+							compact
 							icon="store"
-							title={t.empty}
-							description={copy.individualHelp}
-						/>
-					)}
-					<details
-						className="rounded-2xl border border-border bg-surface p-4 sm:p-6"
-						open={!profiles.length || undefined}
-					>
-						<summary className="min-h-11 cursor-pointer py-3 font-semibold">
-							{t.create}
-						</summary>
-						<p className="my-4 text-muted leading-relaxed">
-							{copy.individualHelp}
-						</p>
-						<ProfileEditor
-							key={`new:${profileEpoch}`}
+							label={t.profileCount}
+							value={profiles.length}
 							locale={locale}
-							context="seller"
-							sellerBusiness
-							singleCreationKind
-							kinds={["individual"]}
-							busy={disabled}
-							errors={state.fields}
-							onDirtyChange={guard.profileDirty}
-							onSave={async (data) =>
-								!!(await state.mutate(profilePath("seller"), data))
-							}
 						/>
-					</details>
-					<Link
-						className={settingsSecondary}
-						href={sellerHref(locale, "settings", scope)}
+						<StatCard
+							compact
+							icon="check-circle"
+							chip="success"
+							label={t.approved}
+							value={approvedCount}
+							locale={locale}
+						/>
+						<StatCard
+							compact
+							icon="clock"
+							chip="warning"
+							label={t.under_review}
+							value={reviewCount}
+							locale={locale}
+							className="col-span-2 lg:col-span-1"
+						/>
+					</div>
+					<DashboardCard
+						title={t.yourProfiles}
+						description={copy.individualHelp}
+						icon="grid"
 					>
-						{accountSettingsCopy[locale].upgrade}
-					</Link>
+						{profiles.length ? (
+							<ul className="m-0 list-none divide-y divide-border p-0">
+								{profiles.map((profile) => (
+									<li key={profile.id}>
+										<Link
+											href={sellerHref(
+												locale,
+												`organizations/${profile.id}`,
+												profile.id,
+											)}
+											aria-label={`${t.show} · ${profile.display_name}`}
+											className={rowLinkClass}
+										>
+											<span
+												className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-info text-action"
+												aria-hidden="true"
+											>
+												<Icon
+													name={profile.kind === "company" ? "team" : "store"}
+													className="size-5"
+												/>
+											</span>
+											<span className="min-w-0 flex-1">
+												<span className="block wrap-anywhere font-semibold">
+													<bdi>{profile.display_name}</bdi>
+												</span>
+												<span className="mt-0.5 block text-sm text-muted">
+													{label(t, profile.kind)} ·{" "}
+													{profile.entitlement ? t.eligible : t.ineligible}
+												</span>
+											</span>
+											<StatusBadge
+												variant={statusVariant(profile.review_status)}
+												className="shrink-0"
+											>
+												{label(t, profile.review_status)}
+											</StatusBadge>
+											<Icon
+												name="chevron"
+												className="size-4 shrink-0 text-muted rtl:rotate-180"
+											/>
+										</Link>
+									</li>
+								))}
+							</ul>
+						) : (
+							<EmptyState
+								borderless
+								icon="store"
+								title={t.empty}
+								description={copy.individualHelp}
+							/>
+						)}
+					</DashboardCard>
 				</>
+			)}
+			{profileId && (
+				<Link
+					href={sellerHref(locale, "organizations", selected?.id)}
+					className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-action no-underline hover:underline"
+				>
+					<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
+					{copy.back}
+				</Link>
 			)}
 			{selected && (
 				<>
-					<SettingsSection
-						title={selected.display_name}
-						description={copy.authorityHelp}
-					>
-						<dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-							<div>
-								<dt className="text-sm text-muted">{t.profile}</dt>
-								<dd className="mt-1 font-semibold">
-									{label(t, selected.kind)}
-								</dd>
+					<div className="min-w-0 overflow-hidden rounded-card border border-transparent bg-surface shadow-card dark:border-border">
+						<div className="h-1 bg-primary" aria-hidden="true" />
+						<div className="flex min-w-0 items-start gap-4 p-4 desktop:p-6">
+							<span
+								className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary"
+								aria-hidden="true"
+							>
+								<Icon
+									name={selected.kind === "company" ? "team" : "store"}
+									className="size-6"
+								/>
+							</span>
+							<div className="min-w-0 flex-1 space-y-1.5">
+								<h1 className="m-0 wrap-anywhere text-lg font-bold sm:text-xl">
+									<bdi>{selected.display_name}</bdi>
+								</h1>
+								<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted">
+									<span>{label(t, selected.kind)}</span>
+									<span
+										title={t.emailVerified}
+										className={`inline-flex items-center gap-1 rounded-control px-2 py-0.5 text-xs font-medium ${
+											emailVerified
+												? "bg-success/10 text-success"
+												: "bg-warning/10 text-warning"
+										}`}
+									>
+										<Icon
+											name={emailVerified ? "check-circle" : "alert-triangle"}
+											className="size-3"
+										/>
+										{emailVerified ? copy.verified : copy.unverified}
+									</span>
+								</div>
 							</div>
-							<div>
-								<dt className="text-sm text-muted">{t.status}</dt>
-								<dd className="mt-1">
-									<StatusBadge variant={statusVariant(selected.review_status)}>
-										{label(t, selected.review_status)}
-									</StatusBadge>
-								</dd>
-							</div>
-							<div>
-								<dt className="text-sm text-muted">{t.entitlement}</dt>
-								<dd
-									className="mt-1 font-semibold"
-									data-testid="profile-entitlement"
-								>
+						</div>
+					</div>
+					<div className="grid auto-rows-fr grid-cols-2 gap-2 sm:gap-4">
+						<StatCard
+							compact
+							icon="shield"
+							chip={statusVariant(selected.review_status)}
+							label={t.status}
+							value={label(t, selected.review_status)}
+							locale={locale}
+						/>
+						<StatCard
+							compact
+							icon="award"
+							chip={selected.entitlement ? "success" : "neutral"}
+							label={t.entitlement}
+							value={
+								<span data-testid="profile-entitlement">
 									{selected.entitlement ? t.eligible : t.ineligible}
-								</dd>
-							</div>
-							<div>
-								<dt className="text-sm text-muted">{copy.email}</dt>
-								<dd className="mt-1 font-semibold">
-									{emailVerified ? copy.verified : copy.unverified}
-								</dd>
-							</div>
-						</dl>
-						<p className="text-sm text-muted">{t.emailVerified}</p>
-					</SettingsSection>
+								</span>
+							}
+							locale={locale}
+						/>
+					</div>
+					<p className="m-0 text-sm leading-relaxed text-muted">
+						<span className="block">{copy.authorityHelp}</span>
+						<span className="mt-1 block">{t.emailVerified}</span>
+					</p>
 					<TabNav
 						locale={locale}
 						aria-label={t.sectionsNav}
@@ -244,23 +386,25 @@ function SellerOrganizationWorkspace({
 						}))}
 					/>
 					{selected.can_manage && active === "profile" && (
-						<ProfileEditor
-							key={`${selected.id}:${profileEpoch}`}
-							locale={locale}
-							context="seller"
-							profile={selected}
-							sellerBusiness
-							busy={disabled}
-							errors={state.fields}
-							onDirtyChange={guard.profileDirty}
-							onSave={async (data) =>
-								!!(await state.mutate(
-									profilePath("seller", selected.id),
-									data,
-									"PATCH",
-								))
-							}
-						/>
+						<DashboardCard title={t.profile} icon="store">
+							<ProfileEditor
+								key={`${selected.id}:${profileEpoch}`}
+								locale={locale}
+								context="seller"
+								profile={selected}
+								sellerBusiness
+								busy={disabled}
+								errors={state.fields}
+								onDirtyChange={guard.profileDirty}
+								onSave={async (data) =>
+									!!(await state.mutate(
+										profilePath("seller", selected.id),
+										data,
+										"PATCH",
+									))
+								}
+							/>
+						</DashboardCard>
 					)}
 					{selected.can_manage && active === "application" && (
 						<ApplicationPanel

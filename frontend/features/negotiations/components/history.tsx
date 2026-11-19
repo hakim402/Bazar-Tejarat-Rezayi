@@ -19,11 +19,11 @@ import {
 import { StatusBadge } from "../../../components/ui/status-badge";
 import { negotiationVariant } from "./buyer-negotiations";
 import {
-	salesAction,
 	salesPanel,
 	salesHref,
 	salesHistoryHref,
 } from "../../sales/components/seller-sales-ui";
+import { PAGE_SIZE, Pager } from "../../../components/pager";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import type { QueryReader } from "../../../lib/routes/account-routes";
 export function ProposalSummary({
@@ -66,7 +66,7 @@ export function ProposalSummary({
 							<p>
 								{c[line.tier]} · <bdi>{product.unit}</bdi>
 							</p>
-							<dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm [&_dt]:text-muted [&_dd]:min-w-0 [&_dd]:break-words [&_dd]:font-medium">
+							<dl className="m-0 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm [&_dt]:text-muted [&_dd]:m-0 [&_dd]:min-w-0 [&_dd]:break-words [&_dd]:font-medium">
 								<dt>{c.goods}</dt>
 								<dd>
 									<bdi>
@@ -109,7 +109,7 @@ export function ProposalSummary({
 				</p>
 				<section className="space-y-3 rounded-xl border border-border p-4">
 					<h3 className="text-sm font-semibold">{t.terms}</h3>
-					<dl className="grid gap-3 text-sm sm:grid-cols-3">
+					<dl className="m-0 grid gap-3 text-sm sm:grid-cols-3 [&_dd]:m-0">
 						<div>
 							<dt className="text-xs text-muted">{t.country}</dt>
 							<dd>
@@ -313,20 +313,20 @@ export function History({
 						)}
 					</details>
 				))}
-				<nav aria-label={sales.history} className="flex flex-wrap gap-3">
-					{[row.history_page - 1, row.history_page + 1]
-						.filter((p) => p > 0 && p <= Math.ceil(row.history_count / 20))
-						.map((p) => (
-							<Link key={p} className={salesAction} href={historyHref(p)}>
-								{p < row.history_page ? t.previous : t.next}
-							</Link>
-						))}
-				</nav>
+				<Pager
+					locale={locale}
+					page={row.history_page}
+					count={row.history_count}
+					pageSize={PAGE_SIZE}
+					href={historyHref}
+					labels={{ prev: t.previous, next: t.next, page: sales.page }}
+					className="flex flex-wrap items-center gap-3"
+				/>
 			</section>
 		);
 	}
 	const nf = new Intl.NumberFormat(locale),
-		last = Math.max(1, Math.ceil(row.history_count / 20)),
+		last = Math.max(1, Math.ceil(row.history_count / PAGE_SIZE)),
 		pageHref = (page: number) => {
 			const query = new URLSearchParams({
 				history_page: String(page),

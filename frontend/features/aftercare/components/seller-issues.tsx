@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
+import { Input } from "../../../components/shadcn/input";
 import { Card } from "../../../components/shadcn/card";
 import {
 	DropdownMenu,
@@ -34,6 +35,7 @@ import {
 	salesHref,
 	salesPanel,
 } from "../../sales/components/seller-sales-ui";
+import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/seller/components/seller-navigation";
 import { aftercare, disputeHref } from "../api";
 import { aftercareCopy, aftercareState } from "../copy";
 import { sellerAftercareCopy } from "../seller-copy";
@@ -201,7 +203,7 @@ export function SellerIssues({
 			>
 				<label className="grid min-w-0 flex-1 gap-2">
 					{t.search}
-					<input
+					<Input
 						name="q"
 						className={salesControl}
 						maxLength={100}
@@ -209,9 +211,9 @@ export function SellerIssues({
 						defaultValue={search}
 					/>
 				</label>
-				<button type="submit" className={salesAction}>
+				<Button type="submit" className={salesAction}>
 					{t.search}
-				</button>
+				</Button>
 				{(search || page > 1) && (
 					<Link
 						className={salesAction}
@@ -434,7 +436,10 @@ function statusTone(state: string) {
 
 function IssueMenu({ locale, issue }: { locale: Locale; issue: Issue }) {
 	const t = sellerAftercareCopy[locale],
-		sales = aftercareCopy[locale];
+		sales = aftercareCopy[locale],
+		destinations = useSellerNavigation(),
+		can = (route: string) =>
+			!!destinations?.some((item) => item.route === route);
 	return (
 		<DropdownMenu dir={locale === "en" ? "ltr" : "rtl"}>
 			<DropdownMenuTrigger asChild>
@@ -442,6 +447,7 @@ function IssueMenu({ locale, issue }: { locale: Locale; issue: Issue }) {
 					variant="ghost"
 					size="icon"
 					aria-label={t.openIssue}
+					title={t.openIssue}
 					className="size-9 rounded-lg border-0 bg-transparent text-muted shadow-none hover:bg-transparent hover:text-action dark:hover:bg-transparent"
 				>
 					<MoreHorizontal className="size-5" aria-hidden="true" />
@@ -458,20 +464,22 @@ function IssueMenu({ locale, issue }: { locale: Locale; issue: Issue }) {
 						{t.openIssue}
 					</Link>
 				</DropdownMenuItem>
-				<DropdownMenuItem asChild className="gap-2.5 no-underline">
-					<Link
-						href={salesHref(
-							locale,
-							"orders",
-							issue.order.seller,
-							issue.order.id,
-						)}
-					>
-						<ShoppingBag aria-hidden="true" />
-						{t.openOrder}
-					</Link>
-				</DropdownMenuItem>
-				{issue.kind === "dispute" && issue.dispute_id && (
+				{can("orders") && (
+					<DropdownMenuItem asChild className="gap-2.5 no-underline">
+						<Link
+							href={salesHref(
+								locale,
+								"orders",
+								issue.order.seller,
+								issue.order.id,
+							)}
+						>
+							<ShoppingBag aria-hidden="true" />
+							{t.openOrder}
+						</Link>
+					</DropdownMenuItem>
+				)}
+				{issue.kind === "dispute" && issue.dispute_id && can("disputes") && (
 					<DropdownMenuItem asChild className="gap-2.5 no-underline">
 						<Link
 							href={disputeHref(
@@ -488,7 +496,8 @@ function IssueMenu({ locale, issue }: { locale: Locale; issue: Issue }) {
 				)}
 				{(issue.kind === "refund_due" ||
 					issue.kind === "refund_report" ||
-					issue.kind === "delivery_refund") && (
+					issue.kind === "delivery_refund") &&
+					can("payments") && (
 					<DropdownMenuItem asChild className="gap-2.5 no-underline">
 						<Link
 							href={salesHref(

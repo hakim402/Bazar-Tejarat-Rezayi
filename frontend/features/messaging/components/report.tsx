@@ -28,6 +28,7 @@ import {
 import { communicationCopy } from "../copy";
 import { accessLost, useCommunicationSession, useOnlineState } from "../hooks";
 import { actionBtn, Failure, failureMessage } from "./ui";
+import { PAGE_SIZE, Pager } from "../../../components/pager";
 
 // All target types use the existing deliberate report seal and identical replay.
 export function ReportForm({
@@ -379,111 +380,109 @@ export function OwnReports({
 			});
 		return () => request.abort();
 	}, [open, online, denied, context, page, reload]);
-	const buyer = context === "buyer";
 	return (
 		<details
-			className={
-				buyer
-					? "rounded-card border border-solid border-border bg-surface p-4"
-					: "space-y-3 rounded-card border border-border bg-surface p-4"
-			}
+			className="rounded-card border border-solid border-border bg-surface p-4"
 			onToggle={(event) => setOpen(event.currentTarget.open)}
 		>
-			<summary
-				className={
-					buyer
-						? "flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden"
-						: "min-h-11 cursor-pointer font-bold"
-				}
-			>
-				{buyer && <Icon name="shield" className="size-4 shrink-0 text-muted" />}
+			<summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+				<Icon name="shield" className="size-4 shrink-0 text-muted" />
 				<span className="min-w-0 flex-1">{t.ownReports}</span>
-				{buyer && (
-					<Icon
-						name="chevron-down"
-						className={`size-4 shrink-0 text-muted transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
-					/>
-				)}
+				<Icon
+					name="chevron-down"
+					className={`size-4 shrink-0 text-muted transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+				/>
 			</summary>
-			{open &&
-				(buyer ? (
-					<div className="flex flex-col gap-3 pt-3">
-						<p className="m-0 text-xs leading-relaxed text-muted">
-							{t.reportNeutral}
+			{open && (
+				<div className="flex flex-col gap-3 pt-3">
+					<p className="m-0 text-xs leading-relaxed text-muted">
+						{t.reportNeutral}
+					</p>
+					{!online && (
+						<p role="status" className="m-0 text-sm text-muted">
+							{t.offline}
 						</p>
-						{!online && (
-							<p role="status" className="m-0 text-sm text-muted">
-								{t.offline}
-							</p>
-						)}
-						{!!error && <Failure locale={locale} error={error} />}
-						{busy && (
-							<p role="status" className="m-0 text-sm text-muted">
-								{t.loading}
-							</p>
-						)}
-						{data && !denied && (
-							<>
-								{!data.results.length ? (
-									<p className="m-0 text-sm text-muted">{t.emptyReports}</p>
-								) : (
-									<ul className="m-0 flex list-none flex-col p-0">
-										{data.results.map((row) => (
-											<li
-												key={row.id}
-												className="flex items-center gap-3 border-0 border-b border-solid border-border py-3 last:border-b-0"
+					)}
+					{!!error && <Failure locale={locale} error={error} />}
+					{busy && (
+						<p role="status" className="m-0 text-sm text-muted">
+							{t.loading}
+						</p>
+					)}
+					{data && !denied && (
+						<>
+							{!data.results.length ? (
+								<p className="m-0 text-sm text-muted">{t.emptyReports}</p>
+							) : (
+								<ul className="m-0 flex list-none flex-col p-0">
+									{data.results.map((row) => (
+										<li
+											key={row.id}
+											className="flex items-center gap-3 border-0 border-b border-solid border-border py-3 last:border-b-0"
+										>
+											<span
+												className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted"
+												aria-hidden="true"
 											>
-												<span
-													className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted"
-													aria-hidden="true"
-												>
-													<Icon
-														name={reportTargetIcon(row.target_kind)}
-														className="size-4"
-													/>
-												</span>
-												<div className="min-w-0 flex-1">
-													<Link
-														prefetch={false}
-														href={reportTargetHref(
-															locale,
-															context,
-															row.target_kind,
-															row.target,
-														)}
-														className="text-sm font-medium text-foreground no-underline hover:text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
-													>
-														{
-															{
-																message: t.report,
-																product: t.reportProduct,
-																store: t.reportStore,
-																order: t.reportOrder,
-															}[row.target_kind]
-														}
-													</Link>
-													{row.created_at && (
-														<p className="m-0 mt-0.5 text-xs text-muted">
-															<bdi>
-																{localTimestamp(row.created_at, locale)}
-															</bdi>{" "}
-															· {t.timezone}
-														</p>
+												<Icon
+													name={reportTargetIcon(row.target_kind)}
+													className="size-4"
+												/>
+											</span>
+											<div className="min-w-0 flex-1">
+												<Link
+													prefetch={false}
+													href={reportTargetHref(
+														locale,
+														context,
+														row.target_kind,
+														row.target,
 													)}
-												</div>
-												<StatusBadge
-													variant={
-														row.status === "open" ? "warning" : "success"
-													}
-													dot={false}
-													size="sm"
+													className="text-sm font-medium text-foreground no-underline hover:text-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
 												>
-													{row.status === "open" ? t.open : t.resolved}
-												</StatusBadge>
-											</li>
-										))}
-									</ul>
-								)}
+													{
+														{
+															message: t.report,
+															product: t.reportProduct,
+															store: t.reportStore,
+															order: t.reportOrder,
+														}[row.target_kind]
+													}
+												</Link>
+												{row.created_at && (
+													<p className="m-0 mt-0.5 text-xs text-muted">
+														<bdi>{localTimestamp(row.created_at, locale)}</bdi>{" "}
+														· {t.timezone}
+													</p>
+												)}
+											</div>
+											<StatusBadge
+												variant={row.status === "open" ? "warning" : "success"}
+												dot={false}
+												size="sm"
+											>
+												{row.status === "open" ? t.open : t.resolved}
+											</StatusBadge>
+										</li>
+									))}
+								</ul>
+							)}
+							{context === "seller" ? (
+								<Pager
+									locale={locale}
+									page={page}
+									count={data.count}
+									pageSize={PAGE_SIZE}
+									busy={busy || !online}
+									onPage={(next) => {
+										if (next === page) return;
+										setData(null);
+										setPage(next);
+									}}
+									labels={{ prev: t.previous, next: t.next, page: t.page }}
+									className="flex flex-wrap items-center gap-3"
+								/>
+							) : (
 								<div className="flex flex-wrap items-center gap-2">
 									<Button
 										type="button"
@@ -512,102 +511,21 @@ export function OwnReports({
 										{t.next}
 									</Button>
 								</div>
-							</>
-						)}
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							className="self-start rounded-lg"
-							disabled={busy || !online || denied}
-							onClick={() => setReload((value) => value + 1)}
-						>
-							{t.retry}
-						</Button>
-					</div>
-				) : (
-					<div className="space-y-3">
-						<p>{t.reportNeutral}</p>
-						{!online && <p role="status">{t.offline}</p>}
-						{!!error && <Failure locale={locale} error={error} />}
-						{busy && <p role="status">{t.loading}</p>}
-						{data && !denied && (
-							<>
-								{!data.results.length && <p>{t.emptyReports}</p>}
-								{data.results.map((row) => (
-									<article
-										key={row.id}
-										className="space-y-2 border-b border-border py-3"
-									>
-										<Link
-											prefetch={false}
-											className={actionBtn}
-											href={reportTargetHref(
-												locale,
-												context,
-												row.target_kind,
-												row.target,
-											)}
-										>
-											{
-												{
-													message: t.report,
-													product: t.reportProduct,
-													store: t.reportStore,
-													order: t.reportOrder,
-												}[row.target_kind]
-											}
-										</Link>
-										<p>
-											{row.status === "open" ? t.open : t.resolved} ·{" "}
-											<bdi>
-												{row.id} · v{row.version}
-											</bdi>
-										</p>
-										{row.created_at && (
-											<p>
-												<bdi>{localTimestamp(row.created_at, locale)}</bdi> ·{" "}
-												{t.timezone}
-											</p>
-										)}
-									</article>
-								))}
-								<div className="flex flex-wrap gap-3">
-									<button
-										type="button"
-										className={actionBtn}
-										disabled={busy || !online || page <= 1}
-										onClick={() => {
-											setData(null);
-											setPage((value) => value - 1);
-										}}
-									>
-										{t.previous}
-									</button>
-									<button
-										type="button"
-										className={actionBtn}
-										disabled={busy || !online || page * 20 >= data.count}
-										onClick={() => {
-											setData(null);
-											setPage((value) => value + 1);
-										}}
-									>
-										{t.next}
-									</button>
-								</div>
-							</>
-						)}
-						<button
-							type="button"
-							className={actionBtn}
-							disabled={busy || !online || denied}
-							onClick={() => setReload((value) => value + 1)}
-						>
-							{t.retry}
-						</button>
-					</div>
-				))}
+							)}
+						</>
+					)}
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						className="self-start rounded-lg"
+						disabled={busy || !online || denied}
+						onClick={() => setReload((value) => value + 1)}
+					>
+						{t.retry}
+					</Button>
+				</div>
+			)}
 		</details>
 	);
 }

@@ -7,7 +7,8 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "../../../components/shadcn/native-select";
-import { buttonVariants } from "../../../components/shadcn/button";
+import { Button, buttonVariants } from "../../../components/shadcn/button";
+import { Checkbox } from "../../../components/shadcn/checkbox";
 import { Icon } from "../../../components/ui/icon";
 import { cn } from "../../../lib/shadcn-utils";
 import type { Locale } from "../../../lib/i18n/locales";
@@ -477,12 +478,10 @@ export function DeliveryActionForm({
 							className="flex items-center gap-3"
 							htmlFor={`${prefix}-field-2`}
 						>
-							<Input
+							<Checkbox
 								id={`${prefix}-field-2`}
-								type="checkbox"
-								className="size-4 shrink-0 rounded border-control p-0 accent-action shadow-none"
 								checked={selfDelivery}
-								onChange={(event) => setSelfDelivery(event.target.checked)}
+								onCheckedChange={(checked) => setSelfDelivery(checked === true)}
 							/>
 							{t.selfDelivery}
 						</label>
@@ -728,7 +727,7 @@ export function DeliveryActionForm({
 							/>
 						</label>
 						<p className={help}>{t.filesNote}</p>
-						<button
+						<Button
 							type="button"
 							className={isSeller ? action : secondaryButton}
 							disabled={!file || images.length >= 3}
@@ -753,14 +752,14 @@ export function DeliveryActionForm({
 						>
 							{!isSeller && <Icon name="image" className="size-3.5" />}
 							{t.uploads}
-						</button>
+						</Button>
 						<div className="flex flex-wrap gap-3">
 							{images.map((id) => (
 								<div key={id}>
 									<DeliveryEvidence {...{ id, context, locale }} />
-									<button
+									<Button
 										type="button"
-										className={isSeller ? action : quietButton}
+										className={isSeller ? cn(action, "border-danger/40 text-danger hover:border-danger hover:bg-danger-surface hover:text-danger") : quietButton}
 										onClick={() =>
 											setImages((values) =>
 												values.filter((value) => value !== id),
@@ -769,7 +768,7 @@ export function DeliveryActionForm({
 									>
 										{!isSeller && <Icon name="close" className="size-3" />}
 										{t.removeImage}
-									</button>
+									</Button>
 								</div>
 							))}
 						</div>
@@ -821,7 +820,7 @@ export function DeliveryActionForm({
 						!isSeller && "items-center justify-end gap-2 pt-1",
 					)}
 				>
-					<button
+					<Button
 						type="button"
 						className={isSeller ? action : secondaryButton}
 						onClick={reload}
@@ -829,13 +828,13 @@ export function DeliveryActionForm({
 					>
 						{!isSeller && <Icon name="history" className="size-3.5" />}
 						{t.refresh}
-					</button>
-					<button
+					</Button>
+					<Button
 						className={
 							isSeller
 								? cn(
 										action,
-										"border-action bg-action text-white hover:bg-action/90 hover:text-white",
+										"border-action bg-action text-on-primary hover:bg-action/90 hover:text-on-primary",
 									)
 								: primaryButton
 						}
@@ -843,7 +842,7 @@ export function DeliveryActionForm({
 					>
 						{!isSeller && <Icon name="send" className="size-3.5" />}
 						{modes.find(([value]) => value === mode)?.[1] ?? t.review}
-					</button>
+					</Button>
 				</div>
 			</fieldset>
 		</form>

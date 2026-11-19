@@ -212,8 +212,12 @@ export function DeliveryDetail({
 			a.download = `recipient-handover.${kind}`;
 			a.click();
 			setTimeout(() => URL.revokeObjectURL(url), 60000);
+			toast.success(t.handoverDownloaded);
 		} catch {
-			if (live.current && !controller.signal.aborted) setError(true);
+			if (live.current && !controller.signal.aborted) {
+				setError(true);
+				toast.error(t.error);
+			}
 		} finally {
 			if (live.current) setDownloading(false);
 		}

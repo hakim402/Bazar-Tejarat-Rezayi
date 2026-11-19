@@ -16,11 +16,6 @@ import { Badge } from "../../../components/shadcn/badge";
 import { Button } from "../../../components/shadcn/button";
 import { Card } from "../../../components/shadcn/card";
 import { Input } from "../../../components/shadcn/input";
-import {
-	NativeSelect,
-	NativeSelectOption,
-} from "../../../components/shadcn/native-select";
-import { Textarea } from "../../../components/shadcn/textarea";
 import { Icon } from "../../../components/ui/icon";
 import { GoogleButton } from "../../../components/authentication/google-entry";
 import {
@@ -29,13 +24,19 @@ import {
 } from "../../orders/components/detail-dialog";
 import { FormField } from "../../../components/ui/dialog-form";
 import { PasswordDialog } from "./buyer-password";
+import {
+	emptyProfileDraft,
+	profileDraft,
+	ProfileFields,
+	type ProfileDraft,
+} from "./profile-fields";
 import { BuyerRowMenu } from "../../orders/components/buyer-ui";
 import { salesTableCard } from "../../sales/components/seller-sales-ui";
 import { mediaUrl } from "../../marketplace/api";
 import { buyerProfileCopy } from "../../../lib/i18n/buyer-profile";
 import { authCopy } from "../../../lib/i18n/auth";
 import { googleCopy } from "../../../lib/i18n/google";
-import { languageNames, locales, type Locale } from "../../../lib/i18n/locales";
+import { languageNames, type Locale } from "../../../lib/i18n/locales";
 import {
 	ACCOUNT_SESSION_CHANGED,
 	AccountError,
@@ -282,17 +283,6 @@ function PhotoDialog({
 	);
 }
 
-type DetailsDraft = {
-	display_name: string;
-	first_name: string;
-	last_name: string;
-	phone: string;
-	bio: string;
-	gender: string;
-	date_of_birth: string;
-	preferred_locale: string;
-};
-
 function DetailsDialog({
 	locale,
 	identity,
@@ -310,34 +300,16 @@ function DetailsDialog({
 		a = authCopy[locale];
 	const base = useId(),
 		formId = `${base}-form`;
-	const [draft, setDraft] = useState<DetailsDraft>({
-		display_name: "",
-		first_name: "",
-		last_name: "",
-		phone: "",
-		bio: "",
-		gender: "",
-		date_of_birth: "",
-		preferred_locale: "",
-	});
+	const [draft, setDraft] = useState<ProfileDraft>({ ...emptyProfileDraft });
 	const [busy, setBusy] = useState(false),
 		[error, setError] = useState("");
 	useEffect(() => {
 		if (open && identity) {
-			setDraft({
-				display_name: identity.display_name,
-				first_name: identity.first_name,
-				last_name: identity.last_name,
-				phone: identity.phone,
-				bio: identity.bio,
-				gender: identity.gender,
-				date_of_birth: identity.date_of_birth ?? "",
-				preferred_locale: identity.preferred_locale,
-			});
+			setDraft(profileDraft(identity));
 			setError("");
 		}
 	}, [open, identity]);
-	const set = (key: keyof DetailsDraft, value: string) =>
+	const set = (key: keyof ProfileDraft, value: string) =>
 		setDraft((current) => ({ ...current, [key]: value }));
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -406,117 +378,12 @@ function DetailsDialog({
 						{error}
 					</p>
 				)}
-				<div className="sm:col-span-2">
-					<FormField id={`${base}-display`} label={t.displayName} required>
-						<Input
-							id={`${base}-display`}
-							value={draft.display_name}
-							maxLength={150}
-							required
-							autoComplete="name"
-							onChange={(event) => set("display_name", event.target.value)}
-						/>
-					</FormField>
-				</div>
-				<FormField
-					id={`${base}-first`}
-					label={t.firstName}
-					optional={t.optional}
-				>
-					<Input
-						id={`${base}-first`}
-						value={draft.first_name}
-						maxLength={150}
-						autoComplete="given-name"
-						onChange={(event) => set("first_name", event.target.value)}
-					/>
-				</FormField>
-				<FormField id={`${base}-last`} label={t.lastName} optional={t.optional}>
-					<Input
-						id={`${base}-last`}
-						value={draft.last_name}
-						maxLength={150}
-						autoComplete="family-name"
-						onChange={(event) => set("last_name", event.target.value)}
-					/>
-				</FormField>
-				<FormField id={`${base}-phone`} label={t.phone} optional={t.optional}>
-					<Input
-						id={`${base}-phone`}
-						type="tel"
-						dir="ltr"
-						value={draft.phone}
-						maxLength={40}
-						autoComplete="tel"
-						onChange={(event) => set("phone", event.target.value)}
-					/>
-				</FormField>
-				<FormField id={`${base}-gender`} label={t.gender} optional={t.optional}>
-					<NativeSelect
-						id={`${base}-gender`}
-						value={draft.gender}
-						onChange={(event) => set("gender", event.target.value)}
-					>
-						<NativeSelectOption value="">—</NativeSelectOption>
-						<NativeSelectOption value="male">{t.genderMale}</NativeSelectOption>
-						<NativeSelectOption value="female">
-							{t.genderFemale}
-						</NativeSelectOption>
-						<NativeSelectOption value="other">
-							{t.genderOther}
-						</NativeSelectOption>
-						<NativeSelectOption value="prefer_not_to_say">
-							{t.genderPreferNot}
-						</NativeSelectOption>
-					</NativeSelect>
-				</FormField>
-				<FormField
-					id={`${base}-dob`}
-					label={t.dateOfBirth}
-					optional={t.optional}
-				>
-					<Input
-						id={`${base}-dob`}
-						type="date"
-						dir="ltr"
-						value={draft.date_of_birth}
-						onChange={(event) => set("date_of_birth", event.target.value)}
-					/>
-				</FormField>
-				<FormField
-					id={`${base}-lang`}
-					label={t.preferredLanguage}
-					optional={t.optional}
-				>
-					<NativeSelect
-						id={`${base}-lang`}
-						value={draft.preferred_locale}
-						onChange={(event) => set("preferred_locale", event.target.value)}
-					>
-						<NativeSelectOption value="">{t.noLanguage}</NativeSelectOption>
-						{locales.map((value) => (
-							<NativeSelectOption key={value} value={value}>
-								{languageNames[value]}
-							</NativeSelectOption>
-						))}
-					</NativeSelect>
-				</FormField>
-				<div className="sm:col-span-2">
-					<FormField
-						id={`${base}-bio`}
-						label={t.bio}
-						optional={t.optional}
-						help={t.bioHelp}
-					>
-						<Textarea
-							id={`${base}-bio`}
-							rows={3}
-							maxLength={2000}
-							value={draft.bio}
-							onChange={(event) => set("bio", event.target.value)}
-						/>
-					</FormField>
-				</div>
+				<ProfileFields
+					locale={locale}
+					idPrefix={base}
+					draft={draft}
+					onChange={set}
+				/>
 			</form>
 		</DetailDialog>
 	);

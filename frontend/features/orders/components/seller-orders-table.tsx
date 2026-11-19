@@ -4,8 +4,6 @@ import {
 	Eye,
 	FileText,
 	MoreHorizontal,
-	Package,
-	RefreshCw,
 	RotateCcw,
 	Truck,
 	Wallet,
@@ -35,11 +33,15 @@ import { localTimestamp } from "../../messaging/api";
 import { paymentState } from "../../payments/copy";
 import { fulfilmentState } from "../../fulfilment/copy";
 import {
+	SalesRefreshButton,
 	salesHref,
 	salesTableCard,
 } from "../../sales/components/seller-sales-ui";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { PAGE_SIZE } from "../../../components/pager";
 import { commerceCopy } from "../copy";
 import { orderListCopy } from "../list-copy";
+import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import type { Order, OrderLine } from "../api";
 import { ProductThumbnail } from "./order-ui";
 
@@ -57,14 +59,17 @@ export function OrderProducts({
 			<div className="min-w-0 flex-1">
 				<p
 					className="m-0 max-w-72 truncate text-sm font-semibold text-foreground"
+					dir="auto"
 					title={
 						item.snapshot.titles[locale] ??
 						item.snapshot.titles[item.snapshot.source_locale]
 					}
 				>
-					{item.snapshot.titles[locale] ??
-						item.snapshot.titles[item.snapshot.source_locale] ??
-						item.snapshot.sku}
+					<bdi>
+						{item.snapshot.titles[locale] ??
+							item.snapshot.titles[item.snapshot.source_locale] ??
+							item.snapshot.sku}
+					</bdi>
 				</p>
 				<p className="m-0 mt-1 text-xs text-muted">
 					{t.sku}: <bdi>{item.snapshot.sku}</bdi>
@@ -111,7 +116,7 @@ export function OrderStatuses({
 	const t = orderListCopy[locale];
 	const paid =
 		order.dimensions.financial === "paid" ||
-		order.dimensions.financial === "settled";
+		order.dimensions.financial === "overpaid";
 	return (
 		<div className="flex flex-col items-start gap-2">
 			<span className="sr-only">{t.payment}</span>
@@ -250,6 +255,7 @@ export function SellerOrdersTable({
 	locale,
 	count,
 	page,
+	filtered = false,
 	canInvoice,
 	busy,
 	onDownload,
@@ -261,6 +267,7 @@ export function SellerOrdersTable({
 	locale: Locale;
 	count: number;
 	page: number;
+	filtered?: boolean;
 	canInvoice: boolean;
 	busy: boolean;
 	onDownload: (order: Order) => void;
@@ -270,7 +277,7 @@ export function SellerOrdersTable({
 }) {
 	const t = orderListCopy[locale],
 		nf = new Intl.NumberFormat(locale),
-		last = Math.min(10000, Math.max(1, Math.ceil(count / 20)));
+		last = Math.min(10000, Math.max(1, Math.ceil(count / PAGE_SIZE)));
 	const customer = (order: Order) => (
 		<div className="min-w-0 max-w-56">
 			<p className="m-0 text-sm font-medium text-foreground">
@@ -359,31 +366,28 @@ export function SellerOrdersTable({
 						{nf.format(count)}
 					</Badge>
 				</h2>
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={busy}
-					onClick={onRefresh}
-					className="h-9 rounded-lg text-xs"
-				>
-					<RefreshCw className="size-3.5" aria-hidden="true" />
-					{t.refresh}
-				</Button>
+				<SalesRefreshButton
+					busy={busy}
+					label={t.refresh}
+					onReload={onRefresh}
+				/>
 			</div>
 			{!orders.length ? (
-				<div className="px-5 py-12 text-center">
-					<Package
-						className="mx-auto mb-3 size-8 text-muted"
-						aria-hidden="true"
-					/>
-					<h3 className="m-0 text-base font-semibold">{t.empty}</h3>
-					<p className="mt-2 text-sm text-muted">{t.emptyHelp}</p>
-					{page > 1 && (
-						<Button variant="outline" onClick={() => onPage(1)}>
-							{t.page} {nf.format(1)}
-						</Button>
-					)}
-				</div>
+				<EmptyState
+					borderless
+					icon={filtered ? "search" : "box"}
+					title={filtered ? sellerSalesCopy[locale].noMatches : t.empty}
+					description={
+						filtered ? sellerSalesCopy[locale].noMatchesHelp : t.emptyHelp
+					}
+					action={
+						page > 1 ? (
+							<Button variant="outline" onClick={() => onPage(1)}>
+								{t.page} {nf.format(1)}
+							</Button>
+						) : undefined
+					}
+				/>
 			) : (
 				<>
 					<section

@@ -377,9 +377,9 @@ export function SellerFulfilment({
 				row={row}
 				stage={stage}
 				checks={[
-					{ label: w.checkProducts, ok: true },
-					{ label: w.checkRecipient, ok: true },
-					{ label: w.checkArrangement, ok: true },
+					{ label: w.checkProducts, ok: !!row.preparation?.current },
+					{ label: w.checkRecipient, ok: !!row.recipient },
+					{ label: w.checkArrangement, ok: !!row.arrangement },
 					{
 						label: t.finalCharge,
 						ok: chargeReady,
@@ -479,7 +479,7 @@ function ProgressSteps({ locale, stage }: { locale: Locale; stage: number }) {
 								<span
 									className={cn(
 										"flex size-4 items-center justify-center rounded-full text-[10px]",
-										current ? "bg-action text-white" : "bg-muted text-white",
+										current ? "bg-action text-on-primary" : "bg-muted text-surface",
 									)}
 									aria-hidden="true"
 								>
@@ -598,7 +598,7 @@ function StageOne({
 		current = stage === 1;
 	const content = (
 		<div className="mt-4 space-y-5">
-			<ul className="m-0 space-y-3 p-0">
+			<ul className="m-0 list-none space-y-3 p-0">
 				{row.goods.map((g) => (
 					<li key={`${g.variant}:${g.tier}`} className="flex items-start gap-3">
 						<ProductThumbnail src={g.image} className="size-12" />
@@ -607,7 +607,7 @@ function StageOne({
 								{title(g)}
 							</p>
 							<p className="m-0 text-xs text-muted">
-								{g.sku}
+								<bdi>{g.sku}</bdi>
 								<span className="mx-1.5" aria-hidden="true">
 									·
 								</span>
@@ -622,7 +622,7 @@ function StageOne({
 			</ul>
 			{row.payment_method === "advance" && row.held_lines.length > 0 && (
 				<p className="m-0 text-xs text-muted">
-					{t.reserved}: {row.held_lines.length}
+					{t.reserved}: <bdi>{row.held_lines.length}</bdi>
 				</p>
 			)}
 			{row.recipient && (
@@ -711,7 +711,7 @@ function StageTwo({
 	const content = (
 		<div className="mt-4 space-y-5">
 			<p className="m-0 text-sm font-semibold">{w.checklist}</p>
-			<ul className="m-0 space-y-1 p-0">
+			<ul className="m-0 list-none space-y-1 p-0">
 				{checks.map((check) => (
 					<li
 						key={check.label}
@@ -814,7 +814,7 @@ function StageThree({
 					{row.tracking.length === 0 ? (
 						<p className="m-0 text-xs text-muted">{w.noTracking}</p>
 					) : (
-						<ul className="m-0 space-y-1 p-0">
+						<ul className="m-0 list-none space-y-1 p-0">
 							{row.tracking.map((tracking) => (
 								<li key={tracking.id} className="text-sm">
 									<bdi>{tracking.reference}</bdi> ·{" "}

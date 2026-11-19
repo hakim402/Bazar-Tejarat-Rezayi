@@ -19,7 +19,7 @@ import {
 import { usePathname } from "next/navigation";
 import { direction, type Locale } from "../../../../../../lib/i18n/locales";
 import { buyerShellCopy } from "../../../../../../lib/i18n/buyer-shell";
-import { inventoryCopy } from "../../../../../../lib/i18n/inventory";
+import { sellerSettingsCopy } from "../../../../../../lib/i18n/seller-settings";
 import { Icon, type IconName } from "../../../../../../components/ui/icon";
 import {
 	CountPill,
@@ -262,16 +262,21 @@ export function BuyerNavigation({
 			links: [["notifications", copy.notifications, "bell"]],
 		},
 		{
+			key: "business",
+			label: copy.myBusinesses,
+			icon: "team",
+			links: [["organizations", copy.myBusinesses, "team"]],
+		},
+		{
 			key: "settings",
 			label: copy.settings,
 			icon: "gear",
 			collapsible: true,
 			links: [
 				["profile", copy.accountProfile, "user-circle"],
-				["settings", copy.accountSettings, "gear"],
-				["password", inventoryCopy[locale].password, "shield-lock"],
-				["organizations", copy.myBusinesses, "team"],
+				["password", sellerSettingsCopy[locale].password, "shield-lock"],
 				["link", copy.becomeSeller, "link"],
+				["settings", copy.accountSettings, "gear"],
 			],
 		},
 	];

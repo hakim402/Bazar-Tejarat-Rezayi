@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, RefreshCw } from "lucide-react";
+import { PAGE_SIZE, Pager } from "../../../components/pager";
 import { Button } from "../../../components/shadcn/button";
 import {
 	DropdownMenu,
@@ -10,10 +11,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "../../../components/shadcn/dropdown-menu";
-import { SellerSelect } from "../../../app/[locale]/(seller)/account/seller/components/seller-select";
+import { SellerSelect } from "../../../components/seller-select";
 import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/seller/components/seller-navigation";
 import { Icon, type IconName } from "../../../components/ui/icon";
-import type { Locale } from "../../../lib/i18n/locales";
+import { pageBannerClass } from "../../../components/ui/page-header";
+import { direction, type Locale } from "../../../lib/i18n/locales";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
 import {
 	sellerHref,
@@ -36,7 +38,7 @@ const sections: { key: SalesSection; icon: IconName }[] = [
 	{ key: "payments", icon: "wallet" },
 ];
 const filters: Record<SalesSection, readonly string[]> = {
-	orders: ["page"],
+	orders: ["page", "state", "q"],
 	invoices: ["page", "state", "q"],
 	aftercare: ["page", "q", "issue_tab"],
 	negotiations: ["page", "state", "q"],
@@ -142,7 +144,7 @@ export function SalesHeader({
 				</Link>
 			)}
 			<div
-				className={`grid items-start gap-4 ${business ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : ""}`}
+				className={`${pageBannerClass} grid items-center gap-4 ${business ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : ""}`}
 			>
 				<div className="min-w-0 space-y-2">
 					<h1 className="m-0 text-2xl font-bold tracking-tight">
@@ -192,6 +194,7 @@ export function SalesBusinessSelect({
 	const t = sellerSalesCopy[locale];
 	return (
 		<SellerSelect
+			dir={direction(locale)}
 			label={t.business}
 			value={value}
 			options={[
@@ -204,6 +207,29 @@ export function SalesBusinessSelect({
 			onChange={onChange}
 			icon="store"
 		/>
+	);
+}
+
+export function SalesRefreshButton({
+	busy = false,
+	label,
+	onReload,
+}: {
+	busy?: boolean;
+	label: string;
+	onReload: () => void;
+}) {
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			disabled={busy}
+			onClick={onReload}
+			className="h-9 rounded-lg text-xs"
+		>
+			<RefreshCw className="size-3.5" aria-hidden="true" />
+			{label}
+		</Button>
 	);
 }
 
@@ -249,7 +275,7 @@ export function SalesPagination({
 	page,
 	count,
 	onPage,
-	pageSize = 20,
+	pageSize = PAGE_SIZE,
 }: {
 	locale: Locale;
 	page: number;
@@ -260,33 +286,24 @@ export function SalesPagination({
 	const t = sellerSalesCopy[locale],
 		number = new Intl.NumberFormat(locale);
 	return (
-		<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 text-sm">
-			<p className="text-muted">
-				{t.results}:{" "}
-				<bdi className="font-semibold tabular-nums text-foreground">
-					{number.format(count)}
-				</bdi>{" "}
-				· {t.page} <bdi className="tabular-nums">{number.format(page)}</bdi>
-			</p>
-			<div className="flex gap-2">
-				<button
-					type="button"
-					className={salesAction}
-					disabled={page <= 1}
-					onClick={() => onPage(page - 1)}
-				>
-					{t.previous}
-				</button>
-				<button
-					type="button"
-					className={salesAction}
-					disabled={page >= 10000 || page * pageSize >= count}
-					onClick={() => onPage(page + 1)}
-				>
-					{t.next}
-				</button>
-			</div>
-		</div>
+		<Pager
+			locale={locale}
+			page={page}
+			count={count}
+			pageSize={pageSize}
+			onPage={onPage}
+			labels={{ prev: t.previous, next: t.next, page: t.page }}
+			className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 text-sm"
+			summary={
+				<p className="m-0 text-muted">
+					{t.results}:{" "}
+					<bdi className="font-semibold tabular-nums text-foreground">
+						{number.format(count)}
+					</bdi>{" "}
+					· {t.page} <bdi className="tabular-nums">{number.format(page)}</bdi>
+				</p>
+			}
+		/>
 	);
 }
 

@@ -6,6 +6,15 @@ import toast from "react-hot-toast";
 import { Icon } from "../../../components/ui/icon";
 import { Button } from "./product-controls";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "../../../components/shadcn/dialog";
+import { ConfirmDialog } from "../../orders/components/detail-dialog";
+import {
 	StatusBadge,
 	statusVariant,
 } from "../../../components/ui/status-badge";
@@ -14,7 +23,7 @@ import {
 	productActionsCopy,
 	sellerProductsCopy,
 } from "../../../lib/i18n/seller-products";
-import { languageNames } from "../../../lib/i18n/locales";
+import { direction, languageNames } from "../../../lib/i18n/locales";
 import { AccountError } from "../../../lib/api/private-client";
 import {
 	accountSession,
@@ -133,11 +142,10 @@ export function CatalogueWorkspace({
 		action: "publish" | "unpublish";
 	} | null>(null);
 	const [cardReason, setCardReason] = useState("");
-	const actionDialog = useRef<HTMLDialogElement>(null);
+	const [removeOpen, setRemoveOpen] = useState(false);
 	function askCardAction(productId: string, action: "publish" | "unpublish") {
 		setCardAction({ id: productId, action });
 		setCardReason("");
-		actionDialog.current?.showModal();
 	}
 	async function applyCardAction() {
 		if (
@@ -185,7 +193,7 @@ export function CatalogueWorkspace({
 			acknowledged = true;
 			if (mine !== generation.current) return;
 			toast.success(productActionsCopy[locale].done);
-			actionDialog.current?.close();
+			setCardAction(null);
 			setCardReason("");
 			if (id) install(await api<ProductDetail>(context, `products/${id}/`));
 			else
@@ -225,10 +233,7 @@ export function CatalogueWorkspace({
 		[stockAccess, setStockAccess] = useState(false),
 		[reason, setReason] = useState("");
 	const generation = useRef(0),
-		write = useRef<symbol | null>(null),
-		removeDialog = useRef<HTMLDialogElement>(null),
-		deleteDialog = useRef<HTMLDialogElement>(null),
-		removeFocus = useRef<HTMLElement | null>(null);
+		write = useRef<symbol | null>(null);
 	const sourceDirty = !!body && JSON.stringify(body) !== baseline;
 	const guard = useProductGuard(locale, sourceDirty || priceDirty || !!reason);
 	const resetGuard = guard.reset;
@@ -245,9 +250,7 @@ export function CatalogueWorkspace({
 		setReason("");
 		setStockAccess(false);
 		resetGuard();
-		removeDialog.current?.close();
-		deleteDialog.current?.close();
-		actionDialog.current?.close();
+		setRemoveOpen(false);
 		setDeleteTarget(null);
 		setCardAction(null);
 		setCardReason("");
@@ -462,7 +465,7 @@ export function CatalogueWorkspace({
 				? productFlowCopy[locale].submittedToast
 				: productFlowCopy[locale].savedToast,
 		);
-		if (accepted) removeDialog.current?.close();
+		if (accepted) setRemoveOpen(false);
 	}
 	async function saveDraft(
 		after?: (fresh: ProductDetail, revision: string) => void,
@@ -516,7 +519,6 @@ export function CatalogueWorkspace({
 	}
 	function askDelete(productId: string, title: string, version: number) {
 		setDeleteTarget({ id: productId, title, version });
-		deleteDialog.current?.showModal();
 	}
 	async function deleteProduct() {
 		if (!deleteTarget || busy || blocked || write.current) return;
@@ -538,7 +540,6 @@ export function CatalogueWorkspace({
 			);
 			if (mine !== generation.current) return;
 			toast.success(productFlowCopy[locale].deleteSuccess);
-			deleteDialog.current?.close();
 			setDeleteTarget(null);
 			if (id) router.replace(back);
 			else
@@ -552,6 +553,7 @@ export function CatalogueWorkspace({
 						: current,
 				);
 		} catch (error) {
+			if (mine !== generation.current) return;
 			toast.error(productFlowCopy[locale].errorToast);
 			setFeedback(failure(error, locale));
 		} finally {
@@ -879,168 +881,158 @@ export function CatalogueWorkspace({
 									<Button
 										variant="secondary"
 										disabled={busy || blocked || sourceDirty || priceDirty}
-										onClick={() => {
-											removeFocus.current =
-												document.activeElement as HTMLElement;
-											removeDialog.current?.showModal();
-										}}
+										onClick={() => setRemoveOpen(true)}
 									>
 										{copy.removePublic}
 									</Button>
 								)}
 							</div>
 						</details>
-						<dialog
-							ref={removeDialog}
-							aria-labelledby="product-remove-title"
-							aria-describedby="product-remove-help"
-							onCancel={(event) => {
-								event.preventDefault();
-								removeDialog.current?.close();
-								setReason("");
-								removeFocus.current?.focus();
+						<Dialog
+							open={removeOpen}
+							onOpenChange={(next) => {
+								if (!next && !busy) {
+									setRemoveOpen(false);
+									setReason("");
+								}
 							}}
-							className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
 						>
-							<h2 id="product-remove-title" className="text-xl font-semibold">
-								{copy.removePublic}
-							</h2>
-							<p
-								id="product-remove-help"
-								className="my-4 text-base leading-relaxed text-muted"
+							<DialogContent
+								dir={direction(locale)}
+								closeLabel={copy.cancel}
+								className="max-w-lg gap-4 rounded-2xl p-6"
 							>
-								{copy.removeHelp}
-							</p>
-							<Control
-								path="reason"
-								label={t.reason}
-								value={reason}
-								maxLength={1000}
-								required
-								textarea
-								disabled={busy}
-								onChange={setReason}
-							/>
-							{feedback && (
-								<p role="alert" className="mt-3 text-sm text-danger">
-									{feedback.message}
-								</p>
-							)}
-							<div className="mt-5 flex flex-col gap-3 sm:flex-row">
-								<Button
-									autoFocus
-									variant="secondary"
+								<DialogHeader className="gap-2 text-start">
+									<DialogTitle className="text-xl font-semibold">
+										{copy.removePublic}
+									</DialogTitle>
+									<DialogDescription className="text-base leading-relaxed">
+										{copy.removeHelp}
+									</DialogDescription>
+								</DialogHeader>
+								<Control
+									path="reason"
+									label={t.reason}
+									value={reason}
+									maxLength={1000}
+									required
+									textarea
 									disabled={busy}
-									onClick={() => {
-										removeDialog.current?.close();
-										setReason("");
-										removeFocus.current?.focus();
-									}}
-								>
-									{copy.cancel}
-								</Button>
-								<Button
-									disabled={
-										busy || blocked || !reason.trim() || !item.published
-									}
-									onClick={() => {
-										if (item.published)
-											void transition("unpublish", item.published);
-									}}
-								>
-									{copy.confirmRemove}
-								</Button>
-							</div>
-						</dialog>
+									onChange={setReason}
+								/>
+								{feedback && (
+									<p role="alert" className="text-sm text-danger">
+										{feedback.message}
+									</p>
+								)}
+								<DialogFooter className="gap-3">
+									<Button
+										variant="secondary"
+										disabled={busy}
+										onClick={() => {
+											setRemoveOpen(false);
+											setReason("");
+										}}
+									>
+										{copy.cancel}
+									</Button>
+									<Button
+										disabled={
+											busy || blocked || !reason.trim() || !item.published
+										}
+										onClick={() => {
+											if (item.published)
+												void transition("unpublish", item.published);
+										}}
+									>
+										{copy.confirmRemove}
+									</Button>
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
 					</>
 				)}
-				<dialog
-					ref={actionDialog}
-					aria-labelledby="product-action-title"
-					onCancel={(event) => {
-						if (busy) event.preventDefault();
+				<Dialog
+					open={!!cardAction}
+					onOpenChange={(next) => {
+						if (!next && !busy) setCardAction(null);
 					}}
-					onClose={() => setCardAction(null)}
-					className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
 				>
-					<h2 id="product-action-title" className="text-xl font-semibold">
-						{cardAction?.action === "unpublish"
-							? productActionsCopy[locale].unpublish
-							: productActionsCopy[locale].publish}
-					</h2>
-					<p className="my-4 text-sm text-muted">
-						{cardAction?.action === "unpublish"
-							? copy.removeHelp
-							: productActionsCopy[locale].help}
-					</p>
-					{cardAction?.action === "unpublish" && (
-						<Control
-							path="card-reason"
-							label={t.reason}
-							value={cardReason}
-							onChange={setCardReason}
-							required
-							maxLength={1000}
-						/>
-					)}
-					<div className="flex justify-end gap-2">
-						<Button
-							variant="secondary"
-							disabled={busy}
-							onClick={() => actionDialog.current?.close()}
-						>
-							{copy.cancel}
-						</Button>
-						<Button
-							disabled={
-								busy ||
-								blocked ||
-								(cardAction?.action === "unpublish" && !cardReason.trim())
-							}
-							onClick={() => void applyCardAction()}
-						>
-							{cardAction?.action === "unpublish"
-								? productActionsCopy[locale].unpublish
-								: productActionsCopy[locale].publish}
-						</Button>
-					</div>
-				</dialog>
-				<dialog
-					ref={deleteDialog}
-					aria-labelledby="product-delete-title"
-					aria-describedby="product-delete-help"
-					onClose={() => setDeleteTarget(null)}
-					className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-border bg-surface p-6 text-foreground shadow-lifted backdrop:bg-black/50"
-				>
-					<h2 id="product-delete-title" className="text-xl font-semibold">
-						{productFlowCopy[locale].deleteTitle}
-					</h2>
-					<p
-						id="product-delete-help"
-						className="my-3 text-sm leading-relaxed text-muted"
+					<DialogContent
+						dir={direction(locale)}
+						closeLabel={copy.cancel}
+						className="max-w-lg gap-4 rounded-2xl p-6"
 					>
-						{productFlowCopy[locale].deleteHelp}
-					</p>
-					{deleteTarget && (
-						<p className="font-semibold wrap-anywhere">{deleteTarget.title}</p>
-					)}
-					<div className="mt-5 flex flex-wrap justify-end gap-2">
-						<Button
-							variant="secondary"
-							disabled={busy}
-							onClick={() => deleteDialog.current?.close()}
-						>
-							{copy.cancel}
-						</Button>
-						<Button
-							className="!border-danger !bg-danger hover:!brightness-95"
-							disabled={busy || !deleteTarget}
-							onClick={() => void deleteProduct()}
-						>
-							{productFlowCopy[locale].delete}
-						</Button>
-					</div>
-				</dialog>
+						<DialogHeader className="gap-2 text-start">
+							<DialogTitle className="text-xl font-semibold">
+								{cardAction?.action === "unpublish"
+									? productActionsCopy[locale].unpublish
+									: productActionsCopy[locale].publish}
+							</DialogTitle>
+							<DialogDescription className="text-sm">
+								{cardAction?.action === "unpublish"
+									? copy.removeHelp
+									: productActionsCopy[locale].help}
+							</DialogDescription>
+						</DialogHeader>
+						{cardAction?.action === "unpublish" && (
+							<Control
+								path="card-reason"
+								label={t.reason}
+								value={cardReason}
+								onChange={setCardReason}
+								required
+								maxLength={1000}
+							/>
+						)}
+						{feedback && (
+							<p role="alert" className="text-sm text-danger">
+								{feedback.message}
+							</p>
+						)}
+						<DialogFooter className="gap-3">
+							<Button
+								variant="secondary"
+								disabled={busy}
+								onClick={() => setCardAction(null)}
+							>
+								{copy.cancel}
+							</Button>
+							<Button
+								disabled={
+									busy ||
+									blocked ||
+									(cardAction?.action === "unpublish" && !cardReason.trim())
+								}
+								onClick={() => void applyCardAction()}
+							>
+								{cardAction?.action === "unpublish"
+									? productActionsCopy[locale].unpublish
+									: productActionsCopy[locale].publish}
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
+				<ConfirmDialog
+					locale={locale}
+					open={!!deleteTarget}
+					title={productFlowCopy[locale].deleteTitle}
+					body={
+						<>
+							{productFlowCopy[locale].deleteHelp}
+							{deleteTarget && (
+								<span className="mt-2 block font-semibold wrap-anywhere" dir="auto">
+									<bdi>{deleteTarget.title}</bdi>
+								</span>
+							)}
+						</>
+					}
+					confirmLabel={productFlowCopy[locale].delete}
+					destructive
+					busy={busy}
+					onCancel={() => setDeleteTarget(null)}
+					onConfirm={() => void deleteProduct()}
+				/>
 				{!list && !item && !feedback && <p role="status">{t.loading}</p>}
 			</ProductsPage>
 		</CatalogueValidation.Provider>

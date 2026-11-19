@@ -1,6 +1,8 @@
 "use client";
 import type { Locale } from "../../../lib/i18n/locales";
 import { Confirmation } from "../../negotiations/components/confirmation";
+import { Button } from "../../../components/shadcn/button";
+import { cn } from "../../../lib/shadcn-utils";
 import { action as buyerAction } from "../../orders/components/controls";
 import { salesAction } from "../../sales/components/seller-sales-ui";
 import { localTimestamp } from "../../messaging/api";
@@ -130,17 +132,17 @@ export function DeliveryReview({
 			{review.intent.path === "deliver/" && <p>{t.noAuto}</p>}
 			{review.capability === "partial" && <p>{t.partialNote}</p>}
 			<div className="flex flex-wrap gap-3">
-				<button type="button" className={action} onClick={cancel}>
+				<Button type="button" className={action} onClick={cancel}>
 					{t.cancel}
-				</button>
-				<button
+				</Button>
+				<Button
 					type="button"
-					className={action}
+					className={cn(action, "border-action bg-action text-on-primary hover:bg-action/90 hover:text-on-primary")}
 					disabled={busy || stale}
 					onClick={confirm}
 				>
 					{t.confirm}
-				</button>
+				</Button>
 			</div>
 		</Confirmation>
 	);

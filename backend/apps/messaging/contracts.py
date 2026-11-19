@@ -72,6 +72,10 @@ class ListQuery(Strict):
     unread = s.BooleanField(default=False)
 
 
+class RecentQuery(Strict):
+    seller = s.UUIDField(required=True)
+
+
 class HistoryQuery(Strict):
     before = s.IntegerField(min_value=1, required=False)
     after = s.IntegerField(min_value=0, required=False)
@@ -104,6 +108,26 @@ class ConversationPage(s.Serializer):
     results = ConversationRow(many=True)
     page = s.IntegerField()
     count = s.IntegerField()
+
+
+class RecentMessage(s.Serializer):
+    text = s.CharField(max_length=160, allow_blank=True)
+    at = s.DateTimeField()
+    own = s.BooleanField()
+    has_images = s.BooleanField()
+
+
+class RecentConversation(s.Serializer):
+    id = s.UUIDField()
+    seller = s.UUIDField()
+    counterparty = s.CharField(allow_blank=True)
+    unread = s.BooleanField()
+    updated_at = s.DateTimeField()
+    last_message = RecentMessage(allow_null=True)
+
+
+class RecentConversations(s.Serializer):
+    results = RecentConversation(many=True, max_length=5)
 
 
 class ConversationDetail(s.Serializer):

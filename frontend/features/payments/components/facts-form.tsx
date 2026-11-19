@@ -1,6 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import toast from "react-hot-toast";
+import { Button } from "../../../components/shadcn/button";
 import { Input } from "../../../components/shadcn/input";
 import { Textarea } from "../../../components/shadcn/textarea";
 import { cn } from "../../../lib/shadcn-utils";
@@ -206,6 +207,7 @@ export function FactsForm({
 						aria-invalid={invalid && !description.trim()}
 						aria-describedby={invalid ? errorId : undefined}
 						className={cn(control, "h-auto min-h-24! resize-y")}
+						dir="auto"
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
@@ -221,6 +223,7 @@ export function FactsForm({
 							aria-describedby={invalid ? errorId : undefined}
 							maxLength={1000}
 							className={cn(control, "h-auto min-h-24! resize-y")}
+							dir="auto"
 							value={reason}
 							onChange={(e) => setReason(e.target.value)}
 						/>
@@ -260,13 +263,13 @@ export function FactsForm({
 					{evidence.map((id) => (
 						<div key={id}>
 							<PaymentEvidence {...{ id, context, locale }} />
-							<button
+							<Button
 								type="button"
 								className={action}
 								onClick={() => onRemove(id)}
 							>
 								{t.removeImage}
-							</button>
+							</Button>
 						</div>
 					))}
 				</div>
@@ -283,16 +286,16 @@ export function FactsForm({
 						{t.error}
 					</p>
 				)}
-				<button
+				<Button
 					type="submit"
 					data-payment-facts-review
 					className={cn(
 						action,
-						"justify-self-start border-action bg-action text-white hover:bg-action/90 hover:text-white sm:col-span-2",
+						"justify-self-start border-action bg-action text-on-primary hover:bg-action/90 hover:text-on-primary sm:col-span-2",
 					)}
 				>
 					{t.exact}
-				</button>
+				</Button>
 			</fieldset>
 		</form>
 	);

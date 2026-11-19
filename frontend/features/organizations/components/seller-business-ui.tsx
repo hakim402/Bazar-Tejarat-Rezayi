@@ -19,6 +19,7 @@ import type { Locale } from "../../../lib/i18n/locales";
 import { uuidPattern } from "../../../lib/routes/account-routes";
 import { useSettingsGuard } from "../../../components/accounts/seller-settings-ui";
 import type { SellerWorkflowOptions } from "./workflow-state";
+import { pageBannerClass } from "../../../components/ui/page-header";
 
 export type SellerBusinessOptions = SellerWorkflowOptions & {
 	onDirtyChange: (dirty: boolean) => void;
@@ -63,7 +64,7 @@ export function SellerBusinessBoundary({
 		);
 		return (
 			<div className="min-w-0 space-y-6">
-				<header className="space-y-3">
+				<header className={`${pageBannerClass} space-y-1`}>
 					<h1 className="text-page-title font-bold">{copy.title}</h1>
 					<p className="max-w-3xl text-muted leading-relaxed">{copy.help}</p>
 				</header>

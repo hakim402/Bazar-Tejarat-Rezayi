@@ -21,6 +21,7 @@ import {
 import { salesTableCard } from "../../sales/components/seller-sales-ui";
 import { profilePath, type Profile } from "../api/organizations";
 import { OrganizationDetail } from "./organization-detail";
+import { ProfileEditor } from "./profile-editor";
 import { useWorkflow, WorkflowState } from "./workflow-state";
 
 const listingHref = (locale: Locale) =>
@@ -34,6 +35,8 @@ export function BuyerOrganizations({ locale }: { locale: Locale }) {
 		locale,
 	);
 	const t = organizationCopy[locale];
+	const settings = accountSettingsCopy[locale];
+	const [createOpen, setCreateOpen] = useState(false);
 	const [viewingId, setViewingId] = useState<string | null>(null);
 	const profiles = state.data?.profiles ?? [];
 	const viewing = profiles.find((profile) => profile.id === viewingId);
@@ -46,12 +49,44 @@ export function BuyerOrganizations({ locale }: { locale: Locale }) {
 					</h1>
 					<p className="m-0 mt-1 text-sm text-muted">{t.approvalScope}</p>
 				</div>
-				<Button asChild variant="outline" size="sm" className="gap-2">
-					<Link href={`/${locale}/account/buyer/settings`} prefetch={false}>
-						<Icon name="plus" className="size-3.5" />
-						{accountSettingsCopy[locale].upgrade}
-					</Link>
-				</Button>
+				<DetailDialog
+					locale={locale}
+					title={settings.create}
+					icon="team"
+					label={settings.create}
+					description={settings.description}
+					wide
+					keepMounted
+					open={createOpen}
+					onOpenChange={setCreateOpen}
+					trigger={
+						<Button
+							type="button"
+							size="sm"
+							className="shrink-0 gap-2"
+							aria-haspopup="dialog"
+							onClick={() => setCreateOpen(true)}
+						>
+							<Icon name="plus" className="size-3.5" />
+							{settings.create}
+						</Button>
+					}
+				>
+					{createOpen && (
+						<WorkflowState state={{ ...state, notice: "" }} locale={locale} />
+					)}
+					<ProfileEditor
+						locale={locale}
+						context="buyer"
+						kinds={["business"]}
+						busy={state.busy}
+						errors={state.fields}
+						onSave={async (data) => {
+							if (await state.mutate(profilePath("buyer"), data))
+								setCreateOpen(false);
+						}}
+					/>
+				</DetailDialog>
 			</div>
 			<WorkflowState state={{ ...state, notice: "" }} locale={locale} />
 			{state.data && (

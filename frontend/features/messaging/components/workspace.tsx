@@ -2,9 +2,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Locale } from "../../../lib/i18n/locales";
+import { direction, type Locale } from "../../../lib/i18n/locales";
 import { sellerMessagesCopy } from "../../../lib/i18n/seller-messages";
-import { Icon } from "../../../components/ui/icon";
+import { PAGE_SIZE, Pager } from "../../../components/pager";
 import { uuidPattern } from "../../../lib/routes/account-routes";
 import { authHref } from "../../../lib/routes/auth-routes";
 import { useNavigation } from "../../../components/layout/navigation-guard";
@@ -28,7 +28,12 @@ import {
 import { clearDrafts } from "../drafts";
 import { CountStrip } from "../../notifications/components/unread-counts";
 import { notification } from "../../notifications/api";
-import { NoticeList } from "../../notifications/components/notification-list";
+import {
+	NoticeList,
+	NotificationsHeader,
+} from "../../notifications/components/notification-list";
+import { SellerSelect } from "../../../components/seller-select";
+import { Card } from "../../../components/shadcn/card";
 import { Thread } from "./thread";
 import { Enquiry } from "./enquiry";
 import {
@@ -37,10 +42,10 @@ import {
 	badge,
 	help,
 	ProductAvatar,
-	EmptyState,
 	Segmented,
 	Failure,
 } from "./ui";
+import { EmptyState } from "../../../components/ui/empty-state";
 import {
 	messageListState,
 	sellerMessagesHref,
@@ -83,7 +88,9 @@ export function CommunicationWorkspace({
 											search,
 											!!conversation,
 										)
-									: `/${locale}/account/${context}/messages`,
+									: mode === "notifications"
+										? `/${locale}/account/${context}/notifications${context === "seller" && search.get("seller") ? `?seller=${encodeURIComponent(search.get("seller") ?? "")}` : ""}`
+										: `/${locale}/account/${context}/messages`,
 						}),
 					)}
 				>
@@ -100,6 +107,13 @@ export function CommunicationWorkspace({
 					thread={!!conversation}
 				/>
 				<div className={`${panel} p-4`}>{feedback}</div>
+			</div>
+		) : mode === "notifications" ? (
+			<div className="min-w-0 space-y-5">
+				<NotificationsHeader locale={locale} banner={context === "seller"} />
+				<Card className="gap-0 border border-solid border-border p-5 shadow-none">
+					{feedback}
+				</Card>
 			</div>
 		) : (
 			feedback
@@ -381,46 +395,31 @@ function Scope({
 
 	const sellerSelect =
 		context === "seller" && profiles?.results.length ? (
-			<label className="block max-w-xl space-y-2">
-				<span className="font-bold">{t.business}</span>
-				<select
-					className={`${panel} min-h-11 w-full px-3 py-2 text-base text-foreground`}
+			<div className="w-full shrink-0 sm:w-64">
+				<SellerSelect
+					dir={direction(locale)}
+					label={t.business}
+					icon="store"
 					value={selected}
-					onChange={(e) => {
-						const value = e.target.value;
+					options={profiles.results.map((profile) => ({
+						value: profile.id,
+						label: profile.name,
+					}))}
+					onChange={(value) =>
 						navigate(() =>
 							router.push(`/${locale}/account/seller/${mode}?seller=${value}`),
-						);
-					}}
-				>
-					<option value="">{t.choose}</option>
-					{profiles.results.map((p) => (
-						<option key={p.id} value={p.id}>
-							{p.name}
-						</option>
-					))}
-				</select>
-			</label>
+						)
+					}
+				/>
+			</div>
 		) : null;
 
 	if (mode === "notifications") {
-		const buyer = context === "buyer";
 		return (
-			<div
-				className={buyer ? "flex min-w-0 flex-col gap-5" : "min-w-0 space-y-4"}
-				data-testid="communication-workspace"
-			>
-				{buyer ? (
-					<header className="min-w-0">
-						<h1 className="m-0 text-2xl font-bold">{t.notifications}</h1>
-						<p className="m-0 mt-1 text-sm text-muted">{t.notificationsHelp}</p>
-					</header>
-				) : (
-					<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-						{t.notifications}
-					</h1>
-				)}
-				{sellerSelect}
+			<div className="min-w-0 space-y-4" data-testid="communication-workspace">
+				<NotificationsHeader locale={locale} banner={context === "seller"}>
+					{sellerSelect}
+				</NotificationsHeader>
 				{failure ? (
 					<Failure locale={locale} error={failure} />
 				) : context === "seller" && !profiles ? (
@@ -431,23 +430,12 @@ function Scope({
 					!profiles?.results.some((p) => p.id === selected) ? (
 					<p role="alert">{t.denied}</p>
 				) : (
-					<>
-						{(context === "buyer" || selected) && (
-							<CountStrip
-								context={context}
-								locale={locale}
-								seller={selected}
-								onDenied={setFailure}
-								variant={buyer ? "buyer" : undefined}
-							/>
-						)}
-						<NoticeList
-							locale={locale}
-							context={context}
-							seller={selected}
-							variant={buyer ? "buyer" : undefined}
-						/>
-					</>
+					<NoticeList
+						locale={locale}
+						context={context}
+						seller={selected}
+						onDenied={setFailure}
+					/>
 				)}
 			</div>
 		);
@@ -636,18 +624,19 @@ function InboxList({
 							<EmptyState
 								icon={unread ? "mail" : "inbox"}
 								title={t.empty}
-								help={page > 1 ? copy.emptyPageHelp : undefined}
-							>
-								{page > 1 && (
-									<button
-										type="button"
-										className={actionBtn}
-										onClick={() => change({ page: 1 })}
-									>
-										{t.firstPage}
-									</button>
-								)}
-							</EmptyState>
+								description={page > 1 ? copy.emptyPageHelp : undefined}
+								action={
+									page > 1 ? (
+										<button
+											type="button"
+											className={actionBtn}
+											onClick={() => change({ page: 1 })}
+										>
+											{t.firstPage}
+										</button>
+									) : undefined
+								}
+							/>
 						</div>
 					) : (
 						<ul
@@ -700,54 +689,27 @@ function InboxList({
 						</ul>
 					)}
 					{embedded ? (
-						data.count > 20 && (
-							<div className="flex items-center justify-end gap-1 px-3 py-3 sm:px-4">
-								<button
-									className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-action transition-colors hover:bg-info disabled:cursor-not-allowed disabled:opacity-40"
-									type="button"
-									disabled={page <= 1}
-									onClick={() => change({ page: page - 1 })}
-									aria-label={t.previous}
-									title={t.previous}
-								>
-									<Icon name="arrow" className="size-4 ltr:rotate-180" />
-								</button>
-								<span className={`${help} px-1 tabular-nums`}>
-									<bdi>{number.format(page)}</bdi>
-								</span>
-								<button
-									className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-surface text-action transition-colors hover:bg-info disabled:cursor-not-allowed disabled:opacity-40"
-									type="button"
-									disabled={page >= 10000 || page * 20 >= data.count}
-									onClick={() => change({ page: page + 1 })}
-									aria-label={t.next}
-									title={t.next}
-								>
-									<Icon name="arrow" className="size-4" />
-								</button>
-							</div>
+						data.count > PAGE_SIZE && (
+							<Pager
+								locale={locale}
+								page={page}
+								count={data.count}
+								pageSize={PAGE_SIZE}
+								onPage={(n) => change({ page: n })}
+								labels={{ prev: t.previous, next: t.next, page: t.page }}
+								className="flex items-center justify-end gap-1 px-3 py-3 sm:px-4"
+							/>
 						)
 					) : (
-						<div className="flex flex-wrap items-center justify-between gap-2">
-							<button
-								className={actionBtn}
-								type="button"
-								disabled={page <= 1}
-								onClick={() => change({ page: page - 1 })}
-							>
-								<Icon name="arrow" className="size-4 ltr:rotate-180" />
-								{t.previous}
-							</button>
-							<button
-								className={actionBtn}
-								type="button"
-								disabled={page >= 10000 || page * 20 >= data.count}
-								onClick={() => change({ page: page + 1 })}
-							>
-								{t.next}
-								<Icon name="arrow" className="size-4" />
-							</button>
-						</div>
+						<Pager
+							locale={locale}
+							page={page}
+							count={data.count}
+							pageSize={PAGE_SIZE}
+							onPage={(n) => change({ page: n })}
+							labels={{ prev: t.previous, next: t.next, page: t.page }}
+							className="flex flex-wrap items-center justify-between gap-2"
+						/>
 					)}
 				</>
 			)}

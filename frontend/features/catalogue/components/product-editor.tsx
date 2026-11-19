@@ -299,7 +299,7 @@ export function ProductEditor({
 								<span className="text-sm font-semibold text-action">
 									{t.upload}
 								</span>
-								<p className="text-caption text-muted">{t.dropHint}</p>
+								<span className="text-caption text-muted">{t.dropHint}</span>
 								<input
 									className="sr-only"
 									disabled={busy}
@@ -398,6 +398,7 @@ export function ProductEditor({
 												<Button
 													variant="secondary"
 													disabled={index === 0}
+													title={t.up}
 													onClick={() => {
 														const images = [...body.images];
 														[images[index - 1], images[index]] = [

@@ -1,30 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { DashboardCard } from "../../../../../../components/ui/dashboard-card";
-import { EmptyState } from "../../../../../../components/ui/empty-state";
-import { Icon } from "../../../../../../components/ui/icon";
-import { RecentMessagesList } from "../../../../../../components/ui/recent-messages-list";
-import { RecentOrdersList } from "../../../../../../components/ui/recent-orders-list";
-import { StatCard } from "../../../../../../components/ui/stat-card";
-import { TopProductsList } from "../../../../../../components/ui/top-products-list";
-import { ViewAllLink } from "../../../../../../components/ui/view-all-link";
+import {
+	ArrowUpRight,
+	Package,
+	ShoppingBag,
+	Truck,
+	TriangleAlert,
+	Warehouse,
+} from "lucide-react";
+import { Button } from "../../../../../../components/shadcn/button";
+import { Card } from "../../../../../../components/shadcn/card";
+import { Badge } from "../../../../../../components/shadcn/badge";
 import type { StockOverview } from "../../../../../../features/inventory/api/inventory";
+import { orderListCopy } from "../../../../../../features/orders/list-copy";
+import { reportCopy } from "../../../../../../features/reports/copy";
 import { inventoryCopy } from "../../../../../../lib/i18n/inventory";
 import type { Locale } from "../../../../../../lib/i18n/locales";
 import { sellerShellCopy } from "../../../../../../lib/i18n/seller-shell";
-import { CatalogueCard } from "../inventory/components/catalogue-card";
-import { StockGlance } from "../inventory/components/stock-ui";
+import { uuidPattern } from "../../../../../../lib/routes/account-routes";
 import {
+	RecentMessages,
 	RecentOrders,
-	SalesSnapshot,
 	useSellerActivity,
 } from "./seller-activity";
 import { useSellerNavigation } from "./seller-navigation";
 
-const metricCardClassName =
-	"border-border! [&>div]:flex-col [&>div]:gap-3 [&>div>div:last-child]:w-full";
-const dashboardCardClassName = "h-full border-border!";
+const surface =
+	"min-w-0 gap-0 rounded-2xl border border-solid border-border bg-surface/50 py-0 shadow-none";
 
 export function SellerOverview({
 	locale,
@@ -37,249 +40,281 @@ export function SellerOverview({
 	overview: Pick<StockOverview, "counts" | "catalogue_count" | "capabilities">;
 	href: (route: string, changes?: Record<string, string>) => string;
 }) {
-	const t = inventoryCopy[locale];
-	const copy = sellerShellCopy[locale];
+	const t = inventoryCopy[locale],
+		copy = sellerShellCopy[locale],
+		reports = reportCopy[locale];
 	const destinations = useSellerNavigation();
 	const activity = useSellerActivity(seller, locale);
 	const canOpen = (route: string) =>
 		Boolean(destinations?.some((page) => page.route === route));
-	const canViewCatalogue = overview.capabilities.write && canOpen("catalogue");
+	const canInventory = overview.capabilities.read && canOpen("inventory");
+	const canMessages = canOpen("messages") && uuidPattern.test(seller);
+	const number = new Intl.NumberFormat(locale);
 	const counts = overview.counts;
-	// Attention categories overlap; this sum is not a unique-product count.
-	const needsAttention =
-		(counts.zero ?? 0) + (counts.low ?? 0) + (counts.expired ?? 0);
-	const activeVariants =
-		(counts.variants ?? 0) -
-		(counts.unconfigured ?? 0) -
-		(counts.inactive ?? 0);
+	const summary = activity.state === "ready" ? activity.summary : null;
+	const accepted = summary?.orders?.reduce(
+		(total, row) => total + row.accepted,
+		0,
+	);
+	const alerts = (counts.zero ?? 0) + (counts.low ?? 0) + (counts.expired ?? 0);
 	const inventoryHref = href("inventory", { state: "", page: "1" });
-	const quickActions = [
+	const metrics = [
+		{
+			label: reports.ordersTitle,
+			value: accepted,
+			help: reports.last30,
+			Icon: ShoppingBag,
+			tone: "bg-info/50",
+			iconTone: "bg-info text-action",
+			to: canOpen("orders") ? href("orders") : undefined,
+		},
+		{
+			label: reports.queues.awaiting_dispatch,
+			value: summary?.queues.awaiting_dispatch,
+			help: copy.currentQueue,
+			Icon: Truck,
+			tone: "bg-surface/50",
+			iconTone: "bg-success-surface text-success",
+			to: canOpen("fulfilment") ? href("fulfilment") : undefined,
+		},
+		{
+			label: copy.stockAlerts,
+			value: alerts,
+			help: t.attentionHint,
+			Icon: TriangleAlert,
+			tone: "bg-warning-surface/50",
+			iconTone: "bg-warning-surface text-warning",
+			to: canInventory ? inventoryHref : undefined,
+		},
+	];
+	const categories = [
+		{ key: "zero", label: copy.glanceZero, color: "bg-danger" },
+		{ key: "low", label: copy.glanceLow, color: "bg-warning" },
+		{ key: "expired", label: copy.glanceExpired, color: "bg-danger" },
+		{ key: "expiring", label: copy.glanceExpiring, color: "bg-action" },
+		{ key: "unconfigured", label: copy.glanceSetup, color: "bg-muted" },
+	];
+	const scale = Math.max(1, ...categories.map((item) => counts[item.key] ?? 0));
+	const actions = [
 		{
 			route: "catalogue",
-			title: t.addProduct,
-			description: t.addProductHelp,
-			icon: "plus" as const,
-			tone: "bg-on-primary/15 text-on-primary",
-			primary: true,
-			visible: canViewCatalogue,
+			label: t.viewAllProducts,
+			Icon: Package,
+			show: overview.capabilities.write && canOpen("catalogue"),
 		},
 		{
 			route: "inventory",
-			title: t.viewInventory,
-			description: t.viewInventoryHelp,
-			icon: "warehouse" as const,
-			tone: "bg-chip-success-bg text-chip-success",
-			primary: false,
-			visible: overview.capabilities.read && canOpen("inventory"),
+			label: t.viewInventory,
+			Icon: Warehouse,
+			show: canInventory,
 		},
 		{
 			route: "orders",
-			title: t.viewOrders,
-			description: t.viewOrdersHelp,
-			icon: "shopping-bag" as const,
-			tone: "bg-chip-warning-bg text-chip-warning-icon",
-			primary: false,
-			visible: canOpen("orders"),
+			label: t.viewOrders,
+			Icon: ShoppingBag,
+			show: canOpen("orders"),
 		},
-		{
-			route: "organizations",
-			title: t.organization,
-			description: t.businessTeamHelp,
-			icon: "team" as const,
-			tone: "bg-chip-neutral-bg text-chip-neutral",
-			primary: false,
-			visible: canOpen("organizations"),
-		},
-	].filter((item) => item.visible);
-
-	return (
-		<div className="min-w-0 space-y-5 lg:space-y-6">
-			<section
-				aria-label={t.overview}
-				className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5"
+	].filter((item) => item.show);
+	const viewAll = (route: string, label: string = t.viewAll) =>
+		canOpen(route) ? (
+			<Button
+				asChild
+				variant="ghost"
+				size="sm"
+				className="shrink-0 gap-1 text-action"
 			>
-				<CatalogueCard
-					locale={locale}
-					count={overview.catalogue_count}
-					href={canViewCatalogue ? href("catalogue") : undefined}
-					className={metricCardClassName}
-				/>
-				<StatCard
-					className={metricCardClassName}
-					locale={locale}
-					icon="warehouse"
-					chip="success"
-					label={t.totalInventory}
-					value={counts.variants ?? 0}
-					hint={
-						<span className="text-sm leading-relaxed">
-							{t.totalInventoryHint}
-						</span>
-					}
-					href={inventoryHref}
-				/>
-				<StatCard
-					className={metricCardClassName}
-					locale={locale}
-					icon="alert-triangle"
-					chip="warning"
-					label={t.needsAttention}
-					value={needsAttention}
-					hint={
-						<span className="text-sm leading-relaxed">
-							{copy.attentionCategoriesHint}
-						</span>
-					}
-					href={inventoryHref}
-				/>
-				<StatCard
-					className={metricCardClassName}
-					locale={locale}
-					icon="check-circle"
-					chip="info"
-					label={t.activeVariants}
-					value={activeVariants}
-					hint={<span className="text-sm leading-relaxed">{t.activeHint}</span>}
-					href={inventoryHref}
-				/>
-			</section>
-			<div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6">
-				<DashboardCard
-					className={dashboardCardClassName}
-					title={t.salesOverview}
-					action={
-						canOpen("orders") ? (
-							<ViewAllLink href={href("orders")} label={t.viewAll} />
-						) : undefined
-					}
-				>
-					<SalesSnapshot
-						locale={locale}
-						seller={seller}
-						activity={activity}
-						fallback={
-							<EmptyState
-								borderless
-								icon="trending-up"
-								title={copy.salesUnavailable}
-								description={copy.salesUnavailableHint}
-							/>
-						}
+				<Link href={href(route)}>
+					{label}
+					<ArrowUpRight
+						className="size-4 rtl:-scale-x-100"
+						aria-hidden="true"
 					/>
-				</DashboardCard>
-				<DashboardCard
-					className={dashboardCardClassName}
-					title={t.recentOrders}
-					action={
-						canOpen("orders") ? (
-							<ViewAllLink href={href("orders")} label={t.viewAll} />
-						) : undefined
-					}
-				>
-					<RecentOrders
-						locale={locale}
-						seller={seller}
-						activity={activity}
-						fallback={
-							<RecentOrdersList
-								orders={[]}
-								locale={locale}
-								statusLabels={{
-									delivered: t.orderDelivered,
-									pending: t.orderPending,
-									shipped: t.orderShipped,
-									cancelled: t.orderCancelled,
-								}}
-								emptyTitle={copy.ordersUnavailable}
-								emptyDescription={copy.ordersUnavailableHint}
-							/>
-						}
-					/>
-				</DashboardCard>
-			</div>
-			<div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
-				<DashboardCard
-					className={dashboardCardClassName}
-					title={t.topProducts}
-					action={
-						canViewCatalogue ? (
-							<ViewAllLink href={href("catalogue")} label={t.viewAll} />
-						) : undefined
-					}
-				>
-					<TopProductsList
-						products={[]}
-						locale={locale}
-						emptyTitle={copy.productsUnavailable}
-						emptyDescription={copy.productsUnavailableHint}
-					/>
-				</DashboardCard>
-				<DashboardCard
-					className={dashboardCardClassName}
-					title={t.recentMessages}
-					action={
-						canOpen("messages") ? (
-							<ViewAllLink href={href("messages")} label={t.viewAll} />
-						) : undefined
-					}
-				>
-					<RecentMessagesList
-						messages={[]}
-						locale={locale}
-						unreadLabel={t.unread}
-						emptyTitle={copy.messagesUnavailable}
-						emptyDescription={copy.messagesUnavailableHint}
-					/>
-				</DashboardCard>
-				<DashboardCard
-					className={dashboardCardClassName}
-					title={t.quickActions}
-				>
-					<div className="space-y-2">
-						{quickActions.map((item) => (
-							<Link
-								key={item.route}
-								href={href(item.route)}
-								className={`flex min-h-16 min-w-0 items-center gap-2 rounded-xl px-2 py-3 no-underline transition-colors duration-150 motion-reduce:transition-none xl:gap-3 xl:px-3 ${
-									item.primary
-										? "bg-primary text-on-primary hover:brightness-95"
-										: "text-foreground hover:bg-info"
-								}`}
-							>
-								<span
-									aria-hidden="true"
-									className={`flex size-9 shrink-0 items-center justify-center rounded-xl xl:size-11 ${item.tone}`}
-								>
-									<Icon name={item.icon} className="size-5" />
-								</span>
-								<span className="min-w-0 flex-1 wrap-anywhere">
-									<span className="block text-sm font-semibold leading-snug">
-										{item.title}
-									</span>
-									<span
-										className={`mt-1 block text-sm leading-relaxed ${item.primary ? "text-on-primary" : "text-muted"}`}
-									>
-										{item.description}
-									</span>
-								</span>
-								<Icon
-									name="chevron"
-									className={`size-4 shrink-0 ${item.primary ? "text-on-primary" : "text-muted"}`}
-								/>
+				</Link>
+			</Button>
+		) : null;
+	return (
+		<div className="min-w-0 space-y-4">
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<nav aria-label={t.quickActions} className="flex flex-wrap gap-2">
+					{actions.map(({ route, label, Icon }) => (
+						<Button
+							key={route}
+							asChild
+							variant="outline"
+							size="sm"
+							className="bg-surface/50"
+						>
+							<Link href={route === "inventory" ? inventoryHref : href(route)}>
+								<Icon className="size-4" aria-hidden="true" />
+								{label}
 							</Link>
-						))}
-					</div>
-				</DashboardCard>
+						</Button>
+					))}
+				</nav>
+				{viewAll("reports", reports.openReports)}
 			</div>
-			<StockGlance
-				locale={locale}
-				counts={counts}
-				href={href}
-				className={dashboardCardClassName}
-			/>
-			<p className="text-caption leading-relaxed text-muted">
-				{t.overviewScope}
-			</p>
+			<section aria-label={t.overview} className="grid gap-3 sm:grid-cols-3">
+				{metrics.map((metric) => (
+					<Card key={metric.label} className={`${surface} ${metric.tone}`}>
+						<div className="flex items-start justify-between gap-3 p-4">
+							<div className="min-w-0 space-y-1">
+								<h2 className="m-0 text-sm font-medium text-muted">
+									{metric.label}
+								</h2>
+								<p
+									className="m-0 text-3xl font-semibold tracking-tight tabular-nums"
+									aria-busy={
+										metric.value === undefined && activity.state === "loading"
+									}
+								>
+									{metric.value === undefined ? (
+										<span
+											aria-label={
+												activity.state === "loading"
+													? t.loading
+													: orderListCopy[locale].unknown
+											}
+										>
+											—
+										</span>
+									) : (
+										number.format(metric.value)
+									)}
+								</p>
+								<p className="m-0 text-xs leading-5 text-muted">
+									{metric.help}
+								</p>
+							</div>
+							<span
+								className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${metric.iconTone}`}
+							>
+								<metric.Icon className="size-5" aria-hidden="true" />
+							</span>
+						</div>
+						{metric.to && (
+							<Button
+								asChild
+								variant="ghost"
+								size="sm"
+								className="h-9 justify-between rounded-t-none border-0 border-t border-solid border-border px-4 text-xs text-muted"
+							>
+								<Link href={metric.to}>
+									{metric.label}
+									<ArrowUpRight
+										className="size-3.5 rtl:-scale-x-100"
+										aria-hidden="true"
+									/>
+								</Link>
+							</Button>
+						)}
+					</Card>
+				))}
+			</section>
+			{activity.state === "failed" && (
+				<p role="alert" className="m-0 text-sm text-muted">
+					{copy.overviewLoadFailed}
+				</p>
+			)}
+			<Card className={surface}>
+				<div className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-3 sm:px-5">
+					<h2 className="m-0 text-base font-semibold">{t.recentOrders}</h2>
+					{viewAll("orders")}
+				</div>
+				<RecentOrders
+					locale={locale}
+					seller={seller}
+					activity={activity}
+					fallback={
+						<p className="m-0 px-5 py-6 text-sm text-muted">
+							{copy.ordersUnavailableHint}
+						</p>
+					}
+				/>
+			</Card>
+			<div className="grid gap-4 lg:grid-cols-2">
+				<Card className={`${surface} h-112 overflow-hidden`}>
+					<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-0 border-b border-solid border-border px-4 py-3 sm:px-5">
+						<h2 className="m-0 text-base font-semibold">
+							{t.inventoryAtGlance}
+						</h2>
+						{canInventory && viewAll("inventory")}
+					</div>
+					<div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+						<div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+							<Badge
+								variant="secondary"
+								className="border-0 bg-info text-action"
+							>
+								{number.format(counts.variants ?? 0)}
+							</Badge>
+							{t.totalInventory}
+							<span aria-hidden="true">·</span>
+							{number.format(overview.catalogue_count)} {t.productsInCatalogue}
+						</div>
+						<ul
+							className="m-0 list-none space-y-3 p-0"
+							aria-label={t.inventoryAtGlance}
+						>
+							{categories.map((item) => {
+								const count = counts[item.key] ?? 0;
+								const content = (
+									<>
+										<span className="flex items-center justify-between gap-3 text-sm">
+											<span>{item.label}</span>
+											<span className="font-semibold tabular-nums">
+												{number.format(count)}
+											</span>
+										</span>
+										<span
+											aria-hidden="true"
+											className="mt-2 block h-2 overflow-hidden rounded-full bg-border/40"
+										>
+											<span
+												className={`block h-full rounded-full ${item.color}`}
+												style={{ width: `${(count / scale) * 100}%` }}
+											/>
+										</span>
+									</>
+								);
+								return (
+									<li key={item.key}>
+										{canInventory ? (
+											<Link
+												href={href("inventory", { state: item.key, page: "1" })}
+												className="block rounded-lg py-1 text-foreground no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action hover:text-action"
+											>
+												{content}
+											</Link>
+										) : (
+											<div className="py-1">{content}</div>
+										)}
+									</li>
+								);
+							})}
+						</ul>
+						<p className="m-0 text-xs leading-5 text-muted">
+							{copy.stockChartHelp}
+						</p>
+					</div>
+				</Card>
+				<Card className={`${surface} h-112 overflow-hidden`}>
+					<div className="flex shrink-0 items-center justify-between gap-3 border-0 border-b border-solid border-border px-4 py-3 sm:px-5">
+						<h2 className="m-0 text-base font-semibold">{t.recentMessages}</h2>
+						{canMessages && viewAll("messages")}
+					</div>
+					<div className="min-h-0 flex-1 overflow-y-auto px-4 py-2 sm:px-5">
+						{canMessages ? (
+							<RecentMessages
+								key={`${seller}:${locale}`}
+								locale={locale}
+								seller={seller}
+							/>
+						) : (
+							<p className="py-4 text-sm text-muted">{copy.messagesDenied}</p>
+						)}
+					</div>
+				</Card>
+			</div>
 		</div>
 	);
 }

@@ -1,5 +1,8 @@
 import type { ComponentProps } from "react";
 
+export const pageBannerClass =
+	"min-w-0 rounded-card border border-solid border-border bg-info p-4 desktop:p-6";
+
 export function PageHeader({
 	title,
 	description,

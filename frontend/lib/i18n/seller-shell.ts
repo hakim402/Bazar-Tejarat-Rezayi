@@ -1,6 +1,10 @@
 import type { Locale } from "./locales";
 
 type SellerShellCopy = {
+	stockAlerts: string;
+	currentQueue: string;
+	stockChartHelp: string;
+	overviewLoadFailed: string;
 	store: string;
 	sales: string;
 	buyers: string;
@@ -27,7 +31,7 @@ type SellerShellCopy = {
 	productsUnavailable: string;
 	productsUnavailableHint: string;
 	messagesUnavailable: string;
-	messagesUnavailableHint: string;
+	messagesDenied: string;
 	attentionCategoriesHint: string;
 	collapseSidebar: string;
 	expandSidebar: string;
@@ -47,6 +51,12 @@ type SellerShellCopy = {
 
 export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 	"fa-AF": {
+		stockAlerts: "هشدارهای موجودی",
+		currentQueue: "در حال حاضر منتظر ارسال",
+		stockChartHelp:
+			"تعداد گزینه‌های محصول، نه واحدهای کالا. گروه‌ها می‌توانند هم‌پوشانی داشته باشند؛ برای بررسی موجودی یک گروه را انتخاب کنید.",
+		overviewLoadFailed:
+			"فعالیت سفارش‌ها دریافت نشد. برای بررسی سوابق، صفحهٔ سفارش‌ها را باز کنید.",
 		store: "فروشگاه",
 		collapseSidebar: "کوچک‌کردن نوار کناری",
 		expandSidebar: "بازکردن نوار کناری",
@@ -62,7 +72,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceExpired: "تاریخ‌گذشته",
 		glanceExpiring: "رو به انقضا",
 		glanceHeld: "رزروشده",
-		settingsSecurity: "تنظیمات و امنیت",
+		settingsSecurity: "حساب",
 		workspace: "پنل فروشنده",
 		overviewDescription: "کسب‌وکار، موجودی و گام‌های بعدی شما در یک جا.",
 		salesUnavailable: "آمار فروش هنوز متصل نشده است",
@@ -74,8 +84,8 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		productsUnavailable: "رتبه‌بندی محصولات هنوز متصل نشده است",
 		productsUnavailableHint:
 			"کتالوگ شما در دسترس است؛ رتبه‌بندی فروش به این نمای کلی فرستاده نمی‌شود.",
-		messagesUnavailable: "خلاصهٔ پیام‌ها هنوز متصل نشده است",
-		messagesUnavailableHint: "برای دیدن گفتگوهای خود، صفحهٔ پیام‌ها را باز کنید.",
+		messagesUnavailable: "دریافت پیام‌های اخیر ممکن نشد.",
+		messagesDenied: "پیام‌ها برای این حساب یا کسب‌وکار در دسترس نیستند.",
 		attentionCategoriesHint:
 			"گروه‌های صفر، کم و تاریخ‌گذشته می‌توانند هم‌پوشانی داشته باشند.",
 		sales: "فروش",
@@ -95,6 +105,12 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		localeCode: "FA",
 	},
 	en: {
+		stockAlerts: "Stock alerts",
+		currentQueue: "Currently waiting for dispatch",
+		stockChartHelp:
+			"Counts of product options, not units. Categories can overlap; select one to review its stock.",
+		overviewLoadFailed:
+			"Order activity could not be loaded. Open Orders to review your records.",
 		store: "Store",
 		collapseSidebar: "Collapse sidebar",
 		expandSidebar: "Expand sidebar",
@@ -111,7 +127,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceExpired: "Expired",
 		glanceExpiring: "Expiring soon",
 		glanceHeld: "Held",
-		settingsSecurity: "Settings & security",
+		settingsSecurity: "Account",
 		workspace: "Seller workspace",
 		overviewDescription: "Your business, stock and next steps in one place.",
 		salesUnavailable: "Sales insights aren't connected yet",
@@ -123,8 +139,8 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		productsUnavailable: "Product rankings aren't connected yet",
 		productsUnavailableHint:
 			"Your catalogue is available; sales rankings aren't supplied to this Overview.",
-		messagesUnavailable: "Message summary isn't connected yet",
-		messagesUnavailableHint: "Open Messages to review your conversations.",
+		messagesUnavailable: "Couldn't load recent messages.",
+		messagesDenied: "Messages aren't available for this account or business.",
 		attentionCategoriesHint: "Zero, low and expired categories can overlap.",
 		sales: "Sales",
 		buyers: "Buyers",
@@ -143,6 +159,12 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		localeCode: "EN",
 	},
 	ps: {
+		stockAlerts: "د موجودۍ خبرتیاوې",
+		currentQueue: "اوس د لېږلو په تمه",
+		stockChartHelp:
+			"د محصول د بڼو شمېر، نه د توکو واحدونه. ډلې یو له بل سره ګډېدای شي؛ د موجودۍ کتلو لپاره یوه ډله وټاکئ.",
+		overviewLoadFailed:
+			"د فرمایشونو فعالیت ترلاسه نه شو. د خپلو ریکارډونو کتلو لپاره فرمایشونه پرانیزئ.",
 		store: "پلورنځی",
 		collapseSidebar: "د غاړې پټه کوچنۍ کړئ",
 		expandSidebar: "د غاړې پټه پرانیزئ",
@@ -159,7 +181,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceExpired: "نېټه تېره",
 		glanceExpiring: "ژر پای ته رسېږي",
 		glanceHeld: "ساتل شوي",
-		settingsSecurity: "تنظیمات او امنیت",
+		settingsSecurity: "حساب",
 		workspace: "د پلورونکي کاري ځای",
 		overviewDescription:
 			"ستاسو سوداګري، موجودي او راتلونکي ګامونه په یوه ځای کې.",
@@ -172,9 +194,8 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		productsUnavailable: "د محصولاتو درجه بندي لا نه ده نښلول شوې",
 		productsUnavailableHint:
 			"ستاسو کتلاګ شته؛ د پلور درجه بندي دې عمومي کتنې ته نه ورکول کېږي.",
-		messagesUnavailable: "د پیغامونو لنډیز لا نه دی نښلول شوی",
-		messagesUnavailableHint:
-			"د خپلو خبرو د کتلو لپاره د پیغامونو پاڼه پرانیزئ.",
+		messagesUnavailable: "وروستي پیغامونه ترلاسه نه شول.",
+		messagesDenied: "پیغامونه د دې حساب یا سوداګرۍ لپاره د لاسرسي وړ نه دي.",
 		attentionCategoriesHint: "د صفر، کمې او تېرې نېټې ډلې یو پر بل راتلای شي.",
 		sales: "پلور",
 		buyers: "پېرودونکي",
@@ -193,6 +214,11 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		localeCode: "PS",
 	},
 	ar: {
+		stockAlerts: "تنبيهات المخزون",
+		currentQueue: "بانتظار الإرسال حاليًا",
+		stockChartHelp:
+			"أعداد خيارات المنتجات، وليست الوحدات. قد تتداخل الفئات؛ اختر فئة لمراجعة مخزونها.",
+		overviewLoadFailed: "تعذّر تحميل نشاط الطلبات. افتح الطلبات لمراجعة سجلاتك.",
 		store: "المتجر",
 		collapseSidebar: "تصغير الشريط الجانبي",
 		expandSidebar: "توسيع الشريط الجانبي",
@@ -208,7 +234,7 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		glanceExpired: "منتهي",
 		glanceExpiring: "قريب الانتهاء",
 		glanceHeld: "محجوز",
-		settingsSecurity: "الإعدادات والأمان",
+		settingsSecurity: "الحساب",
 		workspace: "مساحة البائع",
 		overviewDescription: "أعمالك ومخزونك وخطواتك التالية في مكان واحد.",
 		salesUnavailable: "إحصاءات المبيعات غير متصلة بعد",
@@ -220,8 +246,8 @@ export const sellerShellCopy: Record<Locale, SellerShellCopy> = {
 		productsUnavailable: "ترتيب المنتجات غير متصل بعد",
 		productsUnavailableHint:
 			"كتالوجك متاح؛ ترتيب المبيعات غير متوفر في هذه النظرة العامة.",
-		messagesUnavailable: "ملخص الرسائل غير متصل بعد",
-		messagesUnavailableHint: "افتح الرسائل لمراجعة محادثاتك.",
+		messagesUnavailable: "تعذر تحميل الرسائل الأخيرة.",
+		messagesDenied: "الرسائل غير متاحة لهذا الحساب أو النشاط التجاري.",
 		attentionCategoriesHint: "قد تتداخل فئات المخزون الصفري والمنخفض والمنتهي.",
 		sales: "المبيعات",
 		buyers: "المشترون",

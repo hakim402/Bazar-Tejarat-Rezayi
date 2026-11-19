@@ -2,6 +2,8 @@ import type { Locale } from "./locales";
 const en = {
 	nameHelp:
 		"This is your personal display name, not your company or storefront name.",
+	sharedProfileHelp:
+		"Your personal details and photo are shared with your buyer profile, if you have one. Company and storefront details stay separate.",
 	summary: "Account information",
 	summaryHelp:
 		"Read-only identity and seller-account details. Email and account status cannot be edited here.",
@@ -32,6 +34,8 @@ export const sellerAccountSettingsCopy: Record<Locale, Copy> = {
 	en,
 	"fa-AF": {
 		nameHelp: "این نام نمایشی شخصی شما است، نه نام شرکت یا فروشگاه شما.",
+		sharedProfileHelp:
+			"معلومات شخصی و عکس شما با پروفایل خریدار شما، اگر داشته باشید، مشترک است. معلومات شرکت و فروشگاه جدا می‌ماند.",
 		summary: "معلومات حساب",
 		summaryHelp:
 			"معلومات هویت و حساب فروشنده فقط خواندنی است. ایمیل و وضعیت حساب در اینجا قابل ویرایش نیست.",
@@ -59,6 +63,8 @@ export const sellerAccountSettingsCopy: Record<Locale, Copy> = {
 	},
 	ps: {
 		nameHelp: "دا ستاسو شخصي ښودل کېدونکی نوم دی، نه د شرکت یا پلورنځي نوم.",
+		sharedProfileHelp:
+			"ستاسو شخصي معلومات او انځور ستاسو د پېرودونکي له پروفایل سره شریک دي، که یې لرئ. د شرکت او پلورنځي معلومات جلا پاتې کېږي.",
 		summary: "د حساب معلومات",
 		summaryHelp:
 			"د هویت او پلورونکي حساب معلومات یوازې د لوستلو دي. بریښنالیک او د حساب حالت دلته نه بدلېږي.",
@@ -87,6 +93,8 @@ export const sellerAccountSettingsCopy: Record<Locale, Copy> = {
 	},
 	ar: {
 		nameHelp: "هذا اسمك الشخصي المعروض، وليس اسم شركتك أو متجرك.",
+		sharedProfileHelp:
+			"تُشارك بياناتك الشخصية وصورتك مع ملف المشتري إن كان لديك واحد. تبقى بيانات الشركة والمتجر منفصلة.",
 		summary: "معلومات الحساب",
 		summaryHelp:
 			"تفاصيل الهوية وحساب البائع للقراءة فقط. لا يمكن تعديل البريد أو حالة الحساب هنا.",

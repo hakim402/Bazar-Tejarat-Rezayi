@@ -14,19 +14,16 @@ import type { Context } from "../../messaging/api";
 import { communicationCopy } from "../../messaging/copy";
 import { Failure } from "../../messaging/components/controls";
 import { accessLost, useCommunicationSession } from "../../messaging/hooks";
-import {
-	SettingsSection,
-	SettingsActions,
-} from "../../../components/accounts/seller-settings-ui";
+import { BusinessSection } from "../../../components/accounts/seller-settings-ui";
 import { sellerSettingsCopy } from "../../../lib/i18n/seller-settings";
 import { sellerAccountSettingsCopy } from "../../../lib/i18n/seller-account-settings";
 import { authCopy } from "../../../lib/i18n/auth";
 import toast from "react-hot-toast";
-import { Button } from "../../../components/ui/button";
+import { Label } from "../../../components/shadcn/label";
 import { Button as ShadcnButton } from "../../../components/shadcn/button";
 import { Card } from "../../../components/shadcn/card";
 import { Icon } from "../../../components/ui/icon";
-import { toggleClass } from "../../../components/ui/form-field";
+import { Switch } from "../../../components/shadcn/switch";
 import { accountSettingsCopy } from "../../../lib/i18n/account-settings";
 import { salesTableCard } from "../../sales/components/seller-sales-ui";
 type PreferenceProps = {
@@ -155,10 +152,8 @@ function PreferenceEditor({
 			.then((value) => {
 				if (owns()) {
 					if (sellerMode) accept(value);
-					else {
-						setPref(value);
-						toast.success(t.preferenceSaved);
-					}
+					else setPref(value);
+					toast.success(t.preferenceSaved);
 					dirtyCallback.current?.(false);
 					setNotice(t.preferenceSaved);
 				}
@@ -179,7 +174,7 @@ function PreferenceEditor({
 	};
 	if (sellerMode)
 		return (
-			<SettingsSection
+			<BusinessSection
 				id="email-notifications"
 				title={s.notifications}
 				description={copy.emailScope}
@@ -196,13 +191,14 @@ function PreferenceEditor({
 					{pref && !denied && (
 						<form
 							onSubmit={save}
-							className="space-y-5"
+							className="space-y-4"
 							aria-busy={busy || reading}
 						>
 							<div className="divide-y divide-border">
 								{[
 									{
 										key: "message",
+										icon: "inbox" as const,
 										label: t.emailEnabled,
 										help: copy.messageHelp,
 										checked: enabled,
@@ -210,6 +206,7 @@ function PreferenceEditor({
 									},
 									{
 										key: "payment",
+										icon: "wallet" as const,
 										label: paymentCopy[locale].email,
 										help: paymentCopy[locale].emailNote,
 										checked: paymentEnabled,
@@ -217,6 +214,7 @@ function PreferenceEditor({
 									},
 									{
 										key: "aftercare",
+										icon: "headset" as const,
 										label: aftercareCopy[locale].email,
 										help: aftercareCopy[locale].emailNote,
 										checked: aftercareEnabled,
@@ -225,35 +223,34 @@ function PreferenceEditor({
 								].map((row) => (
 									<div
 										key={row.key}
-										className="flex min-w-0 items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
+										className="flex min-w-0 items-start gap-3 py-4 first:pt-0 last:pb-0"
 									>
-										<div className="min-w-0">
-											<label
+										<span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted">
+											<Icon name={row.icon} className="size-4" />
+										</span>
+										<div className="min-w-0 flex-1">
+											<Label
 												htmlFor={`seller-email-${row.key}`}
-												className="flex min-h-11 items-center text-base font-semibold"
+												className="m-0 block cursor-pointer text-sm font-medium leading-6"
 											>
 												{row.label}
-											</label>
+											</Label>
 											<p
 												id={`seller-email-${row.key}-help`}
-												className="text-sm leading-relaxed text-muted"
+												className="m-0 text-xs text-muted"
 											>
 												{row.help}
 											</p>
 										</div>
-										<span className="flex min-h-11 shrink-0 items-center">
-											<input
+										<span className="flex shrink-0 items-center pt-1">
+											<Switch
 												id={`seller-email-${row.key}`}
 												name={`${row.key}_email`}
-												type="checkbox"
-												role="switch"
-												aria-checked={row.checked}
 												aria-describedby={`seller-email-${row.key}-help`}
-												className={toggleClass}
 												checked={row.checked}
 												disabled={busy || reading}
-												onChange={(event) => {
-													row.update(event.target.checked);
+												onCheckedChange={(checked) => {
+													row.update(checked === true);
 													setNotice("");
 												}}
 											/>
@@ -261,32 +258,45 @@ function PreferenceEditor({
 									</div>
 								))}
 							</div>
-							<p className="text-sm leading-relaxed text-muted">
-								{s.securityEmail}
-							</p>
-							<SettingsActions locale={locale} dirty={dirty}>
-								<Button
-									type="button"
-									variant="secondary"
-									onClick={reload}
-									disabled={busy || reading}
-								>
-									{s.reload}
-								</Button>
-								<Button type="submit" disabled={busy || reading || !dirty}>
-									{busy ? t.sending : t.savePreference}
-								</Button>
-							</SettingsActions>
+							<p className="m-0 text-xs text-muted">{s.securityEmail}</p>
+							<div className="flex flex-wrap items-center justify-between gap-4 border-0 border-t border-solid border-border pt-4">
+								<span className="text-sm text-muted">
+									{dirty ? s.unsaved : ""}
+								</span>
+								<div className="flex flex-wrap items-center gap-2">
+									<ShadcnButton
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={reload}
+										disabled={busy || reading}
+									>
+										{s.reload}
+									</ShadcnButton>
+									<ShadcnButton
+										type="submit"
+										size="sm"
+										disabled={busy || reading || !dirty}
+									>
+										{busy ? t.sending : t.savePreference}
+									</ShadcnButton>
+								</div>
+							</div>
 						</form>
 					)}
 					{!pref && !reading && (
-						<Button type="button" variant="secondary" onClick={reload}>
+						<ShadcnButton
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={reload}
+						>
 							{authCopy[locale].retry}
-						</Button>
+						</ShadcnButton>
 					)}
 					{notice && <p role="status">{notice}</p>}
 				</div>
-			</SettingsSection>
+			</BusinessSection>
 		);
 	if (denied) return null;
 	const account = accountSettingsCopy[locale];
@@ -368,18 +378,14 @@ function PreferenceEditor({
 											{row.help}
 										</p>
 									</div>
-									<input
+									<Switch
 										id={`buyer-email-${row.key}`}
 										name={`${row.key}_email`}
-										type="checkbox"
-										role="switch"
-										aria-checked={row.checked}
 										aria-describedby={`buyer-email-${row.key}-help`}
-										className={toggleClass}
 										checked={row.checked}
 										disabled={busy || reading}
-										onChange={(event) => {
-											row.update(event.target.checked);
+										onCheckedChange={(checked) => {
+											row.update(checked === true);
 											setNotice("");
 										}}
 									/>
@@ -455,7 +461,7 @@ function SessionPreference({
 	if (!session.session) {
 		if (props.sellerSettings && context === "seller")
 			return (
-				<SettingsSection
+				<BusinessSection
 					title={sellerSettingsCopy[locale].notifications}
 					description={sellerAccountSettingsCopy[locale].emailScope}
 					icon="mail"
@@ -465,10 +471,15 @@ function SessionPreference({
 							? authCopy[locale].denied
 							: authCopy[locale].unavailable}
 					</p>
-					<Button type="button" variant="secondary" onClick={onRetry}>
+					<ShadcnButton
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={onRetry}
+					>
 						{authCopy[locale].retry}
-					</Button>
-				</SettingsSection>
+					</ShadcnButton>
+				</BusinessSection>
 			);
 		return accessLost(session.error) ? null : (
 			<Failure locale={locale} error={session.error} />

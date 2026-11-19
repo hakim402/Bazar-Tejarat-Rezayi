@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useUnsavedNavigation } from "../../../components/layout/navigation-guard";
 import { DiscardDialog } from "../../../components/ui/discard-dialog";
 import { Icon } from "../../../components/ui/icon";
+import { pageBannerClass } from "../../../components/ui/page-header";
 import { sellerProductsCopy } from "../../../lib/i18n/seller-products";
 import type { Locale } from "../../../lib/i18n/locales";
 import {
@@ -81,7 +82,9 @@ export function ProductsPage({
 						{t.title}
 					</Link>
 				)}
-				<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+				<div
+					className={`${pageBannerClass} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}
+				>
 					<div className="min-w-0 space-y-2">
 						<h1 className="text-page-title font-bold text-foreground wrap-anywhere">
 							{title}

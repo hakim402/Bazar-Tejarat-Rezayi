@@ -111,7 +111,7 @@ export function ProposalFields({
 							{keys.map((key) => (
 								<label key={key} className="grid gap-2">
 									{labelFor(key)}
-									<input
+									<Input
 										className={control}
 										dir="ltr"
 										inputMode="decimal"
@@ -297,9 +297,9 @@ export function TermsFields({
 				disabled={disabled}
 			>
 				<legend className="px-2 text-base font-semibold">{t.terms}</legend>
-				<label htmlFor={countryId} className="grid gap-2">
-					{t.country}
-					<select
+				<div className="grid gap-2">
+					<label htmlFor={countryId}>{t.country}</label>
+					<NativeSelect
 						id={countryId}
 						className={control}
 						required
@@ -308,18 +308,18 @@ export function TermsFields({
 							change({ ...value, country: e.target.value, city: "" })
 						}
 					>
-						<option value="">{t.choose}</option>
+						<NativeSelectOption value="">{t.choose}</NativeSelectOption>
 						{terms.destinations.map((d) => (
-							<option key={d.country} value={d.country}>
+							<NativeSelectOption key={d.country} value={d.country}>
 								{d.country}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
-				</label>
-				<label htmlFor={cityId} className="grid gap-2">
-					{t.city}
+					</NativeSelect>
+				</div>
+				<div className="grid gap-2">
+					<label htmlFor={cityId}>{t.city}</label>
 					{destination?.all_cities ? (
-						<input
+						<Input
 							id={cityId}
 							className={control}
 							required
@@ -328,23 +328,23 @@ export function TermsFields({
 							onChange={(e) => change({ ...value, city: e.target.value })}
 						/>
 					) : (
-						<select
+						<NativeSelect
 							id={cityId}
 							className={control}
 							required
 							value={value.city}
 							onChange={(e) => change({ ...value, city: e.target.value })}
 						>
-							<option value="">{t.choose}</option>
+							<NativeSelectOption value="">{t.choose}</NativeSelectOption>
 							{destination?.cities.map((c) => (
-								<option key={c}>{c}</option>
+								<NativeSelectOption key={c}>{c}</NativeSelectOption>
 							))}
-						</select>
+						</NativeSelect>
 					)}
-				</label>
-				<label htmlFor={methodId} className="grid gap-2">
-					{t.method}
-					<select
+				</div>
+				<div className="grid gap-2">
+					<label htmlFor={methodId}>{t.method}</label>
+					<NativeSelect
 						id={methodId}
 						className={control}
 						required
@@ -353,14 +353,14 @@ export function TermsFields({
 							change({ ...value, method: e.target.value as Choice["method"] })
 						}
 					>
-						<option value="">{t.choose}</option>
+						<NativeSelectOption value="">{t.choose}</NativeSelectOption>
 						{terms.methods.map((m) => (
-							<option value={m} key={m}>
+							<NativeSelectOption value={m} key={m}>
 								{t[m]}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
-				</label>
+					</NativeSelect>
+				</div>
 			</fieldset>
 		);
 	}

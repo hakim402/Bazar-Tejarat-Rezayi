@@ -1,10 +1,11 @@
-"""Narrow projections; message bodies are never in inboxes, notices or metadata."""
+"""Metadata-only inboxes and notices; message history and seller previews require fresh participant scope."""
 
-from django.db.models import F, OuterRef, Subquery, Value
+from django.db.models import Exists, F, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import NotFound, PermissionDenied
 from . import access
-from .models import Message, ReadState, Report
+from .models import Attachment, Message, ReadState, Report
 from .services import read_receipt
 
 
@@ -34,6 +35,54 @@ def inbox(actor, *, seller=None, page=1, unread=False):
             for x in items
         ],
     }
+
+
+def recent(actor, *, seller):
+    if actor.context != "seller":
+        raise PermissionDenied()
+    account = actor.account
+    state = ReadState.objects.filter(account=account, conversation_id=OuterRef("pk"))
+    latest = Message.objects.filter(conversation_id=OuterRef("pk"), published=True).order_by("-sequence")
+    rows = access.scope(actor, seller).annotate(
+        personal_read=Coalesce(Subquery(state.values("last_read")[:1]), Value(0)),
+        personal_incoming=Coalesce(Subquery(state.values("latest_incoming")[:1]), Value(0)),
+        counterparty=F("buyer__user__display_name"),
+        latest_message_id=Subquery(latest.values("pk")[:1]),
+    )
+    items = list(rows.only("id", "seller_id", "updated_at").order_by("-updated_at", "pk")[:5])
+    messages = (
+        Message.objects.filter(published=True)
+        .only("id", "body", "author_id", "created_at")
+        .annotate(has_images=Exists(Attachment.objects.filter(message_id=OuterRef("pk"))))
+        .in_bulk([item.latest_message_id for item in items if item.latest_message_id is not None])
+    )
+    # Recheck company/grant scope after preview hydration, before disclosure.
+    ids = {item.pk for item in items}
+    allowed = set(access.scope(actor, seller).filter(pk__in=ids).values_list("pk", flat=True))
+    if allowed != ids:
+        raise NotFound()
+    results = []
+    for item in items:
+        message = messages.get(item.latest_message_id)
+        results.append(
+            {
+                "id": str(item.pk),
+                "seller": str(item.seller_id),
+                "counterparty": item.counterparty,
+                "unread": item.personal_incoming > item.personal_read,
+                "updated_at": item.updated_at,
+                "last_message": (
+                    {
+                        "text": " ".join(message.body.split())[:160],
+                        "at": message.created_at,
+                        "own": message.author_id == account.pk,
+                        "has_images": message.has_images,
+                    }
+                    if message else None
+                ),
+            }
+        )
+    return {"results": results}
 
 
 def detail(actor, pk):

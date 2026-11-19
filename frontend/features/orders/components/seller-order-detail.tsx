@@ -28,8 +28,11 @@ import {
 } from "../../../components/shadcn/dropdown-menu";
 import { useSellerNavigation } from "../../../app/[locale]/(seller)/account/seller/components/seller-navigation";
 import { Icon } from "../../../components/ui/icon";
+import { pageBannerClass } from "../../../components/ui/page-header";
 import type { Locale } from "../../../lib/i18n/locales";
-import { sellerHref } from "../../../lib/routes/account-routes";
+import { disputeHref } from "../../aftercare/api";
+import { accessLost, useVisiblePoll } from "../../messaging/hooks";
+import { Pager, PAGE_SIZE } from "../../../components/pager";
 import { cn } from "../../../lib/shadcn-utils";
 import { localTimestamp } from "../../messaging/api";
 import { AftercareSection } from "../../aftercare/section";
@@ -41,10 +44,22 @@ import { salesHref } from "../../sales/components/seller-sales-ui";
 import { commerceCopy } from "../copy";
 import { orderListCopy } from "../list-copy";
 import { sellerSalesCopy } from "../../../lib/i18n/seller-sales";
-import { orderViewCopy } from "../view-copy";
+import { orderViewCopy, orderActivityLabel } from "../view-copy";
 import { orderDetailCopy } from "../detail-copy";
-import { invoiceHref, type Order, type OrderLine } from "../api";
-import { DetailCard, DetailField, Money, ProductThumbnail } from "./order-ui";
+import {
+	commerce,
+	invoiceHref,
+	type Order,
+	type OrderActivityEvent,
+	type Page,
+} from "../api";
+import {
+	BuyerOrderLine,
+	DetailCard,
+	DetailField,
+	Money,
+	PaymentSummaryCore,
+} from "./order-ui";
 
 type Route = "payments" | "fulfilment" | "aftercare" | "disputes";
 type NextAction = {
@@ -76,8 +91,10 @@ function deriveNextAction(
 	if (d.dispute === "unresolved")
 		return {
 			label: t.reviewDispute,
-			route: "disputes",
-			href: sellerHref(locale, "disputes", seller),
+			route: order.dispute_id ? "disputes" : "fulfilment",
+			href: order.dispute_id
+				? disputeHref(locale, "seller", order.dispute_id, seller)
+				: salesHref(locale, "fulfilment", seller, order.id),
 			icon: Shield,
 			blocker: t.disputeBlocks,
 		};
@@ -278,7 +295,9 @@ function OrderHeader({
 				<Icon name="arrow" className="size-4 rotate-180 rtl:rotate-0" />
 				{t.backToOrders}
 			</Link>
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+			<div
+				className={`${pageBannerClass} flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between`}
+			>
 				<div className="min-w-0 space-y-2">
 					<h1 className="m-0 text-2xl font-bold tracking-tight">
 						{list.order} · <bdi>{order.number}</bdi>
@@ -416,10 +435,15 @@ function OrderMenu({
 			},
 			{
 				route: "disputes",
-				href: sellerHref(locale, "disputes", seller),
+				href: disputeHref(
+					locale,
+					"seller",
+					order.dispute_id ?? undefined,
+					seller,
+				),
 				label: aftercareCopy[locale].disputes,
 				Icon: Shield,
-				show: can("disputes"),
+				show: can("disputes") && !!order.dispute_id,
 			},
 		];
 	return (
@@ -568,9 +592,9 @@ function ProductsCard({
 	const list = orderListCopy[locale];
 	return (
 		<DetailCard title={list.products} icon="box" className={className}>
-			<div className="space-y-4">
+			<div className="divide-y divide-border">
 				{order.lines.map((line) => (
-					<ProductLine
+					<BuyerOrderLine
 						key={line.id}
 						line={line}
 						order={order}
@@ -587,97 +611,6 @@ function ProductsCard({
 				/>
 			</div>
 		</DetailCard>
-	);
-}
-
-function ProductLine({
-	line,
-	order,
-	locale,
-}: {
-	line: OrderLine;
-	order: Order;
-	locale: Locale;
-}) {
-	const t = orderDetailCopy[locale],
-		list = orderListCopy[locale],
-		c = commerceCopy[locale],
-		title =
-			line.snapshot.titles[locale] ??
-			line.snapshot.titles[line.snapshot.source_locale] ??
-			line.snapshot.sku,
-		unit = line.snapshot.unit_labels[locale] ?? line.snapshot.unit,
-		attrs = Object.entries(line.snapshot.definition.attributes ?? {});
-	return (
-		<div className="flex min-w-0 items-start gap-3">
-			<ProductThumbnail key={line.image} src={line.image} className="size-14" />
-			<div className="min-w-0 flex-1 space-y-1.5">
-				<p className="m-0 break-words text-sm font-semibold" dir="auto">
-					{title}
-				</p>
-				<p className="m-0 text-xs text-muted">
-					{list.sku}: <bdi>{line.snapshot.sku}</bdi>
-					<span aria-hidden="true" className="mx-1.5">
-						·
-					</span>
-					{t.sellingOption}: {c[line.tier]}
-					<span aria-hidden="true" className="mx-1.5">
-						·
-					</span>
-					{unit}
-				</p>
-				{attrs.length > 0 && (
-					<p className="m-0 break-words text-xs text-muted" dir="auto">
-						{attrs.map(([key, value], i) => (
-							<span key={key}>
-								{i > 0 && (
-									<span aria-hidden="true" className="mx-1.5">
-										·
-									</span>
-								)}
-								{line.snapshot.attribute_labels?.[key]?.[locale] ??
-									line.snapshot.attribute_labels?.[key]?.["fa-AF"] ??
-									key}
-								: <bdi>{String(value)}</bdi>
-							</span>
-						))}
-					</p>
-				)}
-				<dl className="m-0 grid grid-cols-3 gap-3">
-					<DetailField label={list.quantity}>
-						<bdi>{line.quantity.replace(/\.000$/, "")}</bdi> {unit}
-					</DetailField>
-					<DetailField label={list.unitPrice}>
-						<Money amount={line.unit_price} currency={order.currency} />
-					</DetailField>
-					<DetailField label={t.lineTotal}>
-						<Money
-							amount={line.goods_amount}
-							currency={order.currency}
-							className="font-semibold"
-						/>
-					</DetailField>
-				</dl>
-				{line.snapshot.price_changed && (
-					<p role="status" className="m-0 text-xs font-medium text-action">
-						{c.priceChanged}
-						{line.snapshot.shown_price != null && (
-							<>
-								{" · "}
-								{c.shownEstimate}:{" "}
-								<Money
-									amount={line.snapshot.shown_price}
-									currency={order.currency}
-								/>
-							</>
-						)}
-						{" · "}
-						{c.acceptedUnitPrice}:{" "}
-						<Money amount={line.unit_price} currency={order.currency} />
-					</p>
-				)}
-			</div>
-		</div>
 	);
 }
 
@@ -798,53 +731,34 @@ function PaymentPanel({
 		<div className="space-y-4">
 			<p className="m-0 text-sm text-muted">{orderViewCopy[locale].payment}</p>
 			<DetailCard title={t.paymentSummary} icon="wallet">
-				<dl className="m-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<DetailField label={t.acceptedTotal}>
-						<Money amount={p.accepted_total} currency={order.currency} />
-					</DetailField>
-					<DetailField label={paymentCopy[locale].confirmed}>
-						<Money amount={p.confirmed_total} currency={order.currency} />
-					</DetailField>
-					<DetailField label={paymentCopy[locale].remaining}>
-						<Money amount={p.remaining} currency={order.currency} />
-					</DetailField>
-					{!zero(p.overpayment) && (
-						<DetailField label={paymentCopy[locale].overpayment}>
-							<Money amount={p.overpayment} currency={order.currency} />
-						</DetailField>
-					)}
-					{!zero(p.refunded) && (
-						<DetailField label={aftercareCopy[locale].refunded}>
-							<Money amount={p.refunded} currency={order.currency} />
-						</DetailField>
-					)}
-					{!zero(p.refund_due) && (
-						<DetailField label={aftercareCopy[locale].refundDue}>
-							<Money amount={p.refund_due} currency={order.currency} />
-						</DetailField>
-					)}
-					<DetailField label={paymentCopy[locale].allocation}>
-						{paymentState(locale, p.allocation)}
-					</DetailField>
-					<DetailField label={c.due}>
-						{p.effective_due_at ? (
-							<bdi>{localTimestamp(p.effective_due_at, locale)}</bdi>
-						) : (
-							list.unknown
-						)}
-						{p.overdue && (
-							<Badge
-								variant="secondary"
-								className="ms-2 border-0 bg-danger-surface text-danger"
-							>
-								{paymentCopy[locale].overdue}
-							</Badge>
-						)}
-					</DetailField>
-				</dl>
-				<p className="m-0 text-xs text-muted">
-					{order.payment_method === "advance" ? t.advanceTiming : t.codTiming}
-				</p>
+				<PaymentSummaryCore
+					order={order}
+					locale={locale}
+					columns={3}
+					dueLabel={c.due}
+					extra={
+						<>
+							{!zero(p.overpayment) && (
+								<DetailField label={paymentCopy[locale].overpayment}>
+									<Money amount={p.overpayment} currency={order.currency} />
+								</DetailField>
+							)}
+							{!zero(p.refunded) && (
+								<DetailField label={aftercareCopy[locale].refunded}>
+									<Money amount={p.refunded} currency={order.currency} />
+								</DetailField>
+							)}
+							{!zero(p.refund_due) && (
+								<DetailField label={aftercareCopy[locale].refundDue}>
+									<Money amount={p.refund_due} currency={order.currency} />
+								</DetailField>
+							)}
+							<DetailField label={paymentCopy[locale].allocation}>
+								{paymentState(locale, p.allocation)}
+							</DetailField>
+						</>
+					}
+				/>
 			</DetailCard>
 			{canPayments && (
 				<Button asChild size="sm" className="rounded-lg">
@@ -925,6 +839,114 @@ function InvoicePanel({
 	);
 }
 
+function OrderTimeline({ order, locale }: { order: string; locale: Locale }) {
+	const t = orderViewCopy[locale],
+		c = commerceCopy[locale],
+		s = sellerSalesCopy[locale],
+		[page, setPage] = useState(1),
+		[data, setData] = useState<Page<OrderActivityEvent> | null>(null),
+		[error, setError] = useState(false),
+		[denied, setDenied] = useState(false),
+		[revision, setRevision] = useState(0);
+	useVisiblePoll(
+		async (signal) => {
+			try {
+				const result = await commerce<Page<OrderActivityEvent>>(
+					`orders/seller/orders/${order}/activity/?page=${page}`,
+					undefined,
+					"GET",
+					signal,
+				);
+				if (signal.aborted) return;
+				setData(result);
+				setError(false);
+			} catch (error) {
+				if (signal.aborted) return;
+				setData(null);
+				setError(true);
+				if (accessLost(error)) setDenied(true);
+				throw error;
+			}
+		},
+		[order, page, revision, denied],
+		!denied,
+	);
+	const current = data?.page === page ? data : null;
+	return (
+		<DetailCard title={orderDetailCopy[locale].activity} icon="history">
+			{denied ? (
+				<p role="alert" className="m-0 text-sm">
+					{t.activityDenied}
+				</p>
+			) : error ? (
+				<div role="alert" className="space-y-3">
+					<p className="m-0 text-sm">{c.error}</p>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setRevision((value) => value + 1)}
+					>
+						{c.reload}
+					</Button>
+				</div>
+			) : !current ? (
+				<p role="status" className="m-0 text-sm text-muted">
+					{c.loading}
+				</p>
+			) : (
+				<>
+					{current.results.length ? (
+						<ol className="m-0 list-none p-0">
+							{current.results.map((event, index) => (
+								<li
+									key={`${event.source}:${event.id}`}
+									className="relative flex gap-3 pb-5 last:pb-0"
+								>
+									{index < current.results.length - 1 && (
+										<span
+											aria-hidden="true"
+											className="absolute start-3.5 top-7 bottom-0 w-px bg-border"
+										/>
+									)}
+									<span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-info text-action">
+										<Clock3 className="size-3.5" aria-hidden="true" />
+									</span>
+									<div className="min-w-0 space-y-1 pt-0.5">
+										<p className="m-0 text-sm font-medium">
+											{orderActivityLabel(locale, event)}
+										</p>
+										<time
+											dateTime={event.created_at}
+											className="text-xs text-muted"
+										>
+											<bdi>{localTimestamp(event.created_at, locale)}</bdi>
+										</time>
+									</div>
+								</li>
+							))}
+						</ol>
+					) : (
+						<p className="m-0 text-sm text-muted">{t.activityEmpty}</p>
+					)}
+					<Pager
+						locale={locale}
+						page={page}
+						count={current.count}
+						pageSize={PAGE_SIZE}
+						labels={{ prev: s.previous, next: s.next, page: s.page }}
+						onPage={(next) => {
+							if (next === page) return;
+							setError(false);
+							setData(null);
+							setPage(next);
+						}}
+					/>
+				</>
+			)}
+		</DetailCard>
+	);
+}
+
 function ActivityPanel({
 	order,
 	locale,
@@ -941,29 +963,11 @@ function ActivityPanel({
 	return (
 		<div className="space-y-4">
 			<p className="m-0 text-sm text-muted">{orderViewCopy[locale].activity}</p>
-			<DetailCard title={t.activity} icon="history">
-				<ol className="m-0 list-none p-0">
-					{[
-						{
-							id: "accepted",
-							label: commerceCopy[locale].accepted,
-							at: order.accepted_at,
-						},
-					].map((event) => (
-						<li key={event.id} className="flex items-start gap-3">
-							<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info text-action">
-								<Clock3 className="size-4" aria-hidden="true" />
-							</span>
-							<div className="space-y-1">
-								<p className="m-0 text-sm font-medium">{event.label}</p>
-								<time dateTime={event.at} className="text-xs text-muted">
-									<bdi>{localTimestamp(event.at, locale)}</bdi>
-								</time>
-							</div>
-						</li>
-					))}
-				</ol>
-			</DetailCard>
+			<OrderTimeline
+				key={`${order.id}:${seller}:${locale}`}
+				order={order.id}
+				locale={locale}
+			/>
 			<nav aria-label={t.activity} className="flex flex-wrap gap-2">
 				{can("payments") && (
 					<Button asChild variant="outline" size="sm" className="rounded-lg">
@@ -981,9 +985,16 @@ function ActivityPanel({
 						</Link>
 					</Button>
 				)}
-				{can("disputes") && (
+				{can("disputes") && order.dispute_id && (
 					<Button asChild variant="outline" size="sm" className="rounded-lg">
-						<Link href={sellerHref(locale, "disputes", seller)}>
+						<Link
+							href={disputeHref(
+								locale,
+								"seller",
+								order.dispute_id ?? undefined,
+								seller,
+							)}
+						>
 							<Shield className="size-3.5" aria-hidden="true" />
 							{aftercareCopy[locale].disputes}
 						</Link>
@@ -999,7 +1010,7 @@ function ActivityPanel({
 				<summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
 					<span>{orderViewCopy[locale].issues}</span>
 					<ChevronRight
-						className="size-4 text-muted group-open/issues:rotate-90"
+						className="size-4 text-muted group-open/issues:rotate-90 rtl:rotate-180"
 						aria-hidden="true"
 					/>
 				</summary>

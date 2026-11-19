@@ -83,11 +83,93 @@ export function DeliveryHistory({
 		delivered: t.deliver,
 		completed: t.completed,
 	};
+	const timeline = (
+		<section className={isSeller && embedded ? "space-y-3" : panel}>
+			{(!isSeller || !embedded) && <h2>{t.history}</h2>}
+			{isSeller && (
+				<p className="m-0 text-xs text-muted">
+					{s.results}:{" "}
+					<bdi>{new Intl.NumberFormat(locale).format(row.history_count)}</bdi>{" "}
+					· {s.page} <bdi>{new Intl.NumberFormat(locale).format(page)}</bdi>
+				</p>
+			)}
+			{row.history.length ? (
+				<ol className="m-0 list-none p-0">
+					{row.history.map((event, index) => (
+						<li key={event.id} className="relative flex gap-3 pb-5 last:pb-0">
+							{index < row.history.length - 1 && (
+								<span
+									aria-hidden="true"
+									className="absolute start-3.5 top-7 bottom-0 w-px bg-border"
+								/>
+							)}
+							<span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-info text-action">
+								<Clock3 className="size-3.5" aria-hidden="true" />
+							</span>
+							<div className="min-w-0 flex-1 space-y-1 pt-0.5">
+								<p className="font-medium text-foreground">
+									{events[event.action] ?? t.review}
+								</p>
+								<div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted">
+									{!isSeller && (
+										<>
+											<span>
+												<bdi>v{event.version}</bdi>
+											</span>
+											<span aria-hidden="true">·</span>
+										</>
+									)}
+									<time dateTime={event.created_at}>
+										<bdi>{localTimestamp(event.created_at, locale)}</bdi>
+									</time>
+									<span aria-hidden="true">·</span>
+									<span>{fulfilmentState(locale, event.context)}</span>
+								</div>
+							</div>
+						</li>
+					))}
+				</ol>
+			) : (
+				<p className="text-muted">{s.empty}</p>
+			)}
+			<div className="flex flex-wrap gap-3">
+				{page > 1 &&
+					(onPage ? (
+						<button
+							type="button"
+							className={action}
+							onClick={() => onPage(page - 1)}
+						>
+							{t.previous}
+						</button>
+					) : (
+						<Link className={action} href={historyHref(page - 1)}>
+							{t.previous}
+						</Link>
+					))}
+				{page * 50 < row.history_count &&
+					(onPage ? (
+						<button
+							type="button"
+							className={action}
+							onClick={() => onPage(page + 1)}
+						>
+							{t.next}
+						</button>
+					) : (
+						<Link className={action} href={historyHref(page + 1)}>
+							{t.next}
+						</Link>
+					))}
+			</div>
+		</section>
+	);
 	return (
 		<div className="space-y-4">
 			{isSeller && !embedded && (
 				<h2 className="text-lg font-semibold">{s.history}</h2>
 			)}
+			{embedded && timeline}
 			{row.proposals.length > 0 && (
 				<section className={panel}>
 					<h2>{t.proposeCharge}</h2>
@@ -281,85 +363,7 @@ export function DeliveryHistory({
 					)}
 				</section>
 			)}
-			<section className={isSeller && embedded ? "space-y-3" : panel}>
-				{(!isSeller || !embedded) && <h2>{t.history}</h2>}
-				{isSeller && (
-					<p className="m-0 text-xs text-muted">
-						{s.results}:{" "}
-						<bdi>{new Intl.NumberFormat(locale).format(row.history_count)}</bdi>{" "}
-						· {s.page} <bdi>{new Intl.NumberFormat(locale).format(page)}</bdi>
-					</p>
-				)}
-				{row.history.length ? (
-					<ol className="m-0 list-none p-0">
-						{row.history.map((event, index) => (
-							<li key={event.id} className="relative flex gap-3 pb-5 last:pb-0">
-								{index < row.history.length - 1 && (
-									<span
-										aria-hidden="true"
-										className="absolute start-3.5 top-7 bottom-0 w-px bg-border"
-									/>
-								)}
-								<span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-info text-action">
-									<Clock3 className="size-3.5" aria-hidden="true" />
-								</span>
-								<div className="min-w-0 flex-1 space-y-1 pt-0.5">
-									<p className="font-medium text-foreground">
-										{events[event.action] ?? t.review}
-									</p>
-									<div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted">
-										{!isSeller && (
-											<>
-												<span>
-													<bdi>v{event.version}</bdi>
-												</span>
-												<span aria-hidden="true">·</span>
-											</>
-										)}
-										<time dateTime={event.created_at}>
-											<bdi>{localTimestamp(event.created_at, locale)}</bdi>
-										</time>
-										<span aria-hidden="true">·</span>
-										<span>{fulfilmentState(locale, event.context)}</span>
-									</div>
-								</div>
-							</li>
-						))}
-					</ol>
-				) : (
-					<p className="text-muted">{s.empty}</p>
-				)}
-				<div className="flex flex-wrap gap-3">
-					{page > 1 &&
-						(onPage ? (
-							<button
-								type="button"
-								className={action}
-								onClick={() => onPage(page - 1)}
-							>
-								{t.previous}
-							</button>
-						) : (
-							<Link className={action} href={historyHref(page - 1)}>
-								{t.previous}
-							</Link>
-						))}
-					{page * 50 < row.history_count &&
-						(onPage ? (
-							<button
-								type="button"
-								className={action}
-								onClick={() => onPage(page + 1)}
-							>
-								{t.next}
-							</button>
-						) : (
-							<Link className={action} href={historyHref(page + 1)}>
-								{t.next}
-							</Link>
-						))}
-				</div>
-			</section>
+			{!embedded && timeline}
 		</div>
 	);
 }

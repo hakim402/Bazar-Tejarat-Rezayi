@@ -371,9 +371,15 @@ export function BuyerProductsCard({
 export function PaymentSummaryCore({
 	order,
 	locale,
+	extra,
+	columns = 2,
+	dueLabel,
 }: {
 	order: Order;
 	locale: Locale;
+	extra?: ReactNode;
+	columns?: 2 | 3;
+	dueLabel?: string;
 }) {
 	const t = orderDetailCopy[locale],
 		p = paymentCopy[locale],
@@ -381,7 +387,12 @@ export function PaymentSummaryCore({
 		timing = order.payment_method === "advance" ? t.advanceTiming : t.codTiming;
 	return (
 		<>
-			<dl className="m-0 grid gap-3 sm:grid-cols-2">
+			<dl
+				className={cn(
+					"m-0 grid gap-3 sm:grid-cols-2",
+					columns === 3 && "lg:grid-cols-3",
+				)}
+			>
 				<DetailField label={t.acceptedTotal}>
 					<Money amount={pay.accepted_total} currency={order.currency} />
 				</DetailField>
@@ -395,7 +406,8 @@ export function PaymentSummaryCore({
 						className="font-semibold"
 					/>
 				</DetailField>
-				<DetailField label={p.effectiveDue}>
+				{extra}
+				<DetailField label={dueLabel ?? p.effectiveDue}>
 					{dueText(pay.effective_due_at, locale)}
 					<OverdueBadge overdue={pay.overdue} locale={locale} />
 				</DetailField>

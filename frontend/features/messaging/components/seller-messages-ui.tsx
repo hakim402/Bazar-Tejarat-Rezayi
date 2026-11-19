@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { SellerSelect } from "../../../app/[locale]/(seller)/account/seller/components/seller-select";
+import { SellerSelect } from "../../../components/seller-select";
 import { Icon } from "../../../components/ui/icon";
-import type { Locale } from "../../../lib/i18n/locales";
+import { pageBannerClass } from "../../../components/ui/page-header";
+import { direction, type Locale } from "../../../lib/i18n/locales";
 import { sellerMessagesCopy } from "../../../lib/i18n/seller-messages";
 import {
 	sellerHref,
@@ -12,7 +13,7 @@ import {
 } from "../../../lib/routes/account-routes";
 import type { Profiles } from "../api";
 import { communicationCopy } from "../copy";
-import { badge, panel } from "./ui";
+import { badge } from "./ui";
 
 export function messageListState(params?: QueryReader, fromThread = false) {
 	const raw = params?.get(fromThread ? "list_page" : "page");
@@ -65,18 +66,17 @@ export function SellerMessagesHeader({
 	const smallIcon =
 		"inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-action transition-colors hover:border-action hover:bg-info focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action";
 	return (
-		<header
-			className={`${panel} flex flex-wrap items-center gap-2 px-3 py-2 sm:px-4`}
-		>
+		<header className={`${pageBannerClass} flex flex-wrap items-center gap-4`}>
 			<div className="min-w-0 flex-1">
-				<h1 className="text-lg font-bold tracking-tight">{common.messages}</h1>
-				<p className="truncate text-xs text-muted">
+				<h1 className="text-page-title font-bold">{common.messages}</h1>
+				<p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">
 					{thread ? t.threadHelp : t.help}
 				</p>
 			</div>
 			{!!profiles.length && onChange && (
 				<div className="w-full min-w-0 sm:w-56">
 					<SellerSelect
+						dir={direction(locale)}
 						label={t.business}
 						value={selected}
 						options={profiles.map((row) => ({
@@ -120,7 +120,7 @@ export function SellerMessagesHeader({
 							? t.individual
 							: profile.kind === "company"
 								? t.company
-								: profile.kind}
+								: t.businessKind}
 					</bdi>
 					· {profile.messaging ? t.messagingAccess : common.noAccess}
 				</span>
