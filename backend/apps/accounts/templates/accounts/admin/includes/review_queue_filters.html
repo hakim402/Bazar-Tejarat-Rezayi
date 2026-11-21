@@ -1,0 +1,7 @@
+<nav class="flex flex-wrap items-center gap-1" aria-label="{{ filter_label }}">
+  {% for filter in filters %}
+    <a href="{{ filter.url }}" class="{{ rz_theme.queue_filter }} {% if filter.selected %}{{ rz_theme.queue_filter_active }}{% else %}{{ rz_theme.muted }}{% endif %}" {% if filter.selected %}aria-current="true"{% endif %}>
+      {{ filter.label }}
+    </a>
+  {% endfor %}
+</nav>

@@ -1,0 +1,13 @@
+{% with name=user.display_name|default:user.get_username %}
+  <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden {{ rz_account.avatar }}"
+      aria-hidden="true"{% if user.avatar_id %} x-data="{ photoLoaded: false }"{% endif %}>
+    <bdi>{{ name|first|upper }}</bdi>
+    {% if user.avatar_id %}
+      <img src="{% url 'site_media' user.avatar_id %}" alt="" width="40" height="40"
+          class="absolute inset-0 h-full w-full object-cover"
+          x-cloak x-show="photoLoaded"
+          x-init="photoLoaded = $el.complete && $el.naturalWidth > 0"
+          x-on:load="photoLoaded = true" x-on:error="photoLoaded = false">
+    {% endif %}
+  </span>
+{% endwith %}

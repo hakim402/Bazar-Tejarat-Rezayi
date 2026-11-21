@@ -1,0 +1,14 @@
+{% load i18n %}
+<div class="px-2 pb-2" role="group" aria-labelledby="owner-language-heading">
+  <p id="owner-language-heading" class="mb-1 {{ rz_account.label }}">{% translate 'Language' %}</p>
+  <form method="post" action="{% url 'admin:admin_set_language' %}" class="grid grid-cols-2 gap-1 p-1 {{ rz_account.segments }}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" name="language" value="en" lang="en" dir="ltr"
+        aria-pressed="{% if request.LANGUAGE_CODE == 'en' %}true{% else %}false{% endif %}"
+        class="min-w-0 cursor-pointer px-1 py-1.5 text-center text-xs {{ rz_account.trigger }} {% if request.LANGUAGE_CODE == 'en' %}{{ rz_account.selection }}{% endif %}">English</button>
+    <button type="submit" name="language" value="fa-af" lang="fa-AF" dir="rtl"
+        aria-pressed="{% if request.LANGUAGE_CODE == 'fa-af' %}true{% else %}false{% endif %}"
+        class="min-w-0 cursor-pointer px-1 py-1.5 text-center text-xs {{ rz_account.trigger }} {% if request.LANGUAGE_CODE == 'fa-af' %}{{ rz_account.selection }}{% endif %}">دری</button>
+  </form>
+</div>

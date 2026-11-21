@@ -2,6 +2,7 @@
 
 import uuid
 from django import forms
+from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -379,6 +380,17 @@ class CaseAdmin(PaymentAdmin):
         return response
 
 
+class RefundReviewFilter(SimpleListFilter):
+    title = _("Goods refund review")
+    parameter_name = "refund_review"
+
+    def lookups(self, request, model_admin):
+        return (("pending", _("Pending")),)
+
+    def queryset(self, request, queryset):
+        return queryset.filter(queries.awaiting_refund_review()) if self.value() == "pending" else queryset
+
+
 class RefundDueAdmin(PaymentAdmin):
     list_display = ["id", "order", "cause", "amount", "currency", "state", "reviewer", "workspace"]
     list_filter = ["cause"]
@@ -386,6 +398,15 @@ class RefundDueAdmin(PaymentAdmin):
     badge_fields = ("cause",)
     money_fields = {"amount": "currency"}
     fields = ["id", "order", "cause", "amount", "currency", "event", "assigned_to", "version", "created_at"]
+
+    def get_list_filter(self, request):
+        filters = super().get_list_filter(request)
+        return [*filters, RefundReviewFilter] if is_owner(request) else filters
+
+    def lookup_allowed(self, lookup, value, request=None):
+        if lookup == RefundReviewFilter.parameter_name and request is not None:
+            return is_owner(request)
+        return super().lookup_allowed(lookup, value, request)
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
@@ -419,6 +440,7 @@ class RefundDueAdmin(PaymentAdmin):
 
     @private_document
     def workflow(self, request, pk):
+        from apps.accounts.admin.review_queues import review_labels
         from apps.orders.access import aftercare_rights
 
         actor = admin_actor(request)
@@ -440,12 +462,13 @@ class RefundDueAdmin(PaymentAdmin):
         independent = True
         try:
             refunds.independent(due.order, actor.user)
+            refunds.dispute_confirmer_allowed(due, actor.user)
         except APIException:
             independent = False
-        # pending_report selects for update; the workspace only needs existence.
-        pending = m.RefundReport.objects.filter(due=due, decision__isnull=True).exists()
-        confirmed = m.RefundDecision.objects.filter(report__due=due, action="confirmed").exists()
-        if can_inspect and pending and not confirmed and "decide_goods_refund" in codes and independent:
+        due_status = queries.due_state(due)
+        pending = due_status == "reported"
+        assigned_to_actor = due.assigned_to_id == actor.user.pk
+        if pending and assigned_to_actor and "decide_goods_refund" in codes and independent:
             choices += [("confirm", "Confirm the exact seller refund report"), ("reject", ADMIN_COPY["payment_reject"])]
         projection = queries.projection(due.order)
         form = CaseForm(
@@ -504,8 +527,10 @@ class RefundDueAdmin(PaymentAdmin):
                 "reports": reports,
                 "images": images,
                 "independent": independent,
-                "pending": pending is not None,
-                "confirmed": confirmed,
+                "pending": pending,
+                "confirmed": due_status == "confirmed",
+                "assignment_required": pending and not assigned_to_actor and "decide_goods_refund" in codes,
+                "review_labels": review_labels(),
             },
             status=status,
         )

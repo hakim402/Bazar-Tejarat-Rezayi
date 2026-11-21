@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block content %}
+  <div class="flex min-w-0 flex-col gap-4 pb-8 {{ rz_theme.text }}">
+    <section class="min-w-0 overflow-hidden {{ rz_theme.card }}" aria-labelledby="review-queues-heading">
+      <header class="flex flex-wrap items-center justify-between gap-3 border-b {{ rz_theme.divider }} px-5 py-4">
+        <div>
+          <h2 id="review-queues-heading" class="{{ rz_theme.section_title }}">{% translate "Needs your attention" %}</h2>
+          <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ queue_labels.eligibility_note }}</p>
+        </div>
+        <span class="{{ rz_theme.chip }}"><bdi>{{ active_queue_count }}</bdi> {{ queue_labels.open_queues }}</span>
+      </header>
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b {{ rz_theme.divider }} px-5 py-2">
+        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_area_filters filter_label=queue_labels.queue_area %}
+        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_priority_filters filter_label=queue_labels.priority %}
+      </div>
+      {% include "accounts/admin/includes/review_queue_rows.html" %}
+      {% if queue_rows %}
+        <p class="border-t {{ rz_theme.divider }} px-5 py-3 text-xs {{ rz_theme.muted }}">{{ queue_labels.overlap }}</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

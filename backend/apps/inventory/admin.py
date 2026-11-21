@@ -7,8 +7,9 @@ from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
-from apps.accounts.admin.access import permits
+from apps.accounts.admin.access import is_owner, permits
 from apps.accounts.admin.display import AdminDisplayMixin
+from .queries import unresolved_shortage_roots
 from .models import (
     Position,
     Batch,
@@ -55,9 +56,14 @@ class ShortageStateFilter(SimpleListFilter):
     parameter_name = 'shortage_state'
 
     def lookups(self, request, model_admin):
-        return [('open', 'Shortage'), ('recovered', 'Recovered')]
+        states = [('open', 'Shortage'), ('recovered', 'Recovered')]
+        if is_owner(request):
+            states.append(('unresolved_roots', _('Open queue')))
+        return states
 
     def queryset(self, request, queryset):
+        if self.value() == 'unresolved_roots' and is_owner(request):
+            return unresolved_shortage_roots(queryset)
         if self.value() not in {'open', 'recovered'}:
             return queryset
         ids = list(Recovery.objects.values_list('shortage_id', flat=True))
@@ -151,8 +157,6 @@ owner_site.register(Shortage, ShortageAdmin)
 
 class StockTransitionAdmin(InventoryAuditAdmin):
     def has_view_permission(self, request, obj=None):
-        from apps.accounts.admin.access import is_owner
-
         return is_owner(request)
 
     def has_module_permission(self, request):

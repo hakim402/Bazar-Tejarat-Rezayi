@@ -397,6 +397,13 @@ def due_status(due, *, can_report):
     }
 
 
+def awaiting_refund_review():
+    """Refund obligations with a pending report and no confirmed settlement."""
+    pending = RefundReport.objects.filter(due_id=OuterRef("pk"), decision__isnull=True)
+    confirmed = RefundDecision.objects.filter(report__due_id=OuterRef("pk"), action="confirmed")
+    return Exists(pending) & ~Exists(confirmed)
+
+
 def due_state(due):
     if "reports" in getattr(due, "_prefetched_objects_cache", {}):
         reports = list(due.reports.all())

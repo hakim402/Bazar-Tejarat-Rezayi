@@ -1,6 +1,6 @@
 {% load i18n unfold %}
 <div id="nav-sidebar-apps" tabindex="0" aria-label="{% translate 'Administration navigation' %}" class="h-0 grow overflow-auto scrollbar-default-hover pb-2">
-  {% for group in sidebar_navigation %}{% if group.items %}
+  {% for group in sidebar_navigation %}{% if group.items and not group.directory_only %}
     {% if group.section %}{% ifchanged group.section %}<h2 class="rz-nav-section font-semibold flex flex-row items-center mb-1 mt-3 mx-3 py-1.5 px-3 select-none text-font-important-light text-sm dark:text-font-important-dark">{{ group.section }}</h2>{% endifchanged %}{% endif %}
     <ol class="flex flex-col px-3 mb-1.5">
       {% for item in group.items %}{% if item.has_permission %}

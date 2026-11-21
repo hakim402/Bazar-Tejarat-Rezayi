@@ -1,218 +1,156 @@
-{% extends 'admin/base_site.html' %}
-{% load i18n static %}
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
 {% block content %}
-{% get_current_language as lang %}
-<div class="flex min-w-0 flex-col gap-6 pb-8 {{ rz_theme.text }}" data-testid="owner-dashboard">
-  <header class="flex flex-wrap items-start justify-between gap-3">
-    <div class="flex min-w-0 items-start gap-3">
-      <span class="{{ rz_theme.icon_tile }} h-10 w-10"><span data-admin-icon class="material-symbols-outlined text-xl" aria-hidden="true">space_dashboard</span></span>
-      <div class="min-w-0">
-        <h2 class="{{ rz_theme.section_title }} text-lg">{{ admin_copy.workspace }}</h2>
-        <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.overview_body }}</p>
-      </div>
+<div class="flex min-w-0 flex-col gap-4 pb-8 {{ rz_theme.text }}" data-testid="owner-dashboard">
+  <header class="relative overflow-hidden p-5 lg:px-6 {{ rz_theme.overview_banner }}">
+    <div class="pointer-events-none absolute end-0 top-0 hidden aspect-square w-96 -translate-y-1/2 items-center justify-center md:flex" aria-hidden="true">
+      <span class="w-96 {{ rz_theme.overview_ring }}"></span>
+      <span class="w-80 {{ rz_theme.overview_ring }}"></span>
+      <span class="w-56 {{ rz_theme.overview_ring }}"></span>
     </div>
-    <div class="flex flex-wrap items-center gap-3">
-      <span class="inline-flex items-center gap-2 text-xs {{ rz_theme.muted }}"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">calendar_month</span><span dir="ltr">{% now 'M j, Y' %}</span></span>
-      <a href="{{ frontend_url }}" class="inline-flex items-center gap-2 rounded-md border {{ rz_theme.divider }} bg-white px-3 py-2 text-sm font-medium {{ rz_theme.action }} transition-colors hover:border-primary-400 dark:bg-base-900"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>{{ admin_copy.open_marketplace }}</a>
+    <div class="relative flex flex-col gap-5 lg:flex-row lg:items-center">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-3xl font-bold tracking-tight lg:text-4xl">{% translate "Overview" %}</h2>
+        <p class="mt-1 text-sm {{ rz_theme.overview_banner_muted }}">
+          {% if overview_urgent_count %}
+            <bdi>{{ overview_urgent_count }}</bdi>
+            {% if overview_urgent_count == 1 %}{{ overview_copy.urgent_one }}{% else %}{{ overview_copy.urgent_many }}{% endif %}
+          {% else %}{{ overview_copy.clear }}{% endif %}
+        </p>
+        <a href="{% if overview_urgent_count %}{{ urgent_queue_url }}{% else %}{{ queue_hub_url }}{% endif %}" class="mt-4 inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold {{ rz_theme.overview_button }}">
+          {% if overview_urgent_count %}{{ queue_labels.review_urgent }}{% else %}{{ overview_copy.open_queues }}{% endif %}
+          <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100" aria-hidden="true">arrow_forward</span>
+        </a>
+      </div>
+      <section class="w-full shrink-0 px-4 py-3 lg:max-w-80 {{ rz_theme.overview_priority_panel }}" aria-labelledby="queue-priority-heading">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="queue-priority-heading" class="text-sm font-semibold">{{ queue_labels.by_priority }}</h3>
+          <span class="text-xs {{ rz_theme.overview_banner_muted }}"><bdi>{{ active_queue_count }}</bdi> {% if active_queue_count == 1 %}{{ overview_copy.work_one }}{% else %}{{ overview_copy.work_many }}{% endif %}</span>
+        </div>
+        <div class="my-3 flex h-1.5 overflow-hidden rounded-full {{ rz_theme.overview_priority_track }}" aria-hidden="true">
+          {% for color in overview_priority_slots %}<span class="flex-1 {{ color }}"></span>{% endfor %}
+        </div>
+        <ul class="flex flex-wrap items-center justify-between gap-2 text-xs">
+          {% for priority in priority_counts %}
+            <li class="flex items-center gap-1">
+              <span class="h-2 w-2 shrink-0 rounded-full {{ priority.color }}" aria-hidden="true"></span>
+              <bdi class="font-semibold">{{ priority.count }}</bdi>
+              <span class="{{ rz_theme.overview_banner_muted }}">{{ priority.label }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
     </div>
   </header>
 
-  <section aria-label="{{ admin_copy.workspace }}" class="grid grid-cols-1 gap-4 md:grid-cols-3">
-    {% for metric in metrics %}{% include 'accounts/admin/includes/kpi_card.html' with metric=metric %}{% endfor %}
-  </section>
+  <nav class="grid grid-cols-3 gap-2 md:gap-3" aria-label="{{ queue_labels.queue_area }}">
+    {% for area in queue_areas %}
+      <a href="{{ area.url }}" class="flex min-w-0 flex-col gap-2 p-2 md:flex-row md:items-center lg:p-3 {{ rz_theme.card }} {{ rz_theme.card_hover }}">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ area.icon_class }}">
+          <span data-admin-icon class="material-symbols-outlined text-base" aria-hidden="true">{{ area.icon }}</span>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block break-words text-xs font-semibold xl:text-sm {{ rz_theme.text }}">{{ area.label }}</span>
+          <span class="block text-xs {{ rz_theme.muted }}"><bdi>{{ area.count }}</bdi> {% if area.count == 1 %}{{ overview_copy.open_one }}{% else %}{{ overview_copy.open_many }}{% endif %}</span>
+        </span>
+        <span data-admin-icon class="material-symbols-outlined hidden text-base md:block rtl:-scale-x-100 {{ rz_theme.muted }}" aria-hidden="true">chevron_right</span>
+      </a>
+    {% endfor %}
+  </nav>
 
-  <section class="min-w-0 overflow-hidden {{ rz_theme.card }}" aria-labelledby="activity-heading">
-    <div class="flex flex-wrap items-start justify-between gap-3 border-b {{ rz_theme.divider }} px-5 py-4">
-      <div>
-        <h2 id="activity-heading" class="{{ rz_theme.section_title }}">{{ admin_copy.growth }}</h2>
-        <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.growth_body }}</p>
-      </div>
-      <span class="{{ rz_theme.chip }}">{% translate 'Last 14 days' %}</span>
-    </div>
-    <div class="p-5">
-      <div class="flex flex-wrap gap-5 text-xs {{ rz_theme.muted }}">
-        <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-sm bg-primary-600 dark:bg-primary-400" aria-hidden="true"></span>{{ admin_copy.accounts }}</span>
-        <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-sm bg-base-500 dark:bg-base-400" aria-hidden="true"></span>{{ admin_copy.products }}</span>
-      </div>
-      <div class="relative mt-4 h-72 w-full" dir="ltr" data-testid="activity-chart">
-        <canvas id="ra-activity-canvas" class="h-full w-full" dir="ltr" role="img" aria-label="{{ admin_copy.growth }} — {{ admin_copy.growth_body }}"></canvas>
-      </div>
-      {{ series|json_script:"ra-activity-data" }}
-      <script src="{% static 'accounts/vendor/chart.umd.min.js' %}" defer></script>
-      <script>
-        window.addEventListener("DOMContentLoaded", function () {
-          var canvas = document.getElementById("ra-activity-canvas");
-          var payload = document.getElementById("ra-activity-data");
-          if (!canvas || !payload || !window.Chart) return;
-          var rows = JSON.parse(payload.textContent);
-          var language = (document.documentElement.lang || "en").replace(/_/g, "-");
-          var locale = language.toLowerCase() === "fa-af" ? "fa-AF" : language;
-          var dates = new Intl.DateTimeFormat(locale, { calendar: "gregory", month: "short", day: "numeric" });
-          var numbers = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-          var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-          // Read Unfold's own compiled palette so the chart follows light/dark without a custom build.
-          function themeStyles() {
-            var root = getComputedStyle(document.documentElement);
-            var dark = document.documentElement.classList.contains("dark");
-            function v(name, fallback) { return root.getPropertyValue(name).trim() || fallback; }
-            return {
-              action: v("--color-primary-600", "#005bab"),
-              muted: dark ? v("--color-base-400", "#9ca3af") : v("--color-base-500", "#526575"),
-              line: dark ? v("--color-base-700", "#374151") : v("--color-base-200", "#ccd6df"),
-              panel: dark ? v("--color-base-900", "#111827") : v("--color-white", "#ffffff"),
-              ink: dark ? v("--color-base-100", "#f3f4f6") : v("--color-base-900", "#182b3a"),
-              font: getComputedStyle(document.body).fontFamily
-            };
-          }
-          var theme = themeStyles();
-          var labels = rows.map(function (row) {
-            return dates.format(new Date(`${row.date}T12:00:00`));
-          });
-          function rgba(color, alpha) {
-            var m = /^#?([0-9a-f]{6})$/i.exec(color || "");
-            if (!m) return color;
-            var n = parseInt(m[1], 16);
-            return "rgba(" + (n >> 16 & 255) + "," + (n >> 8 & 255) + "," + (n & 255) + "," + alpha + ")";
-          }
-          function areaGradient(color) {
-            var ctx = canvas.getContext("2d");
-            var g = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight || 288);
-            g.addColorStop(0, rgba(color, 0.26));
-            g.addColorStop(1, rgba(color, 0.02));
-            return g;
-          }
-          var chart = new window.Chart(canvas, {
-            type: "line",
-            data: {
-              labels: labels,
-              datasets: [
-                { label: "{{ admin_copy.accounts|escapejs }}", data: rows.map(function (row) { return row.accounts; }),
-                  borderColor: theme.action, backgroundColor: areaGradient(theme.action), fill: true, tension: 0.35, borderWidth: 2,
-                  pointRadius: 2.5, pointHoverRadius: 5, pointBackgroundColor: theme.panel, pointBorderColor: theme.action, pointBorderWidth: 2, order: 2 },
-                { label: "{{ admin_copy.products|escapejs }}", data: rows.map(function (row) { return row.products; }),
-                  borderColor: theme.muted, backgroundColor: theme.muted, fill: false, tension: 0.35, borderWidth: 1.5, borderDash: [5, 5],
-                  pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: theme.panel, pointBorderColor: theme.muted, pointBorderWidth: 1.5, order: 1 }
-              ]
-            },
-            options: {
-              locale: locale,
-              responsive: true, maintainAspectRatio: false,
-              animation: reducedMotion.matches ? false : { duration: 180 },
-              interaction: { mode: "index", intersect: false },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: theme.panel, titleColor: theme.ink, bodyColor: theme.ink,
-                  borderColor: theme.line, borderWidth: 1, cornerRadius: 8, padding: 10, boxPadding: 4,
-                  caretSize: 6, usePointStyle: true,
-                  titleFont: { family: theme.font }, bodyFont: { family: theme.font }
-                }
-              },
-              scales: {
-                x: { reverse: false, grid: { display: false }, border: { color: theme.line },
-                  ticks: { color: theme.muted, maxTicksLimit: 7, maxRotation: 0, padding: 6, font: { family: theme.font } } },
-                y: { beginAtZero: true, suggestedMax: 1, grid: { color: theme.line, drawTicks: false }, border: { display: false },
-                  ticks: { color: theme.muted, precision: 0, maxTicksLimit: 6, padding: 8, font: { family: theme.font },
-                    callback: function (value) { return Number.isInteger(value) ? numbers.format(value) : ""; } } }
-              }
-            }
-          });
-          function refreshTheme() {
-            var current = themeStyles();
-            chart.data.datasets.forEach(function (dataset, index) {
-              var color = index === 0 ? current.action : current.muted;
-              dataset.borderColor = color;
-              dataset.backgroundColor = index === 0 ? areaGradient(color) : color;
-              dataset.pointBackgroundColor = current.panel;
-              dataset.pointBorderColor = color;
-            });
-            chart.options.scales.x.border.color = current.line;
-            chart.options.scales.y.grid.color = current.line;
-            ["x", "y"].forEach(function (axis) {
-              chart.options.scales[axis].ticks.color = current.muted;
-              chart.options.scales[axis].ticks.font.family = current.font;
-            });
-            var tooltip = chart.options.plugins.tooltip;
-            tooltip.backgroundColor = current.panel;
-            tooltip.titleColor = current.ink;
-            tooltip.bodyColor = current.ink;
-            tooltip.borderColor = current.line;
-            tooltip.titleFont.family = current.font;
-            tooltip.bodyFont.family = current.font;
-            chart.options.animation = reducedMotion.matches ? false : { duration: 180 };
-            chart.update("none");
-          }
-          new MutationObserver(refreshTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-          reducedMotion.addEventListener("change", refreshTheme);
-        });
-      </script>
-      <details class="mt-3 text-sm">
-        <summary class="cursor-pointer font-semibold {{ rz_theme.action }}">{{ admin_copy.chart_data }}</summary>
-        <div class="mt-3 overflow-auto">
-          <table class="w-full text-start text-xs">
-            <caption class="sr-only">{{ admin_copy.growth_body }}</caption>
-            <thead><tr><th scope="col" class="py-2 text-start">{{ admin_copy.date }}</th><th scope="col" class="py-2" style="text-align:end">{{ admin_copy.accounts }}</th><th scope="col" class="py-2" style="text-align:end">{{ admin_copy.products }}</th></tr></thead>
-            <tbody>{% for point in series %}<tr class="border-t {{ rz_theme.divider }}"><th scope="row" class="py-2 text-start font-normal">{{ point.date|date:'M j, Y' }}</th><td class="py-2" style="text-align:end;font-variant-numeric:tabular-nums">{{ point.accounts }}</td><td class="py-2" style="text-align:end;font-variant-numeric:tabular-nums">{{ point.products }}</td></tr>{% endfor %}</tbody>
-          </table>
+  <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+    <section id="queue-work" class="lg:col-span-2 {{ rz_theme.overview_panel }}" aria-labelledby="overview-work-heading">
+      <header class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b {{ rz_theme.divider }} px-4 py-3">
+        <h2 id="overview-work-heading" class="{{ rz_theme.section_title }}">{% translate "Needs your attention" %}</h2>
+        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_priority_filters filter_label=queue_labels.priority %}
+      </header>
+      {% if queue_rows %}
+        <div class="hidden shrink-0 items-center gap-3 px-4 py-2 text-xs font-semibold lg:flex {{ rz_theme.overview_table_head }} {{ rz_theme.muted }}" aria-hidden="true">
+          <span class="flex-1">{% translate "Queue" %}</span>
+          <span class="w-24">{{ queue_labels.priority }}</span>
+          <span class="w-10">{{ queue_labels.items }}</span>
+          <span class="w-5"></span>
         </div>
-      </details>
-    </div>
-  </section>
-
-  <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-    <section class="min-w-0 overflow-hidden {{ rz_theme.card }}" aria-labelledby="shortcuts-heading">
-      <div class="border-b {{ rz_theme.divider }} px-5 py-4">
-        <h2 id="shortcuts-heading" class="{{ rz_theme.section_title }}">{{ admin_copy.shortcuts }}</h2>
-        <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.shortcuts_body }}</p>
-      </div>
-      <ul class="px-5">
-        {% for shortcut in shortcuts %}
-          <li class="{% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
-            <a href="{{ shortcut.url }}" class="group flex items-center gap-3 py-3">
-              <span class="{{ rz_theme.icon_tile }} h-9 w-9"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">{{ shortcut.icon }}</span></span>
-              <span class="min-w-0 flex-1">
-                <span class="block text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ shortcut.label }}</span>
-                <span class="mt-0.5 block text-xs leading-5 {{ rz_theme.muted }}">{{ shortcut.description }}</span>
-              </span>
-              <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }} group-hover:text-primary-600" aria-hidden="true">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
-            </a>
-          </li>
-        {% endfor %}
-        <li class="border-t {{ rz_theme.divider }}">
-          <a href="{% url 'admin:accounts_account_changelist' %}?context__exact=staff" class="group flex items-center gap-3 py-3">
-            <span class="{{ rz_theme.icon_tile }} h-9 w-9"><span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">admin_panel_settings</span></span>
-            <span class="min-w-0 flex-1"><span class="block text-sm font-medium {{ rz_theme.text }} group-hover:text-primary-600">{{ admin_copy.manage_staff }}</span></span>
-            <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }} group-hover:text-primary-600" aria-hidden="true">{% if lang == 'en' %}chevron_right{% else %}chevron_left{% endif %}</span>
-          </a>
-        </li>
-      </ul>
-    </section>
-
-    <section class="min-w-0 overflow-hidden {{ rz_theme.card }}" aria-labelledby="events-heading">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b {{ rz_theme.divider }} px-5 py-4">
-        <div>
-          <h2 id="events-heading" class="{{ rz_theme.section_title }}">{{ admin_copy.recent_activity }}</h2>
-          <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ admin_copy.activity_body }}</p>
-        </div>
-        <a href="{% url 'admin:accounts_auditevent_changelist' %}" class="inline-flex items-center text-sm font-medium {{ rz_theme.action }}">{{ admin_copy.all_activity }} <span data-admin-icon class="material-symbols-outlined ms-1 text-lg" aria-hidden="true">{% if lang == 'en' %}arrow_forward{% else %}arrow_back{% endif %}</span></a>
-      </div>
-      {% if recent_events %}
-        <ul>
-          {% for event in recent_events %}
-            <li class="flex flex-wrap items-center gap-3 px-5 py-3 {% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
-              <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_theme.muted }}" aria-hidden="true">history</span>
-              <div class="min-w-0 flex-1">
-                <a class="block break-words text-sm font-medium {{ rz_theme.text }} hover:text-primary-600 dark:hover:text-primary-400" href="{{ event.url }}">{{ event.label }}</a>
-                <p class="mt-1 break-words text-xs {{ rz_theme.muted }}">{{ event.actor|default:admin_copy.system }}</p>
-              </div>
-              <time datetime="{{ event.created_at|date:'c' }}" class="text-xs {{ rz_theme.muted }}">{{ event.created_at|date:'M j, H:i' }}</time>
+        <ul class="min-h-0 flex-1 overflow-y-auto scrollbar-default-hover">
+          {% for row in queue_rows %}
+            <li class="{% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
+              <a href="{{ row.url }}" class="flex items-center gap-3 px-4 py-3 {{ rz_theme.queue_row_hover }}">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center {{ rz_theme.overview_row_icon }}">
+                  <span data-admin-icon class="material-symbols-outlined text-base" aria-hidden="true">{{ row.icon }}</span>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block break-words text-sm font-semibold">{{ row.label }}</span>
+                  <span class="mt-1 lg:hidden {{ row.badge_class }}">{{ row.priority_label }}</span>
+                </span>
+                <span class="hidden w-24 shrink-0 lg:block"><span class="{{ row.badge_class }}">{{ row.priority_label }}</span></span>
+                <span class="w-10 shrink-0 text-sm font-semibold"><bdi>{{ row.count }}</bdi><span class="sr-only"> {{ queue_labels.items }}</span></span>
+                <span data-admin-icon class="material-symbols-outlined w-5 shrink-0 text-base rtl:-scale-x-100 {{ rz_theme.muted }}" aria-hidden="true">chevron_right</span>
+              </a>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="px-5 py-5 text-sm {{ rz_theme.muted }}">{{ admin_copy.activity_empty }}</p>
+        <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 py-3 text-center">
+          <span class="relative flex h-16 w-16 shrink-0 items-center justify-center {{ rz_theme.overview_empty_icon }}" aria-hidden="true">
+            <span data-admin-icon class="material-symbols-outlined text-3xl">inbox</span>
+            <span class="absolute bottom-0 end-0 flex h-6 w-6 items-center justify-center {{ rz_theme.overview_empty_check }}">
+              <span data-admin-icon class="material-symbols-outlined text-sm">check</span>
+            </span>
+          </span>
+          <p class="text-sm font-medium {{ rz_theme.muted }}">{{ queue_labels.empty }}</p>
+        </div>
       {% endif %}
+      <footer class="flex shrink-0 flex-wrap items-center gap-2 border-t {{ rz_theme.divider }} px-4 py-3">
+        {% if visible_queue_count > 5 %}
+          <span class="text-xs {{ rz_theme.muted }}"><bdi>{{ queue_rows|length }}</bdi> / <bdi>{{ visible_queue_count }}</bdi> {{ queue_labels.open_queues }}</span>
+        {% endif %}
+        <a href="{{ queue_hub_url }}" class="ms-auto inline-flex items-center gap-1 text-sm font-semibold {{ rz_theme.action }}">
+          {{ queue_labels.view_queues }}
+          <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100" aria-hidden="true">arrow_forward</span>
+        </a>
+      </footer>
     </section>
+
+    <div class="flex min-w-0 flex-col gap-4">
+      <section class="{{ rz_theme.overview_panel }}" aria-labelledby="overview-quick-access">
+        <header class="shrink-0 border-b {{ rz_theme.divider }} px-4 py-3">
+          <h2 id="overview-quick-access" class="{{ rz_theme.section_title }}">{{ overview_copy.quick_access }}</h2>
+        </header>
+        <ul class="min-h-0 flex-1 overflow-y-auto scrollbar-default-hover">
+          {% for link in overview_links %}
+            <li class="{% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
+              <a href="{{ link.url }}" class="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold {{ rz_theme.queue_row_hover }}">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center {{ rz_theme.overview_row_icon }}">
+                  <span data-admin-icon class="material-symbols-outlined text-base" aria-hidden="true">{{ link.icon }}</span>
+                </span>
+                <span class="min-w-0 flex-1 break-words">{{ link.label }}</span>
+                <span data-admin-icon class="material-symbols-outlined shrink-0 text-base rtl:-scale-x-100 {{ rz_theme.muted }}" aria-hidden="true">chevron_right</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+        {% if sidebar_show_all_applications and available_apps %}
+          <footer class="shrink-0 border-t {{ rz_theme.divider }} px-4 py-3">
+            <button type="button" class="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold {{ rz_theme.action }}"
+                aria-haspopup="dialog" aria-controls="all-applications-directory"
+                x-on:click="if (!sidebarOpen) sidebarToggle(); $nextTick(() => document.getElementById('all-applications-toggle')?.click())">
+              {{ overview_copy.browse }}
+              <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100" aria-hidden="true">arrow_forward</span>
+            </button>
+          </footer>
+        {% endif %}
+      </section>
+      {% if overview_urgent_count %}
+        <aside class="flex items-start gap-2 p-4 {{ rz_theme.overview_notice }}" aria-labelledby="overview-independent-review">
+          <span data-admin-icon class="material-symbols-outlined shrink-0 text-base" aria-hidden="true">lock</span>
+          <div>
+            <h2 id="overview-independent-review" class="text-sm font-semibold">{{ overview_copy.independent }}</h2>
+            <p class="mt-1 text-xs">{{ overview_copy.independent_note }}</p>
+          </div>
+        </aside>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

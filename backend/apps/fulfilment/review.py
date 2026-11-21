@@ -20,19 +20,20 @@ CODES = {
 }
 
 
-def reviewers(case, *, user_id=None):
-    def independent(user):
-        access.independent(case.order, user)
-        if case.blocker_id and case.blocker.event.actor_id == user.pk:
-            raise PermissionDenied("The blocker author cannot clear it.")
-        if case.refund_id and case.refund.event.actor_id == user.pk:
-            raise PermissionDenied("The delivery-refund reporter cannot confirm it.")
+def require_independent_reviewer(case, user):
+    access.independent(case.order, user)
+    if case.blocker_id and case.blocker.event.actor_id == user.pk:
+        raise PermissionDenied("The blocker author cannot clear it.")
+    if case.refund_id and case.refund.event.actor_id == user.pk:
+        raise PermissionDenied("The delivery-refund reporter cannot confirm it.")
 
+
+def reviewers(case, *, user_id=None):
     return eligible_reviewers(
         "fulfilment",
         "read_fulfilment",
         CODES[case.kind],
-        independent,
+        lambda user: require_independent_reviewer(case, user),
         user_id=user_id,
     )
 

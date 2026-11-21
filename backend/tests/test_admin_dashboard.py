@@ -1,17 +1,15 @@
-"""Owner dashboard authorization, data accuracy and English-only UI regressions."""
+"""Owner overview authorization, queue accuracy and localization."""
 from tests.test_identity import native_auth
-from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone, translation
+from django.utils import translation
 from rest_framework.test import APIClient
 
 from apps.accounts.admin import owner_site
-from apps.accounts.admin.dashboard import dashboard_context, activity_series
+from apps.accounts.admin.dashboard import dashboard_context
 from apps.accounts.models import Account, Authenticator, User
-from apps.catalogue.models import Product
 from apps.organizations.models import BusinessProfile
 from apps.verification.models import ReviewCase
 from tests.test_identity import PASSWORD, code, signin
@@ -100,46 +98,35 @@ class OwnerDashboardTests(TestCase):
         with self.assertRaises(AuthFailure):
             dashboard_context(request, {})
 
-    def test_counts_and_chart_use_actual_state_and_exclude_older_days(self):
+    def test_overview_shows_live_queue_counts_without_retired_widgets(self):
         seller = User.objects.create_user("dashboard-seller@example.test", PASSWORD, email_verified=True)
         account = Account.objects.create(user=seller, context="seller")
-        suspended = User.objects.create_user("dashboard-suspended@example.test", PASSWORD, email_verified=True)
-        Account.objects.create(user=suspended, context="seller", status="suspended")
         profile = BusinessProfile.objects.create(account=account, kind="individual", display_name="DEMO Seller")
-        Product.objects.create(seller=profile, currency="AFN", pricing_mode="fixed")
         ReviewCase.objects.create(profile=profile, status="submitted")
-        User.objects.filter(pk=suspended.pk).update(date_joined=timezone.now() - timedelta(days=30))
         self.authorize()
         response = self.client.get("/admin/")
         self.assertEqual(response.status_code, 200)
-        # Only the three operational KPIs remain; commerce KPIs live on the report page.
-        # Force English so the lazy labels are compared independently of any leaked active locale.
+        self.assertEqual(response.context["active_queue_count"], 1)
+        self.assertEqual(len(response.context["queue_rows"]), 1)
+        row = response.context["queue_rows"][0]
         with translation.override("en"):
-            self.assertEqual(
-                [metric["label"] for metric in response.context["metrics"]],
-                ["Users", "Products", "Pending"],
-            )
-        # Two users joined this week (owner + seller; the suspended user is 30 days old),
-        # one product was created, and one verification case is pending.
-        self.assertEqual([metric["value"] for metric in response.context["metrics"]], [2, 1, 1])
-        self.assertEqual(response.context["pending_total"], 1)
-        series = response.context["series"]
-        self.assertEqual(len(series), 14)
-        self.assertEqual(sum(day["accounts"] for day in series), 2)
-        self.assertEqual(sum(day["products"] for day in series), 1)
-        self.assertNotIn("Revenue", response.content.decode())
+            self.assertEqual(str(row["label"]), "Business verification")
+        self.assertEqual(row["count"], 1)
+        self.assertNotContains(response, "activity-chart")
+        self.assertNotContains(response, "Recent activity")
 
-    def test_empty_chart_never_invents_activity(self):
-        User.objects.update(date_joined=timezone.now() - timedelta(days=30))
-        series = activity_series()
-        self.assertEqual(len(series), 14)
-        self.assertTrue(all(row["accounts_height"] == row["products_height"] == 0 for row in series))
+    def test_empty_overview_never_invents_queue_activity(self):
+        self.authorize()
+        response = self.client.get("/admin/")
+        self.assertContains(response, "No open items in these queues.")
+        self.assertEqual(response.context["active_queue_count"], 0)
+        self.assertEqual(response.context["overview_priority_slots"], [])
 
     def test_navigation_and_every_registered_model_remain_reachable(self):
         self.authorize()
         response = self.client.get("/admin/")
         self.assertContains(response, "Catalogue")
-        self.assertContains(response, "Accounts &amp; Access")
+        self.assertContains(response, "People &amp; stores")
         self.assertEqual(response["Content-Language"], "en")
         for model in owner_site._registry:
             url = reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist")

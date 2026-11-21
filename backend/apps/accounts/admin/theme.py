@@ -24,13 +24,6 @@ CHIP = (
     "text-primary-600 dark:bg-primary-950 dark:text-primary-400"
 )
 
-# --- Trend chip colours (truthful deltas; never invented) -------------------
-DELTA = {
-    "up": "text-green-700 dark:text-green-400",
-    "down": "text-red-700 dark:text-red-400",
-    "flat": MUTED,
-}
-
 # --- Status badge palette (moved verbatim from admin_display) ---------------
 BADGE_BASE = (
     "font-semibold h-[18px] leading-[18px] px-1 rounded-xs text-center text-[11px] "
@@ -64,6 +57,22 @@ STATE_VARIANTS = {
     },
 }
 
+ACCOUNT_THEME = {
+    "avatar": "rounded-full bg-primary-50 font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-400",
+    "menu": "rounded-xl border border-base-200 bg-white shadow-lg dark:border-base-700 dark:bg-base-900",
+    "trigger": "rounded-lg hover:bg-base-100 dark:hover:bg-base-800",
+    "trigger_active": "bg-base-100 dark:bg-base-800",
+    "label": f"text-xs font-semibold {MUTED}",
+    "row": (
+        "rounded-md text-sm font-medium text-base-700 hover:bg-base-100 "
+        "dark:text-base-200 dark:hover:bg-base-800"
+    ),
+    "row_primary": "rounded-md bg-primary-50 text-sm font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-400",
+    "segments": "rounded-lg bg-base-50 dark:bg-base-800",
+    "selection": "rounded-md bg-white font-semibold text-primary-700 shadow-sm dark:bg-base-900 dark:text-primary-400",
+    "signout": "rounded-md text-sm font-medium text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/20",
+}
+
 # --- Template-facing map (injected as ``rz_theme`` by dashboard_context) ----
 # Never name the context key ``theme``: Unfold's skeleton owns that key for the
 # root Alpine theme() component (light/dark/auto string).
@@ -78,5 +87,29 @@ THEME = {
     "icon_tile": ICON_TILE,
     "section_title": SECTION_TITLE,
     "chip": CHIP,
-    "delta": DELTA,
+    "overview_banner": "rounded-2xl bg-linear-to-br from-primary-950 to-primary-700 text-white shadow-lg dark:to-primary-900",
+    "overview_ring": "absolute aspect-square rounded-full border border-primary-600 opacity-50",
+    "overview_priority_panel": "rounded-xl border border-primary-700 bg-base-900/20",
+    "overview_priority_colors": {"urgent": "bg-red-300", "today": "bg-orange-300", "routine": "bg-blue-300"},
+    "overview_priority_track": "bg-white/20",
+    "overview_banner_muted": "text-primary-100",
+    "overview_button": "rounded-md bg-white text-primary-900 hover:bg-primary-50",
+    "overview_panel": f"flex h-72 min-w-0 flex-col overflow-hidden {CARD}",
+    "overview_empty_icon": "rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400",
+    "overview_empty_check": (
+        "rounded-full border-2 border-white bg-green-100 text-green-700 "
+        "dark:border-base-900 dark:bg-green-950 dark:text-green-400"
+    ),
+    "overview_row_icon": "rounded-md bg-base-50 text-base-600 dark:bg-base-800 dark:text-base-300",
+    "overview_area_icons": {
+        "trading": "bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400",
+        "marketplace": "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
+        "platform": "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400",
+    },
+    "overview_notice": "rounded-xl bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400",
+    "overview_table_head": "bg-base-50 dark:bg-base-800",
+    "queue_filter": "rounded-md px-3 py-2 text-xs font-medium hover:bg-base-100 dark:hover:bg-base-800",
+    "queue_filter_active": "bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400",
+    "queue_row_hover": "hover:bg-base-50 dark:hover:bg-base-800",
+    "queue_badge": {key: f"{BADGE_BASE} {value}" for key, value in BADGE_COLORS.items()},
 }

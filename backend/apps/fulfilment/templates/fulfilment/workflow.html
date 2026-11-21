@@ -7,6 +7,7 @@
 <h1 class="ra:text-xl ra:font-semibold">{% translate "Delivery and fulfilment" %}</h1>
 <p><bdi>{{ order.id }}</bdi>{% if case %} · {{ case.kind }} · {{ case.state }} · {% translate "Version" %} <bdi>{{ case.version }}</bdi>{% endif %}</p>
 <p>{% translate "One whole shipment. Manual tracking. Goods money and provider delivery money are separate. Decisions retain original facts and require current independent assignment." %}</p>
+{% if reviewer_notice %}<p role="status">{{ reviewer_notice }}</p>{% endif %}
 </section>
 {% if detail %}
 <section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">

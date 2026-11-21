@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect
 from rest_framework.exceptions import APIException
 from .access import admin_actor
 from .copy import COPY
+from .locale import admin_language
 from ..models import User, Authenticator, RecoveryCode
 from ..services import AuthFailure, audit, rate_limit
 
@@ -58,6 +59,7 @@ class ProfileForm(forms.Form):
 
 def own_profile(site, request):
     from ..services import update_display_name
+
     actor = admin_actor(request)
     form = ProfileForm(request.POST if request.method == "POST" else None,
                        initial={"display_name": request.user.display_name})
@@ -70,6 +72,7 @@ def own_profile(site, request):
             return redirect("admin:own_profile")
     return render(request, "accounts/admin/own_profile.html", {
         **site.each_context(request), "title": COPY["own_profile"], "form": form,
+        "edit_photo_label": "تغییر عکس پروفایل" if admin_language(request) == "fa-af" else "Change profile photo",
     })
 
 

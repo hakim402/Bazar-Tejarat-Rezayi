@@ -15,6 +15,11 @@ from .models import Bucket, Movement, Shortage
 from .services import expired, expiring, active, clock, today, EXPIRING_DAYS
 
 
+def unresolved_shortage_roots(queryset):
+    """One record per unresolved shortage, without counting each recovery attempt."""
+    return queryset.filter(recovery_of__isnull=True, recovery__isnull=True)
+
+
 def profiles(actor):
     visible = list(visible_profiles(actor))
     statuses = {

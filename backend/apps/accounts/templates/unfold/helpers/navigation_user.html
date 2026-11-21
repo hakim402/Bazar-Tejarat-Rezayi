@@ -1,16 +1,37 @@
 {% load i18n %}
-<div class="border-t border-base-200 px-3 py-2 relative dark:border-base-800" x-data="{ openUserLinks: false }">
-  <nav aria-label="{% translate 'Account settings' %}" id="owner-user-menu" class="absolute bg-white border border-base-200 flex flex-col leading-none py-1 rounded-default shadow-lg ra:bottom-full mb-2 ra:start-3 ra:end-3 z-50 dark:bg-base-800 dark:border-base-700" x-cloak x-show="openUserLinks" x-transition x-on:click.outside="openUserLinks = false" x-on:keydown.escape="openUserLinks = false; $refs.ownerMenu.focus()">
-    {% include 'unfold/helpers/theme_switch.html' %}
-    {% include 'unfold/helpers/language_switch.html' %}
-    {% include 'unfold/helpers/account_links.html' %}
-  </nav>
-  <button type="button" x-ref="ownerMenu" x-on:click="openUserLinks = !openUserLinks" x-bind:aria-expanded="openUserLinks" aria-controls="owner-user-menu" class="cursor-pointer flex flex-row gap-3 items-center ra:min-h-14 w-full px-3 rounded-default text-start hover:bg-base-100 dark:hover:bg-base-800" x-bind:class="{'bg-base-100 dark:bg-base-800': openUserLinks}">
-    {% include 'unfold/helpers/avatar.html' with user=request.user %}
-    <span class="flex flex-col select-none min-w-0 grow">
-      <span class="font-semibold text-important tracking-tight truncate">{{ request.user.display_name|default:request.user.get_username }}</span>
-      <span class="text-subtle text-xs truncate">{% if request.user.email %}<bdi dir="ltr">{{ request.user.email }}</bdi>{% elif is_owner_admin %}{% translate 'Super admin' %}{% else %}{% translate 'Staff' %}{% endif %}</span>
-    </span>
-    <span data-admin-icon class="material-symbols-outlined ms-auto select-none text-font-default-light dark:text-font-default-dark" aria-hidden="true">unfold_more</span>
-  </button>
+<div class="border-t border-base-200 px-3 py-2 dark:border-base-800">
+  <div class="relative"
+      x-data="{ openUserLinks: false }"
+      x-on:click.outside="openUserLinks = false"
+      x-on:keydown.escape="if (openUserLinks) { $event.stopPropagation(); openUserLinks = false; $refs.ownerMenu.focus() }"
+      x-on:focusout="if (openUserLinks && $event.relatedTarget && !$el.contains($event.relatedTarget)) openUserLinks = false">
+    <button type="button" x-ref="ownerMenu"
+        x-on:click="openUserLinks = !openUserLinks; if (openUserLinks) $nextTick(() => $refs.profileAction?.focus())"
+        x-bind:aria-expanded="openUserLinks" aria-controls="owner-user-menu"
+        class="flex w-full cursor-pointer items-center gap-3 px-2 py-2 text-start {{ rz_account.trigger }}"
+        x-bind:class="openUserLinks ? '{{ rz_account.trigger_active|escapejs }}' : ''">
+      {% include 'accounts/admin/includes/account_avatar.html' with user=request.user %}
+      <span class="min-w-0 flex-1">
+        <bdi class="block truncate font-semibold text-important">{{ request.user.display_name|default:request.user.get_username }}</bdi>
+        <span class="block truncate text-xs text-subtle">{% if is_owner_admin %}{% translate 'Super admin' %}{% else %}{% translate 'Staff' %}{% endif %}</span>
+      </span>
+      <span data-admin-icon class="material-symbols-outlined text-base text-subtle transition-transform" aria-hidden="true"
+          x-bind:class="{'rotate-180': openUserLinks}">expand_more</span>
+    </button>
+
+    <nav aria-label="{% translate 'Account settings' %}" id="owner-user-menu"
+        class="absolute z-50 flex max-h-screen w-full flex-col overflow-y-auto p-1 scrollbar-default-hover {{ rz_account.menu }}"
+        x-anchor.top-start.offset.8="$refs.ownerMenu" x-cloak x-show="openUserLinks">
+      {% include 'unfold/helpers/account_links.html' %}
+      {% include 'unfold/helpers/theme_switch.html' %}
+      {% include 'accounts/admin/includes/account_languages.html' %}
+      <form id="logout-form" method="post" action="{% url 'admin:logout' %}" class="border-t border-base-200 pt-1 dark:border-base-800">
+        {% csrf_token %}
+        <button type="submit" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-start {{ rz_account.signout }}">
+          <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100" aria-hidden="true">logout</span>
+          {% translate 'Log out' %}
+        </button>
+      </form>
+    </nav>
+  </div>
 </div>

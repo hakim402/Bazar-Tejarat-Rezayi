@@ -237,6 +237,8 @@ def payload(action, data, detail, stock, case, order):
 
 @private_document
 def workflow(request, pk, *, case_pk=None):
+    from apps.accounts.admin.review_queues import review_labels
+
     actor = admin_actor(request)
     if request.method not in {"GET", "HEAD", "POST"}:
         raise PermissionDenied()
@@ -256,6 +258,15 @@ def workflow(request, pk, *, case_pk=None):
     detail = queries.detail(actor, pk, page=page) if inspect else None
     caps = detail["capabilities"] if detail else {}
     choices = actions(actor, order, case, caps)
+    reviewer_notice = ""
+    if actor.context == "owner" and case and case.state == "open":
+        try:
+            review.require_independent_reviewer(case, actor.user)
+        except APIException:
+            reviewer_notice = review_labels()["independent"]
+        else:
+            if case.assigned_to_id != actor.user.pk:
+                reviewer_notice = review_labels()["assignment"]
     access.audit(actor, case or order, "fulfilment_native_workflow", "Scoped native workflow inspection")
     version = m.State.objects.filter(order=order).values_list("version", flat=True).first() or 0
     goods = Finance.objects.filter(order=order).values_list("version", flat=True).first() or 0
@@ -362,6 +373,7 @@ def workflow(request, pk, *, case_pk=None):
             "detail": detail,
             "order": order,
             "case": case,
+            "reviewer_notice": reviewer_notice,
             "form": form,
             "stock": stock,
             "pending": pending,

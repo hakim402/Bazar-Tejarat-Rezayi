@@ -2,7 +2,21 @@
 
 from urllib.parse import parse_qs, urlencode, urlsplit
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import get_language, gettext_lazy as _
+
+
+OWNER_NAVIGATION_DARI = {
+    "Daily work": "کارهای روزانه",
+    "Manage": "مدیریت",
+    "Catalogue & stock": "کاتالوگ و موجودی",
+    "People & stores": "کاربران و فروشگاه‌ها",
+}
+
+
+def navigation_title(title):
+    if get_language() == "fa-af" and title in OWNER_NAVIGATION_DARI:
+        return OWNER_NAVIGATION_DARI[title]
+    return _(title)
 
 
 def navigation(request):
@@ -14,50 +28,127 @@ def navigation(request):
         model["model"]._meta.label_lower: model for app in owner_site.get_app_list(request) for model in app["models"]
     }
 
-    def entry(title, icon, model, filters=None, badge=None, badge_variant="warning"):
+    def entry(title, icon, model, filters=None):
         record = available.get(model)
         if not record or not record.get("admin_url"):
             return None
-        item = {
+        return {
             "title": _(title),
             "icon": icon,
             "link": record["admin_url"] + ("?" + urlencode(filters) if filters else ""),
         }
-        if badge:
-            item["badge"] = badge
-            item["badge_variant"] = badge_variant
-        return item
 
-    # Queue badges are owner-only aggregates; staff navigation stays scoped and
-    # count-free so assignment-limited users never see global queue volumes.
-    badges = {}
+    overview = {"title": _("Overview"), "icon": "space_dashboard", "link": reverse("admin:index")}
     if root:
-        from apps.catalogue.models import SourceRevision
-        from apps.fulfilment.models import ReviewCase as DeliveryReviewCase
-        from apps.orders.models import Amendment, CancellationRequest, DisputeRequest, Review
-        from apps.payments.models import ReviewCase as PaymentReviewCase
-        from apps.verification.models import ReviewCase as VerificationCase
+        groups = owner_groups(entry, overview)
+    else:
+        groups = staff_groups(entry, overview)
 
-        badges = {
-            "orders.cancellationrequest": CancellationRequest.objects.filter(state="pending").count(),
-            "orders.amendment": Amendment.objects.filter(state="pending").count(),
-            "orders.disputerequest": DisputeRequest.objects.filter(state="pending").count(),
-            "orders.review": Review.objects.filter(state="pending").count(),
-            "payments.reviewcase": PaymentReviewCase.objects.filter(state="open").count(),
-            "fulfilment.reviewcase": DeliveryReviewCase.objects.filter(state="open").count(),
-            "catalogue.sourcerevision": SourceRevision.objects.filter(state="submitted").count(),
-            "verification.reviewcase": VerificationCase.objects.filter(status__in=["submitted", "under_review"]).count(),
+    section_of = {
+        "commerce": "Operations", "payments": "Operations", "fulfilment": "Operations", "aftercare": "Operations",
+        "catalogue": "Catalogue & Inventory", "stores": "Catalogue & Inventory", "inventory": "Catalogue & Inventory",
+        "business": "Marketplace & People", "access": "Marketplace & People",
+        "communication": "System & Settings", "system": "System & Settings",
+    }
+    if root:
+        section_of = {
+            "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work",
+            "catalogue": "Manage", "people": "Manage", "reports": "Manage",
         }
+    index_url = overview["link"]
+    preserved_filters = parse_qs(request.GET.get("_changelist_filters", ""))
+    icons = {
+        "orders": "receipt_long", "people": "groups",
+        "commerce": "receipt_long", "payments": "payments", "fulfilment": "local_shipping",
+        "aftercare": "assignment_return", "catalogue": "inventory_2", "stores": "storefront",
+        "inventory": "inventory", "business": "business", "access": "manage_accounts",
+        "communication": "forum", "system": "settings_suggest", "settings": "settings",
+    }
+    result = []
+    for key, title, items in groups:
+        children = [item for item in items if item]
+        if not children:
+            continue
+        for item in children:
+            target = urlsplit(item["link"])
+            expected = parse_qs(target.query)
+            path_matches = request.path == target.path or (
+                target.path != index_url and request.path.startswith(target.path.rstrip("/") + "/")
+            )
+            item["active"] = bool(path_matches and all(
+                (request.GET.getlist(param) if param in request.GET else preserved_filters.get(param, [])) == value
+                for param, value in expected.items()
+            ))
+        # The General link shares its path with the individual settings editors.
+        if key == "settings" and request.GET.get("section"):
+            children[0]["active"] = False
+        if key in icons:
+            children = [{
+                "title": navigation_title(title), "icon": icons[key], "link": children[0]["link"],
+                "active": any(item["active"] for item in children), "items": children,
+            }]
+        section = section_of.get(key)
+        result.append({
+            "key": key,
+            "title": None,
+            "section": navigation_title(section) if section else None,
+            "collapsible": False,
+            "items": children,
+            "directory_only": key == "settings",
+        })
+    return result
 
-    def queue(model):
-        return badges.get(model) or None
 
-    groups = [
-        ("overview", "Overview", [
-            {"title": _("Overview"), "icon": "space_dashboard", "link": reverse("admin:index")},
-            *([{"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")}]
-              if root else []),
+def owner_groups(entry, overview):
+    from apps.site.sections import ROUTE_SECTIONS, SECTIONS
+    from .review_queues import review_labels
+
+    settings_url = reverse("admin:site_sitesettings_change", args=(1,))
+    settings_titles = {section.key: section.title for section in SECTIONS}
+    return [
+        ("overview", "Overview", [overview]),
+        ("orders", "Orders", [
+            entry("Accepted orders", "receipt_long", "orders.sellerorder"),
+            entry("Formal requests", "request_quote", "orders.negotiation"),
+            entry("Goods invoices", "description", "orders.invoice"),
+            entry("Delivery operations", "local_shipping", "fulfilment.state"),
         ]),
+        ("reviews", "Review queues", [
+            {"title": review_labels()["title"], "icon": "fact_check", "link": reverse("admin:review_queues")},
+        ]),
+        ("catalogue", "Catalogue & stock", [
+            entry("Products", "inventory_2", "catalogue.product"),
+            entry("Product source review", "fact_check", "catalogue.sourcerevision", {"state__exact": "submitted"}),
+            entry("Stock positions", "inventory", "inventory.position"),
+            entry("Categories", "category", "catalogue.category"),
+            entry("Sale units", "straighten", "catalogue.saleunit"),
+        ]),
+        ("people", "People & stores", [
+            entry("Users", "group", "accounts.user"),
+            entry("Buyer accounts", "person", "accounts.account", {"context__exact": "buyer"}),
+            entry("Seller accounts", "storefront", "accounts.account", {"context__exact": "seller"}),
+            entry("Business profiles", "business", "organizations.businessprofile"),
+            entry("Verification cases", "verified_user", "verification.reviewcase"),
+            entry("Public stores", "store", "marketplace.store"),
+            entry("Store reviews", "fact_check", "marketplace.storerevision", {"state__exact": "submitted"}),
+        ]),
+        ("reports", "Commerce reports", [
+            {"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")},
+        ]),
+        ("settings", "Site Settings", [
+            {"title": settings_titles["general"], "icon": "tune", "link": settings_url},
+            *[
+                {"title": settings_titles[section], "link": f"{settings_url}?section={section}"}
+                for section in ROUTE_SECTIONS
+            ],
+            {"title": _("Pages"), "link": reverse("admin:site_contentpage_changelist")},
+        ]),
+    ]
+
+
+def staff_groups(entry, overview):
+    return [
+        ("overview", "Overview", [overview]),
         (
             "commerce",
             "Orders & Invoices",
@@ -72,7 +163,7 @@ def navigation(request):
             "payments",
             "Payments & Review",
             [
-                entry("Goods payment review", "fact_check", "payments.reviewcase", badge=queue("payments.reviewcase")),
+                entry("Goods payment review", "fact_check", "payments.reviewcase"),
                 entry("Confirmed receipts", "payments", "payments.receipt"),
                 entry("Goods refund reports", "currency_exchange", "payments.refundreport"),
                 entry("Payment claims", "receipt", "payments.claim"),
@@ -85,7 +176,7 @@ def navigation(request):
             "fulfilment",
             "Delivery & Fulfilment",
             [
-                entry("Delivery review", "fact_check", "fulfilment.reviewcase", badge=queue("fulfilment.reviewcase")),
+                entry("Delivery review", "fact_check", "fulfilment.reviewcase"),
                 entry("Delivery operations", "local_shipping", "fulfilment.state"),
                 entry("Shipments", "inventory_2", "fulfilment.shipment"),
                 entry("Delivery charges", "receipt", "fulfilment.chargeproposal"),
@@ -99,11 +190,11 @@ def navigation(request):
             "aftercare",
             "Aftercare",
             [
-                entry("Cancellation requests", "cancel", "orders.cancellationrequest", badge=queue("orders.cancellationrequest")),
-                entry("Accepted amendments", "edit_note", "orders.amendment", badge=queue("orders.amendment")),
+                entry("Cancellation requests", "cancel", "orders.cancellationrequest"),
+                entry("Accepted amendments", "edit_note", "orders.amendment"),
                 entry("Invoice adjustments", "receipt", "orders.invoiceadjustment"),
-                entry("Order disputes", "gavel", "orders.disputerequest", badge=queue("orders.disputerequest")),
-                entry("Buyer reviews", "rate_review", "orders.review", badge=queue("orders.review")),
+                entry("Order disputes", "gavel", "orders.disputerequest"),
+                entry("Buyer reviews", "rate_review", "orders.review"),
             ],
         ),
         (
@@ -111,7 +202,7 @@ def navigation(request):
             "Catalogue",
             [
                 entry("Products", "inventory_2", "catalogue.product"),
-                entry("Product source review", "fact_check", "catalogue.sourcerevision", {"state__exact": "submitted"}, badge=queue("catalogue.sourcerevision")),
+                entry("Product source review", "fact_check", "catalogue.sourcerevision", {"state__exact": "submitted"}),
                 entry("Translation review", "translate", "catalogue.translation"),
                 entry("Categories", "category", "catalogue.category"),
                 entry("Sale units", "straighten", "catalogue.saleunit"),
@@ -145,7 +236,7 @@ def navigation(request):
             "Businesses & Verification",
             [
                 entry("Business profiles", "business", "organizations.businessprofile"),
-                entry("Verification cases", "verified_user", "verification.reviewcase", badge=queue("verification.reviewcase")),
+                entry("Verification cases", "verified_user", "verification.reviewcase"),
                 entry("Company teams", "groups", "organizations.membership"),
                 entry("Ownership transfers", "swap_horiz", "organizations.ownershiptransfer"),
             ],
@@ -182,100 +273,3 @@ def navigation(request):
             ],
         ),
     ]
-    if root:
-        settings_url = reverse("admin:site_sitesettings_change", args=(1,))
-        groups.append(
-            (
-                "settings",
-                "Site Settings",
-                [
-                    {
-                        "title": _("General"),
-                        "icon": "tune",
-                        "link": settings_url,
-                    },
-                    {
-                        "title": _("Announcement"),
-                        "icon": "campaign",
-                        "link": settings_url + "?section=announcement",
-                    },
-                    {
-                        "title": _("Contact information"),
-                        "icon": "contact_phone",
-                        "link": settings_url + "?section=contacts",
-                    },
-                    {
-                        "title": _("Homepage hero"),
-                        "icon": "smart_display",
-                        "link": settings_url + "?section=hero",
-                    },
-                    {
-                        "title": _("Promotional posts"),
-                        "icon": "collections",
-                        "link": settings_url + "?section=promotions",
-                    },
-                    {
-                        "title": _("Search & sharing"),
-                        "icon": "travel_explore",
-                        "link": settings_url + "?section=seo",
-                    },
-                    {
-                        "title": _("Pages"),
-                        "icon": "article",
-                        "link": reverse("admin:site_contentpage_changelist"),
-                    },
-                ],
-            )
-        )
-    section_of = {
-        "commerce": "operations", "payments": "operations", "fulfilment": "operations", "aftercare": "operations",
-        "catalogue": "catalogue", "stores": "catalogue", "inventory": "catalogue",
-        "business": "marketplace", "access": "marketplace",
-        "communication": "system", "system": "system", "settings": "system",
-    }
-    section_titles = {
-        "operations": _("Operations"),
-        "catalogue": _("Catalogue & Inventory"),
-        "marketplace": _("Marketplace & People"),
-        "system": _("System & Settings"),
-    }
-    result = [
-        {"key": key, "title": _(title), "section": section_titles.get(section_of.get(key)),
-         "collapsible": key != "overview", "items": [item for item in items if item]}
-        for key, title, items in groups
-    ]
-    result = [group for group in result if group["items"]]
-    index_url = reverse("admin:index")
-    preserved_filters = parse_qs(request.GET.get("_changelist_filters", ""))
-    icons = {
-        "commerce": "receipt_long", "payments": "payments", "fulfilment": "local_shipping",
-        "aftercare": "assignment_return", "catalogue": "inventory_2", "stores": "storefront",
-        "inventory": "inventory", "business": "business", "access": "manage_accounts",
-        "communication": "forum", "system": "settings_suggest", "settings": "settings",
-    }
-    for group in result:
-        for item in group["items"]:
-            target = urlsplit(item["link"])
-            expected = parse_qs(target.query)
-            path_matches = request.path == target.path or (
-                target.path != index_url and request.path.startswith(target.path.rstrip("/") + "/")
-            )
-            item["active"] = bool(path_matches and all(
-                (request.GET.getlist(key) if key in request.GET else preserved_filters.get(key, [])) == value
-                for key, value in expected.items()
-            ))
-        if group["key"] != "overview":
-            children = group["items"]
-            group["items"] = [{
-                "title": group["title"], "icon": icons[group["key"]], "link": children[0]["link"],
-                "active": any(item["active"] for item in children), "items": children,
-            }]
-        group["title"] = None
-        group["collapsible"] = False
-    # The plain settings entry stays inactive while one of its section routes is open.
-    for group in result:
-        if group["key"] == "settings":
-            wrapper = group["items"][0]
-            wrapper["items"][0]["active"] = wrapper["items"][0]["active"] and not request.GET.get("section")
-            wrapper["active"] = any(item["active"] for item in wrapper["items"])
-    return result

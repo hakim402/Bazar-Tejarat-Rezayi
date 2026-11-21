@@ -6,7 +6,8 @@
 <h1 class="ra:text-xl ra:font-semibold">{% translate "Goods refund review" %}</h1>
 <p><bdi>{{ due.id }}</bdi> · {{ due.cause }} · <bdi>{{ due.amount }} {{ due.currency }}</bdi> · {% translate "Version" %} <bdi>{{ due.version }}</bdi></p>
 <p>{% translate "A confirmed report reduces the remaining refund due only. It never reduces confirmed received, edits a sealed receipt, changes the accepted invoice or moves platform money. Approval is never execution." %}</p>
-{% if not independent %}<p role="status">{% translate "You have a buyer/seller, report-author or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot confirm or reject this refund." %}</p>{% endif %}
+{% if pending and not independent %}<p role="status">{{ review_labels.independent }}</p>
+{% elif assignment_required %}<p role="status">{{ review_labels.assignment }}</p>{% endif %}
 {% if confirmed %}<p role="status">{% translate "This refund due already has a retained confirmation." %}</p>{% elif not pending %}<p role="status">{% translate "No pending seller refund report exists for this due yet." %}</p>{% endif %}
 </section>
 {% if projection %}

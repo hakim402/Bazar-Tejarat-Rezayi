@@ -20,6 +20,7 @@ from unfold.sites import UnfoldAdminSite
 
 from .access import GuardedAdminMixin, admin_actor, is_owner
 from .copy import COPY as ADMIN_COPY
+from .theme import ACCOUNT_THEME
 from ..models import User
 from ..copy.owner import COPY, PASSWORD_ONLY_SUBTITLES
 from ..services import (admin_mfa_required, audit, begin_signin, finish_mfa,
@@ -85,16 +86,19 @@ class OwnerSite(UnfoldAdminSite):
         })
 
     def each_context(self, request):
-        return {**super().each_context(request), "is_owner_admin": is_owner(request)}
+        return {**super().each_context(request), "is_owner_admin": is_owner(request), "rz_account": ACCOUNT_THEME}
 
     def get_urls(self):
         from apps.reports.admin_views import report_urls
         from apps.site.admin import settings_urls
         from .locale import set_language
+        from .review_queues import review_queues
         from .security import factor_reset, own_profile
         return [path("factor-reset/", self.admin_view(lambda request: factor_reset(self, request)),
                      name="factor_reset"), path("profile/", self.admin_view(lambda request: own_profile(self, request)),
                      name="own_profile"), path("language/", set_language, name="admin_set_language"),
+                path("review-queues/", self.admin_view(lambda request: review_queues(request, self)),
+                     name="review_queues"),
                 *settings_urls(self), *report_urls(self), *super().get_urls()]
 
     def has_permission(self, request):
