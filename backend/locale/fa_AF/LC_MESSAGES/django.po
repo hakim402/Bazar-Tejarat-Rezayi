@@ -101,7 +101,7 @@ msgid "Action"
 msgstr "اقدام"
 
 msgid "Actions"
-msgstr "اقدام‌ها"
+msgstr "اقدام ها"
 
 msgid "Active"
 msgstr "فعال"
@@ -242,7 +242,7 @@ msgid "Approval rechecks every decrease rule and the retained proposal against c
 msgstr "تأیید، هر قاعدهٔ کاهش و پیشنهاد نگه داشته شده را در برابر قلم های پذیرفته شدهٔ فعلی دوباره بررسی می کند، پیش از اعمال مقادیر مؤثر جدید."
 
 msgid "Approve only actual receipt by this named provider. Submission is not settlement."
-msgstr "تنها دریافت واقعی توسط این ارائه‌دهندهٔ نام‌برده را تأیید کنید. ارسال، تصفیه نیست."
+msgstr "تنها دریافت واقعی توسط این ارائه دهندهٔ نام برده را تأیید کنید. ارسال، تصفیه نیست."
 
 msgid "Approve retained proposal"
 msgstr "تأیید پیشنهاد نگه‌داشته‌شده"
@@ -251,7 +251,7 @@ msgid "Approve the exact independent proposal"
 msgstr "تأیید پیشنهاد مستقل دقیق"
 
 msgid "Approved"
-msgstr "تأییدشده"
+msgstr "تأیید شده"
 
 msgid "Approved external image URL"
 msgstr "نشانی تصویر خارجی تأییدشده"
@@ -263,7 +263,7 @@ msgid "Archived"
 msgstr "بایگانی‌شده"
 
 msgid "Arranger / provider"
-msgstr "ترتیب‌دهنده / ارائه‌دهنده"
+msgstr "ترتیب دهنده / ارائه دهنده"
 
 msgid "Assign independent reviewer"
 msgstr "واگذاری بررسی‌کنندهٔ مستقل"
@@ -341,7 +341,7 @@ msgid "Batches"
 msgstr "دسته‌های کالا"
 
 msgid "Blocker"
-msgstr "مانع"
+msgstr "توقف عملیاتی"
 
 msgid "Branding"
 msgstr "نشان تجاری"
@@ -467,7 +467,7 @@ msgid "Changes could not be saved. Your text is retained; re-select new uploads 
 msgstr "تغییرات ذخیره نشدند. متن شما نگه داشته شده است؛ فایل‌های بارگذاری‌شدهٔ جدید را دوباره انتخاب کنید و تلاش کنید."
 
 msgid "Charge"
-msgstr "هزینه"
+msgstr "هزینه تحویل"
 
 msgid "Choose Image Carousel or Video Carousel, then manage your homepage slides."
 msgstr "چرخ‌فلک تصویری یا ویدیویی را انتخاب کنید، سپس اسلایدهای صفحهٔ خانه را مدیریت کنید."
@@ -507,7 +507,7 @@ msgid "Clear all filters"
 msgstr "پاک کردن همهٔ فیلترها"
 
 msgid "Clear an erroneous or withdrawn hold"
-msgstr "رفع توقف اشتباه یا پس‌گرفته‌شده"
+msgstr "رفع توقف اشتباه یا پس گرفته شده"
 
 msgid "Clear selection"
 msgstr "پاک کردن انتخاب"
@@ -585,10 +585,10 @@ msgid "Confirm your password and current authenticator or one unused recovery co
 msgstr "رمز عبور و برنامهٔ تأیید هویت فعلی یا یک کد بازیابی استفاده‌نشده را تأیید کنید. این کار شما را خارج می‌کند و راه‌اندازی دوباره لازم است."
 
 msgid "Confirmation rechecks this recipient revision, provider, finalized charge, money version and complete stock selection atomically. A changed fact requires a new review."
-msgstr "تأیید، این نسخهٔ گیرنده، ارائه‌دهنده، هزینهٔ نهایی‌شده، نسخهٔ پول و انتخاب کامل موجودی را به‌طور اتمیک دوباره بررسی می‌کند. حقیقت تغییرکرده بررسی جدید لازم دارد."
+msgstr "تأیید، این نسخهٔ گیرنده، ارائه دهنده، هزینهٔ نهایی شده، نسخهٔ پول و انتخاب کامل موجودی را به طور اتمیک دوباره بررسی می کند. حقیقت تغییرکرده بررسی جدید لازم دارد."
 
 msgid "Confirmed"
-msgstr "تأییدشده"
+msgstr "تأیید شده"
 
 msgid "Confirmed buyer–seller agreements"
 msgstr "توافق‌های تأییدشدهٔ خریدار و فروشنده"
@@ -621,7 +621,7 @@ msgid "Correct the errors below."
 msgstr "خطاهای زیر را اصلاح کنید."
 
 msgid "Correction"
-msgstr "اصلاح"
+msgstr "اصلاح رسید"
 
 msgid "Country"
 msgstr "کشور"
@@ -756,7 +756,7 @@ msgid "Delivery and fulfilment activity"
 msgstr "فعالیت تحویل و ارسال"
 
 msgid "Delivery arranger"
-msgstr "ترتیب‌دهندهٔ تحویل"
+msgstr "ترتیب دهندهٔ تحویل"
 
 msgid "Delivery cases"
 msgstr "پرونده‌های تحویل"
@@ -774,7 +774,7 @@ msgid "Delivery received %(received)s · delivery refunds %(refunded)s"
 msgstr "تحویل دریافت‌شده %(received)s · بازپرداخت‌های تحویل %(refunded)s"
 
 msgid "Delivery refund reports"
-msgstr "گزارش‌های بازپرداخت تحویل"
+msgstr "گزارش های بازپرداخت تحویل"
 
 msgid "Delivery review"
 msgstr "بررسی تحویل"
@@ -900,7 +900,7 @@ msgid "Exact proposed decreases"
 msgstr "کاهش های پیشنهادی دقیق"
 
 msgid "Exact provider delivery refund"
-msgstr "بازپرداخت تحویل ارائه‌دهندهٔ دقیق"
+msgstr "بازپرداخت تحویل ارائه دهندهٔ دقیق"
 
 msgid "Exact receipt correction"
 msgstr "اصلاح رسید دقیق"
@@ -921,7 +921,7 @@ msgid "Exact unconfirmed claim"
 msgstr "ادعای تأییدنشدهٔ دقیق"
 
 msgid "Exception"
-msgstr "استثنا"
+msgstr "مشکل عملیاتی"
 
 msgid "Excess"
 msgstr "اضافی"
@@ -951,7 +951,7 @@ msgid "Featured Rezayi store"
 msgstr "فروشگاه ویژهٔ رضایی"
 
 msgid "Fields apply to the selected action. An expired reservation is preserved and referred; it is never replaced at dispatch. Completion is automatic when every prerequisite is satisfied."
-msgstr "فیلدها به اقدام انتخاب‌شده مربوط‌اند. رزرو منقضی‌شده حفظ و ارجاع می‌شود؛ هرگز هنگام ارسال جایگزین نمی‌شود. تکمیل وقتی همهٔ پیش‌نیازها برآورده شود خودکار است."
+msgstr "فیلدها به اقدام انتخاب شده مربوط اند. رزرو منقضی شده حفظ و ارجاع می شود؛ هرگز هنگام ارسال جایگزین نمی شود. تکمیل وقتی همهٔ پیش نیازها برآورده شود خودکار است."
 
 msgid "Filter"
 msgstr "فیلتر"
@@ -960,7 +960,7 @@ msgid "Filters"
 msgstr "فیلترها"
 
 msgid "Finalized delivery charge"
-msgstr "هزینهٔ تحویل نهایی‌شده"
+msgstr "هزینهٔ تحویل نهایی شده"
 
 msgid "Focused daily operations"
 msgstr "کارهای روزمرهٔ متمرکز"
@@ -1008,7 +1008,7 @@ msgid "Goods %(goods)s · Effective %(effective)s"
 msgstr "کالا %(goods)s · مؤثر %(effective)s"
 
 msgid "Goods confirmed / remaining"
-msgstr "کالای تأییدشده / باقی‌مانده"
+msgstr "کالای تأییدشده / باقی مانده"
 
 msgid "Goods invoices"
 msgstr "صورتحساب های کالا"
@@ -1035,7 +1035,7 @@ msgid "Goods refunds confirmed %(refunded)s · net %(net)s · new refund dues %(
 msgstr "بازپرداخت‌های کالای تأییدشده %(refunded)s · خالص %(net)s · بدهی بازپرداخت جدید %(dues)s"
 
 msgid "Guarded action"
-msgstr "اقدام محافظت‌شده"
+msgstr "اقدام محافظت شده"
 
 msgid "Guarded decision"
 msgstr "تصمیم محافظت شده"
@@ -1083,7 +1083,7 @@ msgid "ID"
 msgstr "شناسه"
 
 msgid "Identified provider name"
-msgstr "نام ارائه‌دهندهٔ شناسایی‌شده"
+msgstr "نام ارائه دهندهٔ شناسایی شده"
 
 msgid "Identity"
 msgstr "هویت"
@@ -1119,7 +1119,7 @@ msgid "Include the country code, for example +93 followed by the number."
 msgstr "کود کشور را شامل کنید، مثلاً +93 و سپس شماره."
 
 msgid "Independent clearing is limited to erroneous or withdrawn holds. Referral does not clear a blocker or execute a cancellation, dispute or refund."
-msgstr "رفع مستقل محدود به توقف‌های اشتباه یا پس‌گرفته‌شده است. ارجاع مانع را رفع نمی‌کند و لغو، منازعه یا بازپرداخت را اجرا نمی‌کند."
+msgstr "رفع مستقل محدود به توقف های اشتباه یا پس گرفته شده است. ارجاع مانع را رفع نمی کند و لغو، منازعه یا بازپرداخت را اجرا نمی کند."
 
 msgid "Independent receipt and refund decisions"
 msgstr "تصمیم‌های مستقل رسید و بازپرداخت"
@@ -1206,7 +1206,7 @@ msgid "Linked operational hold"
 msgstr "توقف عملیاتی پیوندشده"
 
 msgid "Load stock options"
-msgstr "بارگیری گزینه‌های موجودی"
+msgstr "بارگیری گزینه های موجودی"
 
 msgid "Local previews, account pages and private pages always remain hidden from search engines."
 msgstr "پیش‌نمایش‌های محلی، صفحات حساب و صفحات خصوصی همیشه از موتورهای جستجو پنهان می‌مانند."
@@ -1221,7 +1221,7 @@ msgid "Log out"
 msgstr "خروج"
 
 msgid "Logistics"
-msgstr "لوژستیک"
+msgstr "هماهنگی تحویل"
 
 msgid "Logo Dark"
 msgstr "لوگوی تاریک"
@@ -1365,7 +1365,7 @@ msgid "Next history page"
 msgstr "صفحهٔ بعدی تاریخچه"
 
 msgid "Next stock options"
-msgstr "گزینه‌های بعدی موجودی"
+msgstr "گزینه های بعدی موجودی"
 
 msgid "No"
 msgstr "نه"
@@ -1473,7 +1473,7 @@ msgid "One confirmed report per due, for the exact due amount. A rejected or wit
 msgstr "برای هر بدهی یک گزارش تأییدشده، به مبلغ دقیق بدهی. گزارش ردشده یا پس‌گرفته‌شده نگه داشته می‌شود و ممکن است با گزارش اصلاح‌شدهٔ پیوندشده جایگزین شود."
 
 msgid "One whole shipment. Manual tracking. Goods money and provider delivery money are separate. Decisions retain original facts and require current independent assignment."
-msgstr "یک محمولهٔ کامل. پیگیری دستی. پول کالا و پول تحویل ارائه‌دهنده جدا هستند. تصمیم‌ها حقایق اصلی را نگه می‌دارند و واگذاری مستقل فعلی لازم دارند."
+msgstr "یک محمولهٔ کامل. پیگیری دستی. پول کالا و پول تحویل ارائه دهنده جدا هستند. تصمیم ها حقایق اصلی را نگه می دارند و واگذاری مستقل فعلی لازم دارند."
 
 msgid "One workspace for catalogue oversight, business verification and editorial review."
 msgstr "یک بخش کاری برای نظارت بر کتالوگ، تأیید کسب‌وکارها و بررسی محتوای متنی."
@@ -1530,7 +1530,7 @@ msgid "Open guarded payment review"
 msgstr "باز کردن بررسی محافظت‌شدهٔ پرداخت"
 
 msgid "Open guarded refund review"
-msgstr "باز کردن بررسی محافظت‌شدهٔ بازپرداخت"
+msgstr "باز کردن بررسی محافظت شدهٔ بازپرداخت"
 
 msgid "Open guarded review"
 msgstr "باز کردن بررسی محافظت‌شده"
@@ -1554,7 +1554,7 @@ msgid "Open marketplace"
 msgstr "باز کردن بازار"
 
 msgid "Open protected image"
-msgstr "باز کردن تصویر محافظت‌شده"
+msgstr "باز کردن تصویر محافظت شده"
 
 msgid "Open queue"
 msgstr "باز کردن صف"
@@ -1677,7 +1677,7 @@ msgid "Pashto"
 msgstr "پشتو"
 
 msgid "Payment"
-msgstr "پرداخت"
+msgstr "پرداخت تحویل"
 
 msgid "Payment claims"
 msgstr "ادعاهای پرداخت"
@@ -1722,7 +1722,7 @@ msgid "Post permanently deleted. Exclusive uploaded files were removed; shared f
 msgstr "پست برای همیشه حذف شد. فایل‌های بارگذاری‌شدهٔ انحصاری حذف شدند؛ فایل‌های مشترک برای محتوای دیگر باقی می‌مانند."
 
 msgid "Preparation"
-msgstr "آماده‌سازی"
+msgstr "آماده سازی"
 
 msgid "Previous"
 msgstr "قبلی"
@@ -1779,13 +1779,13 @@ msgid "Proposed after"
 msgstr "پیشنهادی پس از"
 
 msgid "Protected delivery evidence"
-msgstr "مدرک محافظت‌شدهٔ تحویل"
+msgstr "مدرک محافظت شدهٔ تحویل"
 
 msgid "Protected evidence"
 msgstr "مدرک محافظت‌شده"
 
 msgid "Protected handover PDF"
-msgstr "پی‌دی‌اف محافظت‌شدهٔ تحویل"
+msgstr "پی دی اف محافظت شدهٔ تحویل"
 
 msgid "Protected identity state"
 msgstr "وضعیت هویت محافظت‌شده"
@@ -1809,13 +1809,13 @@ msgid "Select at most 9 sale units."
 msgstr "حداکثر ۹ واحد فروش انتخاب کنید."
 
 msgid "Provider receipts"
-msgstr "رسیدهای ارائه‌دهنده"
+msgstr "رسیدهای ارائه کننده تحویل"
 
 msgid "Provider-confirmed delivery money / remaining / excess"
-msgstr "پول تحویل تأییدشدهٔ ارائه‌دهنده / باقی‌مانده / اضافی"
+msgstr "پول تحویل تأییدشدهٔ ارائه دهنده / باقی مانده / اضافی"
 
 msgid "Provider-issued delivery money only, bounded by confirmed provider receipts in the goods-order currency. Goods totals, goods invoices and seller goods receipts are unchanged; confirmation requires an independent reviewer who is not the reporter."
-msgstr "تنها پول تحویل صادرشدهٔ ارائه‌دهنده، محدود به رسیدهای تأییدشدهٔ ارائه‌دهنده در واحد پول سفارش کالا. مجموع کالا، فاکتورهای کالا و رسیدهای کالای فروشنده بدون تغییرند؛ تأیید به بررسی‌کنندهٔ مستقل نیاز دارد که گزارش‌دهنده نباشد."
+msgstr "تنها پول تحویل صادرشدهٔ ارائه دهنده، محدود به رسیدهای تأییدشدهٔ ارائه دهنده در واحد پول سفارش کالا. مجموع کالا، فاکتورهای کالا و رسیدهای کالای فروشنده بدون تغییرند؛ تأیید به بررسی کنندهٔ مستقل نیاز دارد که گزارش دهنده نباشد."
 
 msgid "Public stores"
 msgstr "فروشگاه‌های عمومی"
@@ -1890,7 +1890,7 @@ msgid "Record picture"
 msgstr "تصویر سابقه"
 
 msgid "Record provider and arrangement"
-msgstr "ثبت ارائه‌دهنده و ترتیب"
+msgstr "ثبت ارائه دهنده و ترتیب"
 
 msgid "Recording a receipt does not transfer money. Review is independent of seller confirmation. Original invoices, accepted goods and receipt history remain immutable."
 msgstr "ثبت رسید پول را انتقال نمی‌دهد. بررسی مستقل از تأیید فروشنده است. فاکتورهای اصلی، کالای پذیرفته‌شده و تاریخچهٔ رسید تغییرناپذیر می‌مانند."
@@ -1908,7 +1908,7 @@ msgid "Refer to later cancellation/refund review"
 msgstr "ارجاع به بررسی بعدی لغو/بازپرداخت"
 
 msgid "Referred"
-msgstr "ارجاع‌شده"
+msgstr "ارجاع شده"
 
 msgid "Refund"
 msgstr "بازپرداخت"
@@ -1935,7 +1935,7 @@ msgid "Reject with reason"
 msgstr "رد با دلیل"
 
 msgid "Rejected"
-msgstr "ردشده"
+msgstr "رد شده"
 
 msgid "Released"
 msgstr "آزادشده"
@@ -2010,7 +2010,7 @@ msgid "Resolve without money"
 msgstr "حل اختلاف بدون پرداخت پول"
 
 msgid "Resolved"
-msgstr "حل‌شده"
+msgstr "حل شده"
 
 msgid "Restore original "
 msgstr "بازیابی اصلی "
@@ -2031,7 +2031,7 @@ msgid "Retained moderation history"
 msgstr "تاریخچهٔ ثبت شدهٔ بررسی"
 
 msgid "Retained original"
-msgstr "اصلی نگه‌داشته‌شده"
+msgstr "اصلی نگه داشته شده"
 
 msgid "Retained seller response"
 msgstr "پاسخ ثبت شدهٔ فروشنده"
@@ -2046,7 +2046,7 @@ msgid "Review"
 msgstr "بررسی"
 
 msgid "Review / record guarded action"
-msgstr "بررسی / ثبت اقدام محافظت‌شده"
+msgstr "بررسی / ثبت اقدام محافظت شده"
 
 msgid "Review / translate / publish"
 msgstr "بررسی / ترجمه / انتشار"
@@ -2175,13 +2175,13 @@ msgid "Saved draft images"
 msgstr "تصاویر پیش‌نویس ذخیره‌شده"
 
 msgid "Seal the exact current preparation"
-msgstr "مهر کردن آماده‌سازی فعلی دقیق"
+msgstr "مهر کردن آماده سازی فعلی دقیق"
 
 msgid "Search & sharing"
 msgstr "جستجو و اشتراک‌گذاری"
 
 msgid "Search accepted SKU / batch"
-msgstr "جستجوی SKU / دستهٔ پذیرفته‌شده"
+msgstr "جستجوی SKU / دستهٔ پذیرفته شده"
 
 msgid "Search apps and models..."
 msgstr "جستجوی برنامه‌ها و مدل‌ها..."
@@ -2205,7 +2205,7 @@ msgid "Select"
 msgstr "انتخاب"
 
 msgid "Select exact quantities for every accepted variant. No automatic substitution. Available quantities can change before dispatch."
-msgstr "مقدار دقیق را برای هر نوع پذیرفته‌شده انتخاب کنید. جایگزینی خودکار وجود ندارد. مقدارهای موجود ممکن است پیش از ارسال تغییر کنند."
+msgstr "مقدار دقیق را برای هر نوع پذیرفته شده انتخاب کنید. جایگزینی خودکار وجود ندارد. مقدارهای موجود ممکن است پیش از ارسال تغییر کنند."
 
 msgid "Selected for homepage"
 msgstr "انتخاب‌شده برای صفحهٔ خانه"
@@ -2223,7 +2223,7 @@ msgid "Seller company"
 msgstr "شرکت فروشنده"
 
 msgid "Seller is the explicitly identified provider"
-msgstr "فروشنده همان ارائه‌دهندهٔ صریحاً شناسایی‌شده است"
+msgstr "فروشنده همان ارائه دهندهٔ صریحاً شناسایی شده است"
 
 msgid "Seller refund reports"
 msgstr "گزارش‌های بازپرداخت فروشنده"
@@ -2244,10 +2244,10 @@ msgid "Settings not saved. Correct the errors below."
 msgstr "تنظیمات ذخیره نشد. خطاهای زیر را اصلاح کنید."
 
 msgid "Shipments"
-msgstr "محموله‌ها"
+msgstr "محموله های ارسالی"
 
 msgid "Shipping instructions"
-msgstr "دستورالعمل‌های ارسال"
+msgstr "دستورالعمل های ارسال"
 
 msgid "Short tagline"
 msgstr "شعار کوتاه"
@@ -2724,7 +2724,7 @@ msgid "Whole orders confirmed delivered"
 msgstr "سفارش‌های کامل که تحویل آن‌ها تأیید شده"
 
 msgid "Whole selected quantity"
-msgstr "مقدار کامل انتخاب‌شده"
+msgstr "مقدار کامل انتخاب شده"
 
 msgid "Wholesale"
 msgstr "قیمت عمده"
@@ -2733,7 +2733,7 @@ msgid "Withdraw"
 msgstr "پس گرفتن"
 
 msgid "Withdrawn"
-msgstr "پس‌گرفته‌شده"
+msgstr "پس گرفته شده"
 
 msgid "Workspace shortcuts"
 msgstr "میان‌برهای بخش کاری"
@@ -3063,7 +3063,7 @@ msgid "before total"
 msgstr "مجموع پیش از"
 
 msgid "blocker"
-msgstr "مانع"
+msgstr "توقف عملیاتی"
 
 msgid "blocker closure"
 msgstr "رفع مانع"
@@ -3198,7 +3198,7 @@ msgid "characters"
 msgstr "نویسه‌ها"
 
 msgid "charge"
-msgstr "هزینه"
+msgstr "هزینه تحویل"
 
 msgid "charge decision"
 msgstr "تصمیم هزینه"
@@ -3312,7 +3312,7 @@ msgid "conversations"
 msgstr "گفتگوها"
 
 msgid "correction"
-msgstr "اصلاح"
+msgstr "اصلاح رسید"
 
 msgid "corrections"
 msgstr "اصلاحات"
@@ -5085,7 +5085,7 @@ msgid "Delivered"
 msgstr "تحویل‌شده"
 
 msgid "Completed"
-msgstr "تکمیل‌شده"
+msgstr "تکمیل شده"
 
 msgid "Recorded money details"
 msgstr "جزئیات پول ثبت‌شده"
@@ -6078,3 +6078,411 @@ msgstr "سند محافظت شده موقتاً در دسترس نیست."
 
 msgid "Access denied."
 msgstr "دسترسی مجاز نیست."
+
+
+msgid "%(sku)s · %(batch)s · %(expiry)s"
+msgstr "%(sku)s · %(batch)s · %(expiry)s"
+
+msgid "%(sku)s · %(batch)s · %(expiry)s · Available %(quantity)s"
+msgstr "%(sku)s · %(batch)s · %(expiry)s · موجودی %(quantity)s"
+
+msgid "Actual time"
+msgstr "زمان واقعی"
+
+msgid "Amount"
+msgstr "مبلغ"
+
+msgid "Arranged by"
+msgstr "هماهنگ کننده"
+
+msgid "Confirmed goods amount"
+msgstr "مبلغ تأیید شده کالا"
+
+msgid "Delivery arrangement"
+msgstr "هماهنگی تحویل"
+
+msgid "Delivery arrangements"
+msgstr "هماهنگی های تحویل"
+
+msgid "Delivery charge decision"
+msgstr "تصمیم هزینه تحویل"
+
+msgid "Delivery charge decisions"
+msgstr "تصمیم های هزینه تحویل"
+
+msgid "Delivery charge proposal"
+msgstr "هزینه پیشنهادی تحویل"
+
+msgid "Delivery charge proposals"
+msgstr "هزینه های پیشنهادی تحویل"
+
+msgid "Delivery command"
+msgstr "فرمان تحویل"
+
+msgid "Delivery commands"
+msgstr "فرمان های تحویل"
+
+msgid "Delivery completion"
+msgstr "تکمیل تحویل"
+
+msgid "Delivery completions"
+msgstr "سوابق تکمیل تحویل"
+
+msgid "Delivery confirmation"
+msgstr "تأیید تحویل"
+
+msgid "Delivery confirmations"
+msgstr "تأییدهای تحویل"
+
+msgid "Delivery event"
+msgstr "رویداد تحویل"
+
+msgid "Delivery events"
+msgstr "رویدادهای تحویل"
+
+msgid "Delivery evidence"
+msgstr "مدارک تحویل"
+
+msgid "Delivery history publication"
+msgstr "ثبت نهایی تاریخچه تحویل"
+
+msgid "Delivery history publications"
+msgstr "سوابق ثبت نهایی تاریخچه تحویل"
+
+msgid "Delivery hold"
+msgstr "توقف تحویل"
+
+msgid "Delivery hold closure"
+msgstr "رفع توقف تحویل"
+
+msgid "Delivery hold closures"
+msgstr "سوابق رفع توقف تحویل"
+
+msgid "Delivery holds"
+msgstr "توقف های تحویل"
+
+msgid "Delivery notification progress"
+msgstr "وضعیت اطلاع رسانی تحویل"
+
+msgid "Delivery operation"
+msgstr "عملیات تحویل"
+
+msgid "Delivery provider"
+msgstr "ارائه کننده خدمات تحویل"
+
+msgid "Delivery providers"
+msgstr "ارائه کنندگان خدمات تحویل"
+
+msgid "Delivery recipient"
+msgstr "گیرنده کالا"
+
+msgid "Delivery recipients"
+msgstr "گیرندگان کالا"
+
+msgid "Delivery refund decision"
+msgstr "تصمیم بازپرداخت تحویل"
+
+msgid "Delivery refund decisions"
+msgstr "تصمیم های بازپرداخت تحویل"
+
+msgid "Delivery refund report"
+msgstr "گزارش بازپرداخت تحویل"
+
+msgid "Delivery review event"
+msgstr "رویداد بررسی تحویل"
+
+msgid "Delivery review events"
+msgstr "رویدادهای بررسی تحویل"
+
+msgid "Delivery reviews"
+msgstr "بررسی های تحویل"
+
+msgid "Delivery stage"
+msgstr "مرحله تحویل"
+
+msgid "Delivery version"
+msgstr "نسخه تحویل"
+
+msgid "Delivery workflow"
+msgstr "روند ارسال و تحویل"
+
+msgid "Dispatch attempt"
+msgstr "تلاش برای ارسال"
+
+msgid "Dispatch attempts"
+msgstr "تلاش های ارسال"
+
+msgid "Dispatch preparation"
+msgstr "آماده سازی ارسال"
+
+msgid "Dispatch preparations"
+msgstr "سوابق آماده سازی ارسال"
+
+msgid "Dispatch result"
+msgstr "نتیجه ارسال"
+
+msgid "Dispatched at"
+msgstr "زمان ارسال"
+
+msgid "Erroneous hold"
+msgstr "توقف اشتباه"
+
+msgid "Evidence attachment"
+msgstr "پیوست مدرک"
+
+msgid "Evidence attachments"
+msgstr "پیوست های مدارک"
+
+msgid "Evidence purpose"
+msgstr "نوع مدرک"
+
+msgid "Expires at"
+msgstr "زمان انقضا"
+
+msgid "File size (bytes)"
+msgstr "حجم فایل (بایت)"
+
+msgid "Goods version"
+msgstr "نسخه وضعیت کالا"
+
+msgid "History status"
+msgstr "وضعیت ثبت تاریخچه"
+
+msgid "Hold"
+msgstr "توقف"
+
+msgid "Hold resolution"
+msgstr "نتیجه رفع توقف"
+
+msgid "Hold status"
+msgstr "وضعیت توقف"
+
+msgid "Image height"
+msgstr "ارتفاع تصویر"
+
+msgid "Image width"
+msgstr "عرض تصویر"
+
+msgid "Instructions"
+msgstr "راهنمای تحویل"
+
+msgid "Last checked"
+msgstr "آخرین بررسی"
+
+msgid "Last processed record"
+msgstr "آخرین سابقه پردازش شده"
+
+msgid "Next check"
+msgstr "بررسی بعدی"
+
+msgid "No recorded values."
+msgstr "هنوز مقداری ثبت نشده است."
+
+msgid "Not finalized"
+msgstr "نهایی نشده"
+
+msgid "Open delivery reviews"
+msgstr "بررسی های باز تحویل"
+
+msgid "Open delivery workflow"
+msgstr "باز کردن روند تحویل"
+
+msgid "Open reviews"
+msgstr "بررسی های باز"
+
+msgid "Open the related delivery review case to inspect this protected image."
+msgstr "برای مشاهده این تصویر محافظت شده، پرونده بررسی مرتبط را باز کنید."
+
+msgid "Open the related record for its full details. Operational changes use the delivery workflow; retained facts cannot be edited or deleted here."
+msgstr "برای جزئیات کامل، سابقه مرتبط را باز کنید. تغییرات عملیاتی از طریق روند تحویل انجام می شوند. سوابق ثبت شده در این صفحه قابل ویرایش یا حذف نیستند."
+
+msgid "Operational cancellation hold"
+msgstr "توقف عملیاتی به دلیل درخواست لغو"
+
+msgid "Operational unresolved dispute"
+msgstr "توقف عملیاتی به دلیل شکایت حل نشده"
+
+msgid "Paid at"
+msgstr "زمان پرداخت"
+
+msgid "Partial payment permission"
+msgstr "اجازه ارسال با پرداخت بخشی از مبلغ"
+
+msgid "Partial payment permissions"
+msgstr "اجازه های ارسال با پرداخت بخشی از مبلغ"
+
+msgid "Prepared stock item"
+msgstr "کالای آماده ارسال"
+
+msgid "Prepared stock items"
+msgstr "کالاهای آماده ارسال"
+
+msgid "Provider payment claim"
+msgstr "گزارش پرداخت به ارائه کننده تحویل"
+
+msgid "Provider payment claims"
+msgstr "گزارش های پرداخت به ارائه کننده تحویل"
+
+msgid "Provider payment decision"
+msgstr "تصمیم بررسی پرداخت تحویل"
+
+msgid "Provider payment decisions"
+msgstr "تصمیم های بررسی پرداخت تحویل"
+
+msgid "Provider receipt"
+msgstr "رسید ارائه کننده تحویل"
+
+msgid "Provider receipt correction"
+msgstr "اصلاح رسید تحویل"
+
+msgid "Provider receipt corrections"
+msgstr "اصلاحات رسید تحویل"
+
+msgid "Recorded result"
+msgstr "نتیجه ثبت شده"
+
+msgid "Refund sent at"
+msgstr "زمان ارسال بازپرداخت"
+
+msgid "Related records and actions"
+msgstr "سوابق مرتبط و اقدامات"
+
+msgid "Review category"
+msgstr "نوع بررسی"
+
+msgid "Review delivery case"
+msgstr "بررسی پرونده تحویل"
+
+msgid "Review version"
+msgstr "نسخه بررسی"
+
+msgid "Revision"
+msgstr "نسخه اطلاعات"
+
+msgid "Select a bucket and its exact quantity together."
+msgstr "محل موجودی و مقدار دقیق آن را با هم انتخاب کنید."
+
+msgid "Select stock bucket"
+msgstr "انتخاب محل موجودی"
+
+msgid "Shipment"
+msgstr "محموله ارسالی"
+
+msgid "Stock options unavailable. Existing fields are retained; retry after checking access and connectivity."
+msgstr "گزینه های موجودی در دسترس نیستند. انتخاب های فعلی حفظ شده اند. دسترسی و اتصال را بررسی و دوباره تلاش کنید."
+
+msgid "This record only links related facts."
+msgstr "این سابقه تنها به سوابق مرتبط پیوند دارد."
+
+msgid "Tracking update"
+msgstr "گزارش پیگیری ارسال"
+
+msgid "Tracking updates"
+msgstr "گزارش های پیگیری ارسال"
+
+msgid "View more activity"
+msgstr "نمایش فعالیت های بیشتر"
+
+msgid "Withdrawn hold"
+msgstr "توقف پس گرفته شده"
+
+msgid "dispatched"
+msgstr "ارسال شده"
+
+msgid "exception"
+msgstr "مشکل عملیاتی"
+
+msgid "logistics"
+msgstr "هماهنگی تحویل"
+
+msgid "needs_preparation"
+msgstr "نیازمند آماده سازی"
+
+msgid "not_dispatched"
+msgstr "ارسال نشده"
+
+msgid "payment"
+msgstr "پرداخت تحویل"
+
+msgid "stock"
+msgstr "موجودی"
+
+msgid "stock buckets. Current selections retained."
+msgstr "محل موجودی. انتخاب های فعلی حفظ شده اند."
+
+
+msgid "Delivery overview"
+msgstr "خلاصه وضعیت تحویل"
+
+
+msgid "Background worker"
+msgstr "پردازشگر پس زمینه"
+
+msgid "recipient_revised"
+msgstr "اطلاعات گیرنده اصلاح شد"
+
+msgid "arrangement_proposed"
+msgstr "هماهنگی تحویل ثبت شد"
+
+msgid "prepared"
+msgstr "آماده سازی ثبت شد"
+
+msgid "partial_authorized"
+msgstr "ارسال با پرداخت بخشی از مبلغ تأیید شد"
+
+msgid "charge_proposed"
+msgstr "هزینه تحویل پیشنهاد شد"
+
+msgid "delivery_claimed"
+msgstr "پرداخت تحویل گزارش شد"
+
+msgid "claim_withdrawn"
+msgstr "گزارش پرداخت پس گرفته شد"
+
+msgid "correction_proposed"
+msgstr "اصلاح رسید پیشنهاد شد"
+
+msgid "operational_hold"
+msgstr "توقف عملیاتی ثبت شد"
+
+msgid "delivery_refund_reported"
+msgstr "بازپرداخت تحویل گزارش شد"
+
+msgid "dispatch_blocked"
+msgstr "ارسال متوقف شد"
+
+msgid "tracking_recorded"
+msgstr "اطلاعات پیگیری ثبت شد"
+
+msgid "case_open"
+msgstr "پرونده بررسی باز شد"
+
+msgid "case_assign"
+msgstr "بررسی کننده تعیین شد"
+
+msgid "case_approve"
+msgstr "پرونده تأیید شد"
+
+msgid "case_reject"
+msgstr "پرونده رد شد"
+
+msgid "case_resolve"
+msgstr "پرونده حل شد"
+
+msgid "case_clear"
+msgstr "توقف رفع شد"
+
+msgid "case_refer"
+msgstr "پرونده ارجاع شد"
+
+msgid "completed_with_exception"
+msgstr "تکمیل شده با مشکل عملیاتی"
+
+msgid "pending_publication"
+msgstr "در انتظار ثبت نهایی"
+
+msgid "consume_hold"
+msgstr "مصرف موجودی رزرو شده"
+
+msgid "deduct_cod"
+msgstr "کاهش موجودی برای پرداخت هنگام تحویل"

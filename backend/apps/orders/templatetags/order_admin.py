@@ -28,3 +28,10 @@ def admin_badge(value):
 def order_product(value):
     from apps.orders.admin_presentation import line_product
     return line_product(value)
+
+
+@register.filter
+def admin_context(value):
+    from django.utils.translation import gettext
+    labels = {"owner": "Super admin", "staff": "Staff", "seller": "Seller", "buyer": "Buyer", "worker": "Background worker", "system": "System"}
+    return gettext(labels.get(value, value))

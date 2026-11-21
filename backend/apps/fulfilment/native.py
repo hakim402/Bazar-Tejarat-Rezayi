@@ -10,8 +10,9 @@ from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
-from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget, UnfoldBooleanWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor
 from apps.accounts.admin.copy import COPY as COPY
@@ -46,11 +47,11 @@ class WorkflowForm(forms.Form):
     )
     arranger = forms.ChoiceField(
         label=COPY["fulfilment_arranger"],
-        choices=[("rezayi", "Rezayi"), ("seller", "Seller")],
+        choices=[("rezayi", _("Rezayi")), ("seller", _("Seller"))],
         required=False,
         widget=UnfoldAdminSelectWidget,
     )
-    self_delivery = forms.BooleanField(label=COPY["fulfilment_self_delivery"], required=False)
+    self_delivery = forms.BooleanField(label=COPY["fulfilment_self_delivery"], required=False, widget=UnfoldBooleanWidget)
     instructions = forms.CharField(
         label=COPY["fulfilment_instructions"],
         max_length=1000,
@@ -73,13 +74,13 @@ class WorkflowForm(forms.Form):
     )
     kind = forms.ChoiceField(
         label=COPY["fulfilment_hold"],
-        choices=[("cancellation", "Operational cancellation hold"), ("dispute", "Operational unresolved dispute")],
+        choices=[("cancellation", _("Operational cancellation hold")), ("dispute", _("Operational unresolved dispute"))],
         required=False,
         widget=UnfoldAdminSelectWidget,
     )
     disposition = forms.ChoiceField(
         label=COPY["fulfilment_clear"],
-        choices=[("erroneous", "Erroneous hold"), ("withdrawn", "Withdrawn hold")],
+        choices=[("erroneous", _("Erroneous hold")), ("withdrawn", _("Withdrawn hold"))],
         required=False,
         widget=UnfoldAdminSelectWidget,
     )
@@ -101,7 +102,7 @@ class StockRow(forms.Form):
     def clean(self):
         data = super().clean()
         if bool(data.get("bucket")) != bool(data.get("quantity")):
-            raise forms.ValidationError("Select a bucket and its exact quantity together.")
+            raise forms.ValidationError(_("Select a bucket and its exact quantity together."))
         return data
 
 
@@ -124,21 +125,25 @@ def stock_forms(order, request, *, initial=None):
                 ids.append(int(value))
     rows = StockRows(bound, prefix=prefix, initial=initial or [])
     visible = selection.options(order)["results"]
-    choices = {
-        x[
-            "bucket"
-        ]: f"{x['sku']} · {x['batch_code'] or 'Non-batch'} · {x['expires_on'] or 'No expiry'} · Available {x['available']}"
-        for x in visible
-    }
+    choices = {x["bucket"]: _("%(sku)s · %(batch)s · %(expiry)s · Available %(quantity)s") % {
+        "sku": x["sku"], "batch": x["batch_code"] or _("Standard stock"), "expiry": x["expires_on"] or _("No expiry"),
+        "quantity": decimal_label(x["available"]),
+    } for x in visible}
     for b in Bucket.objects.filter(pk__in=ids, position_id__in=selection.demand(order)).select_related(
         "batch", "position__variant"
     ):
-        choices[str(b.pk)] = (
-            f"{b.position.variant.sku} · {b.batch.code if b.batch_id else 'Non-batch'} · {b.batch.expires_on if b.batch_id else ''}"
-        )
+        choices[str(b.pk)] = _("%(sku)s · %(batch)s · %(expiry)s") % {
+            "sku": b.position.variant.sku, "batch": b.batch.code if b.batch_id else _("Standard stock"),
+            "expiry": b.batch.expires_on if b.batch_id and b.batch.expires_on else _("No expiry"),
+        }
     for form in [*rows.forms, rows.empty_form]:
-        form.fields["bucket"].choices = [("", "Select stock bucket"), *choices.items()]
+        form.fields["bucket"].choices = [("", _("Select stock bucket")), *choices.items()]
     return rows
+
+
+def decimal_label(value):
+    text = str(value)
+    return text.rstrip("0").rstrip(".") if "." in text else text
 
 
 def actions(actor, order, case, caps):
@@ -382,6 +387,7 @@ def workflow(request, pk, *, case_pk=None):
             "images": images,
             "page": page,
             "next_page": page + 1,
+            "history_has_more": bool(detail and page * 50 < detail["history_count"]),
             "handover_url": reverse("admin:fulfilment_state_handover", args=[pk]),
             "stock_url": reverse("admin:fulfilment_state_options", args=[pk]),
         },

@@ -12,9 +12,9 @@ OWNER_NAVIGATION_DARI = {
     "People & stores": "کاربران و فروشگاه‌ها",
     "Delivery operations": "عملیات تحویل",
     "All delivery records": "همهٔ سوابق تحویل",
-    "Not dispatched": "ارسال‌نشده",
-    "Open holds": "توقف‌های باز",
-    "Needs preparation": "نیازمند آماده‌سازی",
+    "Not dispatched": "ارسال نشده",
+    "Open holds": "توقف های باز",
+    "Needs preparation": "نیازمند آماده سازی",
     "Stock shortage": "کمبود موجودی",
     "Stock unavailable": "موجودی در دسترس نیست",
     "Payment or partial-dispatch approval required": "پرداخت یا تأیید ارسال بخشی از سفارش لازم است",
@@ -142,8 +142,10 @@ def owner_groups(entry, overview):
             entry("Goods invoices", "description", "orders.invoice"),
         ]),
         ("delivery", "Delivery operations", [
+            entry("Open delivery reviews", "fact_check", "fulfilment.reviewcase", {"state__exact": "open"}),
             entry("Not dispatched", "local_shipping", "orders.sellerorder", UNDISPATCHED_FILTER),
             entry("Open holds", "pause_circle", "fulfilment.blocker", OPEN_HOLDS_FILTER),
+            entry("Shipments", "inventory_2", "fulfilment.shipment"),
             entry("All delivery records", "inventory_2", "fulfilment.state"),
         ]),
         ("catalogue", "Catalogue & stock", [

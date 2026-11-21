@@ -37,6 +37,24 @@ ORDER_NAMES = {
     "orders.orderpolicy": ("Payment policy", "Payment policy"),
 }
 
+DELIVERY_NAMES = {
+    "state": ("Delivery operation", "Delivery operations"), "reviewcase": ("Delivery review", "Delivery reviews"),
+    "provider": ("Delivery provider", "Delivery providers"), "arrangement": ("Delivery arrangement", "Delivery arrangements"),
+    "recipient": ("Delivery recipient", "Delivery recipients"), "preparation": ("Dispatch preparation", "Dispatch preparations"),
+    "preparationline": ("Prepared stock item", "Prepared stock items"), "partialpermission": ("Partial payment permission", "Partial payment permissions"),
+    "chargeproposal": ("Delivery charge proposal", "Delivery charge proposals"), "chargedecision": ("Delivery charge decision", "Delivery charge decisions"),
+    "shipment": ("Shipment", "Shipments"), "tracking": ("Tracking update", "Tracking updates"),
+    "delivery": ("Delivery confirmation", "Delivery confirmations"), "claim": ("Provider payment claim", "Provider payment claims"),
+    "claimdecision": ("Provider payment decision", "Provider payment decisions"), "receipt": ("Provider receipt", "Provider receipts"),
+    "correction": ("Provider receipt correction", "Provider receipt corrections"), "deliveryrefund": ("Delivery refund report", "Delivery refund reports"),
+    "deliveryrefunddecision": ("Delivery refund decision", "Delivery refund decisions"), "blocker": ("Delivery hold", "Delivery holds"),
+    "blockerclosure": ("Delivery hold closure", "Delivery hold closures"), "completion": ("Delivery completion", "Delivery completions"),
+    "dispatchattempt": ("Dispatch attempt", "Dispatch attempts"), "event": ("Delivery event", "Delivery events"),
+    "caseevent": ("Delivery review event", "Delivery review events"), "evidence": ("Delivery evidence", "Delivery evidence"),
+    "evidencebinding": ("Evidence attachment", "Evidence attachments"), "publication": ("Delivery history publication", "Delivery history publications"),
+    "command": ("Delivery command", "Delivery commands"), "noticecursor": ("Delivery notification progress", "Delivery notification progress"),
+}
+
 
 def _wrap_choices(choices):
     wrapped = []
@@ -63,6 +81,8 @@ def localize_model(model):
         config = apps.get_app_config(opts.app_label)
         app_name = str(config.verbose_name)
     verbose_name, verbose_name_plural = {**CATALOGUE_NAMES, **ORDER_NAMES}.get(opts.label_lower, (verbose_name, verbose_name_plural))
+    if opts.app_label == "fulfilment":
+        verbose_name, verbose_name_plural = DELIVERY_NAMES.get(opts.model_name, (verbose_name, verbose_name_plural))
     opts.verbose_name = _(verbose_name)
     opts.verbose_name_plural = _(verbose_name_plural)
     for field, label in field_labels:

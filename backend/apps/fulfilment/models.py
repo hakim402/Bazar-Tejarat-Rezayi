@@ -35,6 +35,9 @@ class State(models.Model):
     class Meta:
         permissions = PERMISSIONS
 
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
+
 
 class Event(models.Model):
     objects = PublishedEventManager()
@@ -52,10 +55,16 @@ class Event(models.Model):
         constraints = [models.UniqueConstraint(fields=["order", "version"], name="fulfilment_event_version")]
         indexes = [models.Index(fields=["order", "-created_at", "id"], name="fulfilment_event_history")]
 
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
+
 
 class Publication(models.Model):
     event = models.OneToOneField(Event, primary_key=True, on_delete=PROTECT, related_name="publication")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
 
 
 class Fact(models.Model):
@@ -69,6 +78,9 @@ class Fact(models.Model):
     class Meta:
         abstract = True
 
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
+
 
 class Command(models.Model):
     id = models.UUIDField(primary_key=True, editable=False)
@@ -81,6 +93,9 @@ class Command(models.Model):
     digest = models.CharField(max_length=64)
     result = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
 
 
 class Provider(Fact):
@@ -130,6 +145,9 @@ class PreparationLine(models.Model):
             models.UniqueConstraint(fields=["preparation", "bucket"], name="fulfilment_selection_bucket"),
             models.CheckConstraint(condition=Q(quantity__gt=0), name="fulfilment_selection_positive"),
         ]
+
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
 
 
 class PartialPermission(Fact):
@@ -314,6 +332,9 @@ class ReviewCase(models.Model):
             models.Index(fields=["order", "state"], name="fulfilment_order_cases"),
         ]
 
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
+
 
 class CaseEvent(Fact):
     case = models.ForeignKey(ReviewCase, on_delete=PROTECT, related_name="events")
@@ -342,6 +363,9 @@ class Evidence(models.Model):
     expires_at = models.DateTimeField(db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
+
 
 class EvidenceBinding(models.Model):
     evidence = models.OneToOneField(Evidence, primary_key=True, on_delete=PROTECT, related_name="binding")
@@ -362,6 +386,9 @@ class EvidenceBinding(models.Model):
             )
         ]
 
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"
+
 
 class NoticeCursor(models.Model):
     event = models.OneToOneField(Event, primary_key=True, on_delete=PROTECT, related_name="+")
@@ -369,3 +396,6 @@ class NoticeCursor(models.Model):
     done = models.BooleanField(default=False)
     next_check_at = models.DateTimeField(default=timezone.now, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self._meta.verbose_name} {str(self.pk)[:8]}"

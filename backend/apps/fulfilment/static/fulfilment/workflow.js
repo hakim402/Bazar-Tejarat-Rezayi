@@ -2,6 +2,24 @@
 (() => {
   const form = document.querySelector("[data-fulfilment-form]");
   if (!form) return;
+  const action = form.querySelector('[name="action"]');
+  const actionFields = {
+    case_assign: ["assigned_to"], case_clear: ["disposition"],
+    arrange: ["provider", "arranger", "self_delivery", "instructions"], charge: ["amount"],
+    tracking: ["occurred_at", "reference"], deliver: ["occurred_at"], blocker: ["kind"],
+  };
+  function showActionFields() {
+    const fields = new Set(["action", "reason", ...(actionFields[action?.value] || [])]);
+    for (const element of form.children) {
+      if (element.hasAttribute("data-action-field")) {
+        element.hidden = !fields.has(element.dataset.actionField) && !element.hasAttribute("data-has-errors");
+      }
+    }
+    const stockRows = form.querySelector("[data-stock-rows]");
+    if (stockRows) stockRows.hidden = action?.value !== "prepare" && !stockRows.hasAttribute("data-has-errors");
+  }
+  action?.addEventListener("change", showActionFields);
+  showActionFields();
   let dirty = false;
   form.addEventListener("input", () => { dirty = true; });
   form.addEventListener("change", () => { dirty = true; });
@@ -24,6 +42,10 @@
   });
   let page = 1, busy = false;
   const status = stock.querySelector("[data-stock-status]");
+  function displayQuantity(value) {
+    const text = String(value);
+    return text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
+  }
   async function load(next) {
     if (busy) return;
     busy = true;
@@ -38,17 +60,17 @@
       const data = await response.json();
       for (const select of stock.querySelectorAll('select[name$="-bucket"]')) {
         const selected = select.selectedOptions[0];
-        select.replaceChildren(new Option("Select stock bucket", ""));
+        select.replaceChildren(new Option(stock.dataset.selectLabel, ""));
         if (selected?.value) select.add(new Option(selected.textContent, selected.value, true, true));
         for (const row of data.results) {
           if (row.bucket === selected?.value) continue;
-          select.add(new Option(`${row.sku} · ${row.batch_code || "Non-batch"} · ${row.expires_on || "No expiry"} · Available ${row.available}`, row.bucket));
+          select.add(new Option(`${row.sku} · ${row.batch_code || stock.dataset.standardLabel} · ${row.expires_on || stock.dataset.expiryLabel} · ${stock.dataset.availableLabel} ${displayQuantity(row.available)}`, row.bucket));
         }
       }
       page = target;
-      status.textContent = `Page ${data.page} · ${data.count} stock buckets. Current selections retained.`;
+      status.textContent = `${stock.dataset.pageLabel} ${data.page} · ${data.count} ${stock.dataset.countLabel}`;
     } catch {
-      status.textContent = "Stock options unavailable. Existing fields are retained; retry after checking access and connectivity.";
+      status.textContent = stock.dataset.unavailableLabel;
     } finally { busy = false; }
   }
   stock.querySelector("[data-stock-load]").addEventListener("click", () => load(false));

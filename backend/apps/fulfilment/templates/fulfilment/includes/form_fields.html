@@ -1,0 +1,10 @@
+{% for hidden in form.hidden_fields %}{{ hidden }}{% if hidden.errors %}<div class="{{ rz_order.error }}" role="alert">{{ hidden.errors }}</div>{% endif %}{% endfor %}
+{% if form.non_field_errors %}<div class="{{ rz_order.error }}" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form.visible_fields %}
+    <div data-action-field="{{ field.name }}" {% if field.errors %}data-has-errors{% endif %}>
+        <label for="{{ field.id_for_label }}" class="{{ rz_order.label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<p>{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<div class="{{ rz_order.error }}" role="alert">{{ field.errors }}</div>{% endif %}
+    </div>
+{% endfor %}

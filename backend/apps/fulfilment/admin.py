@@ -1,6 +1,6 @@
 """Safe complete native coverage with explicit recipient/financial/technical scopes."""
 
-from django.contrib.admin import SimpleListFilter
+from django.contrib.admin import SimpleListFilter, display
 from django.core.exceptions import PermissionDenied
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -10,10 +10,12 @@ from apps.accounts.admin.access import admin_actor, is_owner
 from apps.accounts.admin.navigation import navigation_title
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.orders.admin import private_document
+from apps.catalogue.admin.helpers import link_button
+from .admin_presentation import OwnerDeliveryPresentation
 from . import models as m, access, media, native, queries
 
 
-class MetadataAdmin(ReadOnlyAdmin):
+class MetadataAdmin(OwnerDeliveryPresentation, ReadOnlyAdmin):
     list_per_page = 20
     actions = []
     role = "metadata"
@@ -47,8 +49,6 @@ class MetadataAdmin(ReadOnlyAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if is_owner(request) and hasattr(self.model, "construction"):
-            qs = self.model.construction.all()
         if self.has_view_permission(request):
             access.audit(
                 admin_actor(request), self.model(), "fulfilment_native_list", "Scoped bounded native model inspection"
@@ -68,13 +68,14 @@ class MetadataAdmin(ReadOnlyAdmin):
         return names
 
     def get_readonly_fields(self, request, obj=None):
-        return self.get_fields(request, obj)
+        return self.owner_readonly(request, self.get_fields(request, obj))
 
     def lookup_allowed(self, lookup, value, request=None):
         return lookup in {
             self.model._meta.pk.name,
             self.model._meta.pk.name + "__exact",
             *getattr(self, "list_filter", []),
+            *(field + "__exact" for field in getattr(self, "list_filter", []) if isinstance(field, str)),
         }
 
 
@@ -114,6 +115,7 @@ class RefundAdmin(MetadataAdmin):
     def get_fields(self, request, obj=None):
         return [*super().get_fields(request, obj), "workflow_link"]
 
+    @display(description=_("Actions"))
     def workflow_link(self, obj):
         refund_id = obj.pk if self.refund_path == "pk" else obj.refund_id
         case = m.ReviewCase.objects.filter(refund_id=refund_id).first()
@@ -162,8 +164,6 @@ class OpenHoldFilter(SimpleListFilter):
 
 class BlockerAdmin(MetadataAdmin):
     def get_list_display(self, request):
-        if is_owner(request):
-            return ["order", "kind", "created_at", "workflow_link"]
         return super().get_list_display(request)
 
     def get_list_filter(self, request):
@@ -182,27 +182,26 @@ class BlockerAdmin(MetadataAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("order", "case")
 
+    @display(description=_("Actions"))
     def workflow_link(self, obj):
         case = getattr(obj, "case", None)
         if case and case.state == "open":
             url = reverse("admin:fulfilment_reviewcase_review", args=[case.pk])
         else:
             url = reverse("admin:fulfilment_state_workflow", args=[obj.order_id])
-        return format_html('<a href="{}">{}</a>', url, _("Delivery / fulfilment workflow"))
+        return link_button(url, _("Open delivery workflow"), "local_shipping")
 
 
 class StateAdmin(MetadataAdmin):
+    ordering = ["next_check_at", "pk"]
     list_display = ["order", "version", "workflow_link", "next_check_at"]
 
     def get_fields(self, request, obj=None):
         return [*super().get_fields(request, obj), "workflow_link"]
 
+    @display(description=_("Actions"))
     def workflow_link(self, obj):
-        return format_html(
-            '<a href="{}">{}</a>',
-            reverse("admin:fulfilment_state_workflow", args=[obj.pk]),
-            _("Delivery / fulfilment workflow"),
-        )
+        return link_button(reverse("admin:fulfilment_state_workflow", args=[obj.pk]), _("Open delivery workflow"), "local_shipping")
 
     def get_urls(self):
         return [
@@ -216,6 +215,7 @@ class StateAdmin(MetadataAdmin):
 
 
 class CaseAdmin(MetadataAdmin):
+    ordering = ["created_at", "pk"]
     list_display = ["id", "kind", "order", "state", "version", "reviewer", "workflow_link"]
     list_filter = ["kind", "state"]
     search_fields = ["id", "order__id"]
@@ -231,13 +231,13 @@ class CaseAdmin(MetadataAdmin):
             else ["id", "kind", "order", "state", "version", "reviewer", "workflow_link", "created_at"]
         )
 
+    @display(description=_("Assigned reviewer"))
     def reviewer(self, obj):
         return obj.assigned_to.display_name if obj.assigned_to_id else _("Unassigned")
 
+    @display(description=_("Actions"))
     def workflow_link(self, obj):
-        return format_html(
-            '<a href="{}">{}</a>', reverse("admin:fulfilment_reviewcase_review", args=[obj.pk]), _("Open guarded review")
-        )
+        return link_button(reverse("admin:fulfilment_reviewcase_review", args=[obj.pk]), _("Review delivery case"), "fact_check")
 
     def get_urls(self):
         return [
@@ -260,7 +260,7 @@ class EvidenceAdmin(MetadataAdmin):
         return [*super().get_fields(request, obj), "protected_image"]
 
     def protected_image(self, obj):
-        return "Use the related claim/correction review case to open this protected image."
+        return _("Open the related delivery review case to inspect this protected image.")
 
     def get_urls(self):
         return [

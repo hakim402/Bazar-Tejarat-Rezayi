@@ -47,6 +47,13 @@ DIRECTORY_COPY = {
     "result_count": ("Matching pages", "صفحه‌های پیدا شده"),
 }
 
+DELIVERY_SECTIONS = (
+    ("Needs attention", "نیازمند رسیدگی", ("reviewcase", "blocker")),
+    ("Dispatch and delivery", "ارسال و تحویل", ("state", "preparation", "preparationline", "recipient", "arrangement", "provider", "partialpermission", "shipment", "tracking", "delivery", "dispatchattempt")),
+    ("Delivery payments", "پرداخت های تحویل", ("chargeproposal", "chargedecision", "claim", "claimdecision", "receipt", "correction", "deliveryrefund", "deliveryrefunddecision")),
+    ("History and technical records", "تاریخچه و سوابق تخنیکی", ("completion", "blockerclosure", "event", "caseevent", "evidence", "evidencebinding", "publication", "command", "noticecursor")),
+)
+
 
 def application_directory(request, available_apps, sidebar_navigation):
     language = int(get_language() == "fa-af")
@@ -101,7 +108,15 @@ def application_directory(request, available_apps, sidebar_navigation):
             page["search"] = f'{title} {page["search"]}'
 
     for workflow in (*WORKFLOWS, COMMUNICATION):
-        add_workflow(*workflow)
+        if workflow[0] == "Delivery & fulfilment":
+            sections = []
+            for en, fa, models in DELIVERY_SECTIONS:
+                rows = [pages.pop("fulfilment." + name) for name in models if "fulfilment." + name in pages]
+                if rows:
+                    sections.append({"title": (en, fa)[language], "rows": rows})
+            add_group((workflow[0], workflow[1]), workflow[2], sections=sections)
+        else:
+            add_workflow(*workflow)
 
     settings_pages = []
     content_page = pages.get("site.contentpage")
