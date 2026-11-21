@@ -11,6 +11,13 @@ from django.utils.text import Truncator
 
 register = template.Library()
 
+
+@register.simple_tag
+def get_listing_styles():
+    # Unfold's results inclusion has its own context, without site context keys.
+    from apps.accounts.admin.theme import LISTING_THEME
+    return LISTING_THEME
+
 UUID = re.compile(r"\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b", re.IGNORECASE)
 TEXT_FIELDS = {"name", "title", "description", "subject", "reason", "text", "email", "bio", "message"}
 IDENTITY_FIELDS = {"id", "pk", "identifier", "identity", "listing", "str", "reference", "code", "sku", "buyer", "seller", "user", "product", "order", "invoice", "account"}

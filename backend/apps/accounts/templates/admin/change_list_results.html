@@ -1,5 +1,6 @@
 {# Unfold result template: retain native behavior; only table whitespace and displayed cell text differ. #}
 {% load admin_urls i18n unfold admin_listing %}
+{% get_listing_styles as listing_styles %}
 
 {% if result_hidden_fields %}
     <div class="hiddenfields">
@@ -9,7 +10,7 @@
 
 {% if results %}
     <div class="{% if cl.search_fields or cl.has_filters %}rounded-default lg:rounded-t-none lg:rounded-b-default{% else %}lg:rounded-default{% endif %} overflow-x-auto scrollbar-default border border-base-200 shadow-xs dark:border-base-800 bg-white dark:bg-base-900">
-        <table id="result_list" class="result-list border-spacing-none border-separate w-full {{ rz_listing.table }}" {% if cl.model_admin.ordering_field %}x-sort.ghost x-on:end="sortRecords" data-ordering-field="{{ cl.model_admin.ordering_field }}"{% endif %}>
+        <table id="result_list" class="result-list border-spacing-none border-separate w-full {{ listing_styles.table }}" {% if cl.model_admin.ordering_field %}x-sort.ghost x-on:end="sortRecords" data-ordering-field="{{ cl.model_admin.ordering_field }}"{% endif %}>
             {% include 'unfold/helpers/change_list_headers.html' %}
 
             {% for result in results %}
