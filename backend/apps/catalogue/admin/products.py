@@ -135,7 +135,7 @@ class ProductAdmin(ReadOnlyAdmin):
             source_fields.append("jobs_panel")
         return [
             (_("Product identity"), {"fields": ["seller", ("currency", "pricing_mode"), ("version", "created_at")]}),
-            (_("Product details"), {"fields": ["source_panel", "images_panel"]}),
+            (_("Images"), {"fields": ["images_panel"]}),
             (_("Source and translation records"), {"fields": source_fields}),
             (_("Activity"), {"fields": ["activity_panel"]}),
         ]
@@ -144,7 +144,7 @@ class ProductAdmin(ReadOnlyAdmin):
         fields = super().get_readonly_fields(request, obj)
         if not obj or not is_owner(request):
             return fields
-        return [*fields, "source_panel", "images_panel", "revisions_panel", "translation_details", "jobs_panel",
+        return [*fields, "images_panel", "revisions_panel", "translation_details", "jobs_panel",
                 "activity_panel"]
 
     def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
@@ -198,13 +198,6 @@ class ProductAdmin(ReadOnlyAdmin):
         return image_response(image, request)
 
     # --- readonly workspace panels (rendered natively inside the change form) ---
-
-    @admin.display(description=_("Source under review"))
-    def source_panel(self, obj):
-        revision = getattr(obj, "_review_revision", None) or obj.published or obj.revisions.order_by("-number").first()
-        if not revision:
-            return panel_note(_("No source revision yet."))
-        return revision_summary(revision)
 
     @admin.display(description=_("Source revisions"))
     def revisions_panel(self, obj):
@@ -264,11 +257,21 @@ class ProductAdmin(ReadOnlyAdmin):
 
     @admin.display(description=_("Activity"))
     def activity_panel(self, obj):
-        events = obj.events.order_by("-created_at")[:50]
+        events = list(obj.events.order_by("-created_at", "-pk"))
         if not events:
             return panel_note(_("No activity yet."))
         table = [[e.created_at, state_badge(e.action), format_html("<bdi>{}</bdi>", e.reason or "")] for e in events]
-        return panel_table([_("When"), _("Action"), _("Reason")], table, "")
+        headers = [_("When"), _("Action"), _("Reason")]
+        recent = panel_table(headers, table[:5], "")
+        if len(table) <= 5:
+            return recent
+        return format_html(
+            '{}<details class="mt-3">'
+            '<summary class="inline-flex cursor-pointer items-center rounded-default border border-base-200 px-3 py-2 text-sm font-medium text-base-700 dark:border-base-700 dark:text-base-300">{}</summary>'
+            '<div class="mt-3">{}</div></details>',
+            recent, _("View more (%(count)s older activities)") % {"count": len(table) - 5},
+            panel_table(headers, table[5:], ""),
+        )
 
     @admin.display(description=_("Images"))
     def images_panel(self, obj):
@@ -453,13 +456,11 @@ class ProductAdmin(ReadOnlyAdmin):
         else:
             decision = (_("Guarded decision"), {"fields": ["version", "revision", "action", "reason"],
                                                  "description": _("Publishing locks this exact source revision; unpublishing keeps it retained.")})
-            panels = ["source_panel", *panels]
         if not Translation.objects.filter(revision__product=item).exists():
             panels = [panel for panel in panels if panel not in {"translation_details", "translations_panel"}]
         if "jobs_panel" in panels and not TranslationJob.objects.filter(translation__revision__product=item).exists():
             panels.remove("jobs_panel")
         panel_titles = {
-            "source_panel": _("Selected product submission"),
             "revisions_panel": _("Source revision history"),
             "translation_details": _("Translations"),
         }
