@@ -402,7 +402,7 @@ class CategoryAdmin(TaxonomyAdmin):
 
 
 class UnitAdmin(TaxonomyAdmin):
-    list_display = ["label", "code", "fractional", "active_state", "version"]
+    list_display = ["label", "fractional", "active_state", "version"]
     search_fields = ["code", "labels__en", "labels__fa-AF", "labels__ps", "labels__ar"]
 
     def workflow(self, request, code):
