@@ -6525,3 +6525,111 @@ msgstr "تنها بخش های مربوط به اقدام انتخاب شده ن
 
 msgid "Not assigned"
 msgstr "تعیین نشده"
+
+msgid "Attempt number"
+msgstr "شمارهٔ تلاش"
+
+msgid "Cause"
+msgstr "علت"
+
+msgid "Complete"
+msgstr "تکمیل‌شده"
+
+msgid "Deadline"
+msgstr "مهلت"
+
+msgid "Result code"
+msgstr "کود نتیجه"
+
+msgid "Exact pending seller refund report"
+msgstr "گزارش بازپرداختِ در انتظارِ فروشنده"
+
+msgid "Generation"
+msgstr "نسل"
+
+msgid "Leased until"
+msgstr "اجاره تا"
+
+msgid "Open the related record for its full details. Financial changes use the guarded review workspace; retained money and stock history cannot be edited or deleted here."
+msgstr "برای دیدن جزئیات کامل، رکورد مرتبط را باز کنید. تغییرهای مالی از طریق جریان کاریِ بررسیِ محافظت‌شده انجام می‌شود؛ تاریخچهٔ نگه‌داشته‌شدهٔ پول و موجودی در اینجا قابل ویرایش یا حذف نیست."
+
+msgid "Overdue case open"
+msgstr "پروندهٔ معوقِ باز"
+
+msgid "Payment reference"
+msgstr "مرجع پرداخت"
+
+msgid "Previous deadline"
+msgstr "مهلت قبلی"
+
+msgid "Selection version"
+msgstr "نسخهٔ انتخاب"
+
+msgid "Slot"
+msgstr "جایگاه"
+
+msgid "Stock allocation"
+msgstr "تخصیص موجودی"
+
+msgid "Sweep sector"
+msgstr "بخش پویش"
+
+msgid "reported"
+msgstr "گزارش‌شده"
+
+msgid "excess"
+msgstr "اضافه"
+
+msgid "dispute"
+msgstr "اختلاف"
+
+msgid "open"
+msgstr "باز"
+
+msgid "resolved"
+msgstr "حل‌شده"
+
+msgid "referred"
+msgstr "ارجاع‌شده"
+
+msgid "replacement"
+msgstr "جایگزینی"
+
+msgid "zero_balance"
+msgstr "موجودی صفر"
+
+msgid "overdue"
+msgstr "معوق"
+
+msgid "unpaid"
+msgstr "پرداخت‌نشده"
+
+msgid "overpaid"
+msgstr "بیش‌پرداخت"
+
+msgid "partial"
+msgstr "جزئی"
+
+msgid "paid"
+msgstr "پرداخت‌شده"
+
+msgid "consumed"
+msgstr "مصرف‌شده"
+
+msgid "released"
+msgstr "آزادشده"
+
+msgid "unreserved"
+msgstr "رزرونشده"
+
+msgid "reserved"
+msgstr "رزروشده"
+
+msgid "blocked_zero"
+msgstr "مسدود (صفر)"
+
+msgid "review_required"
+msgstr "نیازمند بررسی"
+
+msgid "awaiting_selection"
+msgstr "در انتظار انتخاب"

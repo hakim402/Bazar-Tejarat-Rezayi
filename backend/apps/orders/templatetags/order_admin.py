@@ -35,3 +35,15 @@ def admin_context(value):
     from django.utils.translation import gettext
     labels = {"owner": "Super admin", "staff": "Staff", "seller": "Seller", "buyer": "Buyer", "worker": "Background worker", "system": "System"}
     return gettext(labels.get(value, value))
+
+
+@register.filter
+def admin_buyer(order):
+    from apps.orders.admin_presentation import account_cell
+    return account_cell(order.buyer)
+
+
+@register.filter
+def admin_seller(order):
+    from apps.catalogue.admin.presentation import seller_cell
+    return seller_cell(order.seller)

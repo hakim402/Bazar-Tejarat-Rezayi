@@ -17,14 +17,17 @@ from apps.accounts.admin.access import admin_actor, is_owner
 from apps.accounts.models import User, AuditEvent
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.orders.admin import private_document
+from apps.accounts.admin.display import state_badge
+from apps.catalogue.admin.helpers import link_button
 from . import models as m, access, queries, services, media, refunds
+from .admin_presentation import OwnerPaymentPresentation
 
 
 def assigned_orders(actor):
     return access.case_scope(actor).filter(assigned_to=actor.user).values("order_id")
 
 
-class PaymentAdmin(ReadOnlyAdmin):
+class PaymentAdmin(OwnerPaymentPresentation, ReadOnlyAdmin):
     list_per_page = 20
     actions = []
     technical = False
@@ -45,8 +48,6 @@ class PaymentAdmin(ReadOnlyAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if is_owner(request) and hasattr(self.model, "construction"):
-            qs = self.model.construction.all()
         if self.has_view_permission(request) and not getattr(request, "_payment_list_audited", False):
             actor = admin_actor(request)
             AuditEvent.objects.create(
@@ -181,16 +182,16 @@ class CaseAdmin(PaymentAdmin):
     badge_fields = ("kind", "state")
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, list(self.fields))
 
     def reviewer(self, obj):
         return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
     def workspace(self, obj):
-        return format_html('<a href="{}">{}</a>',
-            reverse("admin:payments_reviewcase_workflow", args=[obj.pk]),
-            ADMIN_COPY["payment_open_review"],
-        )
+        return link_button(reverse("admin:payments_reviewcase_workflow", args=[obj.pk]), ADMIN_COPY["payment_open_review"], "fact_check")
+
+    def owner_workflow(self, obj):
+        return self.workspace(obj)
 
     def staff_queryset(self, request, qs):
         return qs.filter(pk__in=access.case_scope(admin_actor(request)).values("pk"))
@@ -369,6 +370,7 @@ class CaseAdmin(PaymentAdmin):
                 "independent": independent,
                 "page": page,
                 "next_page": page + 1,
+                "history_has_more": bool(detail and detail["history_count"] > page * 50),
                 "cancellation_url": cancellation_url,
             },
             status=status,
@@ -421,18 +423,20 @@ class RefundDueAdmin(PaymentAdmin):
         return super().lookup_allowed(lookup, value, request)
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, list(self.fields))
 
     def state(self, obj):
-        return queries.due_state(obj)
+        return state_badge(queries.due_state(obj))
 
     def reviewer(self, obj):
         return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
     def workspace(self, obj):
-        return format_html('<a href="{}">{}</a>',
-            self.review_url(obj.pk), _("Open guarded refund review"),
-        )
+        return link_button(self.review_url(obj.pk), _("Open guarded refund review"), "currency_exchange")
+
+    def owner_workflow(self, obj):
+        return self.workspace(obj)
+
     def review_url(self, pk):
         return reverse("admin:payments_refunddue_review", args=[pk])
 
@@ -586,6 +590,7 @@ class RefundSealAdmin(PaymentAdmin):
 
 
 class EvidenceAdmin(PaymentAdmin):
+    owner_rich_detail = False
     fields = [
         "id",
         "order",

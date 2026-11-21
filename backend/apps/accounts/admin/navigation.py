@@ -23,6 +23,10 @@ OWNER_NAVIGATION_DARI = {
     "Check delivery workflow": "بررسی روند تحویل",
     "Website & content": "وب‌سایت و محتوا",
     "General settings": "تنظیمات عمومی",
+    "Payments & refunds": "پرداخت‌ها و بازپرداخت‌ها",
+    "Open payment reviews": "بررسی‌های پرداخت باز",
+    "Refunds needing attention": "بازپرداخت‌های نیازمند رسیدگی",
+    "Confirmed receipts": "رسیدهای تأییدشده",
 }
 
 
@@ -66,8 +70,8 @@ def navigation(request):
     if root:
         section_of = {
             "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work",
-            "delivery": "Daily work", "catalogue": "Manage", "people": "Manage",
-            "website": "Manage", "reports": "Manage",
+            "payments": "Daily work", "delivery": "Daily work", "catalogue": "Manage",
+            "people": "Manage", "website": "Manage", "reports": "Manage",
         }
     index_url = overview["link"]
     preserved_filters = parse_qs(request.GET.get("_changelist_filters", ""))
@@ -140,6 +144,11 @@ def owner_groups(entry, overview):
             entry("Accepted orders", "receipt_long", "orders.sellerorder"),
             entry("Formal requests", "request_quote", "orders.negotiation"),
             entry("Goods invoices", "description", "orders.invoice"),
+        ]),
+        ("payments", "Payments & refunds", [
+            entry("Open payment reviews", "fact_check", "payments.reviewcase", {"state": "open"}),
+            entry("Refunds needing attention", "currency_exchange", "payments.refunddue", {"refund_review": "pending"}),
+            entry("Confirmed receipts", "payments", "payments.receipt"),
         ]),
         ("delivery", "Delivery operations", [
             entry("Open delivery reviews", "fact_check", "fulfilment.reviewcase", {"state__exact": "open"}),

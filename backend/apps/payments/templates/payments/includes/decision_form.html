@@ -1,0 +1,15 @@
+{% load i18n %}
+<form method="post" class="{{ rz_order.form }}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="{{ rz_order.error }}" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form.hidden_fields %}{{ field }}{% if field.errors %}<div class="{{ rz_order.error }}" role="alert">{{ field.errors }}</div>{% endif %}{% endfor %}
+    {% for field in form.visible_fields %}
+        <div>
+            <label for="{{ field.id_for_label }}" class="{{ rz_order.label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="{{ rz_order.muted }}">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<div class="{{ rz_order.error }}" role="alert">{{ field.errors }}</div>{% endif %}
+        </div>
+    {% endfor %}
+    <button type="submit" class="{{ rz_order.button }}">{{ submit_label }}</button>
+</form>
