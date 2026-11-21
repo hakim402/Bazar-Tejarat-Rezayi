@@ -3636,7 +3636,7 @@ msgid "how-it-works"
 msgstr "نحوهٔ کار"
 
 msgid "human edited"
-msgstr "ویرایش انسانی"
+msgstr "ویرایش شده توسط شخص"
 
 msgid "id"
 msgstr "شناسه"
@@ -5597,3 +5597,175 @@ msgstr "گوشی"
 
 msgid "Variants"
 msgstr "انواع محصول"
+
+
+msgid "Affected items"
+msgstr "کالاهای دارای کمبود"
+
+msgid "Approved image description"
+msgstr "توضیحات تأیید شده تصویر"
+
+msgid "Approved translation"
+msgstr "ترجمه تأیید شده"
+
+msgid "Balances immediately after this movement. These are historical values, not current stock."
+msgstr "این مقدارها موجودی بلافاصله پس از این تغییر را نشان می دهند و موجودی فعلی نیستند."
+
+msgid "Batch number"
+msgstr "شماره محموله"
+
+msgid "Cash on delivery reservation"
+msgstr "رزرو برای پرداخت هنگام تحویل"
+
+msgid "Current balances for this batch. Stock changes are recorded through inventory operations."
+msgstr "موجودی فعلی این محموله. تغییرات موجودی از طریق عملیات انبار ثبت می شوند."
+
+msgid "Current stock"
+msgstr "موجودی فعلی"
+
+msgid "Expiry"
+msgstr "انقضا"
+
+msgid "Expiry status"
+msgstr "وضعیت انقضا"
+
+msgid "Find by batch number, product, SKU, seller or email"
+msgstr "جستجو بر اساس شماره محموله، محصول، شناسه کالا، فروشنده یا ایمیل"
+
+msgid "Find by product name, translated title, seller or email"
+msgstr "جستجو بر اساس نام محصول، نام ترجمه شده، فروشنده یا ایمیل"
+
+msgid "Find by reference, SKU, seller or email"
+msgstr "جستجو بر اساس شماره مرجع، شناسه کالا، فروشنده یا ایمیل"
+
+msgid "Find by reference, batch number, SKU, seller or email"
+msgstr "جستجو بر اساس شماره مرجع، شماره محموله، شناسه کالا، فروشنده یا ایمیل"
+
+msgid "Image %(number)s"
+msgstr "تصویر %(number)s"
+
+msgid "Image descriptions"
+msgstr "توضیحات تصاویر"
+
+msgid "No approved translation yet."
+msgstr "هنوز ترجمه ای تأیید نشده است."
+
+msgid "No image descriptions."
+msgstr "توضیحی برای تصاویر ثبت نشده است."
+
+msgid "No shortage items."
+msgstr "کالایی با کمبود موجودی ثبت نشده است."
+
+msgid "Original description"
+msgstr "توضیحات اصلی"
+
+msgid "Record"
+msgstr "سابقه"
+
+msgid "Recorded at"
+msgstr "زمان ثبت"
+
+msgid "Recorded quantities"
+msgstr "مقدارهای ثبت شده"
+
+msgid "Recovery attempt"
+msgstr "تلاش برای رفع کمبود"
+
+msgid "Recovery history"
+msgstr "تاریخچه رفع کمبود"
+
+msgid "Recovery is recorded by the order and inventory workflows. This history cannot be edited here."
+msgstr "رفع کمبود از طریق روند سفارش و عملیات انبار ثبت می شود. این تاریخچه در این صفحه قابل ویرایش نیست."
+
+msgid "Reference"
+msgstr "شماره مرجع"
+
+msgid "Requested stock"
+msgstr "موجودی درخواستی"
+
+msgid "Reservation change"
+msgstr "تغییر مقدار رزرو شده"
+
+msgid "Reservation reduced"
+msgstr "مقدار رزرو کاهش یافت"
+
+msgid "Reservation released"
+msgstr "موجودی رزرو شده آزاد شد"
+
+msgid "Reserved after movement"
+msgstr "مقدار رزرو پس از تغییر"
+
+msgid "Review status"
+msgstr "وضعیت بررسی"
+
+msgid "Shortage status"
+msgstr "وضعیت کمبود"
+
+msgid "Source revision"
+msgstr "نسخه متن اصلی"
+
+msgid "Stock adjustment"
+msgstr "اصلاح موجودی"
+
+msgid "Stock after movement"
+msgstr "موجودی پس از تغییر"
+
+msgid "Stock change"
+msgstr "تغییر موجودی"
+
+msgid "Stock consumed"
+msgstr "موجودی مصرف شد"
+
+msgid "Stock movement"
+msgstr "تغییر موجودی"
+
+msgid "Stock received"
+msgstr "موجودی دریافت شد"
+
+msgid "Stock reservation"
+msgstr "رزرو موجودی"
+
+msgid "Stock shortage"
+msgstr "کمبود موجودی"
+
+msgid "Successful recovery"
+msgstr "رفع موفق کمبود"
+
+msgid "Translation content"
+msgstr "متن ترجمه"
+
+msgid "View batch"
+msgstr "مشاهده محموله"
+
+msgid "View stock movements"
+msgstr "مشاهده تغییرات موجودی"
+
+msgid "Stock batch"
+msgstr "محموله کالا"
+
+msgid "Stock batches"
+msgstr "محموله های کالا"
+
+msgid "Stock movements"
+msgstr "تغییرات موجودی"
+
+msgid "Stock shortages"
+msgstr "کمبودهای موجودی"
+
+msgid "Product translation"
+msgstr "ترجمه محصول"
+
+msgid "Product translations"
+msgstr "ترجمه های محصول"
+
+msgid "recovered"
+msgstr "کمبود رفع شده"
+
+msgid "no_expiry"
+msgstr "بدون تاریخ انقضا"
+
+msgid "valid"
+msgstr "معتبر"
+
+msgid "expiring"
+msgstr "نزدیک به تاریخ انقضا"

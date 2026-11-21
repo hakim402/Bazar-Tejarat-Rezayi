@@ -19,6 +19,10 @@ CATALOGUE_NAMES = {
     "catalogue.category": ("Category", "Categories"),
     "catalogue.saleunit": ("Sale unit", "Sale units"),
     "inventory.position": ("Stock position", "Stock positions"),
+    "inventory.batch": ("Stock batch", "Stock batches"),
+    "inventory.movement": ("Stock movement", "Stock movements"),
+    "inventory.shortage": ("Stock shortage", "Stock shortages"),
+    "catalogue.translation": ("Product translation", "Product translations"),
 }
 
 
@@ -50,6 +54,8 @@ def localize_model(model):
     opts.verbose_name = _(verbose_name)
     opts.verbose_name_plural = _(verbose_name_plural)
     for field, label in field_labels:
+        if opts.label_lower == "inventory.batch" and field.name == "code":
+            label = "Batch number"
         field.verbose_name = _(label)
         if field.choices:
             choices = field.choices

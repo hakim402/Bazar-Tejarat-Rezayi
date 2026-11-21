@@ -36,6 +36,10 @@ def product_cell(obj, secondary=""):
     return identity(obj.admin_title or _("Untitled product"), secondary, image)
 
 
+def compact_text(value, limit=36):
+    return format_html('<bdi title="{}">{}</bdi>', value, truncatechars(value, limit)) if value else "—"
+
+
 class ProductIdentityMixin:
     """Annotate once per listing, avoiding a query per thumbnail or seller."""
 
@@ -58,8 +62,10 @@ class ProductIdentityMixin:
 
     @admin.display(description=_("Product"))
     def product_identity(self, obj):
-        variant = getattr(obj, "variant", None)
-        return product_cell(obj, getattr(obj, "sku", "") or (variant.sku if variant else ""))
+        variant = obj
+        for part in self.product_path.split("__")[:-1] if self.product_path else ():
+            variant = getattr(variant, part)
+        return product_cell(obj, getattr(variant, "sku", ""))
 
     @admin.display(description=_("Seller"))
     def seller_identity(self, obj):

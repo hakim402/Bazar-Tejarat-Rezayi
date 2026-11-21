@@ -40,12 +40,12 @@ STATE_VARIANTS = {
     "warning": {
         "pending", "open", "submitted", "under_review", "reported", "review_required",
         "shortage", "blocked_zero", "queued", "retry_due", "claimed", "dispatching",
-        "draft", "referred", "incomplete", "unpaid", "partial",
+        "draft", "referred", "incomplete", "unpaid", "partial", "expiring",
     },
     "success": {
         "approved", "confirmed", "completed", "active", "resolved", "paid", "published",
         "captured", "smtp_accepted", "consumed", "released", "verified", "enabled",
-        "overpaid", "delivered", "dispatched", "settled",
+        "overpaid", "delivered", "dispatched", "settled", "recovered", "valid",
     },
     "danger": {
         "rejected", "cancelled", "suspended", "exhausted", "failed", "expired",

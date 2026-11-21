@@ -6,6 +6,7 @@ guarded product workspace — generic editing would bypass the safeguards.
 """
 
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from urllib.parse import urlencode
@@ -16,11 +17,12 @@ from apps.accounts.admin.display import money, quantity
 from apps.organizations.admin import ReadOnlyAdmin
 from ..models import (
     SourceRevision, Variant, PriceChange, Translation, TranslationJob,
-    CatalogueEvent, TranslationBudget,
+    CatalogueEvent, TranslationBudget, LOCALES,
 )
 from .helpers import CatalogueRecordAdmin, link_button
-from .presentation import ProductIdentityMixin, product_cell
-from .summaries import revision_summary, localized, readable
+from .presentation import ProductIdentityMixin, product_cell, compact_text
+from .summaries import revision_summary, localized, readable, language_name
+from .helpers import panel_table, panel_note
 
 
 class RevisionAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
@@ -132,19 +134,96 @@ class PriceChangeAdmin(CatalogueRecordAdmin):
         return money(obj.wholesale)
 
 
-class TranslationAdmin(CatalogueRecordAdmin):
-    list_display = ["revision", "locale", "state", "version", "title", "workflow_link"]
-    list_filter = ["state", "locale"]
-    search_fields = ["title", "revision__product__seller__display_name"]
+class TranslationLanguageFilter(SimpleListFilter):
+    title = _("Language")
+    parameter_name = "language"
+
+    def lookups(self, request, model_admin):
+        return [(code, language_name(code)) for code in LOCALES]
+
+    def queryset(self, request, queryset):
+        return queryset.filter(locale=self.value()) if self.value() else queryset
+
+
+class TranslationAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
+    product_path = "revision__product"
+    list_display = ["product_identity", "seller_identity", "language", "state", "translated_name", "version", "workflow_link"]
+    list_select_related = ["revision__product__seller"]
+    list_filter = ["state", TranslationLanguageFilter]
+    search_fields = ["title", "revision__body__title", "revision__product__seller__display_name", "revision__product__seller__account__user__email"]
+    search_help_text = _("Find by product name, translated title, seller or email")
     badge_fields = ["state"]
+
+    @admin.display(description=_("Product"))
+    def product_identity(self, obj):
+        obj.admin_title = obj.revision.body.get("title") or _("Untitled product")
+        return product_cell(obj, _("Revision %(number)s") % {"number": obj.revision.number})
 
     def get_list_display(self, request):
         columns = super().get_list_display(request)
         return [column for column in columns if column != "workflow_link"] if is_owner(request) else columns
 
-    @admin.display(description=_("Title"))
-    def title(self, obj):
+    @admin.display(description=_("Translated title"), ordering="title")
+    def translated_title(self, obj):
         return obj.title or "—"
+
+    @admin.display(description=_("Translated title"), ordering="title")
+    def translated_name(self, obj):
+        return compact_text(obj.title)
+
+    @admin.display(description=_("Language"), ordering="locale")
+    def language(self, obj):
+        return language_name(obj.locale)
+
+    @admin.display(description=_("Source revision"), ordering="revision__number")
+    def source_revision(self, obj):
+        return _("Revision %(number)s") % {"number": obj.revision.number}
+
+    @admin.display(description=_("Description"))
+    def translated_description(self, obj):
+        from django.utils.html import format_html
+
+        return format_html('<div class="whitespace-pre-wrap break-words" dir="auto">{}</div>', obj.description or "—")
+
+    @admin.display(description=_("Image descriptions"))
+    def image_descriptions(self, obj):
+        images = obj.revision.body.get("images", [])
+        rows = [[_("Image %(number)s") % {"number": index}, image.get("alt") or "—",
+                 obj.image_alts.get(str(image.get("id"))) or "—"] for index, image in enumerate(images, 1)]
+        return panel_table([_("Image"), _("Original description"), _("Translated description")], rows, _("No image descriptions."))
+
+    @admin.display(description=_("Approved translation"))
+    def approved_content(self, obj):
+        from django.utils.html import format_html
+
+        if not obj.approved_body:
+            return panel_note(_("No approved translation yet."))
+        content = panel_table([_("Field"), _("Value")], [
+            [_("Translated title"), obj.approved_body.get("title") or "—"],
+            [_("Translated description"), obj.approved_body.get("description") or "—"],
+        ], "")
+        descriptions = obj.approved_body.get("image_alts") or {}
+        images = obj.revision.body.get("images", [])
+        return format_html('<div class="flex flex-col gap-3">{}{}</div>', content, panel_table(
+            [_("Image"), _("Approved image description")],
+            [[_("Image %(number)s") % {"number": index}, descriptions.get(str(image.get("id"))) or "—"]
+             for index, image in enumerate(images, 1)], _("No image descriptions."),
+        ))
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        return link_button(reverse("admin:catalogue_product_change", args=[obj.revision.product_id]), _("View product"), "inventory_2")
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*super().get_readonly_fields(request, obj), "product_identity", "seller_identity", "language", "source_revision", "translated_title",
+                "translated_description", "image_descriptions", "approved_content", "related_records"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "seller_identity", "source_revision", "language", "id", "related_records"]}),
+            (_("Translation content"), {"fields": ["translated_title", "translated_description", "image_descriptions"]}),
+            (_("Review status"), {"fields": ["state", "version", "human_edited", "reason", "approved_content"]}),
+        ]
 
     def workflow_link(self, obj):
         url = reverse("admin:catalogue_workflow", args=[obj.revision.product_id])
