@@ -12,6 +12,7 @@ from .site import OwnerSite, owner_site
 # Registration side effects, in the original order.
 from . import identities  # noqa: E402,F401  registers User
 from . import accounts  # noqa: E402,F401  registers Account
+from . import addresses  # noqa: E402,F401  registers Address
 from . import audit  # noqa: E402,F401  registers AuditEvent
 from . import roles  # noqa: E402,F401  registers Group
 

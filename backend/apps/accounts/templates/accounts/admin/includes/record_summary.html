@@ -1,0 +1,27 @@
+{% if account_summary %}
+  <section class="mb-6 flex flex-wrap items-center gap-4 p-4 {{ rz_account.record_panel }}"
+           aria-labelledby="account-record-name">
+    {% include "accounts/admin/includes/account_avatar.html" with user=account_summary.user %}
+    <div class="min-w-0 grow">
+      <h2 id="account-record-name" class="break-words {{ rz_account.record_name }}"><bdi>{{ account_summary.user }}</bdi></h2>
+      {% if account_summary.user.display_name and account_summary.user.display_name != account_summary.user.email %}
+        <p class="break-words {{ rz_account.record_meta }}"><bdi dir="ltr">{{ account_summary.user.email }}</bdi></p>
+      {% endif %}
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      {% for item in account_summary.badges %}
+        {% include "unfold/helpers/label.html" with type=item.variant text=item.title %}
+      {% endfor %}
+    </div>
+    {% if account_summary.links %}
+      <div class="flex w-full flex-wrap gap-2">
+        {% for link in account_summary.links %}
+          <a href="{{ link.url }}" class="inline-flex items-center gap-1.5 {{ rz_account.record_link }}">
+            <span data-admin-icon class="material-symbols-outlined text-base" aria-hidden="true">{{ link.icon }}</span>
+            {{ link.title }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+{% endif %}

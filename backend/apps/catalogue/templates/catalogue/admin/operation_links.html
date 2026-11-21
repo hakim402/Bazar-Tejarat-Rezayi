@@ -1,0 +1,19 @@
+{% if operation_summary or operation_links %}
+  <div class="mb-5 flex flex-col gap-4 p-4 {{ rz_account.record_panel }}">
+    {% if operation_summary %}
+      <dl class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {% for name, value in operation_summary %}
+          <div class="min-w-0">
+            <dt class="{{ rz_account.record_meta }}">{{ name }}</dt>
+            <dd class="break-words font-semibold"><bdi>{{ value }}</bdi></dd>
+          </div>
+        {% endfor %}
+      </dl>
+    {% endif %}
+    {% if operation_links %}
+      <div class="flex flex-wrap items-center gap-2">
+        {% for link in operation_links %}{{ link }}{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}

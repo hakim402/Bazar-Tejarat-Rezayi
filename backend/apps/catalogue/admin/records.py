@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from urllib.parse import urlencode
 
 from apps.accounts.admin import owner_site
+from apps.accounts.admin.access import is_owner
 from apps.accounts.admin.display import money
 from apps.organizations.admin import ReadOnlyAdmin
 from ..models import (
@@ -21,21 +22,44 @@ from .helpers import CatalogueRecordAdmin, link_button
 
 
 class RevisionAdmin(CatalogueRecordAdmin):
-    list_display = ["product", "number", "state", "category", "created_at", "workflow_link"]
+    list_display = ["source_title", "number", "state", "category", "created_at", "workflow_link"]
+    list_select_related = ["category", "product__seller"]
     list_filter = ["state"]
     ordering = ["-created_at"]
-    search_fields = ["product__seller__display_name", "product__variants__sku"]
+    search_fields = ["body__title", "product__seller__display_name", "product__variants__sku"]
     badge_fields = ["state"]
 
+    @admin.display(description=_("Source title"))
+    def source_title(self, obj):
+        return obj.body.get("title") or _("Untitled product")
+
     def workflow_link(self, obj):
-        return link_button(reverse("admin:catalogue_workflow", args=[obj.product_id]), _("Review"), icon="fact_check")
+        url = reverse("admin:catalogue_workflow", args=[obj.product_id])
+        return link_button(f"{url}?{urlencode({'revision': obj.pk})}", _("Review"), icon="fact_check")
 
 
 class VariantAdmin(CatalogueRecordAdmin):
     list_display = ["sku", "product", "unit", "retail_price", "wholesale_price", "minimum_wholesale"]
+    list_select_related = ["product", "unit"]
     list_filter = ["unit"]
     search_fields = ["sku", "product__seller__display_name"]
     quantity_fields = ["minimum_wholesale"]
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        return [*fields, "related_records"] if obj and is_owner(request) else fields
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        from django.utils.html import format_html
+
+        product = reverse("admin:catalogue_product_change", args=[obj.product_id])
+        stock = reverse("admin:inventory_position_change", args=[obj.pk]) if hasattr(obj, "stock_position") else None
+        return format_html(
+            '<div class="flex flex-wrap gap-2">{}{}</div>',
+            link_button(product, _("View product"), "inventory_2"),
+            link_button(stock, _("View stock position"), "inventory") if stock else "",
+        )
 
     @admin.display(description=_("Retail"))
     def retail_price(self, obj):
@@ -65,6 +89,10 @@ class TranslationAdmin(CatalogueRecordAdmin):
     list_filter = ["state", "locale"]
     search_fields = ["title", "revision__product__seller__display_name"]
     badge_fields = ["state"]
+
+    def get_list_display(self, request):
+        columns = super().get_list_display(request)
+        return [column for column in columns if column != "workflow_link"] if is_owner(request) else columns
 
     @admin.display(description=_("Title"))
     def title(self, obj):

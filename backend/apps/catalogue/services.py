@@ -53,11 +53,12 @@ def bump(item):
 @transaction.atomic
 def create(actor, data):
     profile = access.seller(actor, data["seller"])
+    account = actor.account
     key = data["command_id"]
-    token = int.from_bytes(hashlib.sha256(f"{actor.account.pk}:create:{key}".encode()).digest()[:8], "big", signed=True)
+    token = int.from_bytes(hashlib.sha256(f"{account.pk}:create:{key}".encode()).digest()[:8], "big", signed=True)
     durable_lock(token)
     hashed = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
-    old = Command.objects.filter(account=actor.account, action="create", key=key).first()
+    old = Command.objects.filter(account=account, action="create", key=key).first()
     if old and old.digest != hashed:
         raise Conflict("Idempotency identity was already used for a different operation.")
     if old:
@@ -65,14 +66,14 @@ def create(actor, data):
     item = Product.objects.create(seller=profile, currency=data["currency"], pricing_mode=data["pricing_mode"])
     access.audit(actor, item, "create")
     result = json.loads(json.dumps(operation(item), default=str))
-    Command.objects.create(account=actor.account, action="create", key=key, digest=hashed, outcome=result)
+    Command.objects.create(account=account, action="create", key=key, digest=hashed, outcome=result)
     return result
 
 
 @transaction.atomic
 def delete_product(actor, pk, version):
     item = access.resource(actor, pk, lock=True)
-    if actor.context != "seller":
+    if actor.context not in {"seller", "owner"}:
         raise PermissionDenied()
     assert_version(item, version)
     product_id = str(item.pk)
@@ -88,12 +89,12 @@ def delete_product(actor, pk, version):
     item.published = None
     item.save(update_fields=["published"])
     item._allow_catalogue_transition = False
-    TranslationJob.objects.filter(translation__revision__product=item).delete()
-    Translation.objects.filter(revision__product=item).delete()
-    PriceChange.objects.filter(product=item).delete()
-    ProductImage.objects.filter(product=item).delete()
-    SourceRevision.objects.filter(product=item).delete()
     try:
+        TranslationJob.objects.filter(translation__revision__product=item).delete()
+        Translation.objects.filter(revision__product=item).delete()
+        PriceChange.objects.filter(product=item).delete()
+        ProductImage.objects.filter(product=item).delete()
+        SourceRevision.objects.filter(product=item).delete()
         item.variants.all().delete()
         item.delete()
     except ProtectedError:
@@ -104,7 +105,7 @@ def delete_product(actor, pk, version):
         account=actor.account,
         context=actor.context,
         action="delete",
-        reason=f"Seller deleted product {product_id}",
+        reason=f"Deleted product {product_id}",
     )
     for alias, key in images:
         transaction.on_commit(partial(remove_private_asset, alias, key))
@@ -112,9 +113,9 @@ def delete_product(actor, pk, version):
 
 @transaction.atomic
 def save(actor, pk, data):
-    item = access.resource(actor, pk, lock=True)
     if actor.context != "seller":
         raise PermissionDenied()
+    item = access.resource(actor, pk, lock=True)
     assert_version(item, data["version"])
     body = copy.deepcopy(data["body"])
     category = get_object_or_404(Category, code=body["category"], active=True)
@@ -237,20 +238,23 @@ def complete(item, revision):
 @transaction.atomic
 def transition(actor, pk, data):
     action = data["action"]
+    if action not in {"submit", "withdraw", "publish", "reject", "unpublish"}:
+        fail("action", "choice")
+    if action in {"submit", "withdraw"} and actor.context != "seller":
+        raise PermissionDenied()
     capability = {"publish": "review_source", "reject": "review_source", "unpublish": "moderate_catalogue"}.get(action)
     item = access.resource(actor, pk, lock=True, capability=capability)
     assert_version(item, data["version"])
     revision = get_object_or_404(item.revisions, pk=data["revision"])
     reason = text(data.get("reason", ""), "reason", 1000, optional=action in {"submit", "publish", "withdraw"})
-    if action in {"submit", "withdraw"} and actor.context != "seller":
-        raise PermissionDenied()
-    last_unpublish = item.events.filter(action="unpublish").order_by("-created_at", "-pk").first()
+    last_unpublish = item.events.filter(action__in=("unpublish", "restrict")).order_by("-version", "-pk").first()
     republish = (
         action == "publish"
         and actor.context == "seller"
         and revision.state == "published"
         and not item.published_id
         and last_unpublish is not None
+        and last_unpublish.action == "unpublish"
         and last_unpublish.context == "seller"
         and last_unpublish.revision_id == revision.pk
     )
@@ -269,6 +273,8 @@ def transition(actor, pk, data):
         if revision.state != "submitted" and not republish:
             raise Conflict()
         if action == "publish":
+            if access.product_restricted(item):
+                raise Conflict("Lift the product restriction before publishing.")
             if not access.public_eligible(Product(seller=item.seller, published=revision)):
                 raise PermissionDenied()
             complete(item, revision)
@@ -280,10 +286,11 @@ def transition(actor, pk, data):
         if item.published_id != revision.pk:
             raise Conflict()
         item.published = None
-    revision.reason = reason
-    revision._allow_catalogue_transition = True
-    revision.save(update_fields=["state", "reason"])
-    revision._allow_catalogue_transition = False
+    if action != "unpublish" or actor.context != "owner":
+        revision.reason = reason
+        revision._allow_catalogue_transition = True
+        revision.save(update_fields=["state", "reason"])
+        revision._allow_catalogue_transition = False
     bump(item)
     access.audit(actor, item, action, revision, reason)
     if action == "publish":
@@ -294,10 +301,37 @@ def transition(actor, pk, data):
 
 
 @transaction.atomic
+def moderate_product(actor, pk, version, action, reason):
+    if actor.context != "owner":
+        raise PermissionDenied()
+    access.staff(actor, "moderate_catalogue")
+    item = get_object_or_404(Product.objects.select_for_update(), pk=pk)
+    assert_version(item, version)
+    reason = text(reason, "reason", 1000)
+    revision = item.published
+    if action == "restrict":
+        if access.product_restricted(item):
+            raise Conflict("This product is already restricted.")
+        item.published = None
+    elif action == "lift_restriction":
+        if not access.product_restricted(item):
+            raise Conflict("This product is no longer restricted.")
+    elif action == "unpublish":
+        if revision is None:
+            raise Conflict("This product is already unpublished.")
+        item.published = None
+    else:
+        fail("action", "choice")
+    bump(item)
+    access.audit(actor, item, action, revision, reason)
+    return operation(item, revision)
+
+
+@transaction.atomic
 def change_prices(actor, pk, data):
-    item = access.resource(actor, pk, lock=True)
     if actor.context != "seller":
         raise PermissionDenied()
+    item = access.resource(actor, pk, lock=True)
     assert_version(item, data["version"])
     seen = set()
     for index, row in enumerate(data["prices"]):

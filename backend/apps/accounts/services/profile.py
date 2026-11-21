@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework.exceptions import NotFound, ValidationError
 
-from . import audit, get_grant, rate_limit
+from . import PROFILE_FIELDS, audit, get_grant, rate_limit
 from ..models import Address, User
 
 ADDRESS_FIELDS = ("label", "recipient_name", "phone", "province", "city", "area", "street_address", "landmark", "is_default")
@@ -16,44 +16,51 @@ def _locked_user(request, context):
     return user
 
 
-def set_avatar(request, context, upload):
+def save_profile(request, context, changes, *, upload=None, remove_avatar=False):
+    """Save profile fields and the optional photo as one audited change."""
     from apps.site.media import discard_created, schedule_media_cleanup, store_upload
 
     account = get_grant(request, context)
-    rate_limit(request, "avatar_upload", identity=str(request.user.pk), limit=10)
+    if upload is not None:
+        rate_limit(request, "avatar_upload", identity=str(request.user.pk), limit=10)
     created = []
     try:
         with transaction.atomic():
             user = _locked_user(request, context)
-            previous = user.avatar_id
-            try:
-                asset = store_upload(upload, "image", created)
-            except DjangoValidationError as exc:
-                raise ValidationError({"file": exc.messages}) from None
-            user.avatar = asset
-            user.save(update_fields=["avatar"])
-            if previous:
-                schedule_media_cleanup([previous])
-            audit("profile_avatar_updated", request=request, user=user, account=account, context=context, fields=["avatar"])
+            fields = [field for field in PROFILE_FIELDS if field in changes]
+            previous_avatar = user.avatar_id
+            if upload is not None:
+                try:
+                    user.avatar = store_upload(upload, "image", created)
+                except DjangoValidationError as exc:
+                    raise ValidationError({"file": exc.messages}) from None
+            elif remove_avatar:
+                user.avatar = None
+
+            for field in fields:
+                setattr(user, field, changes[field])
+            photo_changed = user.avatar_id != previous_avatar
+            if fields or photo_changed:
+                user.save(update_fields=[*fields, *(["avatar"] if photo_changed else [])])
+            if fields:
+                audit("profile_updated", request=request, user=user, account=account, context=context, fields=fields)
+            if photo_changed:
+                if previous_avatar:
+                    schedule_media_cleanup([previous_avatar])
+                action = "profile_avatar_updated" if user.avatar_id else "profile_avatar_removed"
+                audit(action, request=request, user=user, account=account, context=context, fields=["avatar"])
     except Exception:
         discard_created(created)
         raise
     return user
 
 
-def clear_avatar(request, context):
-    from apps.site.media import schedule_media_cleanup
+def set_avatar(request, context, upload):
+    return save_profile(request, context, {}, upload=upload)
 
-    account = get_grant(request, context)
-    with transaction.atomic():
-        user = _locked_user(request, context)
-        previous = user.avatar_id
-        if previous:
-            user.avatar = None
-            user.save(update_fields=["avatar"])
-            schedule_media_cleanup([previous])
-            audit("profile_avatar_removed", request=request, user=user, account=account, context=context, fields=["avatar"])
-    return user
+
+def clear_avatar(request, context):
+    return save_profile(request, context, {}, remove_avatar=True)
 
 
 def list_addresses(request, context):

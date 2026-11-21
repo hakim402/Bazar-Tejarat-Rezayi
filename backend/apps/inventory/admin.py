@@ -9,6 +9,8 @@ from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import is_owner, permits
 from apps.accounts.admin.display import AdminDisplayMixin
+from apps.accounts.admin.display import quantity
+from . import services
 from .queries import unresolved_shortage_roots
 from .models import (
     Position,
@@ -144,7 +146,51 @@ class ShortageAdmin(InventoryAuditAdmin):
         return content
 
 
-owner_site.register(Position, InventoryAuditAdmin, list_display=['variant', 'tracking', 'expiry_required', 'threshold', 'version'], list_filter=['tracking', 'expiry_required'], search_fields=['variant__sku'])
+class PositionAdmin(InventoryAuditAdmin):
+    list_display = ["sku", "seller", "tracking", "stock_on_hand", "reserved", "available", "threshold"]
+    list_filter = ["tracking", "expiry_required"]
+    search_fields = ["variant__sku", "variant__product__seller__display_name"]
+    search_help_text = _("Find by SKU or seller")
+    quantity_fields = ["threshold"]
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "variant__product__seller", "variant__product__published", "variant__unit",
+        ).prefetch_related("buckets__batch")
+
+    def sku(self, obj):
+        return obj.variant.sku
+
+    sku.short_description = _("SKU")
+    sku.admin_order_field = "variant__sku"
+
+    def seller(self, obj):
+        return obj.variant.product.seller.display_name
+
+    seller.short_description = _("Seller")
+    seller.admin_order_field = "variant__product__seller__display_name"
+
+    def stock_on_hand(self, obj):
+        return quantity(sum(bucket.physical for bucket in obj.buckets.all()))
+
+    stock_on_hand.short_description = _("On hand")
+
+    def reserved(self, obj):
+        return quantity(sum(bucket.held for bucket in obj.buckets.all()))
+
+    reserved.short_description = _("Reserved")
+
+    def available(self, obj):
+        if not services.active(obj.variant):
+            return quantity(0)
+        return quantity(sum(bucket.physical - bucket.held for bucket in obj.buckets.all() if not services.expired(bucket)))
+
+    available.short_description = _("Available")
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*super().get_readonly_fields(request, obj), "stock_on_hand", "reserved", "available"]
+
+
+owner_site.register(Position, PositionAdmin)
 owner_site.register(Batch, InventoryAuditAdmin, list_display=['code', 'position', 'expires_on', 'created_at'], search_fields=['code', 'position__variant__sku'])
 owner_site.register(Bucket, InventoryAuditAdmin, list_display=['position', 'batch', 'physical', 'held'], quantity_fields=['physical', 'held'], search_fields=['position__variant__sku'])
 owner_site.register(Operation, InventoryAuditAdmin, list_display=['seller', 'action', 'reference', 'created_at'], list_filter=['action'], search_fields=['seller__display_name', 'reference'])

@@ -149,6 +149,7 @@ def owner_groups(entry, overview):
         ("catalogue", "Catalogue & stock", [
             entry("Products", "inventory_2", "catalogue.product"),
             entry("Product source review", "fact_check", "catalogue.sourcerevision", {"state__exact": "submitted"}),
+            entry("Variants", "sell", "catalogue.variant"),
             entry("Stock positions", "inventory", "inventory.position"),
             entry("Categories", "category", "catalogue.category"),
             entry("Sale units", "straighten", "catalogue.saleunit"),

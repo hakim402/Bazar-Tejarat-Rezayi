@@ -3,7 +3,10 @@ from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
-from unfold.widgets import UnfoldAdminPasswordToggleWidget
+from unfold.widgets import (
+    UnfoldAdminImageFieldWidget, UnfoldAdminPasswordToggleWidget, UnfoldAdminTextareaWidget,
+    UnfoldBooleanWidget,
+)
 
 from apps.site.media import inspect_upload
 from .copy import COPY as ADMIN_COPY
@@ -12,7 +15,7 @@ from ..models import Account, User
 
 class StaffProvisioningFormMixin:
     attest_staff_email = forms.BooleanField(required=False, label=ADMIN_COPY["staff_email_attest"],
-        help_text=ADMIN_COPY["staff_email_attest_help"])
+        help_text=ADMIN_COPY["staff_email_attest_help"], widget=UnfoldBooleanWidget())
 
     authority_version = forms.IntegerField(required=False, widget=forms.HiddenInput)
 
@@ -56,9 +59,12 @@ class AddIdentityForm(StaffProvisioningFormMixin, UserCreationForm):
 class ChangeIdentityForm(StaffProvisioningFormMixin, UserChangeForm):
     attest_staff_email = StaffProvisioningFormMixin.attest_staff_email
     authority_version = StaffProvisioningFormMixin.authority_version
-    avatar_file = forms.FileField(required=False, label="Profile photo",
-        help_text="Optional JPEG, PNG or WebP image, stored in the shared site media library.")
-    avatar_clear = forms.BooleanField(required=False, label="Remove profile photo")
+    avatar_file = forms.FileField(
+        required=False, label=_("Profile photo"),
+        help_text=_("Upload a JPEG, PNG or WebP image."),
+        widget=UnfoldAdminImageFieldWidget(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+    avatar_clear = forms.BooleanField(required=False, label=_("Remove profile photo"), widget=UnfoldBooleanWidget())
     class Meta(UserChangeForm.Meta):
         model = User
         fields = ["email", "display_name", "first_name", "last_name", "phone", "preferred_locale", "gender", "date_of_birth", "bio", "is_active", "is_staff", "is_superuser", "groups"]
@@ -78,9 +84,9 @@ class AccountForm(forms.ModelForm):
     status_reason = forms.CharField(
         max_length=1000,
         required=False,
-        widget=forms.Textarea(attrs={"rows": 3}),
-        label="Status change reason",
-        help_text="Required when suspending, archiving or reopening. Recorded in the audit history.",
+        widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}),
+        label=_("Status change reason"),
+        help_text=_("Required when suspending, archiving or reopening. Recorded in the audit history."),
     )
 
     class Meta:
@@ -89,6 +95,18 @@ class AccountForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
-        if self.instance.pk and "status" in self.changed_data and not (data.get("status_reason") or "").strip():
-            self.add_error("status_reason", "Give a reason for this status change.")
+        if "status" in self.changed_data and not (data.get("status_reason") or "").strip():
+            self.add_error("status_reason", _("Give a reason for this status change."))
+        if self.instance._state.adding:
+            user, context, intent = data.get("user"), data.get("context"), data.get("intent")
+            allowed_intents = {
+                "buyer": {"individual", "business"}, "seller": {"individual", "company"}, "staff": {"individual"},
+            }
+            if context and intent and intent not in allowed_intents[context]:
+                self.add_error("intent", _("Choose an account type that matches this role."))
+            if user and context:
+                if context == Account.Context.STAFF and not user.is_staff:
+                    self.add_error("user", _("Enable staff access on the user before adding a staff account."))
+                if Account.objects.filter(user=user, context=context).exists():
+                    self.add_error("context", _("This user already has an account for this role."))
         return data

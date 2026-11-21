@@ -1,13 +1,19 @@
 import copy
+from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound
 from . import access
-from .models import Product, ProductImage, Translation
+from .models import CatalogueEvent, Product, ProductImage, Translation
 from .translation_provider import provider_status
 
 
 def image_url(image_id, context=None):
     return f"/api/v1/catalogue/{context + '/' if context else ''}images/{image_id}/"
+
+
+def working_revisions(queryset):
+    discarded = CatalogueEvent.objects.filter(action="discard", revision_id=OuterRef("pk"))
+    return queryset.exclude(Exists(discarded))
 
 
 def detail(actor, pk):

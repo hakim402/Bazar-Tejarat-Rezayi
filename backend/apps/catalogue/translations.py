@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import PermissionDenied
 from apps.organizations.access import Conflict, assert_version
 from . import access
 from .models import Translation, TranslationJob, TranslationBudget, Product, LOCALES, CatalogueEvent
@@ -64,11 +65,9 @@ def schedule_publication(item, revision):
 
 @transaction.atomic
 def edit(actor, pk, revision_id, locale, data):
-    item = access.resource(actor, pk, lock=True, capability="review_translation")
-    if actor.context == "seller":
-        from rest_framework.exceptions import PermissionDenied
-
+    if actor.context != "staff":
         raise PermissionDenied()
+    item = access.resource(actor, pk, lock=True, capability="review_translation")
     revision = get_object_or_404(item.revisions, pk=revision_id)
     if locale not in LOCALES or locale == revision.body["locale"]:
         fail("locale", "choice")

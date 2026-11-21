@@ -156,8 +156,12 @@ def configure(actor, profile_id, variant_id, data):
     ):
         raise Conflict("Tracking and expiry policy are frozen after the first movement.")
     if position is None:
+        retired_version = Operation.objects.filter(
+            seller=profile, action="remove", parameters__variant=str(variant.pk),
+        ).order_by("-created_at", "-pk").values_list("result__version", flat=True).first()
         position = Position.objects.create(
-            variant=variant, tracking=tracking, expiry_required=required, threshold=threshold
+            variant=variant, tracking=tracking, expiry_required=required, threshold=threshold,
+            version=int(retired_version or 0) + 1,
         )
         if tracking == "plain":
             Bucket.objects.create(position=position)

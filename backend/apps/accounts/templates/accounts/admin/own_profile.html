@@ -1,26 +1,96 @@
-{% extends 'admin/base_site.html' %}{% load i18n %}
+{% extends "admin/base_site.html" %}
+{% load i18n unfold %}
+
+{% block extrahead %}
+  {{ block.super }}
+  {{ form.media }}
+{% endblock %}
+
 {% block content %}
-<section class="mx-auto flex w-full max-w-xl flex-col gap-5">
-  {% if request.user.avatar_id or is_owner_admin %}
-    <div class="flex items-center gap-3">
-      {% include 'accounts/admin/includes/account_avatar.html' with user=request.user %}
-      {% if is_owner_admin %}
-        <a href="{% url 'admin:accounts_user_change' request.user.pk %}" class="px-3 py-2 {{ rz_account.row }}">{{ edit_photo_label }}</a>
-      {% endif %}
-    </div>
-  {% endif %}
-  <p class="text-sm leading-6 text-base-500 dark:text-base-400">{% translate 'Your display name belongs to your shared identity. Account access and role assignments are managed separately by the super admin.' %}</p>
-  <form method="post" class="flex flex-col gap-5 rounded-lg border border-base-200 bg-white p-6 shadow-sm dark:border-base-800 dark:bg-base-900">{% csrf_token %}
-    {% for error in form.non_field_errors %}<div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400" role="alert">{{ error }}</div>{% endfor %}
-    {% for field in form %}
-      <div class="flex flex-col gap-1.5">
-        <label for="{{ field.id_for_label }}" class="text-sm font-medium text-base-900 dark:text-base-100">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="text-xs text-base-500 dark:text-base-400">{{ field.help_text }}</p>{% endif %}
-        {% for error in field.errors %}<p class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
+  <div class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-5 pb-6">
+    <section aria-labelledby="profile-identity" class="flex flex-wrap items-center gap-4 p-5 {{ rz_account.record_panel }}">
+      {% include "accounts/admin/includes/account_avatar.html" with user=request.user %}
+      <div class="min-w-0 grow">
+        <h2 id="profile-identity" class="break-words {{ rz_account.record_name }}"><bdi>{{ request.user }}</bdi></h2>
       </div>
-    {% endfor %}
-    <button type="submit" class="font-medium inline-flex items-center gap-1 relative rounded-default justify-center whitespace-nowrap cursor-pointer px-5 py-2.5 text-[14px] border border-transparent bg-primary-600 text-white hover:bg-primary-600/80">{% translate 'Save profile' %}</button>
-  </form>
-</section>
+      <div class="flex flex-wrap items-center gap-2">
+        {% for item in profile_badges %}
+          {% include "unfold/helpers/label.html" with type=item.variant text=item.title %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <form method="post" enctype="multipart/form-data" id="own-profile-form" class="flex min-w-0 flex-col gap-5">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        {% include "unfold/helpers/messages/error.html" with errors=form.non_field_errors %}
+      {% endif %}
+
+      <section aria-labelledby="profile-details" class="p-5 {{ rz_account.record_panel }}">
+        <h2 id="profile-details" class="mb-4 {{ rz_account.profile_heading }}">{{ profile_labels.details }}</h2>
+        <div class="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+          {% include "unfold/helpers/field.html" with field=form.display_name %}
+          {% include "unfold/helpers/field.html" with field=form.phone %}
+          {% include "unfold/helpers/field.html" with field=form.first_name %}
+          {% include "unfold/helpers/field.html" with field=form.last_name %}
+          {% include "unfold/helpers/field.html" with field=form.gender %}
+          {% include "unfold/helpers/field.html" with field=form.date_of_birth %}
+          {% include "unfold/helpers/field.html" with field=form.preferred_locale %}
+          <div class="md:col-span-2">
+            {% include "unfold/helpers/field.html" with field=form.bio %}
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="profile-photo" class="p-5 {{ rz_account.record_panel }}">
+        <h2 id="profile-photo" class="mb-4 {{ rz_account.profile_heading }}">{{ profile_labels.photo }}</h2>
+        {% include "unfold/helpers/field.html" with field=form.photo %}
+        {% if request.user.avatar_id or form.remove_photo.errors %}
+          {% include "unfold/helpers/field.html" with field=form.remove_photo %}
+        {% endif %}
+      </section>
+
+      <div class="flex justify-end">
+        {% component "unfold/components/button.html" with submit=1 size="md" %}
+          {% translate "Save profile" %}
+        {% endcomponent %}
+      </div>
+    </form>
+
+    <section aria-labelledby="profile-security" class="p-5 {{ rz_account.record_panel }}">
+      <h2 id="profile-security" class="mb-4 {{ rz_account.profile_heading }}">{{ profile_labels.security }}</h2>
+      <dl class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="min-w-0">
+          <dt class="{{ rz_account.record_meta }}">{{ profile_labels.email }}</dt>
+          <dd class="{{ rz_account.profile_value }}"><bdi dir="ltr">{{ request.user.email }}</bdi></dd>
+        </div>
+        <div>
+          <dt class="{{ rz_account.record_meta }}">{{ profile_labels.last_login }}</dt>
+          <dd class="{{ rz_account.profile_value }}">
+            {% if request.user.last_login %}<bdi>{{ request.user.last_login }}</bdi>{% else %}{{ profile_labels.never_signed_in }}{% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt class="{{ rz_account.record_meta }}">{{ profile_labels.joined }}</dt>
+          <dd class="{{ rz_account.profile_value }}"><bdi>{{ request.user.date_joined }}</bdi></dd>
+        </div>
+      </dl>
+      {% if request.user.has_usable_password or authenticator_enrolled %}
+        <div class="mt-4 flex flex-wrap gap-2">
+          {% if request.user.has_usable_password %}
+            {% url "admin:password_change" as password_url %}
+            {% component "unfold/components/button.html" with href=password_url variant="default" %}
+              {% translate "Change password" %}
+            {% endcomponent %}
+          {% endif %}
+          {% if authenticator_enrolled %}
+            {% url "admin:factor_reset" as authenticator_url %}
+            {% component "unfold/components/button.html" with href=authenticator_url variant="default" %}
+              {% translate "Reset authenticator" %}
+            {% endcomponent %}
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}

@@ -9,6 +9,14 @@ from apps.organizations.models import BusinessProfile
 from .models import Product, PERMISSIONS, CatalogueEvent
 
 
+def restriction_events(queryset):
+    return queryset.filter(action__in=("restrict", "lift_restriction")).order_by("-version", "-pk")
+
+
+def product_restricted(item):
+    return restriction_events(item.events).values_list("action", flat=True).first() == "restrict"
+
+
 def permissions(actor):
     from apps.accounts.admin.access import permission_codes
     account = actor.account

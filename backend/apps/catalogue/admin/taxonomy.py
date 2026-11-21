@@ -6,13 +6,14 @@ everyone else reads. No custom templates — the native change form renders it a
 """
 
 from django import forms
-from django.contrib import admin
-from django.core.exceptions import ValidationError
+from django.contrib import admin, messages
+from django.contrib.admin.utils import unquote
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import DatabaseError
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.html import format_html, format_html_join
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import get_language, gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.decorators import action
 
@@ -24,7 +25,7 @@ from apps.site.media import store_upload, discard_created, schedule_media_cleanu
 from .. import access, contracts, taxonomy
 from ..models import Category, SaleUnit, LOCALES
 from ..owner_copy import localize
-from .helpers import changeform_context, chrome_locale
+from .helpers import DeleteRecordForm, changeform_context, chrome_locale, operation_form
 
 LABEL_FIELDS = {"fa-AF": "label_fa_af", "en": "label_en", "ps": "label_ps", "ar": "label_ar"}
 
@@ -213,10 +214,11 @@ def taxonomy_error(form, error, generic):
 
 
 class TaxonomyAdmin(ReadOnlyAdmin):
-    """Native add/change URLs drive the guarded workflow; deletion stays disabled."""
+    """Native routes drive the guarded taxonomy workflows."""
 
     list_filter = ["active"]
     ordering = ["code"]
+    actions = None
 
     def staff_view(self, request, obj=None):
         return permits(request, "catalogue", "manage_taxonomy")
@@ -235,11 +237,31 @@ class TaxonomyAdmin(ReadOnlyAdmin):
         return self._may_edit(request)
 
     def has_delete_permission(self, request, obj=None):
-        return False  # Deactivate through the active flag; identities are retained.
+        return is_owner(request)
+
+    def delete_view(self, request, object_id, extra_context=None):
+        if not self.has_delete_permission(request):
+            raise PermissionDenied
+        original = get_object_or_404(self.get_queryset(request), pk=unquote(object_id))
+        form = DeleteRecordForm(request.POST if request.method == "POST" else None, initial={"version": original.version})
+        if request.method == "POST" and form.is_valid():
+            try:
+                taxonomy.delete_taxonomy(admin_actor(request), self.model, original.pk, form.cleaned_data["version"])
+            except APIException as error:
+                form.add_error(None, _(
+                    "This record is in use. Deactivate it to keep existing catalogue references."
+                ) if error.status_code == 400 else _("The record changed. Reload and try again."))
+            else:
+                messages.success(request, _("Record deleted."))
+                return redirect(f"admin:catalogue_{self.model._meta.model_name}_changelist")
+        return operation_form(
+            request, self, form, [(_("Confirm deletion"), {"fields": ["version", "confirm"]})],
+            _("Delete taxonomy record"), original=original, submit=_("Delete"),
+        )
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         # The native add/change views delegate to the guarded plain-form workflow.
-        return self.workflow(request, object_id)
+        return self.workflow(request, unquote(object_id) if object_id is not None else None)
 
     @admin.display(description=_("Active"))
     def active_state(self, obj):
@@ -247,7 +269,8 @@ class TaxonomyAdmin(ReadOnlyAdmin):
 
     @admin.display(description=_("Name"))
     def label(self, obj):
-        return obj.labels.get("en") or obj.labels.get("fa-AF") or "—"
+        locale = "fa-AF" if get_language() == "fa-af" else "en"
+        return obj.labels.get(locale) or obj.labels.get("en") or obj.code
 
     @action(description=_("Save guarded changes"), icon="save")
     def save(self, request, obj=None):
@@ -255,8 +278,9 @@ class TaxonomyAdmin(ReadOnlyAdmin):
 
 
 class CategoryAdmin(TaxonomyAdmin):
-    list_display = ["code", "label", "icon_glyph", "cover_thumb", "parent", "active_state", "version"]
-    search_fields = ["code"]
+    list_display = ["label", "code", "cover_thumb", "parent", "active_state", "version"]
+    list_select_related = ["parent"]
+    search_fields = ["code", "labels__en", "labels__fa-AF", "labels__ps", "labels__ar"]
 
     def get_readonly_fields(self, request, obj=None):
         # Guard assertion for the disabled native model form; staff never edit units here.
@@ -274,7 +298,7 @@ class CategoryAdmin(TaxonomyAdmin):
         locale = chrome_locale(request)
         actor = admin_actor(request)
         access.staff(actor, "manage_taxonomy")
-        original = Category.objects.filter(pk=code).first() if code is not None else None
+        original = get_object_or_404(Category, pk=code) if code is not None else None
         row = next((r for r in taxonomy.taxonomy()["categories"] if r["code"] == code), None)
         if code is None:
             row = {"version": 0, "code": "", "labels": {loc: "" for loc in LOCALES},
@@ -350,19 +374,21 @@ class CategoryAdmin(TaxonomyAdmin):
             request, self, form, fieldsets,
             original=original, title=t["payload"],
             actions=[self.get_unfold_action("save")], datasets=datasets,
-            extra={"selection": None, "editing": code is not None, "kind": "category"},
+            extra={"selection": None, "editing": code is not None, "kind": "category",
+                   "show_delete_link": bool(original and self.has_delete_permission(request, original))},
         )
         return render(request, "admin/change_form.html", context)
 
 
 class UnitAdmin(TaxonomyAdmin):
-    list_display = ["code", "label", "fractional", "active_state", "version"]
-    search_fields = ["code"]
+    list_display = ["label", "code", "fractional", "active_state", "version"]
+    search_fields = ["code", "labels__en", "labels__fa-AF", "labels__ps", "labels__ar"]
 
     def workflow(self, request, code):
         actor = admin_actor(request)
         access.staff(actor, "manage_taxonomy")
         locale = chrome_locale(request)
+        original = get_object_or_404(SaleUnit, pk=code) if code is not None else None
         row = next((r for r in taxonomy.taxonomy()["units"] if r["code"] == code), None)
         if code is None:
             row = {"version": 0, "code": "", "labels": {loc: "" for loc in LOCALES},
@@ -389,12 +415,12 @@ class UnitAdmin(TaxonomyAdmin):
             (_("Names in all four languages"), {"fields": ["label_fa_af", "label_en", "label_ps", "label_ar"]}),
             (_("Structure and availability"), {"fields": ["fractional", "active"]}),
         ]
-        original = SaleUnit.objects.filter(pk=code).first() if code is not None else None
         context = changeform_context(
             request, self, form, fieldsets,
             original=original, title=t["unit"],
             actions=[self.get_unfold_action("save")],
-            extra={"selection": None, "editing": code is not None, "kind": "unit"},
+            extra={"selection": None, "editing": code is not None, "kind": "unit",
+                   "show_delete_link": bool(original and self.has_delete_permission(request, original))},
         )
         return render(request, "admin/change_form.html", context)
 

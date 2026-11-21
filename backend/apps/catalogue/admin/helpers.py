@@ -11,10 +11,11 @@ from django.contrib import messages
 from django.contrib.admin.helpers import AdminForm
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
+from unfold.widgets import UnfoldBooleanWidget
 
 from apps.accounts.admin.access import permits
 from apps.accounts.admin.locale import admin_language
@@ -176,3 +177,20 @@ def changeform_context(request, admin, form, fieldsets, *, original, title,
         **(extra or {}),
     }
     return context
+
+
+def operation_form(request, admin, form, fieldsets, title, *, original=None, submit=None, links=(), summary=()):
+    actions = [SimpleNamespace(action_name="_save", description=submit, attrs={})] if submit else []
+    context = changeform_context(
+        request, admin, form, fieldsets, original=original, title=title,
+        actions=actions, extra={
+            "show_save": not submit, "show_close": True, "operation_links": links, "operation_summary": summary,
+        },
+    )
+    request.current_app = admin.admin_site.name
+    return render(request, "admin/change_form.html", context)
+
+
+class DeleteRecordForm(forms.Form):
+    version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    confirm = forms.BooleanField(label=_("Permanently delete this record"), widget=UnfoldBooleanWidget())

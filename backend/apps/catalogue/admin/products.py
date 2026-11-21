@@ -8,12 +8,14 @@ readonly panels and explicit Unfold action buttons — no custom template.
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
+from django.db.models import OuterRef, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
-from unfold.decorators import action
+from unfold.decorators import action, display
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from urllib.parse import urlencode
 
 from apps.accounts.admin import owner_site
@@ -22,9 +24,12 @@ from apps.accounts.admin.display import short_id, state_badge
 from apps.organizations.admin import ReadOnlyAdmin
 from .. import access, contracts, services, translations
 from ..models import (
-    Product, SourceRevision, ProductImage, Translation, TranslationJob, LOCALES,
+    CatalogueEvent, Product, SourceRevision, ProductImage, Translation, TranslationJob, LOCALES,
 )
 from ..owner_copy import localize
+from ..queries import working_revisions
+from . import moderation
+from .summaries import language_name, revision_summary
 from .helpers import (
     changeform_context, chrome_locale, independent_product,
     link_button, panel_note, panel_table, submit_pressed,
@@ -33,14 +38,19 @@ from .helpers import (
 
 class RevisionChoice(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        return f"#{obj.number} · {obj.body['locale']} · {obj.state} · {obj.pk}"
+        return _("Revision %(number)s · %(title)s · %(language)s · %(state)s") % {
+            "number": obj.number, "title": obj.body.get("title") or _("Untitled product"),
+            "language": language_name(obj.body.get("locale")), "state": obj.get_state_display(),
+        }
 
 
 class ReviewForm(forms.ModelForm):
     version = forms.IntegerField(widget=forms.HiddenInput)
-    revision = RevisionChoice(queryset=SourceRevision.objects.none())
-    action = forms.ChoiceField(choices=[(x, x) for x in ("publish", "reject", "unpublish")], required=False, widget=forms.HiddenInput)
-    reason = forms.CharField(max_length=1000, required=False, widget=forms.Textarea(attrs={"rows": 3}))
+    revision = RevisionChoice(queryset=SourceRevision.objects.none(), widget=UnfoldAdminSelectWidget())
+    action = forms.ChoiceField(choices=[(x, x) for x in ("publish", "reject", "unpublish")],
+                               required=False, widget=forms.HiddenInput)
+    reason = forms.CharField(max_length=1000, required=False, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}),
+                             help_text=_("Give a reason when rejecting or unpublishing."))
 
     class Meta:
         model = Product
@@ -83,41 +93,94 @@ class ProductAdmin(ReadOnlyAdmin):
         return qs.exclude(seller__account__user=request.user).exclude(
             seller__memberships__account__user=request.user).distinct()
 
-    list_display = ["cover_thumb", "identifier", "seller", "currency", "pricing_mode", "version", "published_state", "workflow_link"]
+    list_display = ["listing", "seller", "currency", "pricing_mode", "published_state", "workflow_link"]
     list_filter = ["currency", "pricing_mode"]
-    search_fields = ["seller__display_name", "variants__sku"]
+    search_fields = ["seller__display_name", "variants__sku", "revisions__body__title"]
+    search_help_text = _("Find by product title, seller, or SKU")
+    actions = None
+    change_form_outer_before_template = "catalogue/admin/operation_links.html"
 
     def get_queryset(self, request):
-        # Prefetch covers so the changelist thumbnail never adds a query per row.
-        return super().get_queryset(request).prefetch_related("images")
-
-    @admin.display(description=_("Cover"))
-    def cover_thumb(self, obj):
-        images = list(obj.images.all())
-        if not images:
-            return "—"
-        return format_html(
-            '<img src="{}" alt="" class="h-10 w-10 rounded-default object-cover" loading="lazy">',
-            reverse("admin:catalogue_private_image", args=[images[0].pk]),
+        latest = working_revisions(SourceRevision.objects.filter(product_id=OuterRef("pk"))).order_by("-number")
+        first_image = ProductImage.objects.filter(product_id=OuterRef("pk")).order_by("created_at", "pk")
+        moderation_events = access.restriction_events(CatalogueEvent.objects.filter(product_id=OuterRef("pk")))
+        return super().get_queryset(request).select_related("seller").annotate(
+            listing_title=Subquery(latest.values("body__title")[:1]),
+            listing_state=Subquery(latest.values("state")[:1]),
+            cover_id=Subquery(first_image.values("pk")[:1]),
+            moderation_state=Subquery(moderation_events.values("action")[:1]),
         )
 
-    @admin.display(description=_("Product"))
-    def identifier(self, obj):
-        return short_id(obj.pk)
+    @display(description=_("Product"), ordering="listing_title", header=True)
+    def listing(self, obj):
+        image = {"path": reverse("admin:catalogue_private_image", args=[obj.cover_id]), "squared": True} if obj.cover_id else None
+        return obj.listing_title or _("Untitled product"), short_id(obj.pk), "", image
+
+    def has_delete_permission(self, request, obj=None):
+        return is_owner(request)
+
+    def delete_view(self, request, object_id, extra_context=None):
+        return moderation.remove_product(self, request, object_id)
+
+    def visibility_view(self, request, pk, operation):
+        return moderation.change_visibility(self, request, pk, operation)
+
+    def get_fieldsets(self, request, obj=None):
+        if not obj or not is_owner(request):
+            return super().get_fieldsets(request, obj)
+        source_fields = ["revisions_panel"]
+        if Translation.objects.filter(revision__product=obj).exists():
+            source_fields.append("translation_details")
+        if TranslationJob.objects.filter(translation__revision__product=obj).exists():
+            source_fields.append("jobs_panel")
+        return [
+            (_("Product identity"), {"fields": ["seller", ("currency", "pricing_mode"), ("version", "created_at")]}),
+            (_("Product details"), {"fields": ["source_panel", "images_panel"]}),
+            (_("Source and translation records"), {"fields": source_fields}),
+            (_("Activity"), {"fields": ["activity_panel"]}),
+        ]
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        if not obj or not is_owner(request):
+            return fields
+        return [*fields, "source_panel", "images_panel", "revisions_panel", "translation_details", "jobs_panel",
+                "activity_panel"]
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        if obj is not None and is_owner(request):
+            variant_url = f"{reverse('admin:catalogue_variant_changelist')}?{urlencode({'product__id__exact': obj.pk})}"
+            context.update(
+                operation_summary=[(_("Publication"), self.published_state(obj))],
+                operation_links=[
+                    link_button(reverse("admin:catalogue_workflow", args=[obj.pk]), _("Source review"), "fact_check"),
+                    link_button(variant_url, _("Variants and prices"), "sell"),
+                    *moderation.links(obj),
+                ],
+                show_delete=False,
+            )
+        return super().render_change_form(request, context, add, change, form_url, obj)
 
     @admin.display(description=_("Publication"))
     def published_state(self, obj):
-        return state_badge("published" if obj.published_id else "draft")
+        if obj.moderation_state == "restrict":
+            return state_badge("restricted")
+        if obj.published_id:
+            return state_badge("published")
+        return state_badge("unpublished" if obj.listing_state == "published" else obj.listing_state or "draft")
 
+    @display(description=_("Review"))
     def workflow_link(self, obj):
         return link_button(
             reverse("admin:catalogue_workflow", args=[obj.pk]),
-            _("Review / translate / publish"), icon="fact_check", variant="primary",
+            _("Source review"), icon="fact_check",
         )
 
     def get_urls(self):
         return [
             path("<uuid:pk>/workflow/", self.admin_site.admin_view(self.workflow), name="catalogue_workflow"),
+            path("<uuid:pk>/visibility/<str:operation>/", self.admin_site.admin_view(self.visibility_view),
+                 name="catalogue_product_visibility"),
             path("images/<uuid:pk>/download/", self.admin_site.admin_view(self.download_image), name="catalogue_private_image"),
             *super().get_urls(),
         ]
@@ -138,50 +201,58 @@ class ProductAdmin(ReadOnlyAdmin):
 
     @admin.display(description=_("Source under review"))
     def source_panel(self, obj):
-        revision = obj.published or obj.revisions.order_by("-number").first()
+        revision = getattr(obj, "_review_revision", None) or obj.published or obj.revisions.order_by("-number").first()
         if not revision:
             return panel_note(_("No source revision yet."))
-        body = revision.body
-        rows = [
-            [_("Title"), format_html('<bdi>{}</bdi>', body.get("title", ""))],
-            [_("Description"), format_html('<bdi>{}</bdi>', body.get("description", ""))],
-            [_("Category"), body.get("category", "")],
-            [_("Source language"), body.get("locale", "")],
-            [_("Brand"), body.get("brand", "") or "—"],
-        ]
-        return panel_table([_("Field"), _("Value")], rows, "")
+        return revision_summary(revision)
 
     @admin.display(description=_("Source revisions"))
     def revisions_panel(self, obj):
-        revisions = obj.revisions.order_by("-number")
+        revisions = obj.revisions.select_related("author").order_by("-number")
         if not revisions:
             return panel_note(_("No revisions yet."))
         blocks = []
         for revision in revisions:
             blocks.append(format_html(
                 '<details class="rounded-default border border-base-200 p-3 dark:border-base-800">'
-                '<summary class="cursor-pointer text-sm font-medium" dir="auto">#{} · {} · <bdi>{}</bdi></summary>'
-                '<pre dir="auto" class="mt-2 whitespace-pre-wrap break-words text-xs text-base-600 dark:text-base-400">{}</pre>'
+                '<summary class="cursor-pointer text-sm font-medium" dir="auto">{} · {} · <bdi>{}</bdi></summary>'
+                '<p class="my-2 text-sm text-subtle">{} · {} · {}</p>'
+                '<div class="mt-3">{}</div>'
                 '<p dir="auto" class="mt-1 text-xs text-base-500">{}</p></details>',
-                revision.number, state_badge(revision.state), revision.pk, revision.body, revision.reason,
+                _("Revision %(number)s") % {"number": revision.number}, state_badge(revision.state),
+                revision.body.get("title") or _("Untitled product"),
+                language_name(revision.body.get("locale")), revision.author, revision.created_at,
+                revision_summary(revision), revision.reason,
             ))
         return format_html('<div class="flex flex-col gap-2">{}</div>', format_html_join("", "{}", ((b,) for b in blocks)))
 
     @admin.display(description=_("Translations"))
     def translations_panel(self, obj):
+        return self.translation_rows(obj, editable=True)
+
+    @admin.display(description=_("Translations"))
+    def translation_details(self, obj):
+        return self.translation_rows(obj, editable=False)
+
+    def translation_rows(self, obj, *, editable):
         rows = Translation.objects.filter(revision__product=obj).select_related("revision")
         if not rows:
-            return panel_note(_("No translations yet. Open the translation workspace to add one."))
+            return panel_note(_("No translations yet."))
         base = reverse("admin:catalogue_workflow", args=[obj.pk])
         table = []
         for row in rows:
             url = f"{base}?{urlencode({'translation': '1', 'revision': str(row.revision_id), 'target': row.locale})}"
-            table.append([
+            summary = [
                 row.locale, state_badge(row.state), row.version,
                 format_html('<bdi>{}</bdi>', row.title or "—"),
-                link_button(url, _("Open"), icon="translate"),
-            ])
-        return panel_table([_("Language"), _("State"), _("Version"), _("Title"), ""], table, "")
+            ]
+            if editable:
+                summary.append(link_button(url, _("Open"), icon="translate"))
+            else:
+                summary.append(link_button(reverse("admin:catalogue_translation_change", args=[row.pk]), _("View")))
+            table.append(summary)
+        headers = [_("Language"), _("State"), _("Version"), _("Title")]
+        return panel_table([*headers, ""], table, "")
 
     @admin.display(description=_("Translation jobs"))
     def jobs_panel(self, obj):
@@ -207,8 +278,8 @@ class ProductAdmin(ReadOnlyAdmin):
             return panel_note(_("No images."))
         cells = [
             format_html(
-                '<a href="{}" target="_blank" rel="noopener" class="block overflow-hidden rounded-default border border-base-200 dark:border-base-800">'
-                '<img src="{}" alt="{}" class="h-28 w-28 object-cover" loading="lazy"></a>',
+                '<a href="{}" target="_blank" rel="noopener" class="block h-16 w-16 shrink-0 overflow-hidden rounded-default border border-base-200 dark:border-base-800">'
+                '<img src="{}" alt="{}" width="64" height="64" class="h-full w-full object-cover" loading="lazy"></a>',
                 reverse("admin:catalogue_private_image", args=[image.pk]),
                 reverse("admin:catalogue_private_image", args=[image.pk]),
                 _("Product image"),
@@ -254,6 +325,10 @@ class ProductAdmin(ReadOnlyAdmin):
         access.resource(actor, pk)
         independent_decision = independent_product(item, actor)
         translation = request.POST.get("form") == "translation" or request.GET.get("translation") == "1"
+        if translation and actor.context == "owner":
+            if request.method != "GET":
+                raise PermissionDenied
+            return redirect("admin:catalogue_product_change", pk)
         if translation and not permits(request, "catalogue", "review_translation"):
             raise PermissionDenied
         if not translation and not permits(request, "catalogue", "review_source", "moderate_catalogue"):
@@ -269,6 +344,10 @@ class ProductAdmin(ReadOnlyAdmin):
                 a for a in ("publish", "reject", "unpublish")
                 if permits(request, "catalogue", "moderate_catalogue" if a == "unpublish" else "review_source")
             ]
+            if actor.context == "owner":
+                action_names = [name for name in action_names if name != "unpublish"]
+            if item.moderation_state == "restrict" and "publish" in action_names:
+                action_names.remove("publish")
         pressed = next((n for n in action_names if submit_pressed(request.POST, n)), None)
         revisions = item.revisions.order_by("-number")
         selection, selected_revision, selected_translation = None, None, None
@@ -311,13 +390,26 @@ class ProductAdmin(ReadOnlyAdmin):
             form = TranslationForm(request.POST if request.method == "POST" else None, initial=initial)
             form.fields["locale"].choices = [(x, x) for x in targets]
         else:
-            form = ReviewForm(request.POST if request.method == "POST" else None, initial={"version": item.version})
+            selected = RevisionChoice(queryset=revisions, required=False)
+            try:
+                default_revision = selected.clean(request.GET.get("revision"))
+            except forms.ValidationError:
+                default_revision = None
+            default_revision = default_revision or revisions.filter(state="submitted").first() or working_revisions(revisions).first()
+            form = ReviewForm(request.POST if request.method == "POST" else None,
+                              initial={"version": item.version, "revision": default_revision})
         t = localize(form, locale)
+        if not translation:
+            form.fields["revision"].label = _("Source revision to review")
+            form.fields["revision"].help_text = _("Choose the seller submission by revision number, product title, language and status.")
+        form.instance = item
         form.fields["revision"].queryset = revisions
         if request.method == "POST" and form.is_valid():
             data = dict(form.cleaned_data)
             if pressed:
                 data["action"] = pressed
+            if data["action"] not in action_names:
+                raise PermissionDenied
             revision = data.pop("revision")
             try:
                 if translation:
@@ -344,7 +436,16 @@ class ProductAdmin(ReadOnlyAdmin):
     def _context(self, request, item, form, selection, selected_revision, selected_translation,
                  translation, independent_decision, action_names, t, locale):
         """Shape the native change-form context: panels, GET selector and action buttons."""
-        panels = ["revisions_panel", "translations_panel", "activity_panel", "images_panel"]
+        if not translation:
+            revision_value = form["revision"].value()
+            try:
+                item._review_revision = form.fields["revision"].clean(revision_value)
+            except forms.ValidationError:
+                item._review_revision = None
+            if item._review_revision and item._review_revision.state != "submitted":
+                action_names = [name for name in action_names if name not in {"publish", "reject"}]
+        translation_panel = "translation_details" if is_owner(request) else "translations_panel"
+        panels = ["revisions_panel", translation_panel, "activity_panel", "images_panel"]
         if translation:
             decision = (_("Translation"), {"fields": ["version", "revision", "locale", "action", "title", "description", "image_alts", "reason"],
                                             "description": t["load_help"]})
@@ -353,9 +454,21 @@ class ProductAdmin(ReadOnlyAdmin):
             decision = (_("Guarded decision"), {"fields": ["version", "revision", "action", "reason"],
                                                  "description": _("Publishing locks this exact source revision; unpublishing keeps it retained.")})
             panels = ["source_panel", *panels]
-        fieldsets = [decision, *[(_(p.replace("_panel", "").replace("_", " ").title()), {"fields": [p]}) for p in panels]]
+        if not Translation.objects.filter(revision__product=item).exists():
+            panels = [panel for panel in panels if panel not in {"translation_details", "translations_panel"}]
+        if "jobs_panel" in panels and not TranslationJob.objects.filter(translation__revision__product=item).exists():
+            panels.remove("jobs_panel")
+        panel_titles = {
+            "source_panel": _("Selected product submission"),
+            "revisions_panel": _("Source revision history"),
+            "translation_details": _("Translations"),
+        }
+        fieldsets = [decision, *[(panel_titles.get(p, _(p.replace("_panel", "").replace("_", " ").title())),
+                                 {"fields": [p]}) for p in panels]]
         # The GET selection form and notices render outside the main POST form (datasets).
         datasets = []
+        if not translation and item._review_revision and item._review_revision.state != "submitted":
+            datasets.append(panel_note(_("This revision is not awaiting review. Approval and rejection are available for submitted revisions.")))
         if not independent_decision:
             datasets.append(format_html(
                 '<div class="rounded-default border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300" role="status">{}</div>',
@@ -393,6 +506,9 @@ class ProductAdmin(ReadOnlyAdmin):
                 "selected_revision": selected_revision, "selected_translation": selected_translation,
                 "independent_decision": independent_decision, "t": t, "locale": locale,
                 "direction": "ltr" if locale == "en" else "rtl",
+                "operation_links": moderation.links(item) if is_owner(request) else (),
+                "show_delete_link": False,
+                "show_delete": False,
             },
         )
 

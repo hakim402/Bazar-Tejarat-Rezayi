@@ -1,0 +1,8 @@
+<nav aria-label="{{ account_segments_label }}" class="mb-4 flex flex-wrap gap-1 rounded-lg p-1 {{ rz_account.segments }}">
+  {% for segment in account_segments %}
+    <a href="{{ segment.url }}" {% if segment.selected %}aria-current="page"{% endif %}
+       class="px-3 py-2 text-sm {% if segment.selected %}{{ rz_account.selection }}{% else %}{{ rz_account.row }}{% endif %}">
+      {{ segment.title }}
+    </a>
+  {% endfor %}
+</nav>

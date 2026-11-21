@@ -1,0 +1,134 @@
+"""Display helpers for the Accounts app's native Unfold screens."""
+
+from django.urls import reverse
+from django.utils.functional import lazy
+from django.utils.html import format_html
+from django.utils.translation import get_language, gettext
+
+DARI = {
+    "All accounts": "همهٔ حساب‌ها",
+    "Buyer accounts": "حساب‌های خریداران",
+    "Seller accounts": "حساب‌های فروشندگان",
+    "Staff accounts": "حساب‌های کارکنان",
+    "Account type": "نوع حساب",
+    "Find by name or email": "جستجو با نام یا ایمیل",
+    "Identity": "هویت",
+    "Access role": "نقش دسترسی",
+    "Sign-in status": "وضعیت ورود",
+    "Marketplace user": "کاربر بازار",
+    "Super admin": "مدیر ارشد",
+    "Staff": "کارمند",
+    "Email verification": "تأیید ایمیل",
+    "Unverified": "تأییدنشده",
+    "Never signed in": "هنوز وارد نشده",
+    "Profile photo": "عکس پروفایل",
+    "Account access": "دسترسی حساب",
+    "Security & activity": "امنیت و فعالیت",
+    "Account details": "جزئیات حساب",
+    "Change account status": "تغییر وضعیت حساب",
+    "Staff access": "دسترسی کارکنان",
+    "Open user": "باز کردن کاربر",
+    "Record details": "جزئیات رکورد",
+    "Security record": "سابقهٔ امنیتی",
+    "Delivery record": "سابقهٔ ارسال",
+    "Audit event": "رویداد حسابرسی",
+    "Event context": "زمینهٔ رویداد",
+    "Recorded changes": "تغییرات ثبت‌شده",
+    "Used": "استفاده‌شده",
+    "Unused": "استفاده‌نشده",
+    "Unconfirmed": "تأییدنشده",
+    "Resource": "منبع",
+    "Read-only record": "رکورد فقط‌خواندنی",
+    "Not revoked": "لغونشده",
+    "Personal details": "اطلاعات شخصی",
+    "First name": "نام",
+    "Last name": "نام خانوادگی",
+    "Phone": "شمارهٔ تماس",
+    "Gender": "جنسیت",
+    "Date of birth": "تاریخ تولد",
+    "Preferred marketplace language": "زبان ترجیحی بازار",
+    "Bio": "دربارهٔ من",
+    "Upload profile photo": "بارگذاری عکس پروفایل",
+    "Remove current photo": "حذف عکس فعلی",
+    "JPEG, PNG, or WebP up to 8 MiB.": "تصویر JPEG، PNG یا WebP تا ۸ مگابایت.",
+    "Choose either a new photo or removal.": "یا عکس جدید را انتخاب کنید یا عکس فعلی را حذف کنید.",
+    "Sign-in & security": "ورود و امنیت",
+    "Sign-in email": "ایمیل ورود",
+    "Date joined": "تاریخ عضویت",
+    "Last login": "آخرین ورود",
+    "Profile saved.": "پروفایل ذخیره شد.",
+}
+
+
+def text(label):
+    if get_language() == "fa-af" and label in DARI:
+        return DARI[label]
+    return gettext(label)
+
+
+label = lazy(text, str)
+
+ACCOUNT_SEGMENTS = (
+    ("", label("All accounts")),
+    ("buyer", label("Buyer accounts")),
+    ("seller", label("Seller accounts")),
+    ("staff", label("Staff accounts")),
+)
+
+ROLE_LABELS = {"owner": "primary", "staff": "info", "marketplace": "default"}
+VISIBILITY_LABELS = {"active": "success", "inactive": "danger"}
+EMAIL_LABELS = {"verified": "success", "unverified": "warning"}
+CONTEXT_LABELS = {
+    "buyer": "info", "seller": "primary", "staff": "default", "owner": "primary",
+    "system": "default", "other": "default",
+}
+CONTEXT_TITLES = {"owner": "Super admin", "staff": "Staff", "system": "System"}
+ACCOUNT_STATUS_LABELS = {"active": "success", "suspended": "warning", "archived": "default"}
+REVIEW_LABELS = {"pending": "warning", "approved": "success", "rejected": "danger", "not_requested": "default"}
+
+
+def identity_cell(user):
+    name = user.display_name.strip() or user.email
+    initials = "".join(part[0] for part in name.split()[:2]).upper()
+    picture = {"path": reverse("site_media", args=[user.avatar_id])} if user.avatar_id else None
+    return (
+        format_html("<bdi>{}</bdi>", name),
+        format_html('<bdi dir="ltr">{}</bdi>', user.email) if user.email != name else "",
+        initials,
+        picture,
+    )
+
+
+def identity_role(user):
+    if user.is_superuser:
+        return "owner", label("Super admin")
+    if user.is_staff:
+        return "staff", label("Staff")
+    return "marketplace", label("Marketplace user")
+
+
+def identity_status(user):
+    return ("active", label("Active")) if user.is_active else ("inactive", label("Inactive"))
+
+
+def email_status(user):
+    return ("verified", label("Verified")) if user.email_verified else ("unverified", label("Unverified"))
+
+
+def context_status(value):
+    key = value if value in CONTEXT_LABELS else "other"
+    return key, label(CONTEXT_TITLES.get(value, value.replace("_", " ").capitalize()))
+
+
+def badge(value, palette):
+    key, title = value
+    return {"variant": palette.get(key, "default"), "title": title}
+
+
+class AccountSummaryMixin:
+    change_form_outer_before_template = "accounts/admin/includes/record_summary.html"
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        if obj is not None and not context.get("is_popup"):
+            context["account_summary"] = self.record_summary(request, obj)
+        return super().render_change_form(request, context, add, change, form_url, obj)

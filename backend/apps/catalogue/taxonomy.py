@@ -1,6 +1,9 @@
 from apps.runtime.locks import lock as durable_lock
 from django.db import transaction
+from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import PermissionDenied
 from . import access
 from .models import Category, SaleUnit
 from .validation import labels, schema, fail
@@ -10,6 +13,28 @@ from apps.organizations.access import assert_version
 def lock_taxonomy():
     # Also serializes the empty-table/new-identity case, where row locks cannot help.
     durable_lock(720062106)
+
+
+@transaction.atomic
+def delete_taxonomy(actor, model, code, version):
+    access.staff(actor, "manage_taxonomy")
+    if actor.context != "owner":
+        raise PermissionDenied()
+    lock_taxonomy()
+    item = get_object_or_404(model.objects.select_for_update(), pk=code)
+    assert_version(item, version)
+    if model is SaleUnit and Category.objects.filter(units=item).exists():
+        fail("record", "protected_history")
+    cover = item.image_id if model is Category else None
+    try:
+        item.delete()
+    except ProtectedError:
+        fail("record", "protected_history")
+    access.audit(actor, None, f"{model._meta.model_name}_deleted", reason=code, version=version)
+    if cover:
+        from apps.site.media import schedule_media_cleanup
+
+        schedule_media_cleanup([cover])
 
 
 @transaction.atomic
@@ -39,7 +64,8 @@ def save_category(actor, data):
 
     if depth + subtree_depth(data["code"], set()) - 1 > 4:
         fail("parent", "cycle")
-    units = SaleUnit.objects.filter(code__in=data["units"], active=True)
+    assigned_units = category.units.values("pk") if category else SaleUnit.objects.none().values("pk")
+    units = SaleUnit.objects.filter(code__in=data["units"]).filter(Q(active=True) | Q(pk__in=assigned_units))
     if len(set(data["units"])) != units.count():
         fail("units", "choice")
     # Resolve the optional cover against the shared site media library (images only).

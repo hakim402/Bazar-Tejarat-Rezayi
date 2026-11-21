@@ -49,7 +49,7 @@ STATE_VARIANTS = {
     },
     "danger": {
         "rejected", "cancelled", "suspended", "exhausted", "failed", "expired",
-        "disabled", "delivery_unknown", "revoked", "blocked",
+        "disabled", "delivery_unknown", "revoked", "blocked", "restricted",
     },
     "info": {
         "held", "reserved", "sealed", "withdrawn", "decided", "erroneous", "running",
@@ -71,6 +71,15 @@ ACCOUNT_THEME = {
     "segments": "rounded-lg bg-base-50 dark:bg-base-800",
     "selection": "rounded-md bg-white font-semibold text-primary-700 shadow-sm dark:bg-base-900 dark:text-primary-400",
     "signout": "rounded-md text-sm font-medium text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/20",
+    "record_panel": CARD,
+    "record_name": f"text-lg font-semibold {TEXT}",
+    "record_meta": f"text-sm {MUTED}",
+    "record_link": (
+        f"rounded-md border {DIVIDER} px-3 py-1.5 text-sm font-medium "
+        "hover:bg-base-100 dark:hover:bg-base-800"
+    ),
+    "profile_heading": SECTION_TITLE,
+    "profile_value": f"break-words text-sm font-medium {TEXT}",
 }
 
 DIRECTORY_THEME = {
