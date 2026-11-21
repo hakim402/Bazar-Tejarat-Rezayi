@@ -291,7 +291,7 @@ class CategoryAdmin(TaxonomyAdmin):
     @admin.display(description=_("Category"), ordering="code")
     def category_identity(self, obj):
         cover = reverse("site_media", args=[obj.image_id]) if obj.image_id else None
-        return identity(localized(obj.labels, obj.code), obj.code, cover, "category",
+        return identity(localized(obj.labels, _("Unnamed category")), "", cover, "category",
                         icon=category_icon(obj.icon) if obj.icon else "")
 
     @admin.display(description=_("Parent category"), ordering="parent")
