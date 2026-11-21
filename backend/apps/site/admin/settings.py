@@ -15,6 +15,7 @@ from ..forms.settings import LOGO_FIELDS
 from ..models import SiteSettings, PageSEO, HeroSlide, LOCALES
 from ..sections import SECTIONS, ROUTE_SECTIONS
 from ..services import working_draft, draft_initial, save_settings, save_settings_draft
+from apps.accounts.admin.theme import SITE_THEME
 from .helpers import ServiceFormMixin, asset_img, slide_thumbnail, slide_state, submit_pressed, with_initial
 from .inlines import SEOInline
 
@@ -152,21 +153,23 @@ class SiteSettingsAdmin(ServiceFormMixin, ModelAdmin):
 
     @admin.display(description=_("Current website icon"))
     def favicon_preview(self, obj):
-        return asset_img(obj.favicon_id, "h-16 max-w-full object-contain", _("Current website icon"))
+        return asset_img(obj.favicon_id, SITE_THEME["favicon"], _("Current website icon"))
 
     @admin.display(description=_("Current social preview image"))
     def sharing_preview(self, obj):
-        return asset_img(obj.og_image_id, "h-32 max-w-full object-contain", _("Current social preview image"))
+        return asset_img(obj.og_image_id, SITE_THEME["sharing"], _("Current social preview image"))
 
     @admin.display(description=_("Saved draft images"))
     def draft_uploads_preview(self, obj):
         draft = working_draft(obj)
         if draft is None:
             return ""
-        return format_html_join("", '<figure><img src="{}" alt="" class="h-24 max-w-full object-contain"><figcaption><bdi>{}</bdi></figcaption></figure>', (
-            (reverse("site_media", kwargs={"pk": upload.asset_id}), upload.field)
-            for upload in draft.uploads.select_related("asset")
-        ))
+        return format_html_join(
+            "",
+            f'<figure><img src="{{}}" alt="" class="{SITE_THEME["draft_upload"]}"><figcaption><bdi>{{}}</bdi></figcaption></figure>',
+            ((reverse("site_media", kwargs={"pk": upload.asset_id}), upload.field)
+             for upload in draft.uploads.select_related("asset")),
+        )
 
     def save_model(self, request, obj, form, change):
         """Persistence belongs to the service; skip the default row save."""
@@ -208,28 +211,30 @@ def _posts_panel(placement, panel_title, add_label, empty_label):
         add_url = reverse("admin:site_heroslide_add") + f"?placement={placement}"
         library_url = reverse("admin:site_heroslide_changelist") + f"?placement={placement}"
         # One compact row per public post: preview, name, status and a direct edit link.
+        row_template = (
+            f'<div class="{SITE_THEME["panel_row"]}">'
+            f'<div class="{SITE_THEME["shrink"]}">{{}}</div>'
+            f'<div class="{SITE_THEME["panel_row_grow"]}"><div class="{SITE_THEME["panel_row_title"]}"><bdi>{{}}</bdi></div>'
+            f'<div class="{SITE_THEME["panel_row_meta"]}">{{}}</div></div>'
+            f'<div class="{SITE_THEME["shrink"]}">{{}}</div>'
+            f'<a href="{{}}" class="{SITE_THEME["panel_row_action"]}">{{}}</a>'
+            f'</div>'
+        )
         rows = format_html_join(
-            "",
-            '<div class="flex items-center gap-3 p-2.5">'
-            '<div class="shrink-0">{}</div>'
-            '<div class="grow min-w-0"><div class="font-medium text-sm truncate"><bdi>{}</bdi></div>'
-            '<div class="text-xs text-base-500 dark:text-base-400">{}</div></div>'
-            '<div class="shrink-0">{}</div>'
-            '<a href="{}" class="shrink-0 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">{}</a>'
-            '</div>',
+            "", row_template,
             ((slide_thumbnail(s), s.label, s.get_kind_display(), slide_state(s),
               reverse("admin:site_heroslide_change", args=[s.pk]), _("Edit")) for s in slides),
         )
-        body = rows or format_html('<div class="p-4 text-sm text-base-500 dark:text-base-400 text-center">{}</div>', empty_label)
+        body = rows or format_html('<div class="{}">{}</div>', SITE_THEME["panel_empty"], empty_label)
         return format_html(
-            '<div class="flex flex-col gap-3">'
-            '<div class="flex items-center justify-between gap-3 flex-wrap">'
-            '<a href="{}" class="font-medium inline-flex items-center gap-1 rounded-default justify-center whitespace-nowrap cursor-pointer px-3 py-2 border border-transparent bg-primary-600 text-white hover:bg-primary-600/80">'
-            '<span class="material-symbols-outlined text-[18px]">add</span>{}</a>'
-            '<a href="{}" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">{}</a>'
-            '</div>'
-            '<div class="border border-base-200 rounded-default divide-y divide-base-200 dark:border-base-800 dark:divide-base-800 overflow-hidden">{}</div>'
-            '</div>',
+            f'<div class="{SITE_THEME["panel"]}">'
+            f'<div class="{SITE_THEME["panel_toolbar"]}">'
+            f'<a href="{{}}" class="{SITE_THEME["panel_add"]}">'
+            f'<span class="{SITE_THEME["panel_icon"]}">add</span>{{}}</a>'
+            f'<a href="{{}}" class="{SITE_THEME["panel_link"]}">{{}}</a>'
+            f'</div>'
+            f'<div class="{SITE_THEME["panel_list"]}">{{}}</div>'
+            f'</div>',
             add_url, add_label, library_url, _("Open full library"), body,
         )
     return panel
@@ -249,10 +254,10 @@ def _logo_preview(code):
             return reverse("site_media", kwargs={"pk": asset_id}) if asset_id else static(logo_static(code, tone))
 
         return format_html(
-            '<div class="flex flex-wrap gap-4">'
-            '<div class="bg-white border border-base-200 p-3 rounded-default"><img src="{}" alt="{}" class="h-12 max-w-48 object-contain"></div>'
-            '<div class="bg-base-900 p-3 rounded-default"><img src="{}" alt="{}" class="h-12 max-w-48 object-contain"></div>'
-            '</div>',
+            f'<div class="{SITE_THEME["logo_row"]}">'
+            f'<div class="{SITE_THEME["logo_light_tile"]}"><img src="{{}}" alt="{{}}" class="{SITE_THEME["logo_img"]}"></div>'
+            f'<div class="{SITE_THEME["logo_dark_tile"]}"><img src="{{}}" alt="{{}}" class="{SITE_THEME["logo_img"]}"></div>'
+            f'</div>',
             source(row.logo_light_id if row else None, "light"), _("Current logo for light backgrounds"),
             source(row.logo_dark_id if row else None, "dark"), _("Current logo for dark backgrounds"),
         )

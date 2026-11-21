@@ -133,6 +133,55 @@ DIRECTORY_THEME = {
     "current_link": ACCOUNT_THEME["row_primary"],
 }
 
+# --- Site settings, homepage media and content pages ------------------------
+# Presentation for the site admin's Python-rendered previews, badges and the
+# embedded slide/post library. Reuses the shared badge palette, dividers and
+# action colour so site screens match the rest of the owner admin.
+SITE_THEME = {
+    "badge": BADGE_BASE,
+    "badge_tones": {
+        "published": BADGE_COLORS["success"],
+        "draft": BADGE_COLORS["warning"],
+        "hidden": BADGE_COLORS["default"],
+    },
+    "chips": "inline-flex flex-wrap gap-1",
+    "chip": "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold",
+    "chip_tones": {
+        "published": BADGE_COLORS["success"],
+        "draft": BADGE_COLORS["warning"],
+        "missing": BADGE_COLORS["default"],
+    },
+    # Private streamed media previews (compact, theme-aware containers).
+    "thumb": "h-12 w-16 object-contain",
+    "favicon": "h-16 max-w-full object-contain",
+    "sharing": "h-32 max-w-full object-contain",
+    "cover": "h-24 max-w-full rounded-default object-contain",
+    "draft_upload": "h-24 max-w-full object-contain",
+    "media": "max-h-64 max-w-full object-contain",
+    "video": "max-h-80 max-w-full rounded-default",
+    "logo_row": "flex flex-wrap gap-4",
+    "logo_img": "h-12 max-w-48 object-contain",
+    "logo_light_tile": f"rounded-default border {DIVIDER} bg-white p-3",
+    "logo_dark_tile": "rounded-default bg-base-900 p-3",
+    # Embedded slide/post library panel.
+    "panel": "flex flex-col gap-3",
+    "panel_toolbar": "flex flex-wrap items-center justify-between gap-3",
+    "panel_add": (
+        "inline-flex cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-default "
+        "border border-transparent bg-primary-600 px-3 py-2 font-medium text-white hover:bg-primary-600/80"
+    ),
+    "panel_icon": "material-symbols-outlined text-[18px]",
+    "panel_link": f"text-sm font-medium {ACTION} hover:underline",
+    "panel_list": f"divide-y divide-base-200 overflow-hidden rounded-default border {DIVIDER} dark:divide-base-800",
+    "panel_row": "flex items-center gap-3 p-2.5",
+    "panel_row_grow": "grow min-w-0",
+    "panel_row_title": "truncate text-sm font-medium",
+    "panel_row_meta": f"text-xs {MUTED}",
+    "panel_row_action": f"shrink-0 text-sm font-medium {ACTION} hover:underline",
+    "panel_empty": f"p-4 text-center text-sm {MUTED}",
+    "shrink": "shrink-0",
+}
+
 # --- Template-facing map (injected as ``rz_theme`` by dashboard_context) ----
 # Never name the context key ``theme``: Unfold's skeleton owns that key for the
 # root Alpine theme() component (light/dark/auto string).

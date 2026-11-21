@@ -13,6 +13,7 @@ from unfold.decorators import action
 from ..forms import PostForm, HERO_TEXT
 from ..models import SiteSettings, SiteMedia, LOCALES
 from ..services import draft_for, save_post, delete_post
+from apps.accounts.admin.theme import SITE_THEME
 from .helpers import ServiceFormMixin, asset_img, asset_video, slide_thumbnail, slide_state, submit_pressed, with_initial
 
 
@@ -162,9 +163,9 @@ class HeroSlideAdmin(ServiceFormMixin, ModelAdmin):
         if working.kind == "video" and working.video_id:
             return asset_video(working.video_id, working.poster_id)
         if working.image_id:
-            return asset_img(working.image_id, "max-h-64 max-w-full object-contain", _("Current image"))
+            return asset_img(working.image_id, SITE_THEME["media"], _("Current image"))
         if working.bundled_image:
-            return format_html('<img src="{}" alt="{}" class="max-h-64 max-w-full object-contain">', f"{settings.FRONTEND_ORIGIN}/images/marketplace/hero.webp", _("Bundled marketplace image"))
+            return format_html(f'<img src="{{}}" alt="{{}}" class="{SITE_THEME["media"]}">', f"{settings.FRONTEND_ORIGIN}/images/marketplace/hero.webp", _("Bundled marketplace image"))
         return ""
 
     @action(description=_("Save draft"), attrs={"formnovalidate": True}, icon="draft")

@@ -13,6 +13,7 @@ from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import ChoicesDropdownFilter
 from ..forms import ContentPageForm
 from ..media import store_upload, discard_created
+from apps.accounts.admin.theme import SITE_THEME
 from .helpers import asset_img, require_owner, state_badge
 from .inlines import ContentPageLocaleInline
 
@@ -73,7 +74,7 @@ class ContentPageAdmin(ModelAdmin):
     @admin.display(description=_("Current cover"))
     def cover_preview(self, obj):
         if obj and obj.pk and obj.cover_id:
-            return asset_img(obj.cover_id, "h-24 max-w-full rounded-default object-contain", _("Current cover image"))
+            return asset_img(obj.cover_id, SITE_THEME["cover"], _("Current cover image"))
         return _("No cover image yet.")
 
     def get_queryset(self, request):
@@ -104,20 +105,21 @@ class ContentPageAdmin(ModelAdmin):
     def language_chips(self, obj):
         rows = {row.locale: row for row in obj.locales.all()}
         labels = {"fa-AF": "دری", "en": "EN", "ps": "پښتو", "ar": "عربي"}
+        tones = SITE_THEME["chip_tones"]
         chips = []
         for code, label in labels.items():
             row = rows.get(code)
             if row is None:
-                classes, state = "border border-base-200 text-base-400 dark:border-base-700 dark:text-base-500", _("Missing")
+                tone, state = tones["missing"], _("Missing")
             elif row.is_draft:
-                classes, state = "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200", _("Draft")
+                tone, state = tones["draft"], _("Draft")
             else:
-                classes, state = "bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200", _("Published")
+                tone, state = tones["published"], _("Published")
             chips.append(format_html(
-                '<span class="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold {}" title="{}"><bdi>{}</bdi></span>',
-                classes, state, label,
+                f'<span class="{SITE_THEME["chip"]} {{}}" title="{{}}"><bdi>{{}}</bdi></span>',
+                tone, state, label,
             ))
-        return format_html('<span class="inline-flex flex-wrap gap-1">{}</span>', format_html_join("", "{}", ((chip,) for chip in chips)))
+        return format_html(f'<span class="{SITE_THEME["chips"]}">{{}}</span>', format_html_join("", "{}", ((chip,) for chip in chips)))
 
     def save_model(self, request, obj, form, change):
         upload = form.cleaned_data.get("cover_file")

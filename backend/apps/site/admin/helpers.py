@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
+from apps.accounts.admin.theme import SITE_THEME
 from apps.accounts.services import get_grant
 
 
@@ -32,27 +33,24 @@ def asset_img(asset_id, css, alt=""):
 def asset_video(video_id, poster_id):
     """Stored video with its poster, streamed through the same private endpoint."""
     return format_html(
-        '<video controls preload="metadata" src="{}" poster="{}" class="max-h-80 max-w-full rounded-default"></video>',
+        f'<video controls preload="metadata" src="{{}}" poster="{{}}" class="{SITE_THEME["video"]}"></video>',
         reverse("site_media", kwargs={"pk": video_id}),
         reverse("site_media", kwargs={"pk": poster_id}) if poster_id else "",
     )
 
 
 def state_badge(label, tone):
-    """Shared status pill; tones match the published/draft/hidden semantics."""
-    classes = {
-        "published": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-        "draft": "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-        "hidden": "bg-base-100 text-base-600 dark:bg-base-800 dark:text-base-300",
-    }[tone]
-    return format_html('<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {}">{}</span>', classes, label)
+    """Shared status badge; tones map to the centralized admin palette."""
+    return format_html(
+        '<span class="{} {}">{}</span>', SITE_THEME["badge"], SITE_THEME["badge_tones"][tone], label
+    )
 
 
 def slide_thumbnail(obj):
     """Small preview for a slide/post row, shared by the library and workspace panels."""
     asset_id = obj.poster_id if obj.kind == "video" else obj.image_id
     src = reverse("site_media", kwargs={"pk": asset_id}) if asset_id else f"{settings.FRONTEND_ORIGIN}/images/marketplace/hero.webp" if obj.bundled_image else ""
-    return format_html('<img src="{}" alt="" class="h-12 w-16 object-contain" loading="lazy">', src) if src else "—"
+    return format_html(f'<img src="{{}}" alt="" class="{SITE_THEME["thumb"]}" loading="lazy">', src) if src else "—"
 
 
 def slide_state(obj):
