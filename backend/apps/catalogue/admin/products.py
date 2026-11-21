@@ -234,7 +234,7 @@ class ProductAdmin(ProductIdentityMixin, ReadOnlyAdmin):
         for row in rows:
             url = f"{base}?{urlencode({'translation': '1', 'revision': str(row.revision_id), 'target': row.locale})}"
             summary = [
-                row.locale, state_badge(row.state), row.version,
+                language_name(row.locale), state_badge(row.state), row.version,
                 format_html('<bdi>{}</bdi>', row.title or "—"),
             ]
             if editable:
@@ -250,7 +250,7 @@ class ProductAdmin(ProductIdentityMixin, ReadOnlyAdmin):
         jobs = TranslationJob.objects.filter(translation__revision__product=obj).select_related("translation")
         if not jobs:
             return panel_note(_("No translation jobs."))
-        table = [[j.translation.locale, state_badge(j.status), j.attempts, j.error_code or "—"] for j in jobs]
+        table = [[language_name(j.translation.locale), state_badge(j.status), j.attempts, j.error_code or "—"] for j in jobs]
         return panel_table([_("Language"), _("Status"), _("Attempts"), _("Error")], table, "")
 
     @admin.display(description=_("Activity"))
@@ -367,7 +367,7 @@ class ProductAdmin(ProductIdentityMixin, ReadOnlyAdmin):
             except forms.ValidationError:
                 pass
             targets = [x for x in LOCALES if not selected_revision or x != selected_revision.body["locale"]]
-            selection.fields["target"].choices = [(x, x) for x in targets]
+            selection.fields["target"].choices = [(x, language_name(x)) for x in targets]
             if not selection_data["target"]:
                 selection_data["target"] = targets[0]
             localize(selection, locale)
@@ -389,7 +389,7 @@ class ProductAdmin(ProductIdentityMixin, ReadOnlyAdmin):
                 } if selected_revision else {},
             }
             form = TranslationForm(request.POST if request.method == "POST" else None, initial=initial)
-            form.fields["locale"].choices = [(x, x) for x in targets]
+            form.fields["locale"].choices = [(x, language_name(x)) for x in targets]
         else:
             selected = RevisionChoice(queryset=revisions, required=False)
             try:
@@ -452,7 +452,7 @@ class ProductAdmin(ProductIdentityMixin, ReadOnlyAdmin):
                                             "description": t["load_help"]})
             panels = ["revisions_panel", "translations_panel", "jobs_panel", "activity_panel", "images_panel"]
         else:
-            decision = (_("Guarded decision"), {"fields": ["version", "revision", "action", "reason"],
+            decision = (_("Review decision"), {"fields": ["version", "revision", "action", "reason"],
                                                  "description": _("Publishing locks this exact source revision; unpublishing keeps it retained.")})
         if not Translation.objects.filter(revision__product=item).exists():
             panels = [panel for panel in panels if panel not in {"translation_details", "translations_panel"}]

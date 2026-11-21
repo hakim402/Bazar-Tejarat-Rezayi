@@ -164,7 +164,7 @@ msgid "Advance due policy"
 msgstr "سیاست پیش‌پرداخت"
 
 msgid "Advanced attributes (optional)"
-msgstr "ویژگی‌های پیشرفته (اختیاری)"
+msgstr "ویژگی های پیشرفته (اختیاری)"
 
 msgid "Advanced: externally hosted media"
 msgstr "پیشرفته: رسانهٔ میزبانی‌شده در خارج"
@@ -194,7 +194,7 @@ msgid "Allocations"
 msgstr "تخصیص‌ها"
 
 msgid "Allow fractional quantities such as 0.25 kg; whole-count units stay unchecked."
-msgstr "مقدارهای کسری مانند ۰٫۲۵ کیلوگرم را اجازه دهید؛ واحدهای شمارشی کامل بی‌علامت می‌مانند."
+msgstr "مقدارهای کسری مانند ۰٫۲۵ کیلوگرم را اجازه دهید؛ واحدهای شمارشی کامل بی علامت می مانند."
 
 msgid "Allow search indexing on an approved production deployment"
 msgstr "اجازهٔ نمایه‌سازی جستجو در استقرار تولیدی تأییدشده"
@@ -287,13 +287,13 @@ msgid "Assignment metadata only. Current resource assignment and explicit permis
 msgstr "تنها فرادادهٔ واگذاری. واگذاری فعلی منبع و مجوزهای صریح برای محتوای خصوصی گیرنده، پول و مدارک لازم است."
 
 msgid "Attempts"
-msgstr "تلاش‌ها"
+msgstr "تلاش ها"
 
 msgid "Attest staff email verification"
 msgstr "گواهی تأیید ایمیل کارمند"
 
 msgid "Attributes must be a JSON list, for example []."
-msgstr "ویژگی‌ها باید یک فهرست JSON باشد، برای مثال []."
+msgstr "ویژگی ها باید یک فهرست JSON باشد، برای مثال []."
 
 msgid "Audit activity"
 msgstr "فعالیت ممیزی"
@@ -302,19 +302,19 @@ msgid "Authenticators"
 msgstr "برنامه‌های تأیید هویت"
 
 msgid "Authoritative stock inspection. Balances and retained ledger records change only through existing trusted inventory services and compensating operations; no generic edit/delete or invented reserve/recovery actions."
-msgstr "بازدید معتبر موجودی. مانده‌ها و سوابق دفترِ نگه‌داشته‌شده تنها از طریق سرویس‌های موجود و مورد اعتماد موجودی و عملیات جبرانی تغییر می‌کنند؛ ویرایش یا حذف عمومی یا اقدام رزرو/بازیابی ساختگی انجام نمی‌شود."
+msgstr "بازدید معتبر موجودی. مانده ها و سوابق دفترِ نگه داشته شده تنها از طریق سرویس های موجود و مورد اعتماد موجودی و عملیات جبرانی تغییر می کنند؛ ویرایش یا حذف عمومی یا اقدام رزرو/بازیابی ساختگی انجام نمی شود."
 
 msgid "Automatic draft provider disabled. Manual translation remains available."
-msgstr "ارائه‌دهندهٔ پیش‌نویس خودکار غیرفعال است. ترجمهٔ دستی همچنان موجود است."
+msgstr "ارائه دهندهٔ پیش نویس خودکار غیرفعال است. ترجمهٔ دستی همچنان موجود است."
 
 msgid "Automatic draft provider enabled"
-msgstr "ارائه‌دهندهٔ پیش‌نویس خودکار فعال است"
+msgstr "ارائه دهندهٔ پیش نویس خودکار فعال است"
 
 msgid "Automatically rotate carousel"
 msgstr "چرخش خودکار چرخ‌فلک"
 
 msgid "Available"
-msgstr "موجود"
+msgstr "قابل فروش"
 
 msgid "Available shortcuts"
 msgstr "میان‌برهای موجود"
@@ -335,7 +335,7 @@ msgid "Banner alt:"
 msgstr "متن جایگزین بنر:"
 
 msgid "Batch"
-msgstr "دسته‌ای"
+msgstr "موجودی با شماره محموله"
 
 msgid "Batches"
 msgstr "دسته‌های کالا"
@@ -449,7 +449,7 @@ msgid "Catalogue revisions awaiting publication review: %(count)s"
 msgstr "بازنگری‌های کتالوگ منتظر بررسی انتشار: %(count)s"
 
 msgid "Categories"
-msgstr "دسته‌بندی‌ها"
+msgstr "دسته بندی ها"
 
 msgid "Categories organise the marketplace catalogue in up to four levels. Every entry keeps a permanent code and a name in all four marketplace languages; products reference these codes, so identities never change after creation."
 msgstr "دسته‌بندی‌ها کتالوگ بازار را در حداکثر چهار سطح سازمان می‌دهند. هر ثبت یک کد دائمی و نامی به هر چهار زبان بازار نگه می‌دارد؛ محصولات به این کدها ارجاع می‌کنند، بنابراین شناسه‌ها پس از ایجاد هرگز تغییر نمی‌کنند."
@@ -537,7 +537,7 @@ msgid "Close navigation"
 msgstr "بستن منو"
 
 msgid "Select 1 to 9 active sale units offered for products in this category."
-msgstr "۱ تا ۹ واحد فروش فعال را که برای محصولات این دسته ارائه می‌شود انتخاب کنید."
+msgstr "۱ تا ۹ واحد فروش فعال را که برای محصولات این دسته ارائه می شود انتخاب کنید."
 
 msgid "Command tool shortcuts"
 msgstr "میان‌برهای ابزار فرمان"
@@ -645,7 +645,7 @@ msgid "Cta Url"
 msgstr "نشانی دکمه"
 
 msgid "Currency"
-msgstr "پول‌واحد"
+msgstr "واحد پول"
 
 msgid "Current"
 msgstr "فعلی"
@@ -1086,7 +1086,7 @@ msgid "Identified provider name"
 msgstr "نام ارائه‌دهندهٔ شناسایی‌شده"
 
 msgid "Identity"
-msgstr "شناسه"
+msgstr "هویت"
 
 msgid "Identity, appearance and homepage hero"
 msgstr "هویت، ظاهر و بخش اصلی صفحهٔ خانه"
@@ -1110,7 +1110,7 @@ msgid "Images: PNG, JPEG or WebP, up to 8 MiB. Videos: H.264 MP4, up to 50 MiB a
 msgstr "تصاویر: PNG، JPEG یا WebP، تا ۸ میب‌بایت. ویدیوها: MP4 با H.264، تا ۵۰ میب‌بایت و ۶۰ ثانیه. ویدیوی بارگذاری‌شده به‌طور خودکار پوستر می‌گیرد؛ می‌توانید پوستر خود را بارگذاری کنید."
 
 msgid "Inactive entries stay retained but are not offered to new products."
-msgstr "ثبت‌های غیرفعال نگه داشته می‌شوند اما به محصولات جدید پیشنهاد نمی‌شوند."
+msgstr "ثبت های غیرفعال نگه داشته می شوند اما به محصولات جدید پیشنهاد نمی شوند."
 
 msgid "Include in the carousel when published"
 msgstr "گنجاندن در چرخ‌فلک پس از انتشار"
@@ -1341,7 +1341,7 @@ msgid "Name"
 msgstr "نام"
 
 msgid "Names in all four languages"
-msgstr "نام‌ها به هر چهار زبان"
+msgstr "نام ها به هر چهار زبان"
 
 msgid "Navigate"
 msgstr "پیمایش"
@@ -1440,7 +1440,7 @@ msgid "No, take me back"
 msgstr "نه، مرا برگردان"
 
 msgid "Non-batch"
-msgstr "غیردسته‌ای"
+msgstr "موجودی عادی"
 
 msgid "Non-batch bucket"
 msgstr "گروه غیردسته‌ای"
@@ -1602,10 +1602,10 @@ msgid "Operations"
 msgstr "عملیات"
 
 msgid "Optional advanced attribute definitions as a JSON list. Leave [] unless this category needs extra variant attributes."
-msgstr "تعریف‌های ویژگی پیشرفتهٔ اختیاری به‌شکل فهرست JSON. خالی [] بگذارید مگر اینکه این دسته به ویژگی‌های اضافی برای متنوع‌ها نیاز داشته باشد."
+msgstr "تعریف های ویژگی پیشرفتهٔ اختیاری به شکل فهرست JSON. خالی [] بگذارید مگر اینکه این دسته به ویژگی های اضافی برای متنوع ها نیاز داشته باشد."
 
 msgid "Optional parent category. Hierarchy is bounded to four levels and cycles are refused."
-msgstr "دستهٔ والد اختیاری. سلسله‌مراتب به چهار سطح محدود است و حلقه‌ها رد می‌شوند."
+msgstr "دستهٔ والد اختیاری. سلسله مراتب به چهار سطح محدود است و حلقه ها رد می شوند."
 
 msgid "Optional. Select a reviewer only when assigning this case to staff."
 msgstr "اختیاری. تنها هنگام واگذاری این پرونده به کارمند، بررسی‌کننده انتخاب کنید."
@@ -1908,7 +1908,7 @@ msgid "Recording a receipt does not transfer money. Review is independent of sel
 msgstr "ثبت رسید پول را انتقال نمی‌دهد. بررسی مستقل از تأیید فروشنده است. فاکتورهای اصلی، کالای پذیرفته‌شده و تاریخچهٔ رسید تغییرناپذیر می‌مانند."
 
 msgid "Recovered"
-msgstr "بازیابی‌شده"
+msgstr "بازیابی شده"
 
 msgid "Recovery records"
 msgstr "سوابق بازیابی"
@@ -1989,7 +1989,7 @@ msgid "Required Arabic display name."
 msgstr "نام نمایشی عربی لازم است."
 
 msgid "Required Dari display name (default marketplace language)."
-msgstr "نام نمایشی دری لازم است (زبان پیش‌فرض بازار)."
+msgstr "نام نمایشی دری لازم است (زبان پیش فرض بازار)."
 
 msgid "Required English display name."
 msgstr "نام نمایشی انگلیسی لازم است."
@@ -2034,7 +2034,7 @@ msgid "Restore original logo light"
 msgstr "بازیابی لوگوی روشن اصلی"
 
 msgid "Retail"
-msgstr "خرده‌فروشی"
+msgstr "قیمت پرچون"
 
 msgid "Retained decision"
 msgstr "تصمیم نگه‌داشته‌شده"
@@ -2130,7 +2130,7 @@ msgid "Runtime"
 msgstr "زمان اجرا"
 
 msgid "SKU"
-msgstr "SKU"
+msgstr "شناسه کالا"
 
 msgid "Sale unit"
 msgstr "واحد فروش"
@@ -2166,7 +2166,7 @@ msgid "Save as new"
 msgstr "ذخیره به‌عنوان جدید"
 
 msgid "Save draft"
-msgstr "ذخیرهٔ پیش‌نویس"
+msgstr "ذخیرهٔ پیش نویس"
 
 msgid "Save draft keeps your work private. Publish updates the public version. Videos show no visible headline or button; clicking opens their source destination."
 msgstr "ذخیرهٔ پیش‌نویس کار شما را خصوصی نگه می‌دارد. انتشار نسخهٔ عمومی را به‌روز می‌کند. ویدیوها تیتر یا دکمهٔ قابل‌مشاهده ندارند؛ کلیک مقصد منبع آن‌ها را باز می‌کند."
@@ -2175,7 +2175,7 @@ msgid "Save featured store"
 msgstr "ذخیرهٔ فروشگاه ویژه"
 
 msgid "Save guarded changes"
-msgstr "ذخیرهٔ تغییرات محافظت‌شده"
+msgstr "ذخیرهٔ تغییرات محافظت شده"
 
 msgid "Save profile"
 msgstr "ذخیره پروفایل"
@@ -2319,10 +2319,10 @@ msgid "Source"
 msgstr "منبع"
 
 msgid "Source review"
-msgstr "بررسی منبع"
+msgstr "بررسی نسخه ارسالی"
 
 msgid "Source revisions"
-msgstr "نسخه‌های منبع"
+msgstr "نسخه های ارسالی"
 
 msgid "Spam"
 msgstr "هرزنامه"
@@ -2355,7 +2355,7 @@ msgid "Stock"
 msgstr "موجودی"
 
 msgid "Stock positions"
-msgstr "موقعیت‌های موجودی"
+msgstr "موجودی محصولات"
 
 msgid "Store"
 msgstr "فروشگاه"
@@ -2373,7 +2373,7 @@ msgid "Store reviews"
 msgstr "بررسی فروشگاه‌ها"
 
 msgid "Structure and availability"
-msgstr "ساختار و دسترس‌پذیری"
+msgstr "ساختار و دسترس پذیری"
 
 msgid "Submission content requires assigned read permission. Queue and assignment access do not reveal private draft content."
 msgstr "محتوای ارسال به اجازهٔ خواندن تعیین‌شده نیاز دارد. دسترسی صف و تعیین، محتوای پیش‌نویس خصوصی را آشکار نمی‌کند."
@@ -2583,7 +2583,7 @@ msgid "Translation review"
 msgstr "بررسی ترجمه"
 
 msgid "Translations"
-msgstr "ترجمه‌ها"
+msgstr "ترجمه ها"
 
 msgid "True"
 msgstr "درست"
@@ -2739,7 +2739,7 @@ msgid "Whole selected quantity"
 msgstr "مقدار کامل انتخاب‌شده"
 
 msgid "Wholesale"
-msgstr "عمده‌فروشی"
+msgstr "قیمت عمده"
 
 msgid "Withdraw"
 msgstr "پس گرفتن"
@@ -2763,7 +2763,7 @@ msgid "You are editing a saved draft. The public version stays unchanged until y
 msgstr "شما در حال ویرایش یک پیش‌نویس ذخیره‌شده هستید. نسخهٔ عمومی تا زمان انتشار بدون تغییر می‌ماند."
 
 msgid "You can inspect this product. An independent reviewer must decide source and translation submissions for your own or historically linked business."
-msgstr "می‌توانید این محصول را بازرسی کنید. یک بررسی‌کنندهٔ مستقل باید ارسال‌های منبع و ترجمهٔ کسب‌وکار خودتان یا متصل‌شدهٔ تاریخی را تصمیم بگیرد."
+msgstr "می توانید این محصول را بازرسی کنید. یک بررسی کنندهٔ مستقل باید ارسال های منبع و ترجمهٔ کسب وکار خودتان یا متصل شدهٔ تاریخی را تصمیم بگیرد."
 
 msgid "You can inspect this record. An independent reviewer must decide your own or historically linked business submission."
 msgstr "شما می‌توانید این پرونده را بررسی کنید. یک بازبین مستقل باید تصمیم بگیرد که ارسال کسب‌وکار خودتان یا مرتبط تاریخی پذیرفته شود."
@@ -3195,13 +3195,10 @@ msgid "catalogue events"
 msgstr "رویدادهای کتالوگ"
 
 msgid "categories"
-msgstr "دسته‌بندی‌ها"
+msgstr "دسته بندی ها"
 
 msgid "category"
-msgstr "دسته‌بندی"
-
-msgid "categorys"
-msgstr "دسته‌بندی‌ها"
+msgstr "دسته بندی"
 
 msgid "cause"
 msgstr "علت"
@@ -3426,7 +3423,7 @@ msgid "done"
 msgstr "انجام‌شده"
 
 msgid "draft"
-msgstr "پیش‌نویس"
+msgstr "پیش نویس"
 
 msgid "draft of"
 msgstr "پیش‌نویسِ"
@@ -3501,7 +3498,7 @@ msgid "expires on"
 msgstr "تاریخ انقضا"
 
 msgid "expiry required"
-msgstr "انقضا لازم است"
+msgstr "ثبت تاریخ انقضا ضروری است"
 
 msgid "extension"
 msgstr "تمدید"
@@ -3549,7 +3546,7 @@ msgid "form data"
 msgstr "دادهٔ فرم"
 
 msgid "fractional"
-msgstr "کسری"
+msgstr "اجازه مقدار اعشاری"
 
 msgid "fulfilment event"
 msgstr "رویداد ارسال"
@@ -4044,10 +4041,10 @@ msgid "plan"
 msgstr "طرح"
 
 msgid "position"
-msgstr "موقعیت"
+msgstr "موجودی محصول"
 
 msgid "positions"
-msgstr "موقعیت‌ها"
+msgstr "موجودی محصولات"
 
 msgid "poster"
 msgstr "پوستر"
@@ -4080,7 +4077,7 @@ msgid "price changes"
 msgstr "تغییرهای قیمت"
 
 msgid "pricing mode"
-msgstr "حالت قیمت‌گذاری"
+msgstr "روش قیمت گذاری"
 
 msgid "privacy"
 msgstr "حریم خصوصی"
@@ -4134,7 +4131,7 @@ msgid "publications"
 msgstr "انتشارها"
 
 msgid "published"
-msgstr "منتشرشده"
+msgstr "نشر شده"
 
 msgid "purpose"
 msgstr "هدف"
@@ -4230,7 +4227,7 @@ msgid "refund seals"
 msgstr "مهرهای بازپرداخت"
 
 msgid "rejected"
-msgstr "ردشده"
+msgstr "رد شده"
 
 msgid "reminder"
 msgstr "یادآوری"
@@ -4455,10 +4452,10 @@ msgid "snapshot"
 msgstr "عکس فوری"
 
 msgid "source revision"
-msgstr "نسخهٔ منبع"
+msgstr "نسخه ارسالی محصول"
 
 msgid "source revisions"
-msgstr "نسخه‌های منبع"
+msgstr "نسخه های ارسالی محصولات"
 
 msgid "started at"
 msgstr "زمان آغاز"
@@ -4533,7 +4530,7 @@ msgid "submission"
 msgstr "ارسال"
 
 msgid "submitted"
-msgstr "ارسال‌شده"
+msgstr "ارسال شده"
 
 msgid "submitted at"
 msgstr "زمان ارسال"
@@ -4626,10 +4623,10 @@ msgid "used at"
 msgstr "زمان استفاده"
 
 msgid "variant"
-msgstr "نوع"
+msgstr "نوع محصول"
 
 msgid "variants"
-msgstr "انواع"
+msgstr "انواع محصول"
 
 msgid "verification"
 msgstr "تأیید"
@@ -4656,7 +4653,7 @@ msgid "width"
 msgstr "عرض"
 
 msgid "withdrawn"
-msgstr "پس‌گرفته‌شده"
+msgstr "پس گرفته شده"
 
 msgid "you@company.com"
 msgstr "you@company.com"
@@ -4719,7 +4716,7 @@ msgid "Core pages were kept — they can be unpublished but not deleted."
 msgstr "صفحه‌های اصلی نگه داشته شدند — انتشارشان قابل لغو است اما حذف نمی‌شوند."
 
 msgid "Cover image"
-msgstr "تصویر جلد"
+msgstr "تصویر اصلی"
 
 msgid "Current cover"
 msgstr "جلد فعلی"
@@ -4889,10 +4886,7 @@ msgid "Changes could not be saved. Reload the record and retry."
 msgstr "تغییرات ذخیره نشد. رکورد را دوباره بارگذاری کنید و دوباره تلاش کنید."
 
 msgid "Publication"
-msgstr "انتشار"
-
-msgid "Source under review"
-msgstr "منبع در حال بررسی"
+msgstr "وضعیت نشر"
 
 msgid "Activity"
 msgstr "فعالیت"
@@ -4910,19 +4904,16 @@ msgid "Approve translation"
 msgstr "تأیید ترجمه"
 
 msgid "Request automatic draft"
-msgstr "درخواست پیش‌نویس خودکار"
+msgstr "درخواست پیش نویس خودکار"
 
 msgid "Retry job"
 msgstr "تلاش دوبارهٔ کار"
 
-msgid "No source revision yet."
-msgstr "هنوز نسخهٔ منبعی وجود ندارد."
-
 msgid "Category"
-msgstr "دسته"
+msgstr "دسته بندی"
 
 msgid "Source language"
-msgstr "زبان منبع"
+msgstr "زبان متن اصلی"
 
 msgid "Brand"
 msgstr "برند"
@@ -4934,16 +4925,13 @@ msgid "Value"
 msgstr "مقدار"
 
 msgid "No revisions yet."
-msgstr "هنوز نسخه‌ای وجود ندارد."
-
-msgid "No translations yet. Open the translation workspace to add one."
-msgstr "هنوز ترجمه‌ای وجود ندارد. برای افزودن، فضای کاری ترجمه را باز کنید."
+msgstr "هنوز نسخه ای وجود ندارد."
 
 msgid "State"
 msgstr "حالت"
 
 msgid "No translation jobs."
-msgstr "هیچ کار ترجمه‌ای وجود ندارد."
+msgstr "هیچ کار ترجمه ای وجود ندارد."
 
 msgid "Error"
 msgstr "خطا"
@@ -4958,13 +4946,13 @@ msgid "No images."
 msgstr "تصویری وجود ندارد."
 
 msgid "Publishing locks this exact source revision; unpublishing keeps it retained."
-msgstr "انتشار این نسخهٔ منبع را دقیقاً قفل می‌کند؛ لغو انتشار آن را نگه می‌دارد."
+msgstr "انتشار این نسخهٔ منبع را دقیقاً قفل می کند؛ لغو انتشار آن را نگه می دارد."
 
 msgid "The code is a permanent identity referenced by products; it cannot change after creation."
-msgstr "کد یک شناسهٔ دائمی است که محصولات به آن ارجاع می‌دهند؛ پس از ایجاد قابل تغییر نیست."
+msgstr "کد یک شناسهٔ دائمی است که محصولات به آن ارجاع می دهند؛ پس از ایجاد قابل تغییر نیست."
 
 msgid "The code is a permanent identity referenced by variants; it cannot change after creation."
-msgstr "کد یک شناسهٔ دائمی است که گونه‌ها به آن ارجاع می‌دهند؛ پس از ایجاد قابل تغییر نیست."
+msgstr "کد یک شناسهٔ دائمی است که گونه ها به آن ارجاع می دهند؛ پس از ایجاد قابل تغییر نیست."
 
 msgid "The code is permanent and cannot change after creation."
 msgstr "کد دائمی است و پس از ایجاد قابل تغییر نیست."
@@ -4986,7 +4974,7 @@ msgid "Icon"
 msgstr "نماد"
 
 msgid "Cover"
-msgstr "جلد"
+msgstr "تصویر اصلی"
 
 msgid "Images"
 msgstr "تصاویر"
@@ -4995,28 +4983,22 @@ msgid "Product image"
 msgstr "تصویر محصول"
 
 msgid "Category cover"
-msgstr "جلد دسته"
-
-msgid "Current category cover"
-msgstr "جلد فعلی دسته"
+msgstr "تصویر اصلی دسته بندی"
 
 msgid "Storefront presentation"
 msgstr "نمایش در ویترین"
-
-msgid "Current storefront presentation"
-msgstr "نمایش فعلی در ویترین"
 
 msgid "Remove the current cover image."
 msgstr "حذف تصویر جلد فعلی."
 
 msgid "Optional named glyph shown beside the category on the storefront."
-msgstr "نماد اختیاری که در ویترین کنار دسته نمایش داده می‌شود."
+msgstr "نماد اختیاری که در ویترین کنار دسته نمایش داده می شود."
 
 msgid "Optional cover image (JPEG, PNG or WebP), stored in the shared site media library."
-msgstr "تصویر جلد اختیاری (JPEG، PNG یا WebP) که در کتابخانهٔ رسانهٔ سایت ذخیره می‌شود."
+msgstr "تصویر جلد اختیاری (JPEG، PNG یا WebP) که در کتابخانهٔ رسانهٔ سایت ذخیره می شود."
 
 msgid "An optional named glyph and cover image shown on public category cards."
-msgstr "نماد و تصویر جلد اختیاری که روی کارت‌های عمومی دسته نمایش داده می‌شوند."
+msgstr "نماد و تصویر جلد اختیاری که روی کارت های عمومی دسته نمایش داده می شوند."
 
 msgid "The cover image could not be stored. Re-select the file and save again."
 msgstr "تصویر جلد ذخیره نشد. فایل را دوباره انتخاب و ذخیره کنید."
@@ -5155,3 +5137,463 @@ msgstr "بدون تغییر"
 
 msgid "Date range"
 msgstr "بازهٔ تاریخ"
+
+
+# Catalogue and stock admin: shared English and Dari presentation
+msgid "Advanced attributes"
+msgstr "ویژگی های پیشرفته"
+
+msgid "Allow this product to enter publication review again."
+msgstr "اجازه دهید این محصول دوباره برای نشر بررسی شود."
+
+msgid "Applies to"
+msgstr "مربوط به"
+
+msgid "Arabic name"
+msgstr "نام عربی"
+
+msgid "Attributes"
+msgstr "ویژگی ها"
+
+msgid "Availability"
+msgstr "وضعیت موجودی"
+
+msgid "Available in this revision"
+msgstr "در این نسخه موجود است"
+
+msgid "Batch stock"
+msgstr "موجودی با شماره محموله"
+
+msgid "Category details"
+msgstr "جزئیات دسته بندی"
+
+msgid "Category overview"
+msgstr "خلاصه دسته بندی"
+
+msgid "Choose the seller submission by revision number, product title, language and status."
+msgstr "نسخه ارسالی فروشنده را بر اساس شماره نسخه، نام محصول، زبان و وضعیت انتخاب کنید."
+
+msgid "Code"
+msgstr "کد"
+
+msgid "Confirm deletion"
+msgstr "تأیید حذف"
+
+msgid "Dari name"
+msgstr "نام دری"
+
+msgid "Delete product"
+msgstr "حذف محصول"
+
+msgid "Delete taxonomy record"
+msgstr "حذف دسته بندی یا واحد فروش"
+
+msgid "English name"
+msgstr "نام انگلیسی"
+
+msgid "Enter a clear reason for this decision."
+msgstr "دلیل این تصمیم را واضح بنویسید."
+
+msgid "Find by product name, SKU, seller or email"
+msgstr "جستجو بر اساس نام محصول، شناسه کالا، فروشنده یا ایمیل"
+
+msgid "Find by product title, seller, or SKU"
+msgstr "جستجو بر اساس نام محصول، فروشنده یا شناسه کالا"
+
+msgid "Fractional quantities"
+msgstr "مقدارهای اعشاری"
+
+msgid "Give a reason when rejecting or unpublishing."
+msgstr "برای رد کردن یا توقف نشر، دلیل بنویسید."
+
+msgid "Hidden in this revision"
+msgstr "در این نسخه پنهان است"
+
+msgid "Hide this product and block publication until the restriction is lifted."
+msgstr "این محصول را پنهان کنید و تا رفع محدودیت، اجازه نشر ندهید."
+
+msgid "Lift restriction"
+msgstr "رفع محدودیت"
+
+msgid "Load selected translation"
+msgstr "بارگذاری ترجمه انتخاب شده"
+
+msgid "Loading replaces unsaved inputs. Save your draft first, or deliberately load another source/target."
+msgstr "بارگذاری، تغییرات ذخیره نشده را جایگزین می کند. نخست پیش نویس را ذخیره کنید، سپس نسخه یا زبان دیگری را انتخاب کنید."
+
+msgid "Low stock threshold"
+msgstr "حد هشدار کمبود موجودی"
+
+msgid "Moderation reason"
+msgstr "دلیل تصمیم مدیر"
+
+msgid "No description"
+msgstr "بدون توضیحات"
+
+msgid "No translations yet."
+msgstr "هنوز ترجمه ای ثبت نشده است."
+
+msgid "On hand"
+msgstr "موجودی کل"
+
+msgid "Options"
+msgstr "گزینه ها"
+
+msgid "Pack contents"
+msgstr "محتویات بسته"
+
+msgid "Parent category"
+msgstr "دسته بندی مادر"
+
+msgid "Pashto name"
+msgstr "نام پشتو"
+
+msgid "Permanently delete this record"
+msgstr "حذف دایمی این مورد"
+
+msgid "Product deleted."
+msgstr "محصول حذف شد."
+
+msgid "Product detail"
+msgstr "مشخصات محصول"
+
+msgid "Product identity"
+msgstr "هویت محصول"
+
+msgid "Product review"
+msgstr "بررسی محصول"
+
+msgid "Product submission"
+msgstr "نسخه ارسالی محصول"
+
+msgid "Product submissions"
+msgstr "نسخه های ارسالی محصولات"
+
+msgid "Product title"
+msgstr "نام محصول"
+
+msgid "Product variant"
+msgstr "نوع محصول"
+
+msgid "Product variants"
+msgstr "انواع محصول"
+
+msgid "Product visibility updated."
+msgstr "وضعیت نمایش محصول تغییر کرد."
+
+msgid "Products referenced by orders or stock records are protected from deletion."
+msgstr "محصولاتی که در سفارش ها یا سوابق موجودی استفاده شده اند، قابل حذف نیستند."
+
+msgid "Quantity step"
+msgstr "گام مقدار سفارش"
+
+msgid "Record deleted."
+msgstr "این مورد حذف شد."
+
+msgid "Related records"
+msgstr "سوابق مرتبط"
+
+msgid "Remove cover image"
+msgstr "حذف تصویر اصلی"
+
+msgid "Remove this product from the storefront."
+msgstr "نمایش این محصول را در فروشگاه متوقف کنید."
+
+msgid "Reserved"
+msgstr "رزرو شده"
+
+msgid "Restrict product"
+msgstr "محدود کردن محصول"
+
+msgid "Review required fields, current version and permissions."
+msgstr "خانه های ضروری، نسخه فعلی و صلاحیت دسترسی را بررسی کنید."
+
+msgid "Revision %(number)s"
+msgstr "نسخه %(number)s"
+
+msgid "Revision %(number)s · %(title)s · %(language)s · %(state)s"
+msgstr "نسخه %(number)s · %(title)s · %(language)s · %(state)s"
+
+msgid "Sale configuration"
+msgstr "تنظیمات فروش"
+
+msgid "Sale unit details"
+msgstr "جزئیات واحد فروش"
+
+msgid "Seller prices"
+msgstr "قیمت های فروشنده"
+
+msgid "Seller submission"
+msgstr "اطلاعات ارسالی فروشنده"
+
+msgid "Source and translation records"
+msgstr "نسخه های اصلی و ترجمه ها"
+
+msgid "Source revision history"
+msgstr "تاریخچه نسخه های ارسالی"
+
+msgid "Source revision to review"
+msgstr "نسخه ارسالی برای بررسی"
+
+msgid "Source title"
+msgstr "نام محصول ارسالی"
+
+msgid "Standard stock"
+msgstr "موجودی عادی"
+
+msgid "Stock balances"
+msgstr "خلاصه موجودی"
+
+msgid "Stock position"
+msgstr "موجودی محصول"
+
+msgid "Stock tracking"
+msgstr "روش ثبت موجودی"
+
+msgid "Target language"
+msgstr "زبان ترجمه"
+
+msgid "The product changed. Reload and try again."
+msgstr "اطلاعات محصول تغییر کرده است. صفحه را دوباره بارگذاری و تلاش کنید."
+
+msgid "The product state changed. Reload and try again."
+msgstr "وضعیت محصول تغییر کرده است. صفحه را دوباره بارگذاری و تلاش کنید."
+
+msgid "The record changed. Reload and try again."
+msgstr "این مورد تغییر کرده است. صفحه را دوباره بارگذاری و تلاش کنید."
+
+msgid "This product has linked records. Unpublish or restrict it to hide it from the storefront."
+msgstr "این محصول سوابق مرتبط دارد. برای پنهان کردن آن از فروشگاه، نشر را متوقف یا محصول را محدود کنید."
+
+msgid "This product is linked to other records. Reload before trying again."
+msgstr "این محصول با سوابق دیگر مرتبط است. پیش از تلاش دوباره، صفحه را بارگذاری کنید."
+
+msgid "This record changed or differs from the saved draft. Your input is retained. Load the selected translation again and review it before resubmitting."
+msgstr "این مورد تغییر کرده یا با پیش نویس ذخیره شده تفاوت دارد. نوشته های شما حفظ شده است. ترجمه انتخاب شده را دوباره بارگذاری و پیش از ارسال بررسی کنید."
+
+msgid "This record is in use. Deactivate it to keep existing catalogue references."
+msgstr "این مورد در حال استفاده است. برای حفظ سوابق مرتبط، آن را غیرفعال کنید."
+
+msgid "This revision has no variants."
+msgstr "این نسخه هیچ نوع محصول ندارد."
+
+msgid "This revision is not awaiting review. Approval and rejection are available for submitted revisions."
+msgstr "این نسخه منتظر بررسی نیست. تنها نسخه های ارسال شده قابل تأیید یا رد هستند."
+
+msgid "Top level"
+msgstr "دسته بندی اصلی"
+
+msgid "Tracking"
+msgstr "ثبت موجودی"
+
+msgid "Translated description"
+msgstr "توضیحات ترجمه شده"
+
+msgid "Translated image descriptions"
+msgstr "توضیحات ترجمه شده تصاویر"
+
+msgid "Translated title"
+msgstr "نام ترجمه شده"
+
+msgid "Unnamed category"
+msgstr "دسته بندی بدون نام"
+
+msgid "Unnamed variant"
+msgstr "نوع محصول بدون نام"
+
+msgid "Unpublish product"
+msgstr "توقف نشر محصول"
+
+msgid "Untitled product"
+msgstr "محصول بدون نام"
+
+msgid "Variant options"
+msgstr "ویژگی های نوع محصول"
+
+msgid "Variants and prices"
+msgstr "انواع محصول و قیمت ها"
+
+msgid "View more (%(count)s older activities)"
+msgstr "نمایش بیشتر (%(count)s فعالیت قبلی)"
+
+msgid "View product"
+msgstr "مشاهده محصول"
+
+msgid "View stock position"
+msgstr "مشاهده موجودی"
+
+msgid "Whole product"
+msgstr "تمام محصول"
+
+msgid "Wholesale minimum"
+msgstr "حداقل سفارش عمده"
+
+msgid "create"
+msgstr "ایجاد محصول"
+
+msgid "image_upload"
+msgstr "بارگذاری تصویر"
+
+msgid "lift_restriction"
+msgstr "رفع محدودیت"
+
+msgid "price_change"
+msgstr "تغییر قیمت"
+
+msgid "private_media_inspected"
+msgstr "تصویر مشاهده شد"
+
+msgid "publish"
+msgstr "نشر محصول"
+
+msgid "reject"
+msgstr "رد نسخه"
+
+msgid "restrict"
+msgstr "اعمال محدودیت"
+
+msgid "restricted"
+msgstr "محدود شده"
+
+msgid "save"
+msgstr "ذخیره تغییرات"
+
+msgid "submit"
+msgstr "ارسال برای بررسی"
+
+msgid "translation_approve"
+msgstr "تأیید ترجمه"
+
+msgid "translation_generate"
+msgstr "درخواست ترجمه خودکار"
+
+msgid "translation_reject"
+msgstr "رد ترجمه"
+
+msgid "translation_retry"
+msgstr "تلاش دوباره برای ترجمه"
+
+msgid "translation_save"
+msgstr "ذخیره ترجمه"
+
+msgid "unpublish"
+msgstr "توقف نشر"
+
+msgid "unpublished"
+msgstr "نشر متوقف شده"
+
+msgid "withdraw"
+msgstr "پس گرفتن نسخه"
+
+
+msgid "active"
+msgstr "فعال"
+
+msgid "disabled"
+msgstr "غیرفعال"
+
+msgid "running"
+msgstr "در حال اجرا"
+
+msgid "failed"
+msgstr "ناموفق"
+
+msgid "succeeded"
+msgstr "موفق"
+
+msgid "completed"
+msgstr "تکمیل شده"
+
+msgid "stale"
+msgstr "نسخه قدیمی"
+
+msgid "retry"
+msgstr "تلاش دوباره"
+
+msgid "translation_completed"
+msgstr "ترجمه تکمیل شد"
+
+msgid "translation_failed"
+msgstr "ترجمه ناموفق بود"
+
+msgid "translation_stale"
+msgstr "ترجمه با نسخه فعلی مطابقت ندارد"
+
+msgid "discard"
+msgstr "حذف پیش نویس"
+
+msgid "translation_discard"
+msgstr "حذف پیش نویس ترجمه"
+
+msgid "delete"
+msgstr "حذف محصول"
+
+
+msgid "Grid"
+msgstr "شبکه"
+
+msgid "Leaf"
+msgstr "برگ"
+
+msgid "Dress"
+msgstr "لباس"
+
+msgid "Beauty"
+msgstr "زیبایی"
+
+msgid "Chair"
+msgstr "چوکی"
+
+msgid "Home"
+msgstr "خانه"
+
+msgid "Phone"
+msgstr "تلفن"
+
+msgid "Sparkle"
+msgstr "درخشش"
+
+msgid "Team"
+msgstr "گروه"
+
+msgid "File"
+msgstr "فایل"
+
+msgid "Box"
+msgstr "بسته"
+
+msgid "Shopping Bag"
+msgstr "خریطه خرید"
+
+msgid "Globe"
+msgstr "کره زمین"
+
+msgid "Star"
+msgstr "ستاره"
+
+msgid "Crown"
+msgstr "تاج"
+
+msgid "Award"
+msgstr "جایزه"
+
+msgid "Truck"
+msgstr "موتر باربری"
+
+msgid "Warehouse"
+msgstr "گدام"
+
+msgid "Monitor"
+msgstr "صفحه نمایش"
+
+msgid "Gear"
+msgstr "چرخ دنده"
+
+msgid "Heart"
+msgstr "قلب"
+
+msgid "Headset"
+msgstr "گوشی"
+
+msgid "Variants"
+msgstr "انواع محصول"

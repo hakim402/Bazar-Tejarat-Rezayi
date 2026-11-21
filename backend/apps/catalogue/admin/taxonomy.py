@@ -60,7 +60,7 @@ CATEGORY_ICONS = {
     "cart": "M2 3h3l3 13h11l3-9H6 M10 21h.01 M18 21h.01",
     "headset": "M3 11a9 9 0 0 1 18 0 M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z M21 11h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-5Z M21 16v2a4 4 0 0 1-4 4h-5",
 }
-CATEGORY_ICON_CHOICES = [("", _("No icon"))] + [(name, name.replace("-", " ").title()) for name in CATEGORY_ICONS]
+CATEGORY_ICON_CHOICES = [("", _("No icon"))] + [(name, _(name.replace("-", " ").title())) for name in CATEGORY_ICONS]
 
 
 def category_icon(name, css="", size=20):
@@ -333,7 +333,7 @@ class CategoryAdmin(TaxonomyAdmin):
         form.initial = form.initial_from_row(row)
         form.initial.update({"parent": row["parent"] or "", "units": row["units"], "attributes": row["attributes"], "icon": row.get("icon", "")})
         form.fields["parent"].choices = [("", _("No parent (top level)"))] + [
-            (c.code, f"{c.code} — {c.labels.get('en') or c.labels.get('fa-AF') or ''}")
+            (c.code, localized(c.labels, _("Unnamed category")))
             for c in Category.objects.order_by("code") if c.code != code
         ]
         # Offer active sale units as checkboxes; keep an already-assigned unit visible
@@ -342,7 +342,7 @@ class CategoryAdmin(TaxonomyAdmin):
         offered = [u for u in unit_rows.values() if u.active]
         offered += [unit_rows[c] for c in row["units"] if c in unit_rows and not unit_rows[c].active]
         form.fields["units"].choices = [
-            (u.code, f"{u.code} — {u.labels.get('en') or u.labels.get('fa-AF') or u.code}")
+            (u.code, localized(u.labels, u.code))
             for u in sorted(offered, key=lambda u: u.code)
         ]
         if code is not None:
@@ -402,8 +402,12 @@ class CategoryAdmin(TaxonomyAdmin):
 
 
 class UnitAdmin(TaxonomyAdmin):
-    list_display = ["label", "fractional", "active_state", "version"]
+    list_display = ["label", "fractional_quantities", "active_state", "version"]
     search_fields = ["code", "labels__en", "labels__fa-AF", "labels__ps", "labels__ar"]
+
+    @admin.display(description=_("Fractional quantities"), boolean=True, ordering="fractional")
+    def fractional_quantities(self, obj):
+        return obj.fractional
 
     def workflow(self, request, code):
         actor = admin_actor(request)

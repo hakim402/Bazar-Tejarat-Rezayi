@@ -12,6 +12,16 @@ from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 
 
+CATALOGUE_NAMES = {
+    "catalogue.product": ("Product", "Products"),
+    "catalogue.sourcerevision": ("Product submission", "Product submissions"),
+    "catalogue.variant": ("Product variant", "Product variants"),
+    "catalogue.category": ("Category", "Categories"),
+    "catalogue.saleunit": ("Sale unit", "Sale units"),
+    "inventory.position": ("Stock position", "Stock positions"),
+}
+
+
 def _wrap_choices(choices):
     wrapped = []
     for key, value in choices:
@@ -36,10 +46,14 @@ def localize_model(model):
         field_labels = [(field, str(field.verbose_name)) for field in [*opts.fields, *opts.many_to_many]]
         config = apps.get_app_config(opts.app_label)
         app_name = str(config.verbose_name)
+    verbose_name, verbose_name_plural = CATALOGUE_NAMES.get(opts.label_lower, (verbose_name, verbose_name_plural))
     opts.verbose_name = _(verbose_name)
     opts.verbose_name_plural = _(verbose_name_plural)
     for field, label in field_labels:
         field.verbose_name = _(label)
         if field.choices:
-            field.choices = _wrap_choices(field.choices)
+            choices = field.choices
+            if opts.label_lower == "inventory.position" and field.name == "tracking":
+                choices = [("plain", "Standard stock"), ("batch", "Batch stock")]
+            field.choices = _wrap_choices(choices)
     config.verbose_name = _(app_name)

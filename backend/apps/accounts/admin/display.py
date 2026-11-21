@@ -7,6 +7,7 @@ reuse Unfold's compiled palette, so no extra CSS build is required.
 """
 
 from django.utils.html import format_html
+from django.utils.translation import gettext as _
 
 from .theme import BADGE_BASE, BADGE_COLORS, STATE_VARIANTS
 
@@ -30,7 +31,7 @@ def state_badge(value):
         return "—"
     variant = state_variant(value)
     return format_html(
-        '<span class="{} {}">{}</span>', BADGE_BASE, BADGE_COLORS[variant], str(value).replace("_", " ")
+        '<span class="{} {}">{}</span>', BADGE_BASE, BADGE_COLORS[variant], _(str(value)).replace("_", " ")
     )
 
 

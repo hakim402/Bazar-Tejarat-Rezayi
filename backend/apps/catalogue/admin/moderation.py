@@ -68,7 +68,7 @@ def change_visibility(admin, request, pk, action):
             )
         except APIException as error:
             if error.status_code == 400:
-                form.add_error("reason", _("Enter a plain-text moderation reason."))
+                form.add_error("reason", _("Enter a clear reason for this decision."))
             else:
                 form.add_error(None, _("The product state changed. Reload and try again."))
         else:

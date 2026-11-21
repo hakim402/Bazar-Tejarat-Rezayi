@@ -150,10 +150,10 @@ class ShortageAdmin(InventoryAuditAdmin):
 
 class PositionAdmin(ProductIdentityMixin, InventoryAuditAdmin):
     product_path = "variant__product"
-    list_display = ["product_identity", "sku", "seller_identity", "sale_unit", "tracking", "stock_on_hand", "reserved", "available", "stock_threshold"]
+    list_display = ["product_identity", "sku", "seller_identity", "sale_unit", "tracking_method", "stock_on_hand", "reserved", "available", "stock_threshold"]
     list_filter = ["tracking", "expiry_required"]
     search_fields = ["variant__sku", "variant__product__seller__display_name", "variant__product__seller__account__user__email", "variant__product__revisions__body__title"]
-    search_help_text = _("Find by SKU or seller")
+    search_help_text = _("Find by product name, SKU, seller or email")
     quantity_fields = ["threshold"]
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
@@ -174,14 +174,20 @@ class PositionAdmin(ProductIdentityMixin, InventoryAuditAdmin):
     def stock_threshold(self, obj):
         return quantity(obj.threshold)
 
-    stock_threshold.short_description = _("Low-stock threshold")
+    stock_threshold.short_description = _("Low stock threshold")
     stock_threshold.admin_order_field = "threshold"
+
+    def tracking_method(self, obj):
+        return _("Batch stock") if obj.tracking == "batch" else _("Standard stock")
+
+    tracking_method.short_description = _("Stock tracking")
+    tracking_method.admin_order_field = "tracking"
 
     def get_fieldsets(self, request, obj=None):
         return [
             (_("Identity"), {"fields": ["product_identity", "sku", "seller_identity", "sale_unit", "version"]}),
             (_("Stock balances"), {"fields": ["stock_on_hand", "reserved", "available", "stock_threshold"]}),
-            (_("Tracking"), {"fields": ["tracking", "expiry_required"]}),
+            (_("Stock tracking"), {"fields": ["tracking_method", "expiry_required"]}),
         ]
 
     def seller(self, obj):
@@ -208,7 +214,7 @@ class PositionAdmin(ProductIdentityMixin, InventoryAuditAdmin):
     available.short_description = _("Available")
 
     def get_readonly_fields(self, request, obj=None):
-        return [*super().get_readonly_fields(request, obj), "product_identity", "sku", "seller_identity", "sale_unit", "stock_threshold", "stock_on_hand", "reserved", "available"]
+        return [*super().get_readonly_fields(request, obj), "product_identity", "sku", "seller_identity", "sale_unit", "tracking_method", "stock_threshold", "stock_on_hand", "reserved", "available"]
 
 
 owner_site.register(Position, PositionAdmin)
