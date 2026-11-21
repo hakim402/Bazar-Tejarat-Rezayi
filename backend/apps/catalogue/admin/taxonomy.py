@@ -26,6 +26,9 @@ from .. import access, contracts, taxonomy
 from ..models import Category, SaleUnit, LOCALES
 from ..owner_copy import localize
 from .helpers import DeleteRecordForm, changeform_context, chrome_locale, operation_form
+from .presentation import identity
+from .summaries import localized
+from apps.accounts.admin.theme import CATALOGUE_THEME
 
 LABEL_FIELDS = {"fa-AF": "label_fa_af", "en": "label_en", "ps": "label_ps", "ar": "label_ar"}
 
@@ -278,9 +281,32 @@ class TaxonomyAdmin(ReadOnlyAdmin):
 
 
 class CategoryAdmin(TaxonomyAdmin):
-    list_display = ["label", "code", "cover_thumb", "parent", "active_state", "version"]
+    list_display = ["category_identity", "parent_name", "sale_units", "attribute_count", "active_state"]
     list_select_related = ["parent"]
     search_fields = ["code", "labels__en", "labels__fa-AF", "labels__ps", "labels__ar"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("parent").prefetch_related("units")
+
+    @admin.display(description=_("Category"), ordering="code")
+    def category_identity(self, obj):
+        cover = reverse("site_media", args=[obj.image_id]) if obj.image_id else None
+        return identity(localized(obj.labels, obj.code), obj.code, cover, "category",
+                        icon=category_icon(obj.icon) if obj.icon else "")
+
+    @admin.display(description=_("Parent category"), ordering="parent")
+    def parent_name(self, obj):
+        return localized(obj.parent.labels, obj.parent_id) if obj.parent_id else _("Top level")
+
+    @admin.display(description=_("Sale units"))
+    def sale_units(self, obj):
+        return format_html('<div class="{}">{}</div>', CATALOGUE_THEME["badges"], format_html_join(
+            "", "{}", ((state_badge(localized(unit.labels, unit.code)),) for unit in obj.units.all()),
+        ))
+
+    @admin.display(description=_("Attributes"))
+    def attribute_count(self, obj):
+        return len(obj.attributes)
 
     def get_readonly_fields(self, request, obj=None):
         # Guard assertion for the disabled native model form; staff never edit units here.
@@ -359,16 +385,11 @@ class CategoryAdmin(TaxonomyAdmin):
         ]
         # Readonly preview of what is currently stored, rendered outside the POST form.
         datasets = []
-        if original and (original.icon or original.image_id):
-            bits = []
-            if original.icon:
-                bits.append(category_icon(original.icon, "text-primary-600 dark:text-primary-300", size=28))
-            if original.image_id:
-                bits.append(category_cover(original.image_id, "rounded-default", _("Current category cover"), height=64))
+        if original:
             datasets.append(format_html(
                 '<div class="rounded-default border border-base-200 bg-white p-4 dark:border-base-800 dark:bg-base-900">'
-                '<h2 class="mb-2 text-base font-semibold">{}</h2><div class="flex items-center gap-4">{}</div></div>',
-                _("Current storefront presentation"), format_html_join("", "{}", ((bit,) for bit in bits)),
+                '<h2 class="mb-2 text-base font-semibold">{}</h2><div class="flex flex-wrap items-center gap-4">{}{}</div></div>',
+                _("Category overview"), self.category_identity(original), self.sale_units(original),
             ))
         context = changeform_context(
             request, self, form, fieldsets,

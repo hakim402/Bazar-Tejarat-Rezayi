@@ -3,6 +3,7 @@
 from django.utils.translation import get_language, gettext as _
 from django.utils.html import format_html, format_html_join
 from .helpers import panel_table, panel_note
+from apps.accounts.admin.display import quantity
 
 LANGUAGES = {"fa-AF": "Dari", "en": "English", "ps": "Pashto", "ar": "Arabic"}
 
@@ -57,9 +58,9 @@ def revision_summary(revision):
             variant_rows.append([
                 row.get("sku") or _("Unnamed variant"),
                 localized(row.get("unit_labels"), row.get("unit", "—")),
-                row.get("increment", "—"),
-                row.get("minimum", "—"),
-                row.get("contents") or "—",
+                quantity(row.get("increment")),
+                quantity(row.get("minimum")),
+                quantity(row.get("contents")),
                 ", ".join(f"{key}: {value}" for key, value in options) or "—",
                 _("Available in this revision") if row.get("active") else _("Hidden in this revision"),
             ])

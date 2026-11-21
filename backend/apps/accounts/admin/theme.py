@@ -57,6 +57,15 @@ STATE_VARIANTS = {
     },
 }
 
+CATALOGUE_THEME = {
+    "identity": "flex items-center gap-3",
+    "image": "h-10 w-10 shrink-0 rounded-default object-cover",
+    "text": "min-w-0 w-48",
+    "name": "block truncate text-sm font-medium text-base-900 dark:text-base-100",
+    "meta": "block truncate text-xs text-base-500 dark:text-base-400",
+    "badges": "flex flex-wrap gap-1",
+}
+
 ACCOUNT_THEME = {
     "avatar": "rounded-full bg-primary-50 font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-400",
     "menu": "rounded-xl border border-base-200 bg-white shadow-lg dark:border-base-700 dark:bg-base-900",

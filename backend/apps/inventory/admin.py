@@ -10,6 +10,8 @@ from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import is_owner, permits
 from apps.accounts.admin.display import AdminDisplayMixin
 from apps.accounts.admin.display import quantity
+from apps.catalogue.admin.presentation import ProductIdentityMixin
+from apps.catalogue.admin.summaries import localized
 from . import services
 from .queries import unresolved_shortage_roots
 from .models import (
@@ -146,10 +148,11 @@ class ShortageAdmin(InventoryAuditAdmin):
         return content
 
 
-class PositionAdmin(InventoryAuditAdmin):
-    list_display = ["sku", "seller", "tracking", "stock_on_hand", "reserved", "available", "threshold"]
+class PositionAdmin(ProductIdentityMixin, InventoryAuditAdmin):
+    product_path = "variant__product"
+    list_display = ["product_identity", "sku", "seller_identity", "sale_unit", "tracking", "stock_on_hand", "reserved", "available", "stock_threshold"]
     list_filter = ["tracking", "expiry_required"]
-    search_fields = ["variant__sku", "variant__product__seller__display_name"]
+    search_fields = ["variant__sku", "variant__product__seller__display_name", "variant__product__seller__account__user__email", "variant__product__revisions__body__title"]
     search_help_text = _("Find by SKU or seller")
     quantity_fields = ["threshold"]
     def get_queryset(self, request):
@@ -162,6 +165,24 @@ class PositionAdmin(InventoryAuditAdmin):
 
     sku.short_description = _("SKU")
     sku.admin_order_field = "variant__sku"
+
+    def sale_unit(self, obj):
+        return localized(obj.variant.unit.labels, obj.variant.unit_id)
+
+    sale_unit.short_description = _("Sale unit")
+
+    def stock_threshold(self, obj):
+        return quantity(obj.threshold)
+
+    stock_threshold.short_description = _("Low-stock threshold")
+    stock_threshold.admin_order_field = "threshold"
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "sku", "seller_identity", "sale_unit", "version"]}),
+            (_("Stock balances"), {"fields": ["stock_on_hand", "reserved", "available", "stock_threshold"]}),
+            (_("Tracking"), {"fields": ["tracking", "expiry_required"]}),
+        ]
 
     def seller(self, obj):
         return obj.variant.product.seller.display_name
@@ -187,7 +208,7 @@ class PositionAdmin(InventoryAuditAdmin):
     available.short_description = _("Available")
 
     def get_readonly_fields(self, request, obj=None):
-        return [*super().get_readonly_fields(request, obj), "stock_on_hand", "reserved", "available"]
+        return [*super().get_readonly_fields(request, obj), "product_identity", "sku", "seller_identity", "sale_unit", "stock_threshold", "stock_on_hand", "reserved", "available"]
 
 
 owner_site.register(Position, PositionAdmin)

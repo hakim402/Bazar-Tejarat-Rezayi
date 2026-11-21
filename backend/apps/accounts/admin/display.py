@@ -37,7 +37,7 @@ def state_badge(value):
 def money(amount, currency=None):
     if amount is None:
         return "—"
-    text = format(amount, ",.2f")
+    text = format(amount, ",.2f").rstrip("0").rstrip(".")
     if currency:
         return format_html('<span class="tabular-nums whitespace-nowrap" dir="ltr">{} {}</span>', text, currency)
     return format_html('<span class="tabular-nums whitespace-nowrap" dir="ltr">{}</span>', text)
@@ -46,7 +46,14 @@ def money(amount, currency=None):
 def quantity(value):
     if value is None:
         return "—"
-    return format_html('<span class="tabular-nums whitespace-nowrap" dir="ltr">{}</span>', format(value, ",.3f"))
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        text = format(Decimal(str(value)), ",f")
+        text = text.rstrip("0").rstrip(".") if "." in text else text
+    except (InvalidOperation, ValueError):
+        text = str(value)
+    return format_html('<span class="tabular-nums whitespace-nowrap" dir="ltr">{}</span>', text)
 
 
 def short_id(value):
@@ -86,7 +93,7 @@ class AdminDisplayMixin:
 
     badge_fields: state/kind/action columns rendered as Unfold badges.
     money_fields: {amount field: currency field or None}.
-    quantity_fields: exact 3-decimal quantity columns.
+    quantity_fields: quantities with insignificant trailing zeros removed.
     The first column is never wrapped so the change link stays intact.
     """
 

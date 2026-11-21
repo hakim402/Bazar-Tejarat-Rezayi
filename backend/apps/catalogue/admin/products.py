@@ -20,7 +20,7 @@ from urllib.parse import urlencode
 
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
-from apps.accounts.admin.display import short_id, state_badge
+from apps.accounts.admin.display import state_badge
 from apps.organizations.admin import ReadOnlyAdmin
 from .. import access, contracts, services, translations
 from ..models import (
@@ -30,6 +30,7 @@ from ..owner_copy import localize
 from ..queries import working_revisions
 from . import moderation
 from .summaries import language_name, revision_summary
+from .presentation import ProductIdentityMixin, product_cell
 from .helpers import (
     changeform_context, chrome_locale, independent_product,
     link_button, panel_note, panel_table, submit_pressed,
@@ -84,7 +85,8 @@ class TranslationForm(forms.ModelForm):
         pass
 
 
-class ProductAdmin(ReadOnlyAdmin):
+class ProductAdmin(ProductIdentityMixin, ReadOnlyAdmin):
+    product_path = ""
     def staff_view(self, request, obj=None):
         return permits(request, "catalogue", "review_source", "review_translation", "moderate_catalogue") and (
             obj is None or self.staff_queryset(request, Product.objects.filter(pk=obj.pk)).exists())
@@ -93,28 +95,24 @@ class ProductAdmin(ReadOnlyAdmin):
         return qs.exclude(seller__account__user=request.user).exclude(
             seller__memberships__account__user=request.user).distinct()
 
-    list_display = ["listing", "seller", "currency", "pricing_mode", "published_state", "workflow_link"]
+    list_display = ["listing", "seller_identity", "currency", "pricing_mode", "published_state", "workflow_link"]
     list_filter = ["currency", "pricing_mode"]
-    search_fields = ["seller__display_name", "variants__sku", "revisions__body__title"]
+    search_fields = ["seller__display_name", "seller__account__user__email", "variants__sku", "revisions__body__title"]
     search_help_text = _("Find by product title, seller, or SKU")
     actions = None
     change_form_outer_before_template = "catalogue/admin/operation_links.html"
 
     def get_queryset(self, request):
         latest = working_revisions(SourceRevision.objects.filter(product_id=OuterRef("pk"))).order_by("-number")
-        first_image = ProductImage.objects.filter(product_id=OuterRef("pk")).order_by("created_at", "pk")
         moderation_events = access.restriction_events(CatalogueEvent.objects.filter(product_id=OuterRef("pk")))
         return super().get_queryset(request).select_related("seller").annotate(
-            listing_title=Subquery(latest.values("body__title")[:1]),
             listing_state=Subquery(latest.values("state")[:1]),
-            cover_id=Subquery(first_image.values("pk")[:1]),
             moderation_state=Subquery(moderation_events.values("action")[:1]),
         )
 
-    @display(description=_("Product"), ordering="listing_title", header=True)
+    @display(description=_("Product"), ordering="admin_title")
     def listing(self, obj):
-        image = {"path": reverse("admin:catalogue_private_image", args=[obj.cover_id]), "squared": True} if obj.cover_id else None
-        return obj.listing_title or _("Untitled product"), short_id(obj.pk), "", image
+        return product_cell(obj, str(obj.pk)[:8])
 
     def has_delete_permission(self, request, obj=None):
         return is_owner(request)
@@ -134,7 +132,7 @@ class ProductAdmin(ReadOnlyAdmin):
         if TranslationJob.objects.filter(translation__revision__product=obj).exists():
             source_fields.append("jobs_panel")
         return [
-            (_("Product identity"), {"fields": ["seller", ("currency", "pricing_mode"), ("version", "created_at")]}),
+            (_("Product identity"), {"fields": ["listing", "seller_identity", ("currency", "pricing_mode"), ("version", "created_at")]}),
             (_("Images"), {"fields": ["images_panel"]}),
             (_("Source and translation records"), {"fields": source_fields}),
             (_("Activity"), {"fields": ["activity_panel"]}),
@@ -144,7 +142,7 @@ class ProductAdmin(ReadOnlyAdmin):
         fields = super().get_readonly_fields(request, obj)
         if not obj or not is_owner(request):
             return fields
-        return [*fields, "images_panel", "revisions_panel", "translation_details", "jobs_panel",
+        return [*fields, "listing", "seller_identity", "images_panel", "revisions_panel", "translation_details", "jobs_panel",
                 "activity_panel"]
 
     def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):

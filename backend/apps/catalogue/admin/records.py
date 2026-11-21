@@ -12,42 +12,90 @@ from urllib.parse import urlencode
 
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import is_owner
-from apps.accounts.admin.display import money
+from apps.accounts.admin.display import money, quantity
 from apps.organizations.admin import ReadOnlyAdmin
 from ..models import (
     SourceRevision, Variant, PriceChange, Translation, TranslationJob,
     CatalogueEvent, TranslationBudget,
 )
 from .helpers import CatalogueRecordAdmin, link_button
+from .presentation import ProductIdentityMixin, product_cell
+from .summaries import revision_summary, localized, readable
 
 
-class RevisionAdmin(CatalogueRecordAdmin):
-    list_display = ["source_title", "number", "state", "category", "created_at", "workflow_link"]
+class RevisionAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
+    list_display = ["source_title", "seller_identity", "number", "state", "category_name", "created_at", "workflow_link"]
     list_select_related = ["category", "product__seller"]
     list_filter = ["state"]
     ordering = ["-created_at"]
-    search_fields = ["body__title", "product__seller__display_name", "product__variants__sku"]
+    search_fields = ["body__title", "product__seller__display_name", "product__seller__account__user__email", "product__variants__sku"]
     badge_fields = ["state"]
 
     @admin.display(description=_("Source title"))
     def source_title(self, obj):
-        return obj.body.get("title") or _("Untitled product")
+        obj.admin_title = obj.body.get("title") or _("Untitled product")
+        return product_cell(obj, _("Revision %(number)s") % {"number": obj.number})
+
+    @admin.display(description=_("Category"))
+    def category_name(self, obj):
+        return localized(obj.category.labels, obj.category_id)
+
+    @admin.display(description=_("Seller submission"))
+    def submission(self, obj):
+        return revision_summary(obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*super().get_readonly_fields(request, obj), "source_title", "seller_identity", "category_name", "submission", "workflow_link"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["source_title", "seller_identity", "id", "number", "state", "author", "created_at"]}),
+            (_("Seller submission"), {"fields": ["submission"]}),
+            (_("Review"), {"fields": ["reason", "workflow_link"]}),
+        ]
 
     def workflow_link(self, obj):
         url = reverse("admin:catalogue_workflow", args=[obj.product_id])
         return link_button(f"{url}?{urlencode({'revision': obj.pk})}", _("Review"), icon="fact_check")
 
 
-class VariantAdmin(CatalogueRecordAdmin):
-    list_display = ["sku", "product", "unit", "retail_price", "wholesale_price", "minimum_wholesale"]
+class VariantAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
+    list_display = ["product_identity", "sku", "seller_identity", "sale_unit", "retail_price", "wholesale_price", "quantity_step", "wholesale_minimum"]
     list_select_related = ["product", "unit"]
     list_filter = ["unit"]
-    search_fields = ["sku", "product__seller__display_name"]
+    search_fields = ["sku", "product__seller__display_name", "product__seller__account__user__email", "product__revisions__body__title"]
     quantity_fields = ["minimum_wholesale"]
 
     def get_readonly_fields(self, request, obj=None):
         fields = super().get_readonly_fields(request, obj)
-        return [*fields, "related_records"] if obj and is_owner(request) else fields
+        return [*fields, "related_records", "product_identity", "seller_identity", "sale_unit", "retail_price", "wholesale_price", "quantity_step", "wholesale_minimum", "pack_contents", "options"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "sku", "seller_identity", "id", "related_records"]}),
+            (_("Sale configuration"), {"fields": ["sale_unit", "quantity_step", "wholesale_minimum", "pack_contents", "options"]}),
+            (_("Seller prices"), {"fields": ["retail_price", "wholesale_price"]}),
+        ]
+
+    @admin.display(description=_("Sale unit"), ordering="unit")
+    def sale_unit(self, obj):
+        return localized(obj.unit.labels, obj.unit_id)
+
+    @admin.display(description=_("Quantity step"), ordering="quantity_increment")
+    def quantity_step(self, obj):
+        return quantity(obj.quantity_increment)
+
+    @admin.display(description=_("Wholesale minimum"), ordering="minimum_wholesale")
+    def wholesale_minimum(self, obj):
+        return quantity(obj.minimum_wholesale)
+
+    @admin.display(description=_("Variant options"))
+    def options(self, obj):
+        return readable(obj.definition.get("attributes", {})) or "—"
+
+    @admin.display(description=_("Pack contents"))
+    def pack_contents(self, obj):
+        return obj.definition.get("contents") or "—"
 
     @admin.display(description=_("Related records"))
     def related_records(self, obj):
@@ -63,11 +111,11 @@ class VariantAdmin(CatalogueRecordAdmin):
 
     @admin.display(description=_("Retail"))
     def retail_price(self, obj):
-        return money(obj.retail)
+        return money(obj.retail, obj.product.currency)
 
     @admin.display(description=_("Wholesale"))
     def wholesale_price(self, obj):
-        return money(obj.wholesale)
+        return money(obj.wholesale, obj.product.currency)
 
 
 class PriceChangeAdmin(CatalogueRecordAdmin):
