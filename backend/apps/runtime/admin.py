@@ -1,13 +1,31 @@
 """Read-only runtime metadata, behind the existing root/admin grant boundary."""
+from django.contrib.admin import SimpleListFilter
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.records import MetadataAdmin
+from .jobs import overdue_jobs
 from .models import Job, Scheduler, Schema, Transfer, Mutex, SearchText
+
+
+class JobAttentionFilter(SimpleListFilter):
+    title = _("Attention")
+    parameter_name = "attention"
+
+    def lookups(self, request, model_admin):
+        from apps.accounts.admin.review_queues import review_labels
+
+        return (("overdue", review_labels()["overdue_jobs"]),)
+
+    def queryset(self, request, queryset):
+        return queryset.filter(overdue_jobs(timezone.now())) if self.value() == "overdue" else queryset
 
 
 class JobAdmin(MetadataAdmin):
     fields = ["key", "kind", "state", "available_at", "lease_until", "attempts", "failures", "error_code", "updated_at"]
     list_display = ["kind", "state", "available_at", "attempts", "failures", "error_code"]
-    list_filter = ["kind", "state", "error_code"]
+    list_filter = [JobAttentionFilter, "kind", "state", "error_code"]
 
 
 class SchedulerAdmin(MetadataAdmin):

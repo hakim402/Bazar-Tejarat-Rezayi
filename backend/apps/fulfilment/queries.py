@@ -5,12 +5,25 @@ from django.db import transaction
 from django.db.models import Q, OuterRef, Subquery, Exists, Sum, Value, F, DecimalField, IntegerField
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
-from apps.orders.models import SellerOrder
+from apps.orders.models import CancellationRequest, SellerOrder
 from apps.orders.aftercare import effective_lines as aftercare_effective_lines
 from apps.payments import queries as goods
 from . import access, models as m, selection
 
 MONEY = DecimalField(max_digits=24, decimal_places=2)
+UNDISPATCHED_FILTER = {"dispatch": "not_dispatched"}
+OPEN_HOLDS_FILTER = {"hold": "open"}
+
+
+def not_dispatched(orders):
+    cancelled = CancellationRequest.objects.filter(order_id=OuterRef("pk"), state="approved")
+    shipped = m.Shipment.objects.filter(order_id=OuterRef("pk"))
+    return orders.filter(~Exists(cancelled), ~Exists(shipped))
+
+
+def open_blockers():
+    closed = m.BlockerClosure.objects.filter(blocker_id=OuterRef("pk"))
+    return m.Blocker.objects.filter(~Exists(closed))
 
 
 def effective_receipts(qs=None):
@@ -68,8 +81,7 @@ def line_image(actor, pk, line_id):
 
 
 def active_blockers(order):
-    closed = m.BlockerClosure.objects.filter(blocker_id=OuterRef("pk"))
-    return m.Blocker.objects.filter(order_id=order.pk).filter(~Exists(closed))
+    return open_blockers().filter(order_id=order.pk)
 
 
 def annotate(qs):
@@ -96,9 +108,7 @@ def annotate(qs):
     shipment = m.Shipment.objects.filter(order_id=OuterRef("pk"))
     delivery = m.Delivery.objects.filter(order_id=OuterRef("pk"))
     completion = m.Completion.objects.filter(order_id=OuterRef("pk"))
-    blockers = m.Blocker.objects.filter(order_id=OuterRef("pk")).filter(
-        ~Exists(m.BlockerClosure.objects.filter(blocker_id=OuterRef("pk")))
-    )
+    blockers = open_blockers().filter(order_id=OuterRef("pk"))
     return goods.annotate(qs).annotate(
         fulfilment_version=Coalesce(Subquery(state.values("version")[:1]), Value(0), output_field=IntegerField()),
         final_charge_id=Subquery(charge.values("pk")[:1]),

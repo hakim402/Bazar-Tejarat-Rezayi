@@ -1,6 +1,7 @@
 """Sanitized operational metadata. Explicit retry uses a native guarded form."""
 
 from django import forms
+from django.contrib.admin import SimpleListFilter
 from django.http import HttpResponseRedirect, Http404
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
@@ -12,7 +13,7 @@ from apps.accounts.admin.access import permits, admin_actor
 from apps.organizations.admin import ReadOnlyAdmin
 from .models import (
     Outbox, Attempt, Event, Notice, Preference, OrderNoticeCursor,
-    AftercareNoticeCursor, AftercareEmail, AftercareEmailAttempt,
+    AftercareNoticeCursor, AftercareEmail, AftercareEmailAttempt, DELIVERY_FAILURE_STATUSES,
 )
 from .delivery import retry
 
@@ -154,9 +155,33 @@ class PrivateMetadataAdmin(DiagnosticAdmin):
         return False
 
 
+class DeliveryIssueFilter(SimpleListFilter):
+    title = _("Delivery")
+    parameter_name = "delivery"
+
+    def lookups(self, request, model_admin):
+        from apps.accounts.admin.review_queues import review_labels
+
+        return (("issues", review_labels()["aftercare_email_issues"]),)
+
+    def queryset(self, request, queryset):
+        return queryset.filter(status__in=DELIVERY_FAILURE_STATUSES) if self.value() == "issues" else queryset
+
+
+class AftercareEmailAdmin(PrivateMetadataAdmin):
+    fields = ["id", "status", "attempts", "due_at", "accepted_at", "created_at"]
+    list_display = fields
+    list_filter = [DeliveryIssueFilter]
+    ordering = ["-created_at", "pk"]
+
+    def lookup_allowed(self, lookup, value, request=None):
+        return lookup == DeliveryIssueFilter.parameter_name or super().lookup_allowed(lookup, value, request)
+
+
 for model in (Event, Notice, Preference):
     owner_site.register(model, PrivateMetadataAdmin)
 
 
-for model in (OrderNoticeCursor, AftercareNoticeCursor, AftercareEmail, AftercareEmailAttempt):
+owner_site.register(AftercareEmail, AftercareEmailAdmin)
+for model in (OrderNoticeCursor, AftercareNoticeCursor, AftercareEmailAttempt):
     owner_site.register(model, PrivateMetadataAdmin)

@@ -4,14 +4,19 @@ from dataclasses import dataclass
 from typing import Callable
 from urllib.parse import urlencode
 
-from django.db.models import QuerySet
+from django.db.models import Count, Q, QuerySet
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import get_language, gettext_lazy as _
 from django.views.decorators.http import require_safe
 
 from apps.inventory.queries import unresolved_shortage_roots
-from apps.payments.queries import awaiting_refund_review
+from apps.notifications.models import DELIVERY_FAILURE_STATUSES
+from apps.payments.queries import awaiting_refund_report, awaiting_refund_review
+from apps.payments.refunds import refunds_requiring_another_confirmer
+from apps.runtime.jobs import overdue_jobs, scheduler_needs_attention
+from apps.verification.services import cases_requiring_another_reviewer
 
 from ..services import get_grant
 from .theme import THEME
@@ -29,6 +34,7 @@ LABELS = {
     "platform": ("Platform", "سیستم"),
     "priority": ("Priority", "اولویت"),
     "items": ("Items", "موارد"),
+    "item": ("Item", "مورد"),
     "open_queues": ("Queues with work", "صف‌های دارای کار"),
     "by_priority": ("Work by priority", "کارها براساس اولویت"),
     "review_urgent": ("Review urgent queues", "بررسی صف‌های فوری"),
@@ -54,6 +60,15 @@ LABELS = {
     "uncertain_delivery": ("Uncertain notification delivery", "ارسال نامشخص اعلان‌ها"),
     "exhausted_delivery": ("Notification retries exhausted", "پایان تلاش‌های ارسال اعلان"),
     "failed_jobs": ("Failed jobs", "کارهای ناموفق سیستم"),
+    "scheduler_attention": ("Scheduler needs attention", "زمان‌بند نیازمند بررسی است"),
+    "overdue_jobs": ("Overdue jobs", "کارهای به‌تأخیرافتاده"),
+    "aftercare_email_issues": ("Aftercare email issues", "مشکلات ایمیل پیگیری سفارش"),
+    "refunds_awaiting_report": ("Refunds awaiting seller report", "بازپرداخت‌های منتظر گزارش فروشنده"),
+    "verification_needs_reviewer": ("Verification needs an independent reviewer", "تأیید کسب‌وکار نیازمند بررسی‌کنندهٔ مستقل"),
+    "dispute_refund_needs_reviewer": ("Dispute refunds need another confirmer", "بازپرداخت اختلاف‌ها نیازمند تأییدکنندهٔ دیگری است"),
+    "another_reviewer": ("Needs another reviewer", "نیازمند بررسی‌کنندهٔ دیگر"),
+    "unassigned": ("Unassigned", "واگذار نشده"),
+    "assigned_elsewhere": ("Assigned to another reviewer", "واگذارشده به بررسی‌کنندهٔ دیگر"),
     "unresolved_shortages": ("Unresolved shortages", "کمبودهای حل‌نشده"),
 }
 
@@ -70,6 +85,22 @@ def refund_review_scope(queryset):
     return queryset.filter(awaiting_refund_review())
 
 
+def refund_report_scope(queryset):
+    return queryset.filter(awaiting_refund_report())
+
+
+def overdue_job_scope(queryset):
+    return queryset.filter(overdue_jobs(timezone.now()))
+
+
+def aftercare_delivery_scope(queryset):
+    return queryset.filter(status__in=DELIVERY_FAILURE_STATUSES)
+
+
+def scheduler_issue_count(queryset):
+    return int(scheduler_needs_attention(queryset.filter(pk="cron").first(), timezone.now()))
+
+
 @dataclass(frozen=True)
 class Queue:
     label: str
@@ -77,14 +108,21 @@ class Queue:
     model: str
     area: str
     priority: str
-    field: str
-    value: str | tuple[str, ...]
+    field: str = ""
+    value: str | tuple[str, ...] = ""
     scope: Callable[[QuerySet], QuerySet] | None = None
+    user_scope: Callable[..., Q] | None = None
+    counter: Callable[[QuerySet], int] | None = None
+    assignments: bool = False
 
-    def open_items(self, queryset):
+    def open_items(self, queryset, user):
+        if self.user_scope:
+            return queryset.filter(self.user_scope(user))
         return self.scope(queryset) if self.scope else queryset.filter(**{self.field: self.value})
 
     def url(self, native):
+        if not self.field:
+            return native
         value = ",".join(self.value) if isinstance(self.value, tuple) else self.value
         return f"{native}?{urlencode({self.field: value})}"
 
@@ -92,27 +130,43 @@ class Queue:
 # Use the same lookup for the count and destination. Payment, delivery and
 # aftercare ModelAdmins allow raw state, while ordinary list filters use __exact.
 QUEUES = (
-    Queue(_("Goods payment review"), "payments", "payments.ReviewCase", "trading", "urgent", "state", "open"),
+    Queue(_("Goods payment review"), "payments", "payments.ReviewCase", "trading", "urgent", "state", "open",
+          assignments=True),
     Queue(_("Goods refund review"), "currency_exchange", "payments.RefundDue", "trading", "urgent",
-          "refund_review", "pending", refund_review_scope),
-    Queue(_("Delivery review"), "local_shipping", "fulfilment.ReviewCase", "trading", "urgent", "state", "open"),
-    Queue(_("Order disputes"), "gavel", "orders.DisputeRequest", "trading", "urgent", "state", "pending"),
-    Queue(_("Cancellation requests"), "cancel", "orders.CancellationRequest", "trading", "today", "state", "pending"),
-    Queue(_("Amendments"), "edit_note", "orders.Amendment", "trading", "today", "state", "pending"),
+          "refund_review", "pending", refund_review_scope, assignments=True),
+    Queue(_("Delivery review"), "local_shipping", "fulfilment.ReviewCase", "trading", "urgent", "state", "open",
+          assignments=True),
+    Queue(_("Order disputes"), "gavel", "orders.DisputeRequest", "trading", "urgent", "state", "pending",
+          assignments=True),
+    Queue("dispute_refund_needs_reviewer", "group", "payments.RefundDue", "trading", "urgent",
+          "refund_review", "another_confirmer", user_scope=refunds_requiring_another_confirmer),
+    Queue(_("Cancellation requests"), "cancel", "orders.CancellationRequest", "trading", "today", "state", "pending",
+          assignments=True),
+    Queue(_("Amendments"), "edit_note", "orders.Amendment", "trading", "today", "state", "pending",
+          assignments=True),
+    Queue("refunds_awaiting_report", "currency_exchange", "payments.RefundDue", "trading", "today",
+          "refund_review", "awaiting_report", refund_report_scope),
     Queue("unresolved_shortages", "warning", "inventory.Shortage", "trading", "today",
           "shortage_state", "unresolved_roots", unresolved_shortage_roots),
     Queue(_("Business verification"), "verified_user", "verification.ReviewCase", "marketplace", "today",
           "status__in", ("submitted", "under_review")),
+    Queue("verification_needs_reviewer", "group", "verification.ReviewCase", "marketplace", "today",
+          "reviewer", "independent", user_scope=cases_requiring_another_reviewer),
     Queue(_("Content & order reports"), "flag", "messaging.Report", "marketplace", "today", "status__exact", "open"),
     Queue(_("Product source review"), "inventory_2", "catalogue.SourceRevision", "marketplace", "routine",
           "state__exact", "submitted"),
     Queue(_("Store reviews"), "storefront", "marketplace.StoreRevision", "marketplace", "routine",
           "state__exact", "submitted"),
     Queue(_("Buyer reviews"), "rate_review", "orders.Review", "marketplace", "routine", "state", "pending"),
+    Queue("scheduler_attention", "schedule", "runtime.Scheduler", "platform", "routine", counter=scheduler_issue_count),
+    Queue("overdue_jobs", "hourglass_empty", "runtime.Job", "platform", "routine",
+          "attention", "overdue", overdue_job_scope),
     Queue("failed_jobs", "error", "runtime.Job", "platform", "routine", "state__exact", "failed"),
     Queue("uncertain_delivery", "mail", "notifications.Outbox", "platform", "routine",
           "status__exact", "delivery_unknown"),
     Queue("exhausted_delivery", "mail", "notifications.Outbox", "platform", "routine", "status__exact", "exhausted"),
+    Queue("aftercare_email_issues", "mail", "notifications.AftercareEmail", "platform", "routine",
+          "delivery", "issues", aftercare_delivery_scope),
 )
 
 
@@ -131,7 +185,25 @@ def owner_queue_rows(site, request, labels):
             continue
         # Operational changelists can audit inspection. These count queries use
         # the owner's model scope without opening any guarded case workspace.
-        count = queue.open_items(record["model"]._default_manager.all()).count()
+        queryset = record["model"]._default_manager.all()
+        unassigned = assigned_elsewhere = 0
+        if queue.counter:
+            count = queue.counter(queryset)
+        else:
+            open_items = queue.open_items(queryset, request.user)
+            if queue.assignments:
+                counts = open_items.aggregate(
+                    total=Count("pk"),
+                    unassigned=Count("pk", filter=Q(assigned_to__isnull=True)),
+                    assigned_elsewhere=Count(
+                        "pk", filter=Q(assigned_to__isnull=False) & ~Q(assigned_to=request.user),
+                    ),
+                )
+                count, unassigned, assigned_elsewhere = (
+                    counts["total"], counts["unassigned"], counts["assigned_elsewhere"],
+                )
+            else:
+                count = open_items.count()
         rows.append({
             "label": labels.get(queue.label, queue.label),
             "icon": queue.icon,
@@ -140,6 +212,8 @@ def owner_queue_rows(site, request, labels):
             "priority_label": labels[queue.priority],
             "badge_class": THEME["queue_badge"][PRIORITY_STYLES[queue.priority]],
             "count": count,
+            "unassigned": unassigned,
+            "assigned_elsewhere": assigned_elsewhere,
             "url": queue.url(record["admin_url"]),
         })
     return rows

@@ -1,19 +1,40 @@
 from django.http import FileResponse, Http404, HttpResponseRedirect
+from django.contrib.admin import SimpleListFilter
 from django.shortcuts import get_object_or_404
 from django.urls import path, reverse
 from django.utils.html import format_html
 from rest_framework.exceptions import APIException
 from django.core.exceptions import PermissionDenied
+from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.copy import COPY as ADMIN_COPY
 from apps.accounts.admin.access import admin_actor, permits, is_owner
 from apps.organizations.admin import ReadOnlyAdmin, WorkflowAdmin
 from .models import Evidence, ReviewCase
-from .services import download_evidence
+from .services import cases_requiring_another_reviewer, download_evidence
+
+
+class IndependentReviewerFilter(SimpleListFilter):
+    title = _("Reviewer")
+    parameter_name = "reviewer"
+
+    def lookups(self, request, model_admin):
+        from apps.accounts.admin.review_queues import review_labels
+
+        return (("independent", review_labels()["another_reviewer"]),)
+
+    def queryset(self, request, queryset):
+        if self.value() == "independent" and is_owner(request):
+            return queryset.filter(cases_requiring_another_reviewer(request.user))
+        return queryset
 
 
 class CaseAdmin(WorkflowAdmin):
+    def get_list_filter(self, request):
+        filters = super().get_list_filter(request)
+        return [*filters, IndependentReviewerFilter] if is_owner(request) else filters
+
     def staff_view(self, request, obj=None):
         if not permits(request, "verification", "view_queue", "read_evidence", "decide_review", "assign_review"):
             return False

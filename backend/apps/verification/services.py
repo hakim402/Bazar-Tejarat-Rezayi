@@ -2,16 +2,22 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.db import transaction
+from django.db.models import F, Q
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import Account
 from apps.accounts.admin.access import permission_codes
 from apps.foundation.storage import FileLocation
-from apps.organizations.access import Conflict, assert_version, company_lock, event, independent, manage_profile
+from apps.organizations.access import Conflict, assert_version, company_lock, event, independent, manage_profile, reviewer_conflicts
 from apps.organizations.profiles import MATERIAL, current_case, next_revision, snapshot
 from .files import MAX_FILES, validate_file
 from .models import Evidence, ReviewCase
+
+
+def cases_requiring_another_reviewer(user):
+    return Q(status__in=("submitted", "under_review"), revision=F("profile__revision"),
+             profile__in=reviewer_conflicts(user))
 
 
 def categories(profile):

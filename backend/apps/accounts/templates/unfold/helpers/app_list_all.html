@@ -1,30 +1,93 @@
 {% load i18n %}
-{% if sidebar_show_all_applications and app_list %}
-<div class="mt-auto border-t border-base-200 dark:border-base-800">
-  <button type="button" id="all-applications-toggle" x-on:click="openAllApplications = !openAllApplications; $nextTick(() => document.getElementById('all-applications-close').focus())" x-bind:aria-expanded="openAllApplications" aria-controls="all-applications-directory" class="cursor-pointer flex items-center w-full h-[52px] px-6 text-start hover:text-primary-600 dark:hover:text-primary-500"><span data-admin-icon class="material-symbols-outlined md-18 me-3" aria-hidden="true">apps</span><span>{% translate 'All applications' %}</span></button>
-  <div class="absolute bottom-0 max-md:!start-0 end-0 top-0 z-50" x-cloak x-show="openAllApplications" x-bind:style="{'inset-inline-start': sidebarWidth + 'px'}">
-    <div class="absolute bg-base-900/20 backdrop-blur-xs bottom-0 left-0 right-0 top-0 z-10 w-screen dark:bg-base-900/80" aria-hidden="true"></div>
-    <div id="all-applications-directory" role="dialog" aria-modal="true" aria-labelledby="all-applications-title" x-trap.noautofocus.noscroll="openAllApplications" x-on:click.outside="openAllApplications = false" x-on:keydown.escape.stop.prevent="openAllApplications = false; document.getElementById('all-applications-toggle').focus()" class="bg-white flex flex-col h-full overflow-x-hidden overflow-y-auto py-5 px-8 relative scrollbar-default w-80 z-20 dark:bg-base-900 dark:border-e dark:border-base-800">
-      <div class="flex items-center justify-between gap-3 mb-6"><h2 id="all-applications-title" class="font-semibold text-important text-base">{% translate 'All applications' %}</h2><button type="button" id="all-applications-close" aria-label="{% translate 'Close applications' %}" x-on:click="openAllApplications = false; document.getElementById('all-applications-toggle').focus()" class="cursor-pointer flex items-center justify-center rounded-default ra:size-8 hover:bg-base-100 dark:hover:bg-white/[.06]"><span data-admin-icon class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
-      {% for group in sidebar_navigation %}{% if group.directory_only %}
-        {% for item in group.items %}{% if item.has_permission %}
-          <div class="mb-6">
-            <h3 class="mb-3 font-semibold text-important">{{ item.title }}</h3>
-            <ul class="flex flex-col gap-4">
-              {% for child in item.items %}{% if child.has_permission %}
-                <li><a href="{{ child.link }}" {% if child.active %}aria-current="page"{% endif %} class="block truncate hover:text-primary-600 dark:hover:text-primary-500 {% if child.active %}font-semibold text-primary-600 dark:text-primary-500{% endif %}">{{ child.title }}</a></li>
-              {% endif %}{% endfor %}
-            </ul>
+{% if sidebar_show_all_applications and application_directory.groups %}
+  <div x-data="ownerApplicationDirectory()"
+       x-on:open-application-directory.window="openDirectory($event.detail.trigger)"
+       class="mt-auto border-t {{ rz_directory.divider }}">
+    <button type="button" id="all-applications-toggle" x-on:click="openDirectory($el)"
+            aria-haspopup="dialog" x-bind:aria-expanded="openAllApplications" aria-controls="all-applications-directory"
+            class="cursor-pointer flex items-center w-full h-[52px] px-6 text-start hover:text-primary-600 dark:hover:text-primary-500">
+      <span data-admin-icon class="material-symbols-outlined md-18 me-3" aria-hidden="true">apps</span>
+      <span>{% translate 'All applications' %}</span>
+    </button>
+
+    <template x-teleport="body">
+      <div x-cloak x-show="openAllApplications" class="fixed inset-0 z-60">
+        <div class="absolute inset-0 {{ rz_directory.backdrop }}" aria-hidden="true" x-on:click="closeDirectory()"></div>
+        <section id="all-applications-directory" role="dialog" aria-modal="true" aria-labelledby="all-applications-title"
+                 x-trap.inert.noautofocus.noreturn.noscroll="openAllApplications"
+                 x-on:keydown.escape.stop.prevent="closeDirectory()"
+                 x-bind:style="{ insetInlineStart: sidebarOpen ? sidebarWidth + 'px' : '0px' }"
+                 class="absolute bottom-0 top-0 max-md:!start-0 flex w-full max-w-full flex-col md:w-96 {{ rz_directory.panel }}">
+          <header class="shrink-0 border-b px-5 pt-5 pb-4 {{ rz_directory.divider }}">
+            <div class="mb-4 flex items-center gap-3">
+              <span class="h-9 w-9 {{ rz_directory.icon }}">
+                <span data-admin-icon class="material-symbols-outlined" aria-hidden="true">apps</span>
+              </span>
+              <h2 id="all-applications-title" class="min-w-0 grow {{ rz_directory.title }}">{% translate 'All applications' %}</h2>
+              <button type="button" id="all-applications-close" x-ref="closeDirectory" x-on:click="closeDirectory()"
+                      aria-label="{% translate 'Close applications' %}"
+                      class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center {{ rz_directory.button }}">
+                <span data-admin-icon class="material-symbols-outlined" aria-hidden="true">close</span>
+              </button>
+            </div>
+            <div class="relative">
+              <span class="pointer-events-none absolute bottom-0 start-0 top-0 flex w-10 items-center justify-center {{ rz_directory.muted }}">
+                <span data-admin-icon aria-hidden="true" class="material-symbols-outlined text-xl">search</span>
+              </span>
+              <input type="text" id="all-applications-search" x-ref="searchDirectory" x-bind:value="query"
+                     x-on:input="filter($event.target.value)" autocomplete="off" inputmode="search" spellcheck="false"
+                     aria-label="{{ application_directory.copy.search }}" placeholder="{{ application_directory.copy.search }}"
+                     class="h-10 w-full px-10 {{ rz_directory.input }}">
+              <button type="button" x-show="query" x-on:click="clearSearch()"
+                      aria-label="{{ application_directory.copy.clear }}"
+                      class="absolute end-0 top-0 flex h-10 w-10 cursor-pointer items-center justify-center {{ rz_directory.button }}">
+                <span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
+              </button>
+            </div>
+            <p role="status" aria-atomic="true" class="sr-only">
+              <span x-show="filtering">{{ application_directory.copy.result_count }} <bdi x-text="resultCount.toLocaleString(document.documentElement.lang)"></bdi></span>
+            </p>
+          </header>
+
+          <div x-ref="directoryResults" class="min-h-0 flex-1 overflow-y-auto px-5 py-4 scrollbar-default-hover">
+            <div x-show="filtering && !resultCount" class="flex flex-col items-center gap-2 px-4 py-10 text-center">
+              <span class="mb-1 h-10 w-10 {{ rz_directory.icon }}">
+                <span data-admin-icon class="material-symbols-outlined" aria-hidden="true">search_off</span>
+              </span>
+              <p class="{{ rz_directory.title }}">{{ application_directory.copy.empty }}</p>
+              <p class="{{ rz_directory.muted }}">{{ application_directory.copy.empty_hint }}</p>
+            </div>
+            {% for group in application_directory.groups %}
+              <details x-data="{ expanded: false }" x-on:toggle="expanded = $el.open" class="mb-2 {{ rz_directory.group }}">
+                <summary class="flex cursor-pointer select-none items-center gap-3 {{ rz_directory.heading }}">
+                  <span class="h-8 w-8 {{ rz_directory.icon }}">
+                    <span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">{{ group.icon }}</span>
+                  </span>
+                  <span class="min-w-0 grow">{{ group.title }}</span>
+                  <bdi x-show="!filtering" class="{{ rz_directory.count }}">{{ group.count }}</bdi>
+                  <span data-admin-icon class="material-symbols-outlined text-lg {{ rz_directory.muted }}"
+                        aria-hidden="true" x-text="expanded ? 'expand_less' : 'expand_more'"></span>
+                </summary>
+                <div class="border-t px-2 py-2 {{ rz_directory.divider }}">
+                  {% if group.rows %}
+                    {% include "accounts/admin/includes/application_directory_rows.html" with rows=group.rows %}
+                  {% endif %}
+                  {% for section in group.sections %}
+                    <details x-data="{ expanded: false }" x-on:toggle="expanded = $el.open">
+                      <summary class="flex cursor-pointer select-none items-center justify-between gap-2 {{ rz_directory.subheading }}">
+                        {{ section.title }}
+                        <span data-admin-icon class="material-symbols-outlined text-base {{ rz_directory.muted }}"
+                              aria-hidden="true" x-text="expanded ? 'expand_less' : 'expand_more'"></span>
+                      </summary>
+                      {% include "accounts/admin/includes/application_directory_rows.html" with rows=section.rows %}
+                    </details>
+                  {% endfor %}
+                </div>
+              </details>
+            {% endfor %}
           </div>
-        {% endif %}{% endfor %}
-      {% endif %}{% endfor %}
-      {% for app in app_list %}
-        <div class="mb-6 last:mb-0">
-          <h3 class="mb-3 font-semibold text-important truncate">{{ app.name }}</h3>
-          <ul class="flex flex-col gap-4">{% for model in app.models %}{% if model.admin_url %}<li><a href="{{ model.admin_url }}" class="block truncate hover:text-primary-600 dark:hover:text-primary-500">{{ model.name }}</a></li>{% endif %}{% endfor %}</ul>
-        </div>
-      {% endfor %}
-    </div>
+        </section>
+      </div>
+    </template>
   </div>
-</div>
 {% endif %}

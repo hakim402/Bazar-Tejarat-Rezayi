@@ -6,7 +6,7 @@ confirmed report reduces the remaining refund due only; it never reduces
 confirmed received, edits a sealed receipt or moves platform money."""
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import NotFound, PermissionDenied
 
@@ -65,13 +65,20 @@ def independent(order, user):
         raise PermissionDenied("An independent reviewer is required.")
 
 
-def dispute_confirmer_allowed(due, user):
-    """CR-120: a dispute-ordered due is confirmed by a different staff member."""
+def dispute_decisions_by(user):
     from apps.orders.models import DisputeDecision
 
-    if due.cause == "dispute" and DisputeDecision.objects.filter(
-        dispute__order_id=due.order_id, actor=user
-    ).exists():
+    return DisputeDecision.objects.filter(actor=user)
+
+
+def refunds_requiring_another_confirmer(user):
+    decisions = dispute_decisions_by(user).filter(dispute__order_id=OuterRef("order_id"))
+    return queries.awaiting_refund_review() & Q(cause="dispute") & Exists(decisions)
+
+
+def dispute_confirmer_allowed(due, user):
+    """CR-120: a dispute-ordered due is confirmed by a different staff member."""
+    if due.cause == "dispute" and dispute_decisions_by(user).filter(dispute__order_id=due.order_id).exists():
         raise PermissionDenied("A different independent reviewer must confirm this dispute refund.")
 
 

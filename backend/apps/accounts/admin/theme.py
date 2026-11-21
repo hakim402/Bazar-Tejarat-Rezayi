@@ -73,6 +73,23 @@ ACCOUNT_THEME = {
     "signout": "rounded-md text-sm font-medium text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/20",
 }
 
+DIRECTORY_THEME = {
+    "backdrop": "bg-base-900/20 backdrop-blur-xs dark:bg-base-900/80",
+    "panel": f"border-e {DIVIDER} bg-white shadow-lg dark:bg-base-900",
+    "divider": DIVIDER,
+    "title": SECTION_TITLE,
+    "muted": MUTED,
+    "icon": ICON_TILE,
+    "input": f"rounded-lg border {DIVIDER} bg-base-50 text-sm dark:bg-base-800 {TEXT}",
+    "button": f"rounded-md hover:bg-base-100 dark:hover:bg-base-800 {MUTED}",
+    "group": f"rounded-xl border {DIVIDER}",
+    "heading": f"rounded-xl px-3 py-2 font-semibold hover:bg-base-50 dark:hover:bg-base-800 {TEXT}",
+    "subheading": f"rounded-md px-3 py-2 font-medium hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",
+    "count": f"rounded-md bg-base-100 px-1.5 py-0.5 text-xs dark:bg-base-800 {MUTED}",
+    "link": f"rounded-md hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",
+    "current_link": ACCOUNT_THEME["row_primary"],
+}
+
 # --- Template-facing map (injected as ``rz_theme`` by dashboard_context) ----
 # Never name the context key ``theme``: Unfold's skeleton owns that key for the
 # root Alpine theme() component (light/dark/auto string).

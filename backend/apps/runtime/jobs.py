@@ -151,12 +151,21 @@ def release_scheduler(lease, *, failed=False):
     return True
 
 
+def overdue_jobs(now):
+    cutoff = now - timedelta(minutes=5)
+    return Q(state="queued", available_at__lt=cutoff) | Q(state="running", lease_until__lt=cutoff)
+
+
+def scheduler_needs_attention(row, now):
+    return (row is None or row.completed_at is None or row.completed_at < now - timedelta(seconds=180)
+            or (row.failed_at is not None and row.failed_at >= row.completed_at))
+
+
 def scheduler_ready():
+    from .mariadb.schema import ready
+
     now = timezone.now()
     row = Scheduler.objects.filter(pk="cron").first()
-    from .mariadb.schema import ready
-    return bool(ready() and row and row.completed_at and row.completed_at >= now - timedelta(seconds=180)
-                and (not row.failed_at or row.failed_at < row.completed_at)
+    return bool(ready() and not scheduler_needs_attention(row, now)
                 and not Job.objects.filter(state="failed").exists()
-                and not Job.objects.filter(Q(state="queued", available_at__lt=now - timedelta(minutes=5))
-                    | Q(state="running", lease_until__lt=now - timedelta(minutes=5))).exists())
+                and not Job.objects.filter(overdue_jobs(now)).exists())

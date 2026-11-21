@@ -10,10 +10,16 @@
           <span class="min-w-0 flex-1">
             <span class="block break-words text-sm font-medium {{ rz_theme.text }}">{{ row.label }}</span>
             <span class="mt-1 inline-block {{ row.badge_class }}">{{ row.priority_label }}</span>
+            {% if row.unassigned %}
+              <span class="ms-2 text-xs {{ rz_theme.muted }}">{{ queue_labels.unassigned }} <bdi>{{ row.unassigned }}</bdi></span>
+            {% endif %}
+            {% if row.assigned_elsewhere %}
+              <span class="ms-2 text-xs {{ rz_theme.muted }}">{{ queue_labels.assigned_elsewhere }} <bdi>{{ row.assigned_elsewhere }}</bdi></span>
+            {% endif %}
           </span>
           <span class="shrink-0 text-end">
             <bdi class="block text-base font-semibold {{ rz_theme.text }}">{{ row.count }}</bdi>
-            <span class="block text-xs {{ rz_theme.muted }}">{{ queue_labels.items }}</span>
+            <span class="block text-xs {{ rz_theme.muted }}">{% if row.count == 1 %}{{ queue_labels.item }}{% else %}{{ queue_labels.items }}{% endif %}</span>
           </span>
         </a>
       </li>

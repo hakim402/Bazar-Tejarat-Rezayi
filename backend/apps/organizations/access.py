@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from rest_framework.exceptions import APIException, PermissionDenied
 
 from apps.accounts.models import Account, AuditEvent, User
@@ -113,12 +113,14 @@ def event(actor, action, resource, *, reason="", before="", after=""):
     )
 
 
+def reviewer_conflicts(user):
+    membership = Membership.objects.filter(company_id=OuterRef("pk"), account__user=user)
+    return BusinessProfile.objects.filter(Q(account__user=user) | Exists(membership))
+
+
 def independent(profile, actor):
     actor.account
-    if (
-        profile.account.user_id == actor.user.pk
-        or Membership.objects.filter(company=profile, account__user=actor.user).exists()
-    ):
+    if reviewer_conflicts(actor.user).filter(pk=profile.pk).exists():
         raise PermissionDenied("Another authorized reviewer must handle this case.")
 
 

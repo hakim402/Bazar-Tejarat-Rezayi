@@ -397,11 +397,22 @@ def due_status(due, *, can_report):
     }
 
 
-def awaiting_refund_review():
-    """Refund obligations with a pending report and no confirmed settlement."""
+def refund_report_status():
     pending = RefundReport.objects.filter(due_id=OuterRef("pk"), decision__isnull=True)
     confirmed = RefundDecision.objects.filter(report__due_id=OuterRef("pk"), action="confirmed")
-    return Exists(pending) & ~Exists(confirmed)
+    return Exists(pending), Exists(confirmed)
+
+
+def awaiting_refund_review():
+    """Refund obligations with a pending report and no confirmed settlement."""
+    pending, confirmed = refund_report_status()
+    return pending & ~confirmed
+
+
+def awaiting_refund_report():
+    """Open obligations where the seller still needs to submit a report."""
+    pending, confirmed = refund_report_status()
+    return ~pending & ~confirmed
 
 
 def due_state(due):

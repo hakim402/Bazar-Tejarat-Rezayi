@@ -385,10 +385,22 @@ class RefundReviewFilter(SimpleListFilter):
     parameter_name = "refund_review"
 
     def lookups(self, request, model_admin):
-        return (("pending", _("Pending")),)
+        from apps.accounts.admin.review_queues import review_labels
+
+        labels = review_labels()
+        return (("pending", _("Pending")), ("awaiting_report", labels["refunds_awaiting_report"]),
+                ("another_confirmer", labels["another_reviewer"]))
 
     def queryset(self, request, queryset):
-        return queryset.filter(queries.awaiting_refund_review()) if self.value() == "pending" else queryset
+        if not is_owner(request):
+            return queryset
+        if self.value() == "pending":
+            return queryset.filter(queries.awaiting_refund_review())
+        if self.value() == "awaiting_report":
+            return queryset.filter(queries.awaiting_refund_report())
+        if self.value() == "another_confirmer":
+            return queryset.filter(refunds.refunds_requiring_another_confirmer(request.user))
+        return queryset
 
 
 class RefundDueAdmin(PaymentAdmin):

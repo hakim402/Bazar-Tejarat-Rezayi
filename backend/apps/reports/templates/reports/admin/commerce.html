@@ -242,14 +242,14 @@
         <p class="ra:mt-1 ra:text-xs ra:text-muted">{% translate "Current open queues, not period-bound." %}</p>
       </div>
       <ul class="ra:divide-y ra:divide-line ra:px-4 ra:sm:px-6">
-        <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Awaiting dispatch" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.awaiting_dispatch }}</bdi></li>
+        <li><a class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm ra:text-action" href="{{ dispatch_queue_url }}"><span>{% translate "Not dispatched" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.awaiting_dispatch }}</bdi></a></li>
         <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Cancellation requests" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.cancellations }}</bdi></li>
         <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Amendments" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.amendments }}</bdi></li>
         <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Disputes" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.disputes }}</bdi></li>
         <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Reviews awaiting moderation" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.reviews_pending }}</bdi></li>
         <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Goods payment cases" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.payment_reviews }}</bdi></li>
         <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Delivery cases" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.delivery_reviews }}</bdi></li>
-        <li class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm"><span>{% translate "Open holds" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.holds }}</bdi></li>
+        <li><a class="ra:flex ra:items-center ra:justify-between ra:gap-3 ra:py-2 ra:text-sm ra:text-action" href="{{ hold_queue_url }}"><span>{% translate "Open holds" %}</span><bdi dir="ltr" class="ra:font-semibold ra:tabular-nums">{{ report.queues.holds }}</bdi></a></li>
         <li class="ra:py-2 ra:text-sm"><a class="ra:text-action" href="{% url 'admin:catalogue_sourcerevision_changelist' %}?state__exact=submitted">{% blocktranslate trimmed with count=publication_pending %}Catalogue revisions awaiting publication review: {{ count }}{% endblocktranslate %}</a></li>
       </ul>
     </section>

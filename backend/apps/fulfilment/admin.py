@@ -1,14 +1,16 @@
 """Safe complete native coverage with explicit recipient/financial/technical scopes."""
 
+from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner
+from apps.accounts.admin.navigation import navigation_title
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.orders.admin import private_document
-from . import models as m, access, media, native
+from . import models as m, access, media, native, queries
 
 
 class MetadataAdmin(ReadOnlyAdmin):
@@ -145,6 +147,50 @@ class BindingAdmin(FinancialAdmin):
     order_path = "evidence__order_id"
 
 
+class OpenHoldFilter(SimpleListFilter):
+    title = _("Hold")
+    parameter_name = "hold"
+
+    def lookups(self, request, model_admin):
+        return (("open", navigation_title("Open holds")),)
+
+    def queryset(self, request, queryset):
+        if self.value() == "open" and is_owner(request):
+            return queryset.filter(pk__in=queries.open_blockers().values("pk"))
+        return queryset
+
+
+class BlockerAdmin(MetadataAdmin):
+    def get_list_display(self, request):
+        if is_owner(request):
+            return ["order", "kind", "created_at", "workflow_link"]
+        return super().get_list_display(request)
+
+    def get_list_filter(self, request):
+        return [OpenHoldFilter] if is_owner(request) else super().get_list_filter(request)
+
+    def changelist_view(self, request, extra_context=None):
+        if request.GET.get("hold") == "open" and is_owner(request):
+            extra_context = {**(extra_context or {}), "title": navigation_title("Open holds")}
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def lookup_allowed(self, lookup, value, request=None):
+        if lookup == OpenHoldFilter.parameter_name:
+            return request is not None and is_owner(request)
+        return super().lookup_allowed(lookup, value, request)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("order", "case")
+
+    def workflow_link(self, obj):
+        case = getattr(obj, "case", None)
+        if case and case.state == "open":
+            url = reverse("admin:fulfilment_reviewcase_review", args=[case.pk])
+        else:
+            url = reverse("admin:fulfilment_state_workflow", args=[obj.order_id])
+        return format_html('<a href="{}">{}</a>', url, _("Delivery / fulfilment workflow"))
+
+
 class StateAdmin(MetadataAdmin):
     list_display = ["order", "version", "workflow_link", "next_check_at"]
 
@@ -251,7 +297,7 @@ for model, admin in [
     (m.Correction, FinancialAdmin),
     (m.DeliveryRefund, RefundAdmin),
     (m.DeliveryRefundDecision, RefundDecisionAdmin),
-    (m.Blocker, MetadataAdmin),
+    (m.Blocker, BlockerAdmin),
     (m.BlockerClosure, MetadataAdmin),
     (m.Completion, MetadataAdmin),
     (m.DispatchAttempt, MetadataAdmin),

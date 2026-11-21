@@ -1,16 +1,19 @@
 """Root-only native admin commerce report. Staff platform aggregates are not exposed."""
 
+from urllib.parse import urlencode
+
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
-from django.urls import path
+from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET
 from rest_framework.exceptions import APIException, ValidationError
 
 from apps.accounts.services import get_grant
 from apps.catalogue.models import SourceRevision
+from apps.fulfilment.queries import OPEN_HOLDS_FILTER, UNDISPATCHED_FILTER
 from apps.orders.models import SellerOrder
 
 from . import admin_queries, exports, queries
@@ -61,6 +64,8 @@ def report_urls(admin_site):
             "form": form,
             "window": window,
             "report": queries.summary(orders, window, rights),
+            "dispatch_queue_url": reverse("admin:orders_sellerorder_changelist") + "?" + urlencode(UNDISPATCHED_FILTER),
+            "hold_queue_url": reverse("admin:fulfilment_blocker_changelist") + "?" + urlencode(OPEN_HOLDS_FILTER),
             "dash": admin_queries.dashboard(orders, window, rights),
             "sellers": queries.platform_sellers(window),
             "publication_pending": SourceRevision.objects.filter(state="submitted").count(),

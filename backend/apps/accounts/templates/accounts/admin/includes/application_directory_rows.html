@@ -1,0 +1,11 @@
+<ul>
+  {% for row in rows %}
+    <li data-directory-search="{{ row.search }}">
+      <a href="{{ row.url }}" {% if row.active %}aria-current="page"{% endif %}
+         class="flex items-center justify-between gap-2 px-3 py-2 {% if row.active %}{{ rz_directory.current_link }}{% else %}{{ rz_directory.link }}{% endif %}">
+        <span class="min-w-0 break-words">{{ row.title }}</span>
+        <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100 {{ rz_directory.muted }}" aria-hidden="true">chevron_right</span>
+      </a>
+    </li>
+  {% endfor %}
+</ul>

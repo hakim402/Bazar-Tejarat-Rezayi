@@ -3,7 +3,10 @@
 import uuid
 from django.db import models
 from django.utils import timezone
+
 from .managers import NoticeManager, EventManager
+
+DELIVERY_FAILURE_STATUSES = ("delivery_unknown", "exhausted")
 
 STATUSES = (
     "queued",

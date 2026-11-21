@@ -183,11 +183,8 @@ def queues(orders, rights):
     scope = {"order__in": orders.values("pk")}
     result = {}
     if rights.get("orders"):
-        open_orders = orders.exclude(
-            Exists(CancellationRequest.objects.filter(order_id=OuterRef("pk"), state="approved"))
-        )
         result.update(
-            awaiting_dispatch=open_orders.exclude(Exists(fm.Shipment.objects.filter(order_id=OuterRef("pk")))).count(),
+            awaiting_dispatch=delivery_queries.not_dispatched(orders).count(),
             cancellations=CancellationRequest.objects.filter(**scope, state="pending").count(),
             amendments=Amendment.objects.filter(**scope, state="pending").count(),
             disputes=DisputeRequest.objects.filter(**scope, state="pending").count(),
@@ -197,9 +194,7 @@ def queues(orders, rights):
         result["payment_reviews"] = PaymentCase.objects.filter(**scope, state="open").count()
     if rights.get("logistics"):
         result["delivery_reviews"] = fm.ReviewCase.objects.filter(**scope, state="open").count()
-        result["holds"] = fm.Blocker.objects.filter(**scope).exclude(
-            Exists(fm.BlockerClosure.objects.filter(blocker_id=OuterRef("pk")))
-        ).count()
+        result["holds"] = delivery_queries.open_blockers().filter(**scope).count()
     return result
 
 

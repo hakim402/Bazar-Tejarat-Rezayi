@@ -20,7 +20,8 @@ from unfold.sites import UnfoldAdminSite
 
 from .access import GuardedAdminMixin, admin_actor, is_owner
 from .copy import COPY as ADMIN_COPY
-from .theme import ACCOUNT_THEME
+from .directory import application_directory
+from .theme import ACCOUNT_THEME, DIRECTORY_THEME
 from ..models import User
 from ..copy.owner import COPY, PASSWORD_ONLY_SUBTITLES
 from ..services import (admin_mfa_required, audit, begin_signin, finish_mfa,
@@ -86,7 +87,16 @@ class OwnerSite(UnfoldAdminSite):
         })
 
     def each_context(self, request):
-        return {**super().each_context(request), "is_owner_admin": is_owner(request), "rz_account": ACCOUNT_THEME}
+        context = super().each_context(request)
+        return {
+            **context,
+            "is_owner_admin": is_owner(request),
+            "rz_account": ACCOUNT_THEME,
+            "rz_directory": DIRECTORY_THEME,
+            "application_directory": application_directory(
+                request, context["available_apps"], context["sidebar_navigation"],
+            ),
+        }
 
     def get_urls(self):
         from apps.reports.admin_views import report_urls

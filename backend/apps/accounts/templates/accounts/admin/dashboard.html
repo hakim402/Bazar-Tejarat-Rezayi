@@ -130,11 +130,11 @@
             </li>
           {% endfor %}
         </ul>
-        {% if sidebar_show_all_applications and available_apps %}
+        {% if sidebar_show_all_applications and application_directory.groups %}
           <footer class="shrink-0 border-t {{ rz_theme.divider }} px-4 py-3">
             <button type="button" class="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold {{ rz_theme.action }}"
                 aria-haspopup="dialog" aria-controls="all-applications-directory"
-                x-on:click="if (!sidebarOpen) sidebarToggle(); $nextTick(() => document.getElementById('all-applications-toggle')?.click())">
+                x-on:click="$dispatch('open-application-directory', { trigger: $el })">
               {{ overview_copy.browse }}
               <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100" aria-hidden="true">arrow_forward</span>
             </button>

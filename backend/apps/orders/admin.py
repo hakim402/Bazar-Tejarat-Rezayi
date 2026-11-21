@@ -2,10 +2,10 @@ import uuid
 from decimal import Decimal
 from functools import wraps
 from django.db import DatabaseError, transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q, Subquery
 from django import forms
 from django.contrib import admin as django_admin, messages
-from django.contrib.admin import RelatedOnlyFieldListFilter
+from django.contrib.admin import RelatedOnlyFieldListFilter, SimpleListFilter
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
@@ -17,6 +17,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, permits, is_owner
 from apps.accounts.admin.copy import COPY as ADMIN_COPY
+from apps.accounts.admin.navigation import navigation_title
 from apps.accounts.models import User
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.payments.access import audit
@@ -75,6 +76,21 @@ def allowed(request, permission):
     return permits(request, "orders", permission)
 
 
+class DispatchQueueFilter(SimpleListFilter):
+    title = _("Dispatch")
+    parameter_name = "dispatch"
+
+    def lookups(self, request, model_admin):
+        return (("not_dispatched", navigation_title("Not dispatched")),)
+
+    def queryset(self, request, queryset):
+        from apps.fulfilment.queries import not_dispatched
+
+        if self.value() == "not_dispatched" and is_owner(request):
+            return not_dispatched(queryset)
+        return queryset
+
+
 class OrderAdmin(ReadOnlyAdmin):
     fields = [
         "id",
@@ -108,8 +124,61 @@ class OrderAdmin(ReadOnlyAdmin):
 
     def delivery_workflow(self, obj):
         return format_html(
-            '<a href="{}">Delivery / fulfilment workflow</a>', reverse("admin:fulfilment_state_workflow", args=[obj.pk])
+            '<a href="{}">{}</a>', reverse("admin:fulfilment_state_workflow", args=[obj.pk]),
+            _("Delivery / fulfilment workflow"),
         )
+
+    def get_list_filter(self, request):
+        filters = super().get_list_filter(request)
+        return [*filters, DispatchQueueFilter] if self.model is SellerOrder and is_owner(request) else filters
+
+    def shows_dispatch_queue(self, request):
+        return self.model is SellerOrder and request.GET.get("dispatch") == "not_dispatched" and is_owner(request)
+
+    def get_list_display(self, request):
+        if self.shows_dispatch_queue(request):
+            return ["invoice_number", "seller_display", "accepted_at", "dispatch_status", "delivery_workflow"]
+        return super().get_list_display(request)
+
+    def changelist_view(self, request, extra_context=None):
+        if self.shows_dispatch_queue(request):
+            extra_context = {**(extra_context or {}), "title": navigation_title("Not dispatched")}
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if self.shows_dispatch_queue(request):
+            from apps.fulfilment.models import DispatchAttempt, Preparation
+            from apps.fulfilment.queries import open_blockers
+
+            last_attempt = DispatchAttempt.objects.filter(order_id=OuterRef("pk")).order_by("-event__version")
+            qs = qs.select_related("invoice").annotate(
+                dispatch_hold=Exists(open_blockers().filter(order_id=OuterRef("pk"))),
+                has_preparation=Exists(Preparation.objects.filter(order_id=OuterRef("pk"))),
+                last_dispatch_issue=Subquery(last_attempt.values("code")[:1]),
+            )
+        return qs
+
+    @django_admin.display(description=_("Invoice number"))
+    def invoice_number(self, obj):
+        invoice = getattr(obj, "invoice", None)
+        return invoice.number if invoice else str(obj.pk)
+
+    @django_admin.display(description=_("Dispatch status"))
+    def dispatch_status(self, obj):
+        if obj.dispatch_hold:
+            return navigation_title("Open holds")
+        if not obj.has_preparation:
+            return navigation_title("Needs preparation")
+        reason = {
+            "stock_shortage": "Stock shortage",
+            "stock_expired_inactive_or_unavailable": "Stock unavailable",
+            "positive_funds_and_partial_permission": "Payment or partial-dispatch approval required",
+            "cancellation_hold": "Cancellation hold",
+        }.get(obj.last_dispatch_issue)
+        if reason:
+            return navigation_title("Last attempt: %(reason)s") % {"reason": navigation_title(reason)}
+        return navigation_title("Check delivery workflow")
 
     list_display = ["id", "seller_display", "currency", "goods_total", "payment_method", "accepted_at"]
     list_filter = [("seller", RelatedOnlyFieldListFilter), "currency", "payment_method", "accepted_at"]
@@ -127,6 +196,8 @@ class OrderAdmin(ReadOnlyAdmin):
         return allowed(request, "read_orders")
 
     def lookup_allowed(self, lookup, value, request=None):
+        if lookup == DispatchQueueFilter.parameter_name:
+            return self.model is SellerOrder and request is not None and is_owner(request)
         return lookup in {
             "id",
             "id__exact",

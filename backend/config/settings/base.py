@@ -218,6 +218,7 @@ UNFOLD = {
     },
     "SITE_URL": FRONTEND_ORIGIN,
     "STYLES": [lambda request: f"/static/accounts/admin.css?v={ADMIN_CSS_VERSION}"],
+    "SCRIPTS": ["/static/accounts/application-directory.js"],
     "SITE_LOGO": {
         "light": lambda request: "/static/accounts/site-logo-fa-AF-blue.svg" if getattr(request, "LANGUAGE_CODE", "en") == "fa-af" else "/static/accounts/brand-en.svg",
         "dark": lambda request: "/static/accounts/site-logo-fa-AF-white.svg" if getattr(request, "LANGUAGE_CODE", "en") == "fa-af" else "/static/accounts/brand-en-white.svg",
