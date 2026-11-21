@@ -19,6 +19,7 @@ ICON_TILE = (
     "text-primary-600 dark:bg-primary-950 dark:text-primary-400"
 )
 SECTION_TITLE = "text-base font-semibold text-base-900 dark:text-base-100"
+LISTING_THEME = {"table": "whitespace-nowrap"}
 ORDER_THEME = {
     "layout": "flex min-w-0 flex-col gap-6",
     "panel": f"{CARD} flex flex-col gap-3 p-5 text-sm",
