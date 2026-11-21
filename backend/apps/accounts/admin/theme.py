@@ -30,6 +30,18 @@ ORDER_THEME = {
     "button": "inline-flex items-center justify-center rounded-default bg-primary-600 px-4 py-2 font-medium text-white",
     "label": f"block mb-2 font-medium {TEXT}",
     "error": "text-sm text-red-600 dark:text-red-400",
+    "toolbar": "flex flex-wrap items-center justify-between gap-3",
+    "status_grid": "grid grid-cols-1 gap-4 lg:grid-cols-3",
+    "workspace_grid": "grid grid-cols-1 items-start gap-6 lg:grid-cols-3",
+    "main_column": "min-w-0 lg:col-span-2",
+    "eyebrow": f"flex items-center gap-2 text-xs font-semibold {MUTED}",
+    "metric": f"text-base font-semibold break-words {TEXT}",
+    "muted": MUTED,
+    "notice": f"{CARD} flex flex-wrap items-center gap-2 p-4 text-sm {TEXT}",
+    "secondary_button": f"inline-flex items-center justify-center gap-2 rounded-default border {DIVIDER} px-3 py-2 text-sm font-medium {ACTION}",
+    "disclosure": f"cursor-pointer text-sm font-semibold {ACTION}",
+    "detail_body": "flex flex-col gap-3 pt-3",
+
 }
 CHIP = (
     "rounded-md bg-primary-50 px-2 py-0.5 text-[11px] font-semibold uppercase "

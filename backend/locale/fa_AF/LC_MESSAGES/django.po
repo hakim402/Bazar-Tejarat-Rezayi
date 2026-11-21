@@ -6486,3 +6486,42 @@ msgstr "مصرف موجودی رزرو شده"
 
 msgid "deduct_cod"
 msgstr "کاهش موجودی برای پرداخت هنگام تحویل"
+
+msgid "Delivery workspace"
+msgstr "میز کار ارسال کالا"
+
+msgid "Delivery reference"
+msgstr "اطلاعات ارسال"
+
+msgid "Recipient and delivery"
+msgstr "گیرنده و ارسال"
+
+msgid "Recipient details are unavailable under your current access."
+msgstr "اطلاعات گیرنده با سطح دسترسی فعلی شما در دسترس نیست."
+
+msgid "View recipient and instructions"
+msgstr "مشاهده گیرنده و راهنمای ارسال"
+
+msgid "Payment summary"
+msgstr "خلاصه پرداخت"
+
+msgid "Goods payments and delivery payments are tracked separately."
+msgstr "پرداخت کالا و هزینه ارسال به صورت جداگانه پیگیری می شوند."
+
+msgid "View payment breakdown"
+msgstr "مشاهده جزئیات پرداخت"
+
+msgid "Prepared stock and recipient version"
+msgstr "موجودی آماده شده و نسخه اطلاعات گیرنده"
+
+msgid "Choose your next action"
+msgstr "اقدام بعدی را انتخاب کنید"
+
+msgid "Continue with selected action"
+msgstr "ادامه با اقدام انتخاب شده"
+
+msgid "Only fields for your selected action are shown. Changes are checked before they are recorded."
+msgstr "تنها بخش های مربوط به اقدام انتخاب شده نمایش داده می شوند. تغییرات پیش از ثبت بررسی می شوند."
+
+msgid "Not assigned"
+msgstr "تعیین نشده"
