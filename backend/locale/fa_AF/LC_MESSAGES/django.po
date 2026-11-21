@@ -6633,3 +6633,85 @@ msgstr "نیازمند بررسی"
 
 msgid "awaiting_selection"
 msgstr "در انتظار انتخاب"
+
+# People & Stores admin redesign: listings, details and workspaces.
+msgid "Access bundles"
+msgstr "بسته‌های دسترسی"
+
+msgid "Account type"
+msgstr "نوع حساب"
+
+msgid "Business"
+msgstr "کسب‌وکار"
+
+msgid "Business review revision %(business)s · Store version %(version)s"
+msgstr "نسخهٔ بررسی کسب‌وکار %(business)s · نسخهٔ فروشگاه %(version)s"
+
+msgid "Company"
+msgstr "شرکت"
+
+msgid "Inspect protected media"
+msgstr "بازبینی رسانهٔ محافظت‌شده"
+
+msgid "Invitation"
+msgstr "دعوت‌نامه"
+
+msgid "Invited by"
+msgstr "دعوت‌کننده"
+
+msgid "Member"
+msgstr "عضو"
+
+msgid "Not published yet"
+msgstr "هنوز منتشر نشده است"
+
+msgid "Orders & negotiation"
+msgstr "سفارش‌ها و مذاکره"
+
+msgid "Owner"
+msgstr "مالک"
+
+msgid "Payments & refunds"
+msgstr "پرداخت‌ها و بازپرداخت‌ها"
+
+msgid "Public store"
+msgstr "فروشگاه عمومی"
+
+msgid "Published revision %(number)s"
+msgstr "نسخهٔ منتشرشدهٔ %(number)s"
+
+msgid "Recipient"
+msgstr "گیرنده"
+
+msgid "Record summary"
+msgstr "خلاصهٔ رکورد"
+
+msgid "Requester"
+msgstr "درخواست‌کننده"
+
+msgid "Review activity"
+msgstr "فعالیت بررسی"
+
+msgid "Reviewer"
+msgstr "بررسی‌کننده"
+
+msgid "Role"
+msgstr "نقش"
+
+msgid "Store review"
+msgstr "بررسی فروشگاه"
+
+msgid "Submission content requires assigned read permission."
+msgstr "محتوای ارسال‌شده به اجازهٔ خواندن تعیین‌شده نیاز دارد."
+
+msgid "Submitted application"
+msgstr "درخواست ارسال‌شده"
+
+msgid "Submitted public details"
+msgstr "جزئیات عمومی ارسال‌شده"
+
+msgid "Submitted revision"
+msgstr "نسخهٔ ارسال‌شده"
+
+msgid "Submitted store media"
+msgstr "رسانهٔ فروشگاه ارسال‌شده"

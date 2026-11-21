@@ -75,6 +75,9 @@ class Invitation(models.Model):
     version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.company} · {self.email}"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -90,6 +93,9 @@ class InvitationMail(models.Model):
     status = models.CharField(max_length=16, default="queued")
     attempts = models.PositiveSmallIntegerField(default=0)
     next_attempt_at = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.invitation} · {self.status}"
 
 
 class OwnershipTransfer(models.Model):

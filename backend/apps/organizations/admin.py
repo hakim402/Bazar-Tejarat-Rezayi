@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
@@ -10,12 +10,37 @@ from unfold.admin import ModelAdmin
 
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, permits
-from apps.accounts.admin.display import AdminDisplayMixin
+from apps.accounts.admin.display import AdminDisplayMixin, state_badge
 from .models import BusinessProfile, Invitation, Membership, OwnershipTransfer, InvitationMail
 from .profiles import PROFILE_FIELDS, update_profile
 from .contracts import BusinessProfileUpdate
 from .forms import WorkflowForm
 from .owner_copy import COPY
+
+BUNDLE_LABELS = {
+    "catalogue": _("Catalogue"),
+    "orders_negotiation": _("Orders & negotiation"),
+    "payments_refunds": _("Payments & refunds"),
+    "fulfilment": _("Fulfilment"),
+    "messaging": _("Messaging"),
+}
+
+
+# catalogue/orders admin helpers import ReadOnlyAdmin from this module, so reach
+# them lazily to avoid a circular import during admin autodiscovery.
+def seller_cell(profile):
+    from apps.catalogue.admin.presentation import seller_cell as _impl
+    return _impl(profile)
+
+
+def account_cell(account):
+    from apps.orders.admin_presentation import account_cell as _impl
+    return _impl(account)
+
+
+def link_button(url, label, icon):
+    from apps.catalogue.admin.helpers import link_button as _impl
+    return _impl(url, label, icon)
 
 
 class ReadOnlyAdmin(AdminDisplayMixin, ModelAdmin):
@@ -79,7 +104,7 @@ class WorkflowAdmin(ReadOnlyAdmin):
 
     def guarded_workflow(self, obj):
         url = reverse(f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_workflow", args=[obj.pk])
-        return format_html('<a href="{}">{}</a>', url, _("Open guarded workflow"))
+        return link_button(url, _("Open guarded workflow"), "bolt")
 
     def get_urls(self):
         info = self.model._meta
@@ -173,10 +198,20 @@ class ProfileAdmin(ModelAdmin):
     form = ProfileForm
     fields = ['account', 'kind', 'revision', 'version', *PROFILE_FIELDS, 'expected_version']
     readonly_fields = ['account', 'kind', 'revision', 'version']
-    list_display = ['display_name', 'kind', 'version', 'revision']
+    list_display = ['business_identity', 'kind_label', 'version', 'revision']
+    list_display_links = ['business_identity']
     list_filter = ['kind']
     search_fields = ['display_name', 'legal_name']
+    list_select_related = ['account__user']
     list_per_page = 30
+
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj)
+
+    @admin.display(description=_("Account type"), ordering="kind")
+    def kind_label(self, obj):
+        return obj.get_kind_display()
 
     def get_fieldsets(self, request, obj=None):
         description = _(
@@ -200,8 +235,27 @@ class ProfileAdmin(ModelAdmin):
 
 
 class MembershipAdmin(WorkflowAdmin):
-    list_display = ["company", "account", "is_owner", "active"]
+    list_display = ["business_identity", "member_identity", "role_label", "status_label", "created_at"]
+    list_display_links = ["business_identity"]
     list_filter = ["active", "is_owner"]
+    list_select_related = ["company__account__user", "account__user"]
+    ordering = ["-created_at"]
+
+    @admin.display(description=_("Company"))
+    def business_identity(self, obj):
+        return seller_cell(obj.company)
+
+    @admin.display(description=_("Member"))
+    def member_identity(self, obj):
+        return account_cell(obj.account)
+
+    @admin.display(description=_("Role"), ordering="is_owner")
+    def role_label(self, obj):
+        return _("Owner") if obj.is_owner else _("Member")
+
+    @admin.display(description=_("Status"), ordering="active")
+    def status_label(self, obj):
+        return state_badge("active" if obj.active else "revoked")
 
 
 class TransferAdmin(WorkflowAdmin):
@@ -213,29 +267,74 @@ class TransferAdmin(WorkflowAdmin):
         return qs.exclude(company__account__user=request.user).exclude(
             company__memberships__account__user=request.user).distinct()
 
-    list_display = ["company", "requester", "recipient", "status", "version"]
+    list_display = ["business_identity", "requester_identity", "recipient_identity", "status", "reviewer_label", "created_at", "decided_at"]
+    list_display_links = ["business_identity"]
     list_filter = ["status"]
+    list_select_related = ["company__account__user", "requester__user", "recipient__account__user", "reviewer__user"]
+    ordering = ["-created_at"]
+    badge_fields = ("status",)
+
+    @admin.display(description=_("Company"))
+    def business_identity(self, obj):
+        return seller_cell(obj.company)
+
+    @admin.display(description=_("Requester"))
+    def requester_identity(self, obj):
+        return account_cell(obj.requester)
+
+    @admin.display(description=_("Recipient"))
+    def recipient_identity(self, obj):
+        return account_cell(obj.recipient.account)
+
+    @admin.display(description=_("Reviewer"))
+    def reviewer_label(self, obj):
+        return account_cell(obj.reviewer) if obj.reviewer_id else _("Unassigned")
 
 
 owner_site.register(BusinessProfile, ProfileAdmin)
 owner_site.register(Membership, MembershipAdmin)
 class InvitationAdmin(ReadOnlyAdmin):
-    fields = ['company', 'inviter', 'email', 'bundles', 'locale', 'expires_at', 'status', 'accepted_by', 'accepted_at', 'version', 'created_at']
-    list_display = ['company', 'email', 'status', 'expires_at']
+    fields = ['business_identity', 'inviter', 'email', 'bundles_label', 'locale', 'expires_at', 'status', 'accepted_by', 'accepted_at', 'version', 'created_at']
+    list_display = ['business_identity', 'email', 'status', 'inviter_identity', 'expires_at', 'accepted_at']
+    list_display_links = ['business_identity']
     list_filter = ['status']
     search_fields = ['company__display_name', 'email']
+    list_select_related = ['company__account__user', 'inviter__user', 'accepted_by__user']
+    badge_fields = ('status',)
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
+
+    @admin.display(description=_("Company"))
+    def business_identity(self, obj):
+        return seller_cell(obj.company)
+
+    @admin.display(description=_("Invited by"))
+    def inviter_identity(self, obj):
+        return account_cell(obj.inviter)
+
+    @admin.display(description=_("Access bundles"))
+    def bundles_label(self, obj):
+        return ", ".join(str(BUNDLE_LABELS.get(item, item)) for item in obj.bundles) if obj.bundles else _("None")
 
 
 class InvitationDeliveryAdmin(ReadOnlyAdmin):
     fields = ['invitation', 'invitation_version', 'status', 'attempts', 'next_attempt_at']
-    list_display = ['invitation', 'status', 'attempts', 'next_attempt_at']
+    list_display = ['invitation_label', 'status', 'attempts', 'next_attempt_at']
+    list_display_links = ['invitation_label']
     list_filter = ['status']
+    list_select_related = ['invitation__company__account__user']
+    badge_fields = ('status',)
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
+
+    @admin.display(description=_("Invitation"))
+    def invitation_label(self, obj):
+        return format_html(
+            '<span class="block truncate"><bdi>{}</bdi> · <bdi dir="ltr">{}</bdi></span>',
+            obj.invitation.company.display_name, obj.invitation.email,
+        )
 
 
 owner_site.register(Invitation, InvitationAdmin)

@@ -7,12 +7,16 @@ from django.db.models import Q, F
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
-from django.utils.html import format_html
+from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
+from apps.accounts.admin.display import short_id
+from apps.catalogue.admin.helpers import link_button
+from apps.catalogue.admin.presentation import seller_cell
+from apps.orders.admin_presentation import account_cell
 from apps.organizations.access import independent
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.organizations.models import BusinessProfile
@@ -37,17 +41,27 @@ class ReviewForm(forms.Form):
 
 class FeatureForm(forms.Form):
     version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
-    profile = forms.ModelChoiceField(queryset=BusinessProfile.objects.none(), required=False, label="Featured Rezayi store", widget=UnfoldAdminSelectWidget)
+    profile = forms.ModelChoiceField(queryset=BusinessProfile.objects.none(), required=False, label=_("Featured Rezayi store"), widget=UnfoldAdminSelectWidget)
     reason = forms.CharField(max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
 
 
 class RevisionAdmin(ReadOnlyAdmin):
-    list_display = ["store", "number", "state", "assigned_to", "created_at", "review_link"]
+    list_display = ["business_identity", "number", "state", "reviewer", "created_at", "review_link"]
+    list_display_links = ["business_identity"]
     list_filter = ["state", "created_at"]
     search_fields = ["store__profile__display_name"]
     list_per_page = 20
-    list_select_related = ["store__profile", "assigned_to__user"]
+    list_select_related = ["store__profile__account__user", "assigned_to__user"]
     ordering = ["-created_at", "pk"]
+    badge_fields = ("state",)
+
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj.store.profile)
+
+    @admin.display(description=_("Assigned reviewer"))
+    def reviewer(self, obj):
+        return account_cell(obj.assigned_to) if obj.assigned_to_id else _("Unassigned")
 
     def staff_view(self, request, obj=None):
         if not permits(request, "marketplace", *PERMISSIONS):
@@ -68,7 +82,7 @@ class RevisionAdmin(ReadOnlyAdmin):
             path("media/<uuid:pk>/download/", self.admin_site.admin_view(self.download), name="marketplace_store_media"), *super().get_urls()]
 
     def review_link(self, obj):
-        return format_html('<a href="{}">Review public store</a>', reverse("admin:marketplace_storerevision_review", args=[obj.pk]))
+        return link_button(reverse("admin:marketplace_storerevision_review", args=[obj.pk]), _("Open guarded review"), "fact_check")
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         if request.method != "GET":
@@ -187,23 +201,71 @@ class FeatureAdmin(ReadOnlyAdmin):
         return render(request, "marketplace/feature.html", {**self.admin_site.each_context(request), "title": _("Featured Rezayi store"), "form": form}, status=status)
 
 
-owner_site.register(StoreRevision, RevisionAdmin)
-owner_site.register(Store, ReadOnlyAdmin)
-owner_site.register(StoreEvent, ReadOnlyAdmin)
-owner_site.register(FeaturedStore, FeatureAdmin)
-
-
-class MediaAdmin(ReadOnlyAdmin):
-    fields = ['id', 'store', 'created_by', 'content_type', 'width', 'height', 'size', 'created_at', 'protected_download']
-    list_display = ['store', 'content_type', 'width', 'height', 'size', 'created_at']
-    list_filter = ['content_type']
-    search_fields = ['store__profile__display_name']
+class StoreAdmin(ReadOnlyAdmin):
+    list_display = ["business_identity", "published_state", "version", "created_at"]
+    list_display_links = ["business_identity"]
+    list_select_related = ["profile__account__user", "published"]
+    search_fields = ["profile__display_name", "profile__legal_name"]
+    ordering = ["-created_at"]
+    fields = ["business_identity", "published_state", "version", "created_at"]
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
 
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj.profile)
+
+    @admin.display(description=_("Public store"))
+    def published_state(self, obj):
+        if obj.published_id:
+            return link_button(
+                reverse("admin:marketplace_storerevision_review", args=[obj.published_id]),
+                _("Published revision %(number)s") % {"number": obj.published.number}, "storefront",
+            )
+        return _("Not published yet")
+
+
+class StoreEventAdmin(ReadOnlyAdmin):
+    list_display = ["business_identity", "action", "context", "version", "created_at"]
+    list_select_related = ["store__profile__account__user"]
+    list_filter = ["action", "context"]
+    search_fields = ["store__profile__display_name"]
+    ordering = ["-created_at"]
+    badge_fields = ("action",)
+
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj.store.profile)
+
+
+owner_site.register(StoreRevision, RevisionAdmin)
+owner_site.register(Store, StoreAdmin)
+owner_site.register(StoreEvent, StoreEventAdmin)
+owner_site.register(FeaturedStore, FeatureAdmin)
+
+
+class MediaAdmin(ReadOnlyAdmin):
+    fields = ['record_reference', 'business_identity', 'content_type', 'width', 'height', 'size', 'created_at', 'protected_download']
+    list_display = ['business_identity', 'content_type', 'width', 'height', 'size', 'created_at', 'protected_download']
+    list_display_links = ['business_identity']
+    list_filter = ['content_type']
+    search_fields = ['store__profile__display_name']
+    list_select_related = ['store__profile__account__user']
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+    @admin.display(description=_("Reference"))
+    def record_reference(self, obj):
+        return short_id(obj.pk)
+
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj.store.profile)
+
     def protected_download(self, obj):
-        return format_html('<a href="{}">Inspect protected media</a>', reverse('admin:marketplace_store_media', args=[obj.pk]))
+        return link_button(reverse('admin:marketplace_store_media', args=[obj.pk]), _("Inspect protected media"), "download")
 
 
 owner_site.register(StoreMedia, MediaAdmin)

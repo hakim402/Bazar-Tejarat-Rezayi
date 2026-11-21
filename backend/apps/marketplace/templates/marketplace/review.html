@@ -1,25 +1,29 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n order_admin %}
 {% block content %}
-{% translate "Unassigned" as unassigned %}{% translate "Not provided" as not_provided %}
-{% if not independent_decision %}<p role="status" class="ra:rounded-lg ra:border ra:border-line ra:bg-tint ra:p-4 ra:text-ink">{% translate "You can inspect this record. An independent reviewer must decide your own or historically linked store submission." %}</p>{% endif %}
-<div class="rz-owner ra:grid ra:gap-6 ra:min-w-0 ra:wrap-anywhere">
-  <section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
-    <h2 class="ra:text-lg ra:font-bold">{% blocktranslate with number=revision.number %}Exact submitted revision {{ number }}{% endblocktranslate %}</h2>
-    <p class="ra:mt-2">{% blocktranslate with state=revision.state business=revision.business_case.revision version=revision.store.version %}State: {{ state }} · Business review revision: {{ business }} · Store version: {{ version }}{% endblocktranslate %}</p>
-    <p class="ra:mt-2">{% translate "Assigned reviewer" %}: {{ revision.assigned_to|default:unassigned }}</p>
-    <p class="ra:mt-2">{% blocktranslate with published=revision.store.published.number|default:"None" %}Current approved optional revision: {{ published }}.{% endblocktranslate %} <a class="ra:text-action" href="{{ public_store_url }}" target="_blank" rel="noopener">{% translate "Compare the current public store" %}</a>. {% translate "Pending or rejected changes do not replace it." %}</p>
-    <p class="ra:mt-2 ra:text-sm ra:text-muted">{% translate "Review public descriptions, broad city/country and image content for private contacts, precise addresses and unsupported promises. This review does not change business verification or product approval." %}</p>
-    {% if can_read %}
-      <p class="ra:mt-4">{% translate "Country" %}: {{ public_body.country|default:not_provided }} · {% translate "City" %}: {{ public_body.city|default:not_provided }}</p>
-      {% for locale, edition in editions %}<article class="ra:mt-4 ra:rounded-lg ra:border ra:border-line ra:p-4">
-        <h3 class="ra:font-bold">{{ locale }}</h3><p class="ra:mt-2 ra:whitespace-pre-wrap" lang="{{ locale }}" dir="{% if locale == 'en' %}ltr{% else %}rtl{% endif %}">{{ edition.description }}</p>
-        <p class="ra:mt-2">{% translate "Logo alt:" %} <bdi lang="{{ locale }}">{{ edition.logo_alt }}</bdi> · {% translate "Banner alt:" %} <bdi lang="{{ locale }}">{{ edition.banner_alt }}</bdi></p>
-      </article>{% endfor %}
-      {% for image in media %}<a class="ra:mt-4 ra:inline-block ra:text-action" href="{{ image.url }}"><img class="ra:max-h-60 ra:max-w-full ra:rounded-lg" src="{{ image.url }}" alt="{% blocktranslate with name=image.name %}Submitted store media {{ name }}{% endblocktranslate %}">{% blocktranslate with name=image.name|lower %}Inspect private {{ name }} image{% endblocktranslate %}</a>{% endfor %}
-    {% else %}<p class="ra:mt-4">{% translate "Submission content requires assigned read permission. Queue and assignment access do not reveal private draft content." %}</p>{% endif %}
-  </section>
-  {% if can_act %}<section class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="ra:mt-4 ra:min-h-11 ra:rounded-lg ra:bg-action ra:px-5 ra:font-bold ra:text-on-action" type="submit">{% translate "Apply guarded action" %}</button></form></section>{% else %}<p>{% translate "This revision has no actions for your current role and state." %}</p>{% endif %}
-  <a class="ra:text-action" href="{{ request.path }}">{% translate "Reload saved revision (discard unsaved form entries)" %}</a>
+{% translate "Unassigned" as unassigned %}{% translate "Not provided" as not_provided %}{% translate "Apply guarded action" as submit_label %}
+<div class="{{ rz_order.layout }}">
+<header class="{{ rz_order.panel }}">
+<div class="{{ rz_order.toolbar }}">
+<div class="min-w-0"><p class="{{ rz_order.eyebrow }}">{% translate "Store review" %}</p><h1 class="{{ rz_order.heading }}"><bdi>{{ revision.store.profile.display_name }}</bdi></h1><p class="{{ rz_order.muted }}">{% blocktranslate with number=revision.number %}Exact submitted revision {{ number }}{% endblocktranslate %} · {{ revision.state|admin_badge }}</p></div>
+<a class="{{ rz_order.secondary_button }}" href="{{ public_store_url }}" target="_blank" rel="noopener">{% translate "Compare the current public store" %}<span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span></a>
+</div>
+<div class="{{ rz_order.detail_body }}">{{ revision.store.profile|admin_business }}</div>
+<p class="{{ rz_order.muted }}">{% translate "Assigned reviewer" %}: {% if revision.assigned_to %}{{ revision.assigned_to }}{% else %}{{ unassigned }}{% endif %} · {% blocktranslate with business=revision.business_case.revision version=revision.store.version %}Business review revision {{ business }} · Store version {{ version }}{% endblocktranslate %}</p>
+{% if not independent_decision %}<p class="{{ rz_order.notice }}" role="status">{% translate "You can inspect this record. An independent reviewer must decide your own or historically linked store submission." %}</p>{% endif %}
+</header>
+<div class="{{ rz_order.workspace_grid }}">
+<div class="{{ rz_order.main_column }}">
+{% if can_act %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Guarded decision" %}</h2><p class="{{ rz_order.muted }}">{% translate "Review public descriptions, broad city/country and image content for private contacts, precise addresses and unsupported promises. This review does not change business verification or product approval." %}</p>{% include "accounts/admin/includes/action_form.html" with submit_label=submit_label %}<p><a class="{{ rz_order.disclosure }}" href="{{ request.path }}">{% translate "Reload saved revision (discard unsaved form entries)" %}</a></p></section>
+{% else %}<p class="{{ rz_order.notice }}" role="status">{% translate "This revision has no actions for your current role and state." %}</p>{% endif %}
+<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% blocktranslate with published=revision.store.published.number|default:"None" %}Current approved optional revision: {{ published }}.{% endblocktranslate %}</h2><p class="{{ rz_order.muted }}">{% translate "Pending or rejected changes do not replace it." %}</p></section>
+</div>
+<aside class="{{ rz_order.layout }}" aria-label="{% translate 'Submitted revision' %}">
+{% if can_read %}
+<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Submitted public details" %}</h2><p class="{{ rz_order.muted }}">{% translate "Country" %}: {{ public_body.country|default:not_provided }} · {% translate "City" %}: {{ public_body.city|default:not_provided }}</p>{% for locale, edition in editions %}<article class="{{ rz_order.history }}"><h3 class="{{ rz_order.label }}">{{ locale }}</h3><p class="whitespace-pre-wrap break-words" lang="{{ locale }}" dir="{% if locale == 'en' %}ltr{% else %}rtl{% endif %}">{{ edition.description }}</p><p class="{{ rz_order.muted }}">{% translate "Logo alt:" %} <bdi lang="{{ locale }}">{{ edition.logo_alt }}</bdi> · {% translate "Banner alt:" %} <bdi lang="{{ locale }}">{{ edition.banner_alt }}</bdi></p></article>{% endfor %}</section>
+{% if media %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Submitted store media" %}</h2><div class="flex flex-wrap gap-3">{% for image in media %}<figure class="min-w-0"><a href="{{ image.url }}" target="_blank" rel="noopener"><img class="h-32 w-auto rounded-default border {{ rz_order.divider }}" src="{{ image.url }}" alt="{% blocktranslate with name=image.name %}Submitted store media {{ name }}{% endblocktranslate %}"></a><figcaption><a class="{{ rz_order.action }}" href="{{ image.url }}" target="_blank" rel="noopener">{% blocktranslate with name=image.name|lower %}Inspect private {{ name }} image{% endblocktranslate %}</a></figcaption></figure>{% endfor %}</div></section>{% endif %}
+{% else %}<p class="{{ rz_order.notice }}" role="status">{% translate "Submission content requires assigned read permission. Queue and assignment access do not reveal private draft content." %}</p>{% endif %}
+</aside>
+</div>
 </div>
 {% endblock %}

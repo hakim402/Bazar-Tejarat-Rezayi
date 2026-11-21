@@ -1,29 +1,24 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n order_admin %}
 {% block content %}
-<div class="rz-owner ra:space-y-6 ra:min-w-0">
-<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
-<h1 class="ra:text-xl ra:font-semibold">{{ title }}</h1>
-<p dir="auto">{{ resource }}</p>
-<p>{{ t.intro }}</p>
-</section>
-{% if requested_alternatives %}
-<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
-<h2 class="ra:text-lg ra:font-semibold">{{ t.requested }}</h2>
-<dl class="ra:space-y-3">
-{% for item in requested_alternatives %}
-<div><dt>{{ item.label }}</dt><dd dir="auto">{{ item.reason }}</dd></div>
-{% endfor %}
-</dl>
-</section>
-{% endif %}
-<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{{ t.title }}">
-<h2 class="ra:text-lg ra:font-semibold">{{ t.action }}</h2>
-<form method="post" class="ra:space-y-3">{% csrf_token %}
-{{ form.non_field_errors }}
-{{ form.as_p }}
-<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{{ t.apply }}</button>
-</form>
-</section>
+<div class="{{ rz_order.layout }}">
+<header class="{{ rz_order.panel }}">
+<p class="{{ rz_order.eyebrow }}">{{ t.title }}</p>
+<h1 class="{{ rz_order.heading }}"><bdi>{{ resource.company.display_name }}</bdi></h1>
+<p class="{{ rz_order.muted }}" dir="auto">{{ t.intro }}</p>
+</header>
+<div class="{{ rz_order.workspace_grid }}">
+<div class="{{ rz_order.main_column }}">
+<section class="{{ rz_order.panel }}" aria-label="{{ t.title }}"><h2 class="{{ rz_order.section_heading }}">{{ t.action }}</h2>{% include "accounts/admin/includes/action_form.html" with submit_label=t.apply %}</section>
+</div>
+<aside class="{{ rz_order.layout }}" aria-label="{% translate 'Record summary' %}">
+<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Identity" %}</h2><div class="{{ rz_order.detail_body }}">
+<div><p class="{{ rz_order.muted }}">{% translate "Company" %}</p>{{ resource.company|admin_business }}</div>
+{% if resource.account %}<div><p class="{{ rz_order.muted }}">{% translate "Member" %}</p>{{ resource.account|admin_account }}</div><div><p class="{{ rz_order.muted }}">{% translate "Role" %}</p>{% if resource.is_owner %}{% translate "Owner" %}{% else %}{% translate "Member" %}{% endif %} · {% translate "Active" %}: {% if resource.active %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</div>
+{% else %}<div><p class="{{ rz_order.muted }}">{% translate "Requester" %}</p>{{ resource.requester|admin_account }}</div><div><p class="{{ rz_order.muted }}">{% translate "Recipient" %}</p>{{ resource.recipient.account|admin_account }}</div><div><p class="{{ rz_order.muted }}">{% translate "Status" %}</p>{{ resource.status|admin_badge }}</div>{% endif %}
+</div></section>
+{% if requested_alternatives %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{{ t.requested }}</h2><dl class="{{ rz_order.detail_body }}">{% for item in requested_alternatives %}<div><dt class="{{ rz_order.label }}">{{ item.label }}</dt><dd class="{{ rz_order.muted }}" dir="auto">{{ item.reason }}</dd></div>{% endfor %}</dl></section>{% endif %}
+</aside>
+</div>
 </div>
 {% endblock %}

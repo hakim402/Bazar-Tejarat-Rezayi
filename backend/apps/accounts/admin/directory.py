@@ -26,9 +26,12 @@ WORKFLOWS = (
         "catalogue.variant", "catalogue.translation", "inventory.batch", "inventory.movement",
     )),
     ("People & stores", "کاربران و فروشگاه‌ها", "storefront", (
-        "accounts.user", "accounts.account", "marketplace.store", "marketplace.storerevision",
-        "marketplace.featuredstore", "organizations.businessprofile", "verification.reviewcase",
-        "organizations.membership",
+        "accounts.user", "accounts.account", "organizations.businessprofile",
+        "verification.reviewcase", "verification.evidence",
+        "marketplace.store", "marketplace.storerevision", "marketplace.storemedia",
+        "marketplace.storeevent", "marketplace.featuredstore",
+        "organizations.membership", "organizations.ownershiptransfer",
+        "organizations.invitation", "organizations.invitationmail",
     )),
 )
 

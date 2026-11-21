@@ -47,3 +47,15 @@ def admin_buyer(order):
 def admin_seller(order):
     from apps.catalogue.admin.presentation import seller_cell
     return seller_cell(order.seller)
+
+
+@register.filter
+def admin_account(account):
+    from apps.orders.admin_presentation import account_cell
+    return account_cell(account)
+
+
+@register.filter
+def admin_business(profile):
+    from apps.catalogue.admin.presentation import seller_cell
+    return seller_cell(profile)

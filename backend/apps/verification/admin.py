@@ -1,8 +1,8 @@
 from django.http import FileResponse, Http404, HttpResponseRedirect
+from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.shortcuts import get_object_or_404
 from django.urls import path, reverse
-from django.utils.html import format_html
 from rest_framework.exceptions import APIException
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext_lazy as _
@@ -10,6 +10,10 @@ from django.utils.translation import gettext_lazy as _
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.copy import COPY as ADMIN_COPY
 from apps.accounts.admin.access import admin_actor, permits, is_owner
+from apps.accounts.admin.display import short_id
+from apps.catalogue.admin.helpers import link_button
+from apps.catalogue.admin.presentation import seller_cell
+from apps.orders.admin_presentation import account_cell
 from apps.organizations.admin import ReadOnlyAdmin, WorkflowAdmin
 from .models import Evidence, ReviewCase
 from .services import cases_requiring_another_reviewer, download_evidence
@@ -50,17 +54,24 @@ class CaseAdmin(WorkflowAdmin):
             qs = qs.filter(assigned_to=admin_actor(request).account)
         return qs.distinct()
 
-    list_display = ["profile", "revision", "status", "submitted_at", "review_case", "assigned_to"]
+    list_display = ["business_identity", "revision", "status", "reviewer", "submitted_at", "review_case"]
     list_filter = ["status", "profile__kind"]
     search_fields = ["profile__display_name", "profile__legal_name"]
-    list_select_related = ["profile", "assigned_to__user"]
+    list_select_related = ["profile__account__user", "assigned_to__user"]
     ordering = ["-submitted_at", "-created_at"]
-    list_display_links = ["profile"]
+    list_display_links = ["business_identity"]
+    badge_fields = ("status",)
+
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj.profile)
+
+    @admin.display(description=_("Assigned reviewer"))
+    def reviewer(self, obj):
+        return account_cell(obj.assigned_to) if obj.assigned_to_id else _("Unassigned")
 
     def review_case(self, obj):
-        return format_html('<a href="{}">Review case</a>', reverse(
-            "admin:verification_reviewcase_workflow", args=[obj.pk]
-        ))
+        return link_button(reverse("admin:verification_reviewcase_workflow", args=[obj.pk]), _("Open guarded review"), "fact_check")
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         if request.method != "GET":
@@ -85,15 +96,24 @@ class EvidenceAdmin(ReadOnlyAdmin):
         return qs.filter(case__assigned_to=admin_actor(request).account).exclude(
             case__profile__account__user=request.user).exclude(case__profile__memberships__account__user=request.user).distinct()
 
-    list_display = ["id", "case", "category", "size"]
+    list_display = ["record_reference", "business_identity", "category", "size", "created_at", "protected_download"]
+    list_select_related = ["case__profile__account__user"]
+    badge_fields = ("category",)
+
+    @admin.display(description=_("Reference"))
+    def record_reference(self, obj):
+        return short_id(obj.pk)
+
+    @admin.display(description=_("Business"))
+    def business_identity(self, obj):
+        return seller_cell(obj.case.profile)
 
     def get_readonly_fields(self, request, obj=None):
         return ["id", "case", "category", "content_type", "size", "created_at", "protected_download"]
 
     def protected_download(self, obj):
-        return format_html(
-            '<a href="{}">{}</a>',
-            reverse("admin:verification_evidence_download", args=[obj.pk]), ADMIN_COPY["protected_evidence"],
+        return link_button(
+            reverse("admin:verification_evidence_download", args=[obj.pk]), ADMIN_COPY["protected_evidence"], "download"
         )
 
     def get_urls(self):

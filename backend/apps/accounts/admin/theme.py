@@ -65,6 +65,7 @@ STATE_VARIANTS = {
         "pending", "open", "submitted", "under_review", "reported", "review_required",
         "shortage", "blocked_zero", "queued", "retry_due", "claimed", "dispatching",
         "draft", "referred", "incomplete", "unpaid", "partial", "expiring",
+        "needs_information", "accepted",
     },
     "success": {
         "approved", "confirmed", "completed", "active", "resolved", "paid", "published",
