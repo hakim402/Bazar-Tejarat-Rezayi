@@ -53,6 +53,10 @@ from .models import (
     ReviewDecision,
 )
 from . import access, queries, services
+from .admin_presentation import OwnerOrderPresentation
+from apps.catalogue.admin.helpers import link_button
+from apps.accounts.admin.locale import admin_language, frontend_locale
+from unfold.widgets import UnfoldAdminIntegerFieldWidget, UnfoldAdminTextareaWidget
 
 
 def private_document(view):
@@ -63,7 +67,7 @@ def private_document(view):
         except (APIException, DatabaseError, OSError) as exc:
             status = exc.status_code if isinstance(exc, APIException) else 503
             response = HttpResponse(
-                "Protected document temporarily unavailable." if status >= 500 else "Access denied.", status=status
+                _("Protected document temporarily unavailable.") if status >= 500 else _("Access denied."), status=status
             )
             response["Cache-Control"] = "private, no-store"
             response["X-Content-Type-Options"] = "nosniff"
@@ -91,7 +95,7 @@ class DispatchQueueFilter(SimpleListFilter):
         return queryset
 
 
-class OrderAdmin(ReadOnlyAdmin):
+class OrderAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
     fields = [
         "id",
         "buyer_display",
@@ -111,7 +115,7 @@ class OrderAdmin(ReadOnlyAdmin):
         return obj.snapshot["seller"]
 
     def get_fields(self, request, obj=None):
-        fields = list(self.fields)
+        fields = self.owner_field_names() if is_owner(request) and self.model is SellerOrder else list(self.fields)
         if obj is not None and self.model is SellerOrder:
             from apps.fulfilment.access import scope
 
@@ -137,6 +141,8 @@ class OrderAdmin(ReadOnlyAdmin):
 
     def get_list_display(self, request):
         if self.shows_dispatch_queue(request):
+            if is_owner(request):
+                return ["order_reference", "buyer_identity", "seller_identity", "accepted_at", "dispatch_status", "delivery_workflow"]
             return ["invoice_number", "seller_display", "accepted_at", "dispatch_status", "delivery_workflow"]
         return super().get_list_display(request)
 
@@ -182,7 +188,8 @@ class OrderAdmin(ReadOnlyAdmin):
 
     list_display = ["id", "seller_display", "currency", "goods_total", "payment_method", "accepted_at"]
     list_filter = [("seller", RelatedOnlyFieldListFilter), "currency", "payment_method", "accepted_at"]
-    search_fields = ["id", "invoice__number"]
+    search_fields = ["id", "invoice__number", "buyer__user__display_name", "buyer__user__email", "seller__display_name", "seller__account__user__email", "lines__snapshot__sku", "lines__snapshot__titles"]
+    search_help_text = _("Find by invoice, buyer, seller, email or SKU")
     ordering = ["-accepted_at"]
     money_fields = {"goods_total": "currency"}
     fieldset_groups = [
@@ -211,10 +218,11 @@ class OrderAdmin(ReadOnlyAdmin):
         }
 
 
-class InvoiceAdmin(ReadOnlyAdmin):
+class InvoiceAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
     fields = ["id", "number", "issued_at", "protected_document"]
     list_display = ["number", "issued_at", "protected_document"]
-    search_fields = ["number"]
+    search_fields = ["number", "order__buyer__user__display_name", "order__buyer__user__email", "order__seller__display_name"]
+    search_help_text = _("Find by invoice, buyer, seller or email")
     ordering = ["-issued_at"]
     list_filter = ["issued_at", "order__currency"]
 
@@ -222,7 +230,7 @@ class InvoiceAdmin(ReadOnlyAdmin):
         return allowed(request, "read_invoices")
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, self.fields)
 
     def lookup_allowed(self, lookup, value, request=None):
         return lookup in {
@@ -235,11 +243,12 @@ class InvoiceAdmin(ReadOnlyAdmin):
             "issued_at__lt",
         }
 
+    @django_admin.display(description=_("Invoice documents"))
     def protected_document(self, obj):
         return format_html(
-            '<a href="{}">Read invoice / print</a> · <a href="{}">Protected PDF</a>',
-            reverse("admin:orders_invoice_document", args=[obj.pk]),
-            reverse("admin:orders_invoice_pdf", args=[obj.pk]),
+            '<div class="flex flex-wrap gap-2">{}{}</div>',
+            link_button(reverse("admin:orders_invoice_document", args=[obj.pk]), _("View and print invoice"), "print"),
+            link_button(reverse("admin:orders_invoice_pdf", args=[obj.pk]), _("Download invoice PDF"), "download"),
         )
 
     def get_object(self, request, object_id, from_field=None):
@@ -262,7 +271,7 @@ class InvoiceAdmin(ReadOnlyAdmin):
         item = queries.document(admin_actor(request), pk, action="native_invoice_print", native=True)
         from .documents import html_document
 
-        response = HttpResponse(html_document(item, "en"), content_type="text/html; charset=utf-8")
+        response = HttpResponse(html_document(item, frontend_locale(admin_language(request))), content_type="text/html; charset=utf-8")
         response["Cache-Control"] = "private, no-store"
         response["Content-Security-Policy"] = (
             "default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
@@ -278,7 +287,7 @@ class InvoiceAdmin(ReadOnlyAdmin):
         item = queries.document(admin_actor(request), pk, action="native_invoice_pdf", native=True)
         from .documents import pdf_bytes
 
-        response = HttpResponse(pdf_bytes(item, "en"), content_type="application/pdf")
+        response = HttpResponse(pdf_bytes(item, frontend_locale(admin_language(request))), content_type="application/pdf")
         response["Cache-Control"] = "private, no-store"
         response["Content-Security-Policy"] = (
             "default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
@@ -317,11 +326,15 @@ class LineAdmin(OrderAdmin):
 
 class PolicyForm(forms.ModelForm):
     expected_version = forms.IntegerField(widget=forms.HiddenInput)
-    reason = forms.CharField(min_length=3, max_length=1000)
+    reason = forms.CharField(label=_("Reason for change"), min_length=3, max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
 
     class Meta:
         model = OrderPolicy
         fields = ["advance_hours", "reminder_hours"]
+        labels = {"advance_hours": _("Advance payment deadline (hours)"), "reminder_hours": _("Reminder interval (hours)")}
+        help_texts = {"advance_hours": _("Between 1 and 720 hours. Existing order deadlines remain unchanged."),
+                      "reminder_hours": _("Between 0 and 720 hours. Set 0 to disable repeated reminders.")}
+        widgets = {"advance_hours": UnfoldAdminIntegerFieldWidget, "reminder_hours": UnfoldAdminIntegerFieldWidget}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -333,7 +346,7 @@ class PolicyForm(forms.ModelForm):
         return self.instance.reminder_hours if value is None else value
 
 
-class PolicyAdmin(ReadOnlyAdmin):
+class PolicyAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
     form = PolicyForm
     fields = ["advance_hours", "reminder_hours", "version", "expected_version", "reason"]
     readonly_fields = ["version"]
@@ -365,9 +378,9 @@ class PolicyAdmin(ReadOnlyAdmin):
                 reminder_hours=form.cleaned_data["reminder_hours"],
             )
         except APIException:
-            messages.error(request, "Policy changed or access ended. Review the current version.")
+            messages.error(request, _("Policy changed or access ended. Review the current version."))
         else:
-            messages.success(request, "Payment policy updated. Accepted original deadlines remain unchanged; zero reminder hours disables repeats.")
+            messages.success(request, _("Payment policy updated. Accepted original deadlines remain unchanged; zero reminder hours disables repeats."))
         return HttpResponseRedirect(request.path)
 
     def save_model(self, *args, **kwargs):
@@ -390,11 +403,12 @@ for model, admin in [
     owner_site.register(model, admin)
 
 
-class NegotiationAdmin(ReadOnlyAdmin):
+class NegotiationAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
     list_display = ["id", "seller", "currency", "state", "revision", "version", "created_at"]
     list_filter = ["state", "currency", "created_at"]
     badge_fields = ("state",)
-    search_fields = ["id"]
+    search_fields = ["id", "buyer__user__display_name", "buyer__user__email", "seller__display_name", "seller__account__user__email"]
+    search_help_text = _("Find by reference, buyer, seller or email")
     list_per_page = 20
 
     def staff_view(self, request, obj=None):
@@ -479,6 +493,7 @@ class AftercareAdmin(ReadOnlyAdmin):
             self.model._meta.pk.name,
             self.model._meta.pk.name + "__exact",
             *getattr(self, "list_filter", []),
+            *(field + "__exact" for field in getattr(self, "list_filter", []) if isinstance(field, str)),
         }
 
 
@@ -524,10 +539,10 @@ def reviewer_name(obj):
     return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
 
-class CancellationAdmin(AftercareAdmin):
+class CancellationAdmin(OwnerOrderPresentation, AftercareAdmin):
     list_display = ["id", "order", "state", "requester", "reviewer", "workspace"]
     list_filter = ["state", "requester_context"]
-    search_fields = ["id", "order__id"]
+    search_fields = ["id", "order__id", "order__invoice__number", "order__buyer__user__email", "order__seller__display_name"]
     badge_fields = ("state",)
     fieldset_groups = [
         ("Request", "Who asked and why. Buyer/seller requests bind to the exact requesting account; a staff-opened request cross-references its paid-shortage case and records the initiating staff identity honestly.",
@@ -551,21 +566,21 @@ class CancellationAdmin(AftercareAdmin):
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, self.fields)
 
     def staff_queryset(self, request, qs):
         return qs.filter(pk__in=access.cancellation_scope(admin_actor(request)).values("pk"))
 
     def requester(self, obj):
-        return obj.requester_context.title()
+        return _(obj.requester_context.capitalize())
 
+    @django_admin.display(description=_("Assigned reviewer"))
     def reviewer(self, obj):
         return reviewer_name(obj)
 
+    @django_admin.display(description=_("Review actions"))
     def workspace(self, obj):
-        return format_html('<a href="{}">{}</a>',
-            self.review_url(obj.pk), _("Open guarded cancellation review"),
-        )
+        return link_button(self.review_url(obj.pk), _("Review cancellation"), "fact_check")
 
     def review_url(self, pk):
         return reverse("admin:orders_cancellationrequest_review", args=[pk])
@@ -634,7 +649,7 @@ class CancellationAdmin(AftercareAdmin):
             "orders/cancellation.html",
             {
                 **self.admin_site.each_context(request),
-                "title": "Order cancellation review",
+                "title": _("Order cancellation review"),
                 "opts": CancellationRequest._meta,
                 "record": record,
                 "form": form,
@@ -675,10 +690,10 @@ class CancellationDecisionAdmin(AftercareAdmin):
     list_display = ["request", "action", "created_at"]
 
 
-class AmendmentAdmin(AftercareAdmin):
+class AmendmentAdmin(OwnerOrderPresentation, AftercareAdmin):
     list_display = ["id", "order", "state", "after_total", "reviewer", "workspace"]
     list_filter = ["state"]
-    search_fields = ["id", "order__id"]
+    search_fields = ["id", "order__id", "order__invoice__number", "order__buyer__user__email", "order__seller__display_name"]
     badge_fields = ("state",)
     fieldset_groups = [
         ("Proposal", "Seller-proposed decreases only, before dispatch. Zero quantities, increases and substitutions are refused; wholesale lines cannot drop below the variant's current minimum.",
@@ -689,18 +704,18 @@ class AmendmentAdmin(AftercareAdmin):
     fields = ["id", "order", "state", "actor", "after_total", "reason", "assigned_to", "version", "created_at"]
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, self.fields)
 
     def staff_queryset(self, request, qs):
         return qs.filter(pk__in=access.amendment_scope(admin_actor(request)).values("pk"))
 
+    @django_admin.display(description=_("Assigned reviewer"))
     def reviewer(self, obj):
         return reviewer_name(obj)
 
+    @django_admin.display(description=_("Review actions"))
     def workspace(self, obj):
-        return format_html('<a href="{}">{}</a>',
-            self.review_url(obj.pk), _("Open guarded amendment review"),
-        )
+        return link_button(self.review_url(obj.pk), _("Review amendment"), "fact_check")
 
     def review_url(self, pk):
         return reverse("admin:orders_amendment_review", args=[pk])
@@ -782,7 +797,7 @@ class AmendmentAdmin(AftercareAdmin):
             "orders/amendment.html",
             {
                 **self.admin_site.each_context(request),
-                "title": "Order amendment review",
+                "title": _("Order amendment review"),
                 "opts": Amendment._meta,
                 "record": record,
                 "form": form,
@@ -809,7 +824,8 @@ class AmendmentDecisionAdmin(AftercareAdmin):
     list_display = ["amendment", "action", "created_at"]
 
 
-class AdjustmentAdmin(AftercareAdmin):
+class AdjustmentAdmin(OwnerOrderPresentation, AftercareAdmin):
+    search_fields = ["id", "invoice__number", "order__buyer__user__email", "order__seller__display_name"]
     list_display = ["id", "invoice", "cause", "before_total", "after_total", "created_at"]
     list_filter = ["cause"]
     fields = [
@@ -829,7 +845,7 @@ class AdjustmentAdmin(AftercareAdmin):
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, self.fields)
 
 
 for model, model_admin in [
@@ -941,10 +957,10 @@ class DisputeScopedAdmin(AftercareAdmin):
 
 
 @django_admin.register(DisputeRequest, site=owner_site)
-class DisputeRequestAdmin(DisputeScopedAdmin):
+class DisputeRequestAdmin(OwnerOrderPresentation, DisputeScopedAdmin):
     list_display = ["id", "order", "state", "reviewer", "workspace", "created_at"]
     list_filter = ["state"]
-    search_fields = ["id", "order__invoice__number"]
+    search_fields = ["id", "order__invoice__number", "order__buyer__user__email", "order__seller__display_name"]
     badge_fields = ("state",)
     fields = [
         "id", "order", "state", "requester_account", "reason", "blocker", "assigned_to",
@@ -963,14 +979,15 @@ class DisputeRequestAdmin(DisputeScopedAdmin):
         return ["id", "state", "assigned_to", "version", "created_at", "workspace"]
 
     def get_readonly_fields(self, request, obj=None):
-        return self.get_fields(request, obj)
+        return self.owner_readonly(request, self.get_fields(request, obj))
 
+    @django_admin.display(description=_("Assigned reviewer"))
     def reviewer(self, obj):
         return reviewer_name(obj)
 
+    @django_admin.display(description=_("Review actions"))
     def workspace(self, obj):
-        return format_html('<a href="{}">{}</a>', reverse("admin:orders_disputerequest_review", args=[obj.pk]),
-                           _("Open guarded dispute review"))
+        return link_button(reverse("admin:orders_disputerequest_review", args=[obj.pk]), _("Review dispute"), "fact_check")
 
     def get_urls(self):
         return [
@@ -1090,19 +1107,19 @@ class ReviewScopedAdmin(AftercareAdmin):
 
 
 @django_admin.register(Review, site=owner_site)
-class ReviewAdmin(ReviewScopedAdmin):
+class ReviewAdmin(OwnerOrderPresentation, ReviewScopedAdmin):
     list_display = ["order", "rating", "state", "workspace", "created_at"]
     list_filter = ["state", "rating"]
-    search_fields = ["order__invoice__number"]
+    search_fields = ["order__invoice__number", "text", "buyer__user__display_name", "buyer__user__email", "order__seller__display_name"]
     badge_fields = ("state",)
     fields = ["order", "buyer", "rating", "text", "language", "state", "version", "event", "created_at", "workspace"]
 
     def get_readonly_fields(self, request, obj=None):
-        return self.fields
+        return self.owner_readonly(request, self.fields)
 
+    @django_admin.display(description=_("Review actions"))
     def workspace(self, obj):
-        return format_html('<a href="{}">{}</a>', reverse("admin:orders_review_moderate", args=[obj.pk]),
-                           _("Open guarded review moderation"))
+        return link_button(reverse("admin:orders_review_moderate", args=[obj.pk]), _("Moderate review"), "rate_review")
 
     def get_urls(self):
         return [path("<uuid:pk>/moderate/", self.admin_site.admin_view(self.workflow), name="orders_review_moderate"),

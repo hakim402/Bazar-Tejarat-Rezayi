@@ -32,10 +32,10 @@ msgid "5–60 seconds. Used only when automatic rotation is on."
 msgstr "۵ تا ۶۰ ثانیه. تنها وقتی چرخش خودکار روشن باشد استفاده می‌شود."
 
 msgid "A buyer, seller or historical participant conflict prevents moderation, including root."
-msgstr "تعارض خریدار، فروشنده یا شرکت‌کنندهٔ تاریخی مانع بررسی می‌شود، از جمله برای مدیر ارشد."
+msgstr "تعارض خریدار، فروشنده یا شرکت کنندهٔ تاریخی مانع بررسی می شود، از جمله برای مدیر ارشد."
 
 msgid "A buyer, seller, historical participant or evidence-author conflict prevents you from deciding, including root. Assign an eligible independent reviewer."
-msgstr "تعارض خریدار، فروشنده، شرکت‌کنندهٔ تاریخی یا نویسندهٔ مدرک مانع تصمیم شما می‌شود، از جمله برای مدیر ارشد. یک بررسی‌کنندهٔ مستقل واجد شرایط را واگذار کنید."
+msgstr "تعارض خریدار، فروشنده، شرکت کنندهٔ تاریخی یا نویسندهٔ مدرک مانع تصمیم شما می شود، از جمله برای مدیر ارشد. یک بررسی کنندهٔ مستقل واجد شرایط را واگذار کنید."
 
 msgid "A clear view of your marketplace."
 msgstr "نمای روشن از بازار شما."
@@ -71,10 +71,10 @@ msgid "Accepted amendments"
 msgstr "اصلاحات پذیرفته‌شده"
 
 msgid "Accepted orders"
-msgstr "سفارش‌های پذیرفته‌شده"
+msgstr "سفارش های پذیرفته شده"
 
 msgid "Accepted total"
-msgstr "مجموع پذیرفته‌شده"
+msgstr "مجموع پذیرفته شده"
 
 msgid "Access could not be verified. Check your password and authenticator or recovery code."
 msgstr "دسترسی تأیید نشد. رمز عبور و برنامهٔ تأیید هویت یا کد بازیابی را بررسی کنید."
@@ -209,10 +209,10 @@ msgid "Amendments"
 msgstr "اصلاحات"
 
 msgid "Amendments only decrease an accepted line quantity or unit price before dispatch. Original accepted lines stay frozen; effective values are projected from the latest approved amendment."
-msgstr "اصلاحات تنها مقدار یا قیمت واحد یک قلم پذیرفته‌شده را پیش از ارسال کاهش می‌دهند. قلم‌های اصلی پذیرفته‌شده منجمد می‌مانند؛ مقادیر مؤثر از جدیدترین اصلاح تأییدشده محاسبه می‌شوند."
+msgstr "اصلاحات تنها مقدار یا قیمت واحد یک قلم پذیرفته شده را پیش از ارسال کاهش می دهند. قلم های اصلی پذیرفته شده منجمد می مانند؛ مقادیر مؤثر از جدیدترین اصلاح تأییدشده محاسبه می شوند."
 
 msgid "An amount is only allowed for an ordered refund."
-msgstr "مبلغ تنها برای بازپرداخت سفارش‌شده اجازه دارد."
+msgstr "مبلغ تنها برای بازپرداخت سفارش شده اجازه دارد."
 
 msgid "Announcement"
 msgstr "اعلان"
@@ -239,7 +239,7 @@ msgid "Apply guarded action"
 msgstr "اجرای اقدام محافظت‌شده"
 
 msgid "Approval rechecks every decrease rule and the retained proposal against current accepted lines before applying new effective values."
-msgstr "تأیید، هر قاعدهٔ کاهش و پیشنهاد نگه‌داشته‌شده را در برابر قلم‌های پذیرفته‌شدهٔ فعلی دوباره بررسی می‌کند، پیش از اعمال مقادیر مؤثر جدید."
+msgstr "تأیید، هر قاعدهٔ کاهش و پیشنهاد نگه داشته شده را در برابر قلم های پذیرفته شدهٔ فعلی دوباره بررسی می کند، پیش از اعمال مقادیر مؤثر جدید."
 
 msgid "Approve only actual receipt by this named provider. Submission is not settlement."
 msgstr "تنها دریافت واقعی توسط این ارائه‌دهندهٔ نام‌برده را تأیید کنید. ارسال، تصفیه نیست."
@@ -275,7 +275,7 @@ msgid "Assigned review items"
 msgstr "موارد بررسی واگذارشده"
 
 msgid "Assigned reviewer"
-msgstr "بررسی‌کنندهٔ تعیین‌شده"
+msgstr "بررسی کنندهٔ تعیین شده"
 
 msgid "Assigned to"
 msgstr "واگذارشده به"
@@ -401,13 +401,13 @@ msgid "Cancellation hold"
 msgstr "توقف لغو"
 
 msgid "Cancellation requests"
-msgstr "درخواست‌های لغو"
+msgstr "درخواست های لغو سفارش"
 
 msgid "Cancellation, amendment and refund activity"
 msgstr "فعالیت لغو، اصلاح و بازپرداخت"
 
 msgid "Cancellations take effect before dispatch only. Approval is terminal: it releases an unshipped advance reservation exactly once, freezes new money actions and creates a refund due bounded by confirmed received money. History stays retained and readable."
-msgstr "لغو تنها پیش از ارسال اثر می‌کند. تأیید نهایی است: رزرو پیش‌پرداخت ارسال‌نشده را دقیقاً یک بار آزاد می‌کند، اقدامات پولی جدید را منجمد می‌کند و بازپرداخت بدهکار محدود به پول دریافتی تأییدشده ایجاد می‌کند. تاریخچه نگه داشته و قابل‌خواندن می‌ماند."
+msgstr "لغو تنها پیش از ارسال اثر می کند. تأیید نهایی است: رزرو پیش پرداخت ارسال نشده را دقیقاً یک بار آزاد می کند، اقدامات پولی جدید را منجمد می کند و بازپرداخت بدهکار محدود به پول دریافتی تأییدشده ایجاد می کند. تاریخچه نگه داشته و قابل خواندن می ماند."
 
 msgid "Captured/delivered to adapter"
 msgstr "گرفته‌شده/تحویل به آداپتور"
@@ -657,7 +657,7 @@ msgid "Current card image"
 msgstr "تصویر فعلی کارت"
 
 msgid "Current effective accepted lines"
-msgstr "قلم‌های مؤثر پذیرفته‌شدهٔ فعلی"
+msgstr "قلم های مؤثر پذیرفته شدهٔ فعلی"
 
 msgid "Current goods balance"
 msgstr "بیلانس فعلی کالا"
@@ -741,7 +741,7 @@ msgid "Delete permanently?"
 msgstr "حذف دائمی؟"
 
 msgid "Delivered-order dispute; original delivery and completion history remain unchanged."
-msgstr "اختلاف سفارش تحویل‌شده؛ تاریخچهٔ اصلی تحویل و تکمیل بدون تغییر می‌ماند."
+msgstr "اختلاف سفارش تحویل شده؛ تاریخچهٔ اصلی تحویل و تکمیل بدون تغییر می ماند."
 
 msgid "Delivery & Fulfilment"
 msgstr "تحویل و ارسال"
@@ -831,7 +831,7 @@ msgid "Drafts / pending changes"
 msgstr "پیش‌نویس‌ها / تغییرات در انتظار"
 
 msgid "Each disclosure rechecks current assignment and evidence rights and is audited before reading the private image."
-msgstr "هر افشای جدید واگذاری فعلی و حقوق مدارک را دوباره بررسی می‌کند و پیش از خواندن تصویر خصوصی ممیزی می‌شود."
+msgstr "هر افشای جدید واگذاری فعلی و حقوق مدارک را دوباره بررسی می کند و پیش از خواندن تصویر خصوصی ممیزی می شود."
 
 msgid "Earlier messages"
 msgstr "پیام‌های قبلی"
@@ -861,7 +861,7 @@ msgid "Enabled hero slides"
 msgstr "اسلایدهای فعال صفحهٔ اصلی"
 
 msgid "Enter the exact ordered refund amount."
-msgstr "مبلغ دقیق بازپرداخت سفارش‌شده را وارد کنید."
+msgstr "مبلغ دقیق بازپرداخت سفارش شده را وارد کنید."
 
 msgid "Enter your password"
 msgstr "رمز عبور خود را وارد کنید"
@@ -894,10 +894,10 @@ msgid "Exact original seller-confirmed receipt"
 msgstr "رسید اصلی تأییدشدهٔ فروشنده دقیق"
 
 msgid "Exact positive amount in the order currency; never money execution."
-msgstr "مبلغ مثبت دقیق به پول‌واحد سفارش؛ هرگز اجرای پول نیست."
+msgstr "مبلغ مثبت دقیق به پول واحد سفارش؛ هرگز اجرای پول نیست."
 
 msgid "Exact proposed decreases"
-msgstr "کاهش‌های پیشنهادی دقیق"
+msgstr "کاهش های پیشنهادی دقیق"
 
 msgid "Exact provider delivery refund"
 msgstr "بازپرداخت تحویل ارائه‌دهندهٔ دقیق"
@@ -975,7 +975,7 @@ msgid "Formal request activity"
 msgstr "فعالیت درخواست رسمی"
 
 msgid "Formal requests"
-msgstr "درخواست‌های رسمی"
+msgstr "درخواست های رسمی"
 
 msgid "From"
 msgstr "از"
@@ -1011,7 +1011,7 @@ msgid "Goods confirmed / remaining"
 msgstr "کالای تأییدشده / باقی‌مانده"
 
 msgid "Goods invoices"
-msgstr "فاکتورهای کالا"
+msgstr "صورتحساب های کالا"
 
 msgid "Goods payment activity"
 msgstr "فعالیت پرداخت کالا"
@@ -1038,7 +1038,7 @@ msgid "Guarded action"
 msgstr "اقدام محافظت‌شده"
 
 msgid "Guarded decision"
-msgstr "تصمیم محافظت‌شده"
+msgstr "تصمیم محافظت شده"
 
 msgid "Guarded domain record — the values below are retained history. Supported changes happen only through the linked guarded workflow; generic editing or deletion would bypass version, evidence and independence safeguards."
 msgstr "ثبت دامنهٔ محافظت‌شده — مقادیر زیر تاریخچهٔ نگه‌داشته‌شده است. تغییرهای پشتیبانی‌شده تنها از طریق جریان کاری محافظت‌شدهٔ لینک‌شده انجام می‌شود؛ ویرایش یا حذف عمومی، حفاظت نسخه، مدارک و استقلال را دور می‌زند."
@@ -1149,7 +1149,7 @@ msgid "Invoice"
 msgstr "فاکتور"
 
 msgid "Invoice adjustments"
-msgstr "تعدیل‌های فاکتور"
+msgstr "اصلاحات صورتحساب"
 
 msgid "Issued for accepted orders"
 msgstr "صادرشده برای سفارش‌های پذیرفته‌شده"
@@ -1479,10 +1479,10 @@ msgid "One workspace for catalogue oversight, business verification and editoria
 msgstr "یک بخش کاری برای نظارت بر کتالوگ، تأیید کسب‌وکارها و بررسی محتوای متنی."
 
 msgid "Only an independent exact assignee may decide. A refund order creates a due, not execution."
-msgstr "تنها بررسی‌کنندهٔ مستقل و تعیین‌شده می‌تواند تصمیم بگیرد. تصمیم بازپرداخت، تعهد ایجاد می‌کند و به معنای پرداخت نیست."
+msgstr "تنها بررسی کنندهٔ مستقل و تعیین شده می تواند تصمیم بگیرد. تصمیم بازپرداخت، تعهد ایجاد می کند و به معنای پرداخت نیست."
 
 msgid "Only an independent exact assignee may decide. Original delivery and completion history stay retained."
-msgstr "تنها بررسی‌کنندهٔ مستقل و تعیین‌شدهٔ دقیق می‌تواند تصمیم بگیرد. تاریخچهٔ اصلی تحویل و تکمیل نگه داشته می‌ماند."
+msgstr "تنها بررسی کنندهٔ مستقل و تعیین شدهٔ دقیق می تواند تصمیم بگیرد. تاریخچهٔ اصلی تحویل و تکمیل نگه داشته می ماند."
 
 msgid "Only assignment metadata is available. Current assignment and explicit financial/evidence permissions are required for private content."
 msgstr "تنها فرادادهٔ واگذاری موجود است. واگذاری فعلی و مجوزهای صریح مالی/مدارک برای محتوای خصوصی لازم است."
@@ -1491,7 +1491,7 @@ msgid "Only assignment metadata is available. Current assignment and explicit re
 msgstr "تنها فرادادهٔ واگذاری موجود است. واگذاری فعلی و مجوزهای صریح بازپرداخت برای محتوای خصوصی لازم است."
 
 msgid "Only assignment metadata is available. Current assignment and scoped read rights are required for private dispute content and evidence."
-msgstr "تنها فرادادهٔ واگذاری موجود است. واگذاری فعلی و حقوق خواندن محدوده‌دار برای محتوای خصوصی اختلاف و مدارک لازم است."
+msgstr "تنها فرادادهٔ واگذاری موجود است. واگذاری فعلی و حقوق خواندن محدوده دار برای محتوای خصوصی اختلاف و مدارک لازم است."
 
 msgid "Only assignment metadata is available. Current assignment is required for private money and adjustment content."
 msgstr "تنها فرادادهٔ واگذاری موجود است. واگذاری فعلی برای محتوای خصوصی پول و تعدیل لازم است."
@@ -1523,17 +1523,8 @@ msgstr "باز کردن ابزار فرمان"
 msgid "Open delivery and charge cases"
 msgstr "پرونده‌های باز تحویل و هزینه"
 
-msgid "Open guarded amendment review"
-msgstr "باز کردن بررسی محافظت‌شدهٔ اصلاح"
-
 msgid "Open guarded cancellation request"
 msgstr "باز کردن درخواست لغو محافظت‌شده"
-
-msgid "Open guarded cancellation review"
-msgstr "باز کردن بررسی محافظت‌شدهٔ لغو"
-
-msgid "Open guarded dispute review"
-msgstr "باز کردن بررسی محافظت‌شدهٔ اختلاف"
 
 msgid "Open guarded payment review"
 msgstr "باز کردن بررسی محافظت‌شدهٔ پرداخت"
@@ -1543,9 +1534,6 @@ msgstr "باز کردن بررسی محافظت‌شدهٔ بازپرداخت"
 
 msgid "Open guarded review"
 msgstr "باز کردن بررسی محافظت‌شده"
-
-msgid "Open guarded review moderation"
-msgstr "باز کردن بررسی محافظت‌شدهٔ نظرها"
 
 msgid "Open guarded workflow"
 msgstr "باز کردن جریان کاری محافظت‌شده"
@@ -1584,7 +1572,7 @@ msgid "Open work now"
 msgstr "کارهای باز فعلی"
 
 msgid "Opened from paid-shortage case"
-msgstr "بازشده از پروندهٔ کمبود پرداخت‌شده"
+msgstr "بازشده از پروندهٔ کمبود پرداخت شده"
 
 msgid "Opening hours"
 msgstr "ساعات کاری"
@@ -1629,16 +1617,16 @@ msgid "Order dispute review"
 msgstr "بررسی اختلاف سفارش"
 
 msgid "Order disputes"
-msgstr "اختلاف‌های سفارش"
+msgstr "شکایت های سفارش"
 
 msgid "Ordered refund amount"
 msgstr "مبلغ تعهد بازپرداخت"
 
 msgid "Ordered refund due, not execution"
-msgstr "تعهد بازپرداخت، نه پرداخت انجام‌شده"
+msgstr "تعهد بازپرداخت، نه پرداخت انجام شده"
 
 msgid "Orders"
-msgstr "سفارش‌ها"
+msgstr "سفارش ها"
 
 msgid "Orders & Invoices"
 msgstr "سفارش‌ها و فاکتورها"
@@ -1872,7 +1860,7 @@ msgid "Receipt history"
 msgstr "تاریخچهٔ رسید"
 
 msgid "Received"
-msgstr "دریافت‌شده"
+msgstr "دریافت شده"
 
 msgid "Recent actions"
 msgstr "اقدامات اخیر"
@@ -1932,7 +1920,7 @@ msgid "Refund reports"
 msgstr "گزارش‌های بازپرداخت"
 
 msgid "Refunded"
-msgstr "بازپرداخت‌شده"
+msgstr "بازپرداخت شده"
 
 msgid "Refunds"
 msgstr "بازپرداخت‌ها"
@@ -1962,7 +1950,7 @@ msgid "Reloading discards unsaved review entries."
 msgstr "بارگیری دوباره، ورودی‌های ذخیره‌نشدهٔ بررسی را از بین می‌برد."
 
 msgid "Remaining"
-msgstr "باقی‌مانده"
+msgstr "باقی مانده"
 
 msgid "Remove from sorting"
 msgstr "حذف از مرتب‌سازی"
@@ -2037,16 +2025,16 @@ msgid "Retail"
 msgstr "قیمت پرچون"
 
 msgid "Retained decision"
-msgstr "تصمیم نگه‌داشته‌شده"
+msgstr "تصمیم نگه داشته شده"
 
 msgid "Retained moderation history"
-msgstr "تاریخچهٔ ثبت‌شدهٔ بررسی"
+msgstr "تاریخچهٔ ثبت شدهٔ بررسی"
 
 msgid "Retained original"
 msgstr "اصلی نگه‌داشته‌شده"
 
 msgid "Retained seller response"
-msgstr "پاسخ ثبت‌شدهٔ فروشنده"
+msgstr "پاسخ ثبت شدهٔ فروشنده"
 
 msgid "Retry delivery (may duplicate an accepted email)"
 msgstr "تلاش دوبارهٔ ارسال (ممکن است یک ایمیل پذیرفته‌شده را تکرار کند)"
@@ -2109,7 +2097,7 @@ msgid "Reviews awaiting moderation"
 msgstr "نظرهای منتظر بررسی"
 
 msgid "Reviews rate the whole seller experience for one completed order. Only approved eligible reviews enter the public average and count; reports never affect ratings."
-msgstr "نظرها کل تجربهٔ فروشنده را برای یک سفارش تکمیل‌شده امتیاز می‌دهند. تنها نظرهای تأییدشدهٔ واجد شرایط در میانگین و شمار عمومی وارد می‌شوند؛ گزارش‌ها هرگز بر امتیازها اثر نمی‌گذارند."
+msgstr "نظرها کل تجربهٔ فروشنده را برای یک سفارش تکمیل شده امتیاز می دهند. تنها نظرهای تأییدشدهٔ واجد شرایط در میانگین و شمار عمومی وارد می شوند؛ گزارش ها هرگز بر امتیازها اثر نمی گذارند."
 
 msgid "Revision %(revision)s · Version %(version)s"
 msgstr "بازنگری %(revision)s · نسخه %(version)s"
@@ -2391,7 +2379,7 @@ msgid "Submitted applicant details"
 msgstr "جزئیات ارسال‌شدهٔ متقاضی"
 
 msgid "Submitted language"
-msgstr "زبان نظر ثبت‌شده"
+msgstr "زبان نظر ثبت شده"
 
 msgid "Submitted source revisions"
 msgstr "نسخه‌های منبع ارسال‌شده"
@@ -2400,7 +2388,7 @@ msgid "Submitted store media %(name)s"
 msgstr "رسانهٔ فروشگاه ارسال‌شده %(name)s"
 
 msgid "Submitted text and language are retained verbatim. Withdrawal removes an approved review from the public projection without deleting its history."
-msgstr "متن و زبان ارسال‌شده کلمه‌به‌کلمه نگه داشته می‌شود. پس‌گرفتن، نظر تأییدشده را از نمایش عمومی بیرون می‌کند بدون آنکه تاریخچهٔ آن را حذف کند."
+msgstr "متن و زبان ارسال شده کلمه به کلمه نگه داشته می شود. پس گرفتن، نظر تأییدشده را از نمایش عمومی بیرون می کند بدون آنکه تاریخچهٔ آن را حذف کند."
 
 msgid "Successful recovery:"
 msgstr "بازیابی موفق:"
@@ -2469,7 +2457,7 @@ msgid "Thanks for spending some quality time with the web site today."
 msgstr "سپاس از وقتی که امروز با سایت گذراندید."
 
 msgid "The bound is confirmed received less every retained prior due. Approval creates a refund due only: the seller reports actual execution and a different independent assigned staff member confirms it. No platform money moves."
-msgstr "سقف، دریافتی تأییدشده منهای هر بدهی قبلی نگه‌داشته‌شده است. تأیید تنها بدهی بازپرداخت ایجاد می‌کند: فروشنده اجرای واقعی را گزارش می‌کند و کارمند مستقل و تعیین‌شدهٔ دیگری آن را تأیید می‌کند. هیچ پول پلتفرمی جابه‌جا نمی‌شود."
+msgstr "سقف، دریافتی تأییدشده منهای هر بدهی قبلی نگه داشته شده است. تأیید تنها بدهی بازپرداخت ایجاد می کند: فروشنده اجرای واقعی را گزارش می کند و کارمند مستقل و تعیین شدهٔ دیگری آن را تأیید می کند. هیچ پول پلتفرمی جابه جا نمی شود."
 
 msgid "The case changed or access ended. Review the current state."
 msgstr "پرونده تغییر کرد یا دسترسی پایان یافت. وضعیت فعلی را بررسی کنید."
@@ -2484,13 +2472,13 @@ msgid "The legacy owner flag is retained for history. Super admin above is the c
 msgstr "پرچم مالک قدیمی برای تاریخچه نگه داشته می‌شود. «مدیر ارشد» در بالا نقش اداری رسمی است."
 
 msgid "The original invoice row, number and bytes are untouched; adjustments are separate traceable records."
-msgstr "سطر، شماره و بایت‌های فاکتور اصلی دست‌نخورده‌اند؛ تعدیل‌ها سوابق جداگانهٔ قابل‌ردیابی هستند."
+msgstr "سطر، شماره و بایت های فاکتور اصلی دست نخورده اند؛ تعدیل ها سوابق جداگانهٔ قابل ردیابی هستند."
 
 msgid "The post could not be saved. Re-select new uploads and retry."
 msgstr "پست ذخیره نشد. فایل‌های بارگذاری‌شدهٔ جدید را دوباره انتخاب کنید و تلاش کنید."
 
 msgid "The reviewed packet expired or changed. Reload before deciding."
-msgstr "بستهٔ بررسی‌شده منقضی یا تغییر کرده است. پیش از تصمیم دوباره بارگذاری کنید."
+msgstr "بستهٔ بررسی شده منقضی یا تغییر کرده است. پیش از تصمیم دوباره بارگذاری کنید."
 
 msgid "The saved snapshot for this revision."
 msgstr "عکس فوری ذخیره‌شدهٔ این نسخه."
@@ -2511,10 +2499,10 @@ msgid "This deletes the post and its pending draft. Uploaded images, video and p
 msgstr "این کار پست و پیش‌نویس در انتظار آن را حذف می‌کند. تصاویر، ویدیو و پوستر بارگذاری‌شده وقتی مورد دیگری از آن‌ها استفاده نکند برای همیشه حذف می‌شوند. رسانهٔ مشترک و آثار اصلی همراه نگه داشته می‌شوند. پست انتخاب‌شده فوراً از صفحهٔ خانهٔ عمومی ناپدید می‌شود. این کار قابل بازگشت نیست."
 
 msgid "This form is bound to the displayed case version and aftercare version. If it becomes stale, your inputs remain; reload and review before a new decision."
-msgstr "این فورم به نسخهٔ نمایش‌داده‌شدهٔ پرونده و نسخهٔ خدمات پس از فروش بسته است. اگر کهنه شد، ورودی‌های شما می‌مانند؛ پیش از تصمیم جدید دوباره بارگذاری و بررسی کنید."
+msgstr "این فورم به نسخهٔ نمایش داده شدهٔ پرونده و نسخهٔ خدمات پس از فروش بسته است. اگر کهنه شد، ورودی های شما می مانند؛ پیش از تصمیم جدید دوباره بارگذاری و بررسی کنید."
 
 msgid "This form is bound to the displayed review version and aftercare version. If it becomes stale, your inputs remain; reload and review before a new decision."
-msgstr "این فورم به نسخهٔ نمایش‌داده‌شدهٔ بررسی و نسخهٔ خدمات پس از فروش بسته است. اگر کهنه شد، ورودی‌های شما می‌مانند؛ پیش از تصمیم جدید دوباره بارگذاری و بررسی کنید."
+msgstr "این فورم به نسخهٔ نمایش داده شدهٔ بررسی و نسخهٔ خدمات پس از فروش بسته است. اگر کهنه شد، ورودی های شما می مانند؛ پیش از تصمیم جدید دوباره بارگذاری و بررسی کنید."
 
 msgid "This is a previous revision. Review the latest revision before making a decision."
 msgstr "این یک نسخهٔ قبلی است. پیش از تصمیم‌گیری، جدیدترین نسخه را بررسی کنید."
@@ -2781,13 +2769,13 @@ msgid "You have a buyer/seller or historical conflict. You can inspect safely an
 msgstr "شما تعارض خریدار/فروشنده یا تاریخی دارید. می‌توانید بازرسی کنید و بررسی‌کنندهٔ مستقل واجد شرایط واگذار کنید؛ نمی‌توانید پروندهٔ خود را تأیید کنید."
 
 msgid "You have a buyer/seller or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot decide this proposal."
-msgstr "شما تعارض خریدار/فروشنده یا تاریخی دارید. می‌توانید بازرسی کنید و بررسی‌کنندهٔ مستقل واجد شرایط واگذار کنید؛ نمی‌توانید این پیشنهاد را تصمیم بگیرید."
+msgstr "شما تعارض خریدار/فروشنده یا تاریخی دارید. می توانید بازرسی کنید و بررسی کنندهٔ مستقل واجد شرایط واگذار کنید؛ نمی توانید این پیشنهاد را تصمیم بگیرید."
 
 msgid "You have a buyer/seller, report-author or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot confirm or reject this refund."
 msgstr "شما تعارض خریدار/فروشنده، نویسندهٔ گزارش یا تاریخی دارید. می‌توانید بازرسی کنید و بررسی‌کنندهٔ مستقل واجد شرایط واگذار کنید؛ نمی‌توانید این بازپرداخت را تأیید یا رد کنید."
 
 msgid "You have a requester, buyer/seller or historical conflict. You can inspect safely and assign an eligible independent reviewer; you cannot decide this request."
-msgstr "شما تعارض درخواست‌کننده، خریدار/فروشنده یا تاریخی دارید. می‌توانید بازرسی کنید و بررسی‌کنندهٔ مستقل واجد شرایط واگذار کنید؛ نمی‌توانید این درخواست را تصمیم بگیرید."
+msgstr "شما تعارض درخواست کننده، خریدار/فروشنده یا تاریخی دارید. می توانید بازرسی کنید و بررسی کنندهٔ مستقل واجد شرایط واگذار کنید؛ نمی توانید این درخواست را تصمیم بگیرید."
 
 msgid "You have been successfully logged out from the administration"
 msgstr "شما با موفقیت از مدیریت خارج شدید"
@@ -2958,7 +2946,7 @@ msgid "alternative requests"
 msgstr "درخواست‌های جایگزین"
 
 msgid "amendment"
-msgstr "اصلاح"
+msgstr "اصلاح سفارش"
 
 msgid "amendment decision"
 msgstr "تصمیم اصلاح"
@@ -3129,7 +3117,7 @@ msgid "calls"
 msgstr "فراخوانی‌ها"
 
 msgid "cancellation"
-msgstr "لغو"
+msgstr "لغو سفارش"
 
 msgid "cancellation decision"
 msgstr "تصمیم لغو"
@@ -4293,7 +4281,7 @@ msgid "result"
 msgstr "نتیجه"
 
 msgid "retail"
-msgstr "خرده‌فروشی"
+msgstr "پرچون"
 
 msgid "retained bundles"
 msgstr "بسته‌های نگه‌داشته‌شده"
@@ -4647,7 +4635,7 @@ msgid "website"
 msgstr "سایت"
 
 msgid "wholesale"
-msgstr "عمده‌فروشی"
+msgstr "عمده"
 
 msgid "width"
 msgstr "عرض"
@@ -5769,3 +5757,324 @@ msgstr "معتبر"
 
 msgid "expiring"
 msgstr "نزدیک به تاریخ انقضا"
+
+
+msgid "Accepted agreement"
+msgstr "توافق پذیرفته شده"
+
+msgid "Accepted names and destination"
+msgstr "نام ها و مقصد هنگام پذیرش"
+
+msgid "Accepted order"
+msgstr "سفارش پذیرفته شده"
+
+msgid "Accepted order items"
+msgstr "کالاهای سفارش پذیرفته شده"
+
+msgid "Accepted terms version"
+msgstr "نسخه شرایط پذیرفته شده"
+
+msgid "Adjusted goods total"
+msgstr "مجموع اصلاح شده کالاها"
+
+msgid "Advance payment"
+msgstr "پرداخت پیشکی"
+
+msgid "Advance payment deadline (hours)"
+msgstr "مهلت پرداخت پیشکی (ساعت)"
+
+msgid "After adjustment"
+msgstr "پس از اصلاح"
+
+msgid "Agreement detail"
+msgstr "جزئیات توافق"
+
+msgid "Amendment %(reference)s"
+msgstr "اصلاح سفارش %(reference)s"
+
+msgid "Before adjustment"
+msgstr "پیش از اصلاح"
+
+msgid "Between 0 and 720 hours. Set 0 to disable repeated reminders."
+msgstr "بین ۰ تا ۷۲۰ ساعت. برای غیرفعال کردن یادآوری های تکراری، ۰ وارد کنید."
+
+msgid "Between 1 and 720 hours. Existing order deadlines remain unchanged."
+msgstr "بین ۱ تا ۷۲۰ ساعت. مهلت سفارش های قبلی تغییر نمی کند."
+
+msgid "Buyer account"
+msgstr "حساب خریدار"
+
+msgid "Buyer name at acceptance"
+msgstr "نام خریدار هنگام پذیرش"
+
+msgid "Buyer review"
+msgstr "نظر خریدار"
+
+msgid "Cancellation %(reference)s"
+msgstr "لغو سفارش %(reference)s"
+
+msgid "Cancellation request"
+msgstr "درخواست لغو سفارش"
+
+msgid "Cash on delivery"
+msgstr "پرداخت هنگام تحویل"
+
+msgid "Current accepted total"
+msgstr "مجموع فعلی سفارش پذیرفته شده"
+
+msgid "Decision"
+msgstr "تصمیم"
+
+msgid "Delivery"
+msgstr "تحویل"
+
+msgid "Dispatch"
+msgstr "ارسال"
+
+msgid "Dispatch status"
+msgstr "وضعیت ارسال"
+
+msgid "Dispute %(reference)s"
+msgstr "شکایت %(reference)s"
+
+msgid "Download invoice PDF"
+msgstr "دریافت فایل پی دی اف صورتحساب"
+
+msgid "Find by invoice, buyer, seller or email"
+msgstr "جستجو بر اساس صورتحساب، خریدار، فروشنده یا ایمیل"
+
+msgid "Find by invoice, buyer, seller, email or SKU"
+msgstr "جستجو بر اساس صورتحساب، خریدار، فروشنده، ایمیل یا شناسه کالا"
+
+msgid "Find by reference, buyer, seller or email"
+msgstr "جستجو بر اساس شماره مرجع، خریدار، فروشنده یا ایمیل"
+
+msgid "Goods invoice"
+msgstr "صورتحساب کالا"
+
+msgid "Invoice adjustment"
+msgstr "اصلاح صورتحساب"
+
+msgid "Invoice adjustment %(reference)s"
+msgstr "اصلاح صورتحساب %(reference)s"
+
+msgid "Invoice details"
+msgstr "جزئیات صورتحساب"
+
+msgid "Invoice documents"
+msgstr "اسناد صورتحساب"
+
+msgid "Invoice number"
+msgstr "شماره صورتحساب"
+
+msgid "Line total"
+msgstr "مجموع قیمت کالا"
+
+msgid "Moderate review"
+msgstr "بررسی نظر"
+
+msgid "Moderation history"
+msgstr "تاریخچه بررسی"
+
+msgid "Negotiation"
+msgstr "مذاکره قیمت"
+
+msgid "Negotiation %(reference)s"
+msgstr "مذاکره %(reference)s"
+
+msgid "Negotiations"
+msgstr "مذاکره های قیمت"
+
+msgid "No order items."
+msgstr "هنوز کالایی در سفارش ثبت نشده است."
+
+msgid "No proposals yet."
+msgstr "هنوز پیشنهادی ثبت نشده است."
+
+msgid "No proposed items."
+msgstr "کالایی برای اصلاح پیشنهاد نشده است."
+
+msgid "Order %(reference)s"
+msgstr "سفارش %(reference)s"
+
+msgid "Order amendment"
+msgstr "اصلاح سفارش"
+
+msgid "Order amendments"
+msgstr "اصلاحات سفارش"
+
+msgid "Order dispute"
+msgstr "شکایت سفارش"
+
+msgid "Order items"
+msgstr "کالاهای سفارش"
+
+msgid "Order policy"
+msgstr "قواعد سفارش"
+
+msgid "Original quantity"
+msgstr "مقدار اصلی"
+
+msgid "Original unit price"
+msgstr "قیمت اصلی هر واحد"
+
+msgid "Payment deadlines"
+msgstr "مهلت های پرداخت"
+
+msgid "Payment deadlines and reminders"
+msgstr "مهلت پرداخت و یادآوری ها"
+
+msgid "Payment method"
+msgstr "روش پرداخت"
+
+msgid "Payment policy"
+msgstr "قواعد پرداخت"
+
+msgid "Payment policy updated. Accepted original deadlines remain unchanged; zero reminder hours disables repeats."
+msgstr "قواعد پرداخت به روز شد. مهلت اصلی سفارش های پذیرفته شده تغییر نمی کند. مقدار صفر، یادآوری تکراری را غیرفعال می کند."
+
+msgid "Policy changed or access ended. Review the current version."
+msgstr "قواعد تغییر کرده یا دسترسی پایان یافته است. نسخه فعلی را بررسی کنید."
+
+msgid "Previous goods total"
+msgstr "مجموع قبلی کالاها"
+
+msgid "Proposal history"
+msgstr "تاریخچه پیشنهادها"
+
+msgid "Proposed changes"
+msgstr "تغییرات پیشنهادی"
+
+msgid "Proposed goods total"
+msgstr "مجموع پیشنهادی کالاها"
+
+msgid "Proposed order items"
+msgstr "کالاهای پیشنهادی سفارش"
+
+msgid "Proposed quantity"
+msgstr "مقدار پیشنهادی"
+
+msgid "Proposed unit price"
+msgstr "قیمت پیشنهادی هر واحد"
+
+msgid "Quantity"
+msgstr "مقدار"
+
+msgid "Reason for adjustment"
+msgstr "دلیل اصلاح"
+
+msgid "Reason for change"
+msgstr "دلیل تغییر"
+
+msgid "Record decision"
+msgstr "ثبت تصمیم"
+
+msgid "Reminder interval (hours)"
+msgstr "فاصله یادآوری ها (ساعت)"
+
+msgid "Retained order item"
+msgstr "کالای ثبت شده سفارش"
+
+msgid "Review %(reference)s"
+msgstr "نظر %(reference)s"
+
+msgid "Review actions"
+msgstr "اقدامات بررسی"
+
+msgid "Review amendment"
+msgstr "بررسی اصلاح سفارش"
+
+msgid "Review cancellation"
+msgstr "بررسی لغو سفارش"
+
+msgid "Review details"
+msgstr "جزئیات بررسی"
+
+msgid "Review dispute"
+msgstr "بررسی شکایت"
+
+msgid "Review text"
+msgstr "متن نظر"
+
+msgid "Sales tier"
+msgstr "نوع فروش"
+
+msgid "Save policy changes"
+msgstr "ثبت تغییرات قواعد"
+
+msgid "Seller account"
+msgstr "حساب فروشنده"
+
+msgid "Seller name at acceptance"
+msgstr "نام فروشنده هنگام پذیرش"
+
+msgid "Unit price"
+msgstr "قیمت هر واحد"
+
+msgid "View and print invoice"
+msgstr "مشاهده و چاپ صورتحساب"
+
+msgid "View invoice"
+msgstr "مشاهده صورتحساب"
+
+msgid "View order"
+msgstr "مشاهده سفارش"
+
+msgid "correction_requested"
+msgstr "درخواست اصلاح"
+
+msgid "dismissed"
+msgstr "شکایت رد شده"
+
+msgid "refund_ordered"
+msgstr "بازپرداخت تعیین شده"
+
+msgid "resolved_non_monetary"
+msgstr "حل شده بدون بازپرداخت"
+
+msgid "resubmitted"
+msgstr "ارسال دوباره"
+
+
+msgid "Decision detail"
+msgstr "جزئیات تصمیم"
+
+msgid "Maximum quantity"
+msgstr "حداکثر مقدار"
+
+msgid "Maximum unit price"
+msgstr "حداکثر قیمت هر واحد"
+
+msgid "No accepted order yet."
+msgstr "هنوز سفارشی پذیرفته نشده است."
+
+msgid "No decision recorded yet."
+msgstr "هنوز تصمیمی ثبت نشده است."
+
+msgid "Proposal detail"
+msgstr "جزئیات پیشنهاد"
+
+msgid "Proposal note"
+msgstr "یادداشت پیشنهاد"
+
+msgid "Requested by"
+msgstr "درخواست کننده"
+
+msgid "Reviewed by"
+msgstr "بررسی کننده"
+
+msgid "Submitted by"
+msgstr "ارسال کننده"
+
+msgid "View amendment"
+msgstr "مشاهده اصلاح سفارش"
+
+msgid "View cancellation"
+msgstr "مشاهده درخواست لغو"
+
+
+msgid "Protected document temporarily unavailable."
+msgstr "سند محافظت شده موقتاً در دسترس نیست."
+
+msgid "Access denied."
+msgstr "دسترسی مجاز نیست."

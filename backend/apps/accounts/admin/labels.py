@@ -25,6 +25,18 @@ CATALOGUE_NAMES = {
     "catalogue.translation": ("Product translation", "Product translations"),
 }
 
+ORDER_NAMES = {
+    "orders.sellerorder": ("Accepted order", "Accepted orders"),
+    "orders.negotiation": ("Negotiation", "Negotiations"),
+    "orders.invoice": ("Goods invoice", "Goods invoices"),
+    "orders.cancellationrequest": ("Cancellation request", "Cancellation requests"),
+    "orders.amendment": ("Order amendment", "Order amendments"),
+    "orders.invoiceadjustment": ("Invoice adjustment", "Invoice adjustments"),
+    "orders.disputerequest": ("Order dispute", "Order disputes"),
+    "orders.review": ("Buyer review", "Buyer reviews"),
+    "orders.orderpolicy": ("Payment policy", "Payment policy"),
+}
+
 
 def _wrap_choices(choices):
     wrapped = []
@@ -50,16 +62,22 @@ def localize_model(model):
         field_labels = [(field, str(field.verbose_name)) for field in [*opts.fields, *opts.many_to_many]]
         config = apps.get_app_config(opts.app_label)
         app_name = str(config.verbose_name)
-    verbose_name, verbose_name_plural = CATALOGUE_NAMES.get(opts.label_lower, (verbose_name, verbose_name_plural))
+    verbose_name, verbose_name_plural = {**CATALOGUE_NAMES, **ORDER_NAMES}.get(opts.label_lower, (verbose_name, verbose_name_plural))
     opts.verbose_name = _(verbose_name)
     opts.verbose_name_plural = _(verbose_name_plural)
     for field, label in field_labels:
         if opts.label_lower == "inventory.batch" and field.name == "code":
             label = "Batch number"
+        if opts.label_lower == "orders.invoice" and field.name == "number":
+            label = "Invoice number"
+        if opts.label_lower == "orders.orderpolicy":
+            label = {"advance_hours": "Advance payment deadline (hours)", "reminder_hours": "Reminder interval (hours)"}.get(field.name, label)
         field.verbose_name = _(label)
         if field.choices:
             choices = field.choices
             if opts.label_lower == "inventory.position" and field.name == "tracking":
                 choices = [("plain", "Standard stock"), ("batch", "Batch stock")]
+            if opts.label_lower == "orders.sellerorder" and field.name == "payment_method":
+                choices = [("advance", "Advance payment"), ("cod", "Cash on delivery")]
             field.choices = _wrap_choices(choices)
     config.verbose_name = _(app_name)

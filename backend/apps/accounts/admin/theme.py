@@ -19,6 +19,17 @@ ICON_TILE = (
     "text-primary-600 dark:bg-primary-950 dark:text-primary-400"
 )
 SECTION_TITLE = "text-base font-semibold text-base-900 dark:text-base-100"
+ORDER_THEME = {
+    "layout": "flex min-w-0 flex-col gap-6",
+    "panel": f"{CARD} flex flex-col gap-3 p-5 text-sm",
+    "heading": f"text-xl font-semibold {TEXT}",
+    "section_heading": f"text-lg font-semibold {TEXT}",
+    "history": f"rounded-default border {DIVIDER} p-3",
+    "form": "flex flex-col gap-3",
+    "button": "inline-flex items-center justify-center rounded-default bg-primary-600 px-4 py-2 font-medium text-white",
+    "label": f"block mb-2 font-medium {TEXT}",
+    "error": "text-sm text-red-600 dark:text-red-400",
+}
 CHIP = (
     "rounded-md bg-primary-50 px-2 py-0.5 text-[11px] font-semibold uppercase "
     "text-primary-600 dark:bg-primary-950 dark:text-primary-400"

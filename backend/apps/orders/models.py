@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 from .managers import AgreementManager, AgreementChildManager, RequestManager, AgreementEventManager, RequestChildManager
 
@@ -25,6 +26,9 @@ class OrderPolicy(models.Model):
                 condition=Q(id=1, advance_hours__gte=1, advance_hours__lte=720, reminder_hours__lte=720), name="orders_policy_bounds"
             )
         ]
+
+    def __str__(self):
+        return str(_("Payment deadlines and reminders"))
 
 
 class CheckoutSubmission(models.Model):
@@ -107,6 +111,9 @@ class SellerOrder(models.Model):
             ),
         ]
 
+    def __str__(self):
+        return _('Order %(reference)s') % {"reference": str(self.pk)[:8]}
+
 
 class OrderLine(models.Model):
     objects = AgreementChildManager()
@@ -137,6 +144,9 @@ class Invoice(models.Model):
     order = models.OneToOneField(SellerOrder, on_delete=models.PROTECT, related_name="invoice")
     number = models.CharField(max_length=32, unique=True, editable=False)
     issued_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.number
 
 
 class OrderEvent(models.Model):
@@ -214,6 +224,9 @@ class Negotiation(models.Model):
             models.Index(fields=["buyer", "-created_at", "id"], name="orders_buyer_requests"),
             models.Index(fields=["seller", "state", "-created_at"], name="orders_seller_requests"),
         ]
+
+    def __str__(self):
+        return _('Negotiation %(reference)s') % {"reference": str(self.pk)[:8]}
 
 
 class NegotiationRevision(models.Model):
@@ -362,6 +375,9 @@ class CancellationRequest(models.Model):
             models.Index(fields=["order", "-created_at", "id"], name="orders_cancellation_history"),
         ]
 
+    def __str__(self):
+        return _('Cancellation %(reference)s') % {"reference": str(self.pk)[:8]}
+
 
 class CancellationDecision(models.Model):
     request = models.OneToOneField(CancellationRequest, primary_key=True, on_delete=models.PROTECT, related_name="decision")
@@ -403,6 +419,9 @@ class Amendment(models.Model):
             models.Index(fields=["assigned_to", "state"], name="orders_amendment_queue"),
             models.Index(fields=["order", "-created_at", "id"], name="orders_amendment_history"),
         ]
+
+    def __str__(self):
+        return _('Amendment %(reference)s') % {"reference": str(self.pk)[:8]}
 
 
 class AmendmentLine(models.Model):
@@ -464,6 +483,9 @@ class InvoiceAdjustment(models.Model):
         ]
         indexes = [models.Index(fields=["invoice", "-created_at", "id"], name="orders_adjustment_history")]
 
+    def __str__(self):
+        return _('Invoice adjustment %(reference)s') % {"reference": str(self.pk)[:8]}
+
 
 DISPUTE_OUTCOMES = ["dismissed", "resolved_non_monetary", "refund_ordered"]
 
@@ -499,6 +521,9 @@ class DisputeRequest(models.Model):
             models.Index(fields=["assigned_to", "state"], name="orders_dispute_queue"),
             models.Index(fields=["order", "-created_at", "id"], name="orders_dispute_history"),
         ]
+
+    def __str__(self):
+        return _('Dispute %(reference)s') % {"reference": str(self.pk)[:8]}
 
 
 class DisputeResponse(models.Model):
@@ -556,6 +581,9 @@ class Review(models.Model):
             )
         ]
         indexes = [models.Index(fields=["state", "-created_at", "order"], name="orders_review_queue")]
+
+    def __str__(self):
+        return _('Review %(reference)s') % {"reference": str(self.pk)[:8]}
 
 
 class ReviewDecision(models.Model):
