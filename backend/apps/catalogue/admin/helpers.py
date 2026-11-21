@@ -95,13 +95,13 @@ def panel_table(headers, rows, empty):
         "",
         '<tr class="border-t border-base-200 dark:border-base-800">{}</tr>',
         (
-            format_html_join("", '<td class="px-3 py-2 align-top text-sm text-base-700 dark:text-base-300">{}</td>', ((cell,) for cell in row))
+            (format_html_join("", '<td class="px-3 py-2 align-top text-sm text-base-700 dark:text-base-300">{}</td>', ((cell,) for cell in row)),)
             for row in rows
         ),
     )
     return format_html(
         '<div class="overflow-x-auto rounded-default border border-base-200 dark:border-base-800">'
-        '<table class="w-full border-collapse"><thead class="bg-base-50 dark:bg-base-800/50"><tr>{}</tr></thead>'
+        '<table class="w-full table-fixed border-collapse break-words"><thead class="bg-base-50 dark:bg-base-800/50"><tr>{}</tr></thead>'
         "<tbody>{}</tbody></table></div>",
         head,
         body,
