@@ -1,0 +1,39 @@
+{% load i18n %}
+<section class="{{ rz_report.card }} {{ width_class }}" aria-labelledby="{{ section_id }}">
+  <header class="{{ rz_report.head }} pb-3">
+    <div>
+      <h2 id="{{ section_id }}" class="{{ rz_report.heading }}">{{ heading }}</h2>
+      {% if description %}<p class="{{ rz_report.note }}">{{ description }}</p>{% endif %}
+    </div>
+    {% if unit %}<bdi class="{{ rz_report.curr_chip }}">{{ unit }}</bdi>{% endif %}
+  </header>
+  {% if table.rows %}
+    <div class="{{ rz_report.table_wrap }}">
+      <table class="{{ rz_report.table }}">
+        <thead class="{{ rz_report.table_head }}">
+          <tr>{% for label in table.columns %}
+            <th scope="col" class="{% if forloop.first %}{{ rz_report.text_cell }}{% else %}{{ rz_report.number_cell }}{% endif %}">
+              {% if forloop.first %}{{ label }}{% else %}<span class="flex justify-end">{{ label }}</span>{% endif %}
+            </th>
+          {% endfor %}</tr>
+        </thead>
+        <tbody>{% for row in table.rows %}
+          <tr class="{{ rz_report.row }}">
+            <th scope="row" class="{{ rz_report.text_cell }} font-medium">
+              {% if row.url %}<a class="{{ rz_report.action }} block max-w-48 truncate" href="{{ row.url }}" title="{{ row.label }}"><bdi>{{ row.label }}</bdi></a>
+              {% else %}<bdi>{{ row.label }}</bdi>{% endif %}
+            </th>
+            {% for value in row.values %}
+              <td class="{{ rz_report.number_cell }}">
+                <span class="flex justify-end"><bdi{% if table.comparison and forloop.last %} class="{{ rz_report.chip }}"{% endif %}>{{ value }}</bdi></span>
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}</tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="{{ rz_report.empty }}">{% translate "No recorded data for this selection." %}</p>
+  {% endif %}
+  {% if footnote %}<p class="px-4 py-3 {{ rz_report.note }}">{{ footnote }}</p>{% endif %}
+</section>

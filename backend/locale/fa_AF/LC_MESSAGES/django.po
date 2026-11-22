@@ -7732,3 +7732,196 @@ msgstr "لطفاً خطای زیر را اصلاح کنید."
 
 msgid "Please correct the errors below."
 msgstr "لطفاً خطاهای زیر را اصلاح کنید."
+
+# Commerce reports.
+msgid "%(change)s pp"
+msgstr "%(change)s واحد درصد"
+
+msgid "Accepted order value"
+msgstr "ارزش سفارش های پذیرفته شده"
+
+msgid "Accepted order value over time"
+msgstr "روند ارزش سفارش های پذیرفته شده"
+
+msgid "Accepted orders in the selected currency, grouped by date."
+msgstr "سفارش های پذیرفته شده به ارز انتخابی، بر اساس تاریخ."
+
+msgid "Accepted value"
+msgstr "ارزش پذیرفته شده"
+
+msgid "Across both currencies"
+msgstr "در هر دو ارز"
+
+msgid "Active buyers"
+msgstr "خریداران فعال"
+
+msgid "After approved amendments and cancellations"
+msgstr "پس از تغییرات و لغوهای تأیید شده"
+
+msgid "Amounts are reported separately in AFN and USD. Dates use Kabul time. CSV downloads are recorded in the audit log."
+msgstr "مبالغ به افغانی و دالر جداگانه گزارش می شوند. تاریخ ها به وقت کابل است. دریافت فایل CSV در سوابق حسابرسی ثبت می شود."
+
+msgid "Cancellation rate"
+msgstr "نرخ لغو"
+
+msgid "Cancelled orders"
+msgstr "سفارش های لغو شده"
+
+msgid "Catalogue revisions awaiting publication review"
+msgstr "نسخه های کالا در انتظار بررسی نشر"
+
+msgid "Choose dates within the supported report range."
+msgstr "تاریخ ها را در محدوده قابل گزارش انتخاب کنید."
+
+msgid "Compared with"
+msgstr "در مقایسه با"
+
+msgid "Confirmed refunds"
+msgstr "بازپرداخت های تأیید شده"
+
+msgid "Counts by event date, with change vs the previous period."
+msgstr "شمار رویدادها بر اساس تاریخ ثبت، با مقایسه دوره قبلی."
+
+msgid "Current queues, independent of the selected dates."
+msgstr "صف های فعلی، مستقل از تاریخ های انتخاب شده."
+
+msgid "Custom dates"
+msgstr "تاریخ های دلخواه"
+
+msgid "Delivery payments and refunds"
+msgstr "پرداخت و بازپرداخت تحویل"
+
+msgid "Distinct buyers across both currencies"
+msgstr "تعداد خریداران یکتا در هر دو ارز"
+
+msgid "Effective goods value by acceptance date."
+msgstr "ارزش نهایی کالا بر اساس تاریخ پذیرش سفارش."
+
+msgid "Effective order value"
+msgstr "ارزش نهایی سفارش ها"
+
+msgid "Effective order value reflects approved amendments and is zero for fully cancelled orders."
+msgstr "ارزش نهایی پس از تغییرات تأیید شده محاسبه می شود. ارزش سفارش های کاملاً لغو شده صفر است."
+
+msgid "Export CSV"
+msgstr "دریافت فایل CSV"
+
+msgid "Finance"
+msgstr "امور مالی"
+
+msgid "Finance period comparison"
+msgstr "مقایسه مالی دوره ها"
+
+msgid "Fulfilment activity"
+msgstr "فعالیت تحویل"
+
+msgid "Goods and delivery money are reported separately."
+msgstr "مبالغ مربوط به کالا و تحویل جداگانه گزارش می شوند."
+
+msgid "Goods payments and refunds"
+msgstr "پرداخت و بازپرداخت کالا"
+
+msgid "Last 30 days"
+msgstr "۳۰ روز اخیر"
+
+msgid "Measure"
+msgstr "شاخص"
+
+msgid "Net received"
+msgstr "خالص دریافتی"
+
+msgid "New refund amounts due"
+msgstr "مبالغ جدید قابل بازپرداخت"
+
+msgid "No accepted order value was recorded in either period for this currency."
+msgstr "در هیچ یک از دو دوره، ارزش سفارش پذیرفته شده به این ارز ثبت نشده است."
+
+msgid "No recorded data for this selection."
+msgstr "برای این انتخاب داده ای ثبت نشده است."
+
+msgid "Open delivery holds"
+msgstr "توقف های باز تحویل"
+
+msgid "Open disputes"
+msgstr "اختلاف های باز"
+
+msgid "Order outcomes"
+msgstr "نتیجه سفارش ها"
+
+msgid "Order volume"
+msgstr "تعداد سفارش ها"
+
+msgid "Orders by destination"
+msgstr "سفارش ها بر اساس مقصد"
+
+msgid "Orders grouped by acceptance date, with their latest recorded state."
+msgstr "سفارش ها بر اساس تاریخ پذیرش و با آخرین وضعیت ثبت شده."
+
+msgid "Original goods value"
+msgstr "ارزش اولیه کالا"
+
+msgid "Payment and refund records within the selected period."
+msgstr "سوابق پرداخت و بازپرداخت در دوره انتخاب شده."
+
+msgid "Payment reviews"
+msgstr "بررسی های پرداخت"
+
+msgid "Payments received"
+msgstr "پرداخت های دریافت شده"
+
+msgid "Pending amendments"
+msgstr "تغییرات در انتظار بررسی"
+
+msgid "Period"
+msgstr "دوره"
+
+msgid "Provider receipts and confirmed provider refunds."
+msgstr "رسیدها و بازپرداخت های تأیید شده ارائه دهنده خدمات."
+
+msgid "Recorded goods receipts"
+msgstr "رسیدهای ثبت شده کالا"
+
+msgid "Report sections"
+msgstr "بخش های گزارش"
+
+msgid "Report section"
+msgstr "بخش گزارش"
+
+msgid "Selected dates, both currencies"
+msgstr "تاریخ های انتخاب شده، هر دو ارز"
+
+msgid "Selected period"
+msgstr "دوره انتخاب شده"
+
+msgid "Sellers & locations"
+msgstr "فروشندگان و مقصدها"
+
+msgid "Show more queues"
+msgstr "نمایش صف های بیشتر"
+
+msgid "This month"
+msgstr "این ماه"
+
+msgid "Top delivery destinations across both currencies."
+msgstr "مقصدهای اصلی تحویل در هر دو ارز."
+
+msgid "Top sellers"
+msgstr "فروشندگان برتر"
+
+msgid "Track accepted orders, payments and delivery activity."
+msgstr "سفارش های پذیرفته شده، پرداخت ها و فعالیت تحویل را پیگیری کنید."
+
+msgid "Unknown destination"
+msgstr "مقصد نامشخص"
+
+msgid "Up to 20 sellers ranked by effective accepted value in the selected currency."
+msgstr "تا ۲۰ فروشنده به ترتیب ارزش نهایی سفارش ها در ارز انتخابی."
+
+msgid "Value share"
+msgstr "سهم از ارزش کل"
+
+msgid "View daily values"
+msgstr "مشاهده ارقام روزانه"
+
+msgid "View review queues"
+msgstr "مشاهده صف های بررسی"

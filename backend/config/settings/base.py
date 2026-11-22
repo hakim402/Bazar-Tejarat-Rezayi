@@ -188,7 +188,6 @@ except (ValueError, TypeError):
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS[1]["OPTIONS"] = {"min_length": 12}
 ADMIN_CSS_VERSION = sha256((BASE_DIR / "apps/accounts/static/accounts/admin.css").read_bytes()).hexdigest()[:16]
-REPORT_CSS_VERSION = sha256((BASE_DIR / "apps/reports/static/reports/admin/report.css").read_bytes()).hexdigest()[:16]
 
 UNFOLD = {
     "SITE_TITLE": "Bazar Rezayi",

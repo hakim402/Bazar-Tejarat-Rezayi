@@ -1,0 +1,27 @@
+{% load i18n l10n %}
+{% get_current_language_bidi as rtl %}
+<div class="{{ rz_report.body }}">
+  {% if rows %}
+    <ul class="flex flex-col gap-3">
+      {% for row in rows %}
+        <li>
+          <div class="mb-1 flex items-start justify-between gap-3 text-sm">
+            <span class="min-w-0 break-words">
+              {% if row.start %}
+                <bdi>{{ row.start|date:"j M" }}{% if row.end != row.start %} – {{ row.end|date:"j M" }}{% endif %}</bdi>
+              {% else %}
+                <bdi>{{ row.label }}</bdi>{% if row.country %} <small class="{{ rz_report.note }}"><bdi>{{ row.country }}</bdi></small>{% endif %}
+              {% endif %}
+            </span>
+            <bdi class="font-medium">{{ row.value }}</bdi>
+          </div>
+          <svg class="{{ rz_report.bar_track }}" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true">
+            <rect{% if rtl %} transform="translate(100 0) scale(-1 1)"{% endif %} width="{{ row.bar|unlocalize }}" height="4" rx="1" fill="currentColor" class="{{ rz_report.bar_fill }}"/>
+          </svg>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="{{ rz_report.empty }}">{% translate "No accepted orders in this period." %}</p>
+  {% endif %}
+</div>

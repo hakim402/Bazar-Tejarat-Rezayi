@@ -1,0 +1,10 @@
+{% load i18n %}
+{% translate "Goods payments and refunds" as goods_heading %}
+{% translate "Payment and refund records within the selected period." as goods_description %}
+{% translate "Finance period comparison" as comparison_heading %}
+{% translate "Goods and delivery money are reported separately." as comparison_description %}
+{% translate "Delivery payments and refunds" as delivery_heading %}
+{% translate "Provider receipts and confirmed provider refunds." as delivery_description %}
+{% include "reports/admin/includes/report_table.html" with table=report.goods section_id="commerce-goods" heading=goods_heading description=goods_description %}
+{% include "reports/admin/includes/report_table.html" with table=report.delivery section_id="commerce-delivery" heading=delivery_heading description=delivery_description %}
+{% include "reports/admin/includes/report_table.html" with table=report.finance_comparison section_id="commerce-finance-comparison" heading=comparison_heading description=comparison_description unit=currency %}

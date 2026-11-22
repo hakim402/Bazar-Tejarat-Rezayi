@@ -1,0 +1,60 @@
+{% load i18n %}
+<div class="{{ rz_report.toolbar }}">
+  <form method="get" id="commerce-period" class="flex flex-wrap gap-3">
+    <input type="hidden" name="currency" value="{{ currency }}">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <div data-period-control hidden>
+      <label for="commerce-preset" class="mb-1 block {{ rz_report.note }}">{% translate "Period" %}</label>
+      <select id="commerce-preset" class="{{ rz_report.control }}">
+        {% for preset in presets %}
+          <option value="{{ forloop.counter }}" data-start="{{ preset.start }}" data-end="{{ preset.end }}"
+                  {% if preset.selected and not custom_period %}selected{% endif %}>{{ preset.label }}</option>
+        {% endfor %}
+        <option value="" {% if custom_period %}selected{% endif %}>{% translate "Custom dates" %}</option>
+      </select>
+    </div>
+    <div>
+      <label for="commerce-start" class="mb-1 block {{ rz_report.note }}">{{ form.start.label }}</label>
+      <input type="date" id="commerce-start" name="start" value="{{ start_value }}" class="{{ rz_report.control }}" dir="ltr"
+             {% if form.start.errors %}aria-invalid="true" aria-describedby="commerce-errors"{% endif %}>
+    </div>
+    <div>
+      <label for="commerce-end" class="mb-1 block {{ rz_report.note }}">{{ form.end.label }}</label>
+      <input type="date" id="commerce-end" name="end" value="{{ end_value }}" class="{{ rz_report.control }}" dir="ltr"
+             {% if form.end.errors %}aria-invalid="true" aria-describedby="commerce-errors"{% endif %}>
+    </div>
+    <button type="submit" class="{{ rz_report.button }} mt-auto">{% translate "Apply" %}</button>
+  </form>
+  <div class="mt-auto">
+    <span id="commerce-currency" class="mb-1 block {{ rz_report.note }}">{% translate "Currency" %}</span>
+    <div class="{{ rz_report.segment }}" role="group" aria-labelledby="commerce-currency" dir="ltr">
+      {% for item in currencies %}
+        <a href="{{ item.url }}" class="{{ rz_report.segment_link }} {% if item.active %}{{ rz_report.segment_active }}{% endif %}"
+           {% if item.active %}aria-current="true"{% endif %}>{{ item.label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  <details class="relative ms-auto mt-auto" data-commerce-export>
+    <summary class="{{ rz_report.menu_button }}">
+      <span class="material-symbols-outlined text-base" aria-hidden="true">download</span>
+      {% translate "Export CSV" %}
+      <span class="material-symbols-outlined text-base" aria-hidden="true">expand_more</span>
+    </summary>
+    <div class="{{ rz_report.menu }}">
+      <p class="px-2 py-1 {{ rz_report.note }}">{% translate "Selected dates, both currencies" %}</p>
+      {% for item in export_links %}
+        <a href="{{ item.url }}" class="{{ rz_report.queue_link }}">{{ item.label }}</a>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% if form.errors %}
+  <div id="commerce-errors" class="{{ rz_report.error }}" role="alert">
+    {{ form.non_field_errors }}
+    {% for field in form %}{% if field.errors %}<div>{{ field.label }}{{ field.errors }}</div>{% endif %}{% endfor %}
+  </div>
+{% endif %}
+<p class="{{ rz_report.note }}">
+  <bdi>{{ window.start|date:"j M Y" }} – {{ window.end|date:"j M Y" }}</bdi>
+  · {% translate "Compared with" %} <bdi>{{ report.previous.start|date:"j M Y" }} – {{ report.previous.end|date:"j M Y" }}</bdi>
+</p>

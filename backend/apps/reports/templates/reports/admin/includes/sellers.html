@@ -1,0 +1,13 @@
+{% load i18n %}
+{% translate "Top sellers" as sellers_heading %}
+{% translate "Up to 20 sellers ranked by effective accepted value in the selected currency." as sellers_description %}
+<div class="{{ rz_report.split }}">
+  {% include "reports/admin/includes/report_table.html" with table=report.sellers section_id="commerce-sellers" heading=sellers_heading description=sellers_description unit=currency width_class=rz_report.wide %}
+  <section class="{{ rz_report.card }}" aria-labelledby="commerce-destinations">
+    <header class="{{ rz_report.head }}"><div>
+      <h2 id="commerce-destinations" class="{{ rz_report.heading }}">{% translate "Orders by destination" %}</h2>
+      <p class="{{ rz_report.note }}">{% translate "Top delivery destinations across both currencies." %}</p>
+    </div></header>
+    {% include "reports/admin/includes/bars.html" with rows=report.locations %}
+  </section>
+</div>

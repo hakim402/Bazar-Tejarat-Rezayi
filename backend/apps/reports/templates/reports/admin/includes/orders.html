@@ -1,0 +1,14 @@
+{% load i18n %}
+{% translate "Order outcomes" as outcomes %}
+{% translate "Orders grouped by acceptance date, with their latest recorded state." as outcomes_description %}
+{% translate "Effective order value reflects approved amendments and is zero for fully cancelled orders." as effective_note %}
+<div class="{{ rz_report.split }}">
+  {% include "reports/admin/includes/report_table.html" with table=report.order_comparison section_id="commerce-outcomes" heading=outcomes description=outcomes_description footnote=effective_note unit=currency width_class=rz_report.wide %}
+  <section class="{{ rz_report.card }}" aria-labelledby="commerce-volume">
+    <header class="{{ rz_report.head }}"><div>
+      <h2 id="commerce-volume" class="{{ rz_report.heading }}">{% translate "Order volume" %}</h2>
+      <p class="{{ rz_report.note }}">{% translate "Accepted orders in the selected currency, grouped by date." %}</p>
+    </div></header>
+    {% include "reports/admin/includes/bars.html" with rows=report.volume %}
+  </section>
+</div>

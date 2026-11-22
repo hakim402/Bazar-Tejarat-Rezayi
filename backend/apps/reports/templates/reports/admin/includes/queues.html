@@ -1,0 +1,11 @@
+<ul>
+  {% for queue in queues %}
+    <li class="{{ rz_report.row }}">
+      <a href="{{ queue.url }}" class="{{ rz_report.queue_link }}">
+        <span class="material-symbols-outlined text-base {{ rz_report.note }}" aria-hidden="true">{{ queue.icon }}</span>
+        <span class="min-w-0 grow break-words">{{ queue.label }}</span>
+        <bdi class="{{ rz_report.chip }}">{{ queue.count }}</bdi>
+      </a>
+    </li>
+  {% endfor %}
+</ul>

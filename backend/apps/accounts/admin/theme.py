@@ -280,7 +280,55 @@ SITE_THEME = {
     "shrink": "shrink-0",
 }
 
-# --- Template-facing map (injected as ``rz_theme`` by dashboard_context) ----
+REPORT_THEME = {
+    "layout": "flex min-w-0 flex-col gap-4 pb-6",
+    "title": f"text-2xl font-semibold {TEXT}",
+    "heading": f"text-base font-semibold {TEXT}",
+    "note": f"text-xs {MUTED}",
+    "action": ACTION,
+    "toolbar": f"{CARD} flex flex-wrap gap-3 p-3",
+    "control": f"h-9 rounded-default border {DIVIDER} bg-white px-3 text-sm dark:bg-base-900",
+    "button": f'{ORDER_THEME["button"]} h-9',
+    "menu_button": f"flex h-9 cursor-pointer items-center gap-2 rounded-default border {DIVIDER} px-3 text-sm font-medium {TEXT}",
+    "menu": f"{CARD} absolute end-0 top-10 z-10 flex w-48 flex-col p-1 shadow-lg",
+    "segment": f"flex rounded-default border {DIVIDER} bg-base-50 p-1 dark:bg-base-800",
+    "segment_link": f"rounded-default px-2 py-1 text-xs font-medium {MUTED}",
+    "segment_active": ACCOUNT_THEME["selection"],
+    "tabs": f"flex gap-4 overflow-x-auto border-b {DIVIDER}",
+    "tab": f"shrink-0 border-b-2 border-transparent px-2 py-2 text-sm font-medium {MUTED}",
+    "tab_active": f"shrink-0 border-b-2 border-primary-600 px-2 py-2 text-sm font-semibold {ACTION}",
+    "metrics": "grid grid-cols-2 gap-3 lg:grid-cols-4",
+    "metric": f"{CARD} min-w-0 p-4",
+    "metric_value": f"text-xl font-semibold {TEXT}",
+    "metric_icon": f"{ICON_TILE} h-8 w-8",
+    "split": "grid grid-cols-1 items-start gap-4 lg:grid-cols-3",
+    "wide": "min-w-0 lg:col-span-2",
+    "card": CARD,
+    "head": "flex flex-wrap items-start justify-between gap-2 px-4 pt-4",
+    "body": "p-4",
+    "divider": DIVIDER,
+    "fold": f"mt-3 border-t pt-2 {DIVIDER}",
+    "fold_trigger": f"cursor-pointer py-1 text-sm font-medium {ACTION}",
+    "table_wrap": "overflow-x-auto",
+    "table": "w-full whitespace-nowrap text-sm",
+    "table_head": f"bg-base-50 text-xs dark:bg-base-800 {MUTED}",
+    "row": f"border-b last:border-b-0 {DIVIDER}",
+    "text_cell": "px-4 py-2 text-start",
+    "number_cell": "px-4 py-2",
+    "chip": f"inline-flex rounded-default bg-base-100 px-2 py-0.5 text-xs font-semibold dark:bg-base-800 {MUTED}",
+    "curr_chip": ACCOUNT_THEME["row_primary"],
+    "queue_link": f"flex items-center gap-2 rounded-default px-2 py-2 text-sm hover:bg-base-50 dark:hover:bg-base-800 {TEXT}",
+    "empty": f"p-6 text-center text-sm {MUTED}",
+    "bar_track": "block h-1.5 w-full overflow-hidden rounded-default bg-base-100 dark:bg-base-800",
+    "bar_fill": ACTION,
+    "chart": "relative h-72 w-full",
+    "chart_data": "mt-2 max-h-screen overflow-auto",
+    "chart_surface": "bg-white dark:bg-base-900",
+    "chart_tint": "bg-primary-50 dark:bg-primary-950",
+    "error": ORDER_THEME["error"],
+}
+
+# --- Template-facing map (injected as `rz_theme` by dashboard_context) ------
 # Never name the context key ``theme``: Unfold's skeleton owns that key for the
 # root Alpine theme() component (light/dark/auto string).
 THEME = {

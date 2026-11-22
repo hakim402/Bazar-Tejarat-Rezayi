@@ -1,15 +1,12 @@
-"""Read-only aggregates for the native admin commerce dashboard.
-
-Presentation-only helpers: they reuse the locked report queries and never mutate
-business records. Amounts stay exact Decimals per currency; AFN and USD are never
-combined or converted. Shared seller/buyer report contracts are untouched.
-"""
+"""Read-only report data for the owner admin, grouped by the active view."""
 
 from datetime import timedelta
 from decimal import Decimal
 
 from django.db.models import Count, F
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.orders import aftercare
 
@@ -17,145 +14,216 @@ from . import queries
 
 
 def previous_window(window):
-    """The equal-length window immediately before the selected one, for deltas."""
     days = (window["end"] - window["start"]).days + 1
-    end = window["start"] - timedelta(days=1)
-    return queries.period(end - timedelta(days=days - 1), end)
+    return queries.period(window["start"] - timedelta(days=days), window["start"] - timedelta(days=1))
 
 
-def delta(current, previous):
-    """Direction plus rounded percent change; 'new' when there was no base."""
-    current, previous = Decimal(current), Decimal(previous)
+def number(value, places=2):
+    text = format(Decimal(value), f",.{places}f")
+    return text.rstrip("0").rstrip(".") if places else text
+
+
+def delta(current, previous, *, points=False):
+    """Compare like-for-like periods without inferring that every increase is good."""
+    if current is None or previous is None:
+        return "—"
+    if points:
+        change = round(Decimal(current) - Decimal(previous), 1)
+        return _("%(change)s pp") % {"change": f"{'+' if change > 0 else ''}{number(change or 0, 1)}"}
     if current == previous:
-        return {"direction": "flat", "percent": None}
-    if previous == 0:
-        return {"direction": "up" if current > 0 else "flat", "percent": None, "current": str(current)}
-    percent = (current - previous) / previous * 100
-    rounded = round(percent, 1)
-    return {
-        "direction": "up" if percent > 0 else "down",
-        "percent": str(int(rounded)) if rounded == int(rounded) else str(rounded),
-    }
+        return "0%"
+    if not previous:
+        return _("New")
+    change = round((Decimal(current) - Decimal(previous)) / abs(Decimal(previous)) * 100, 1)
+    return f"{'+' if change > 0 else ''}{number(change or 0, 1)}%"
 
 
 def accepted(orders, window):
-    return aftercare.annotate(orders.filter(**queries.within("accepted_at", window)))
+    return orders.filter(**queries.within("accepted_at", window))
 
 
-def daily_totals(orders, window):
-    """Zero-filled per-currency accepted totals for each day of the window.
+def daily_series(orders, window, currency, *, amount):
+    """Bucket by local dates, including zero days. MariaDB time zone tables are optional."""
+    orders = accepted(orders, window).filter(currency=currency)
+    if amount:
+        rows = aftercare.annotate(orders).values_list("accepted_at", "accepted_total").iterator()
+    else:
+        rows = ((when, 1) for when in orders.values_list("accepted_at", flat=True).iterator())
+    values = [Decimal(0) if amount else 0] * ((window["end"] - window["start"]).days + 1)
+    for when, value in rows:
+        index = (timezone.localtime(when).date() - window["start"]).days
+        values[index] += value or 0
+    return values
 
-    Bucketed in Python from the recorded local dates: MariaDB CONVERT_TZ can
-    return NULL when its timezone tables are absent, so no DB date truncation.
-    """
-    days = (window["end"] - window["start"]).days + 1
-    buckets = {currency: [Decimal(0)] * days for currency in queries.CURRENCIES}
-    for when, currency, total in accepted(orders, window).values_list("accepted_at", "currency", "accepted_total"):
-        offset = (timezone.localtime(when).date() - window["start"]).days
-        if currency in buckets and 0 <= offset < days:
-            buckets[currency][offset] += total or Decimal(0)
-    return buckets
+
+def comparison(label, current, previous, *, points=False):
+    def display(value):
+        if value is None:
+            return "—"
+        return f"{number(value, 1)}%" if points else number(value)
+
+    return {
+        "label": label,
+        "values": [display(current), display(previous), delta(current, previous, points=points)],
+    }
 
 
-def location_rows(orders, window, limit=6):
-    """Accepted order counts by the recorded delivery destination city."""
-    rows = (
+def table(columns, rows):
+    return {"columns": columns, "rows": rows}
+
+
+def compare_table(rows):
+    return {**table([_("Measure"), _("Selected period"), _("Previous period"), _("Change")], rows), "comparison": True}
+
+
+def by_currency(rows):
+    return {row["currency"]: row for row in rows}
+
+
+def amount(row, field):
+    return Decimal(row.get(field, 0))
+
+
+def trend(orders, window, previous, currency):
+    current = daily_series(orders, window, currency, amount=True)
+    earlier = daily_series(orders, previous, currency, amount=True)
+    dates = [window["start"] + timedelta(days=offset) for offset in range(len(current))]
+    return {
+        "chart": {"dates": [day.isoformat() for day in dates], "current": current, "previous": earlier},
+        "daily": list(zip(dates, current, earlier)),
+    }
+
+
+def overview(orders, window, previous, currency):
+    current_orders = queries.order_figures(orders, window)
+    prior_orders = queries.order_figures(orders, previous)
+    current_sales = by_currency(current_orders).get(currency, {})
+    prior_sales = by_currency(prior_orders).get(currency, {})
+    current_finance = by_currency(queries.finance_figures(orders, window)).get(currency, {})
+    prior_finance = by_currency(queries.finance_figures(orders, previous)).get(currency, {})
+
+    def buyers(period):
+        return accepted(orders, period).aggregate(count=Count("buyer_id", distinct=True))["count"]
+
+    def metric(label, note, icon, current, earlier, unit=""):
+        return {"label": label, "note": note, "icon": icon, "value": number(current), "unit": unit, "change": delta(current, earlier)}
+
+    current_logistics = queries.logistics_figures(orders, window)
+    prior_logistics = queries.logistics_figures(orders, previous)
+    logistics_labels = {"dispatched": _("Dispatched"), "delivered": _("Delivered"), "completed": _("Completed")}
+
+    return {
+        "metrics": [
+            metric(_("Accepted order value"), _("After approved amendments and cancellations"), "receipt_long",
+                   amount(current_sales, "accepted_total"), amount(prior_sales, "accepted_total"), currency),
+            metric(_("Goods received"), _("Recorded goods receipts"), "payments",
+                   amount(current_finance, "goods_received"), amount(prior_finance, "goods_received"), currency),
+            metric(_("Accepted orders"), _("Across both currencies"), "shopping_cart",
+                   sum(row["accepted"] for row in current_orders), sum(row["accepted"] for row in prior_orders)),
+            metric(_("Active buyers"), _("Distinct buyers across both currencies"), "group", buyers(window), buyers(previous)),
+        ],
+        "trend": trend(orders, window, previous, currency),
+        "logistics": [
+            {"label": label, "value": current_logistics[key], "change": delta(current_logistics[key], prior_logistics[key])}
+            for key, label in logistics_labels.items()
+        ],
+        "queues": queries.queues(orders, dict.fromkeys(queries.SECTIONS, True)),
+    }
+
+
+def orders_detail(orders, window, previous, currency):
+    current = by_currency(queries.order_figures(orders, window)).get(currency, {})
+    earlier = by_currency(queries.order_figures(orders, previous)).get(currency, {})
+
+    def rate(row):
+        return Decimal(row["cancelled"]) / row["accepted"] * 100 if row.get("accepted") else None
+
+    comparison_rows = [
+        comparison(_("Accepted orders"), current.get("accepted", 0), earlier.get("accepted", 0)),
+        comparison(_("Cancelled orders"), current.get("cancelled", 0), earlier.get("cancelled", 0)),
+        comparison(_("Cancellation rate"), rate(current), rate(earlier), points=True),
+        comparison(_("Original goods value"), amount(current, "goods_total"), amount(earlier, "goods_total")),
+        comparison(_("Effective order value"), amount(current, "accepted_total"), amount(earlier, "accepted_total")),
+    ]
+    daily = daily_series(orders, window, currency, amount=False)
+    step = (len(daily) + 9) // 10
+    volume = []
+    for offset in range(0, len(daily), step):
+        first = window["start"] + timedelta(days=offset)
+        last = window["start"] + timedelta(days=min(offset + step, len(daily)) - 1)
+        volume.append({"start": first, "end": last, "value": sum(daily[offset:offset + step])})
+    scale = max((row["value"] for row in volume), default=0)
+    return {
+        "order_comparison": compare_table(comparison_rows),
+        "volume": [{**row, "bar": round(row["value"] / scale * 100)} for row in volume] if scale else [],
+    }
+
+
+def finance_detail(orders, window, previous, currency):
+    rows = queries.finance_figures(orders, window)
+    current = by_currency(rows).get(currency, {})
+    earlier = by_currency(queries.finance_figures(orders, previous)).get(currency, {})
+    goods = {
+        "goods_received": _("Goods received"), "goods_receipts": _("Receipts"), "goods_refunded": _("Goods refunds"),
+        "goods_net": _("Net received"), "refund_due_created": _("New refund amounts due"),
+    }
+    delivery = {"delivery_received": _("Delivery received"), "delivery_refunded": _("Delivery refunds")}
+
+    def money_table(measures):
+        return table([_("Currency"), *measures.values()], [
+            {"label": row["currency"], "values": [number(row[field]) for field in measures]}
+            for row in rows
+        ])
+
+    return {
+        "goods": money_table(goods),
+        "delivery": money_table(delivery),
+        "finance_comparison": compare_table([
+            comparison(label, amount(current, field), amount(earlier, field))
+            for field, label in (goods | delivery).items() if field != "goods_receipts"
+        ]),
+    }
+
+
+def sellers_detail(orders, window, currency):
+    current = by_currency(queries.order_figures(orders, window)).get(currency, {})
+    total = amount(current, "accepted_total")
+    sellers = [row for row in queries.platform_sellers(window) if row["currency"] == currency]
+    locations = list(
         accepted(orders, window)
         .values(city=F("snapshot__terms__destination__city"), country=F("snapshot__terms__destination__country"))
         .annotate(count=Count("pk"))
-        .order_by("-count", "city")[:limit]
+        .order_by("-count", "city", "country")[:6]
     )
-    return [{"city": row["city"] or "", "country": row["country"] or "", "count": row["count"]} for row in rows]
-
-
-def money_kpi(current_rows, previous_rows, key):
-    """Primary-currency headline plus the other currencies, with a delta."""
-    amounts = {row["currency"]: row[key] for row in current_rows}
-    previous = {row["currency"]: Decimal(row[key]) for row in previous_rows}
-    primary = "AFN" if "AFN" in amounts else next(iter(amounts), None)
+    scale = locations[0]["count"] if locations else 1
     return {
-        "primary": primary,
-        "value": amounts.get(primary, "0.00"),
-        "alt": [{"currency": currency, "amount": amount} for currency, amount in amounts.items() if currency != primary],
-        "delta": delta(Decimal(amounts[primary]), previous.get(primary, Decimal(0))) if primary else None,
-    }
-
-
-def count_kpi(current, previous):
-    return {"value": current, "delta": delta(current, previous)}
-
-
-def dashboard(orders, window, rights):
-    """Everything the admin dashboard renders, from recorded facts only."""
-    previous = previous_window(window)
-    current_summary = queries.summary(orders, window, rights)
-    previous_summary = queries.summary(orders, previous, rights)
-    series = daily_totals(orders, window)
-    previous_series = daily_totals(orders, previous)
-    days = (window["end"] - window["start"]).days + 1
-    accepted_now = accepted(orders, window)
-    accepted_before = accepted(orders, previous)
-    orders_now = queries.order_figures(orders, window)
-    orders_before = queries.order_figures(orders, previous)
-    finance_now = current_summary["finance"] or []
-    finance_before = previous_summary["finance"] or []
-    logistics_now = current_summary["logistics"] or {}
-    logistics_before = previous_summary["logistics"] or {}
-    accepted_count = sum(row["accepted"] for row in orders_now)
-    completed_before = logistics_before.get("completed", 0)
-    accepted_before_count = sum(row["accepted"] for row in orders_before)
-    completion = round(logistics_now.get("completed", 0) * 100 / accepted_count) if accepted_count else 0
-    completion_before = round(completed_before * 100 / accepted_before_count) if accepted_before_count else 0
-    locations = location_rows(orders, window)
-    location_max = max((row["count"] for row in locations), default=0)
-    for row in locations:
-        row["share"] = round(row["count"] * 100 / location_max) if location_max else 0
-    primary = "AFN" if any(row["currency"] == "AFN" for row in orders_now) else next(iter(orders_now), {}).get("currency")
-    totals = {
-        currency: {"current": str(sum(series[currency], Decimal(0))),
-                   "previous": str(sum(previous_series[currency], Decimal(0)))}
-        for currency in queries.CURRENCIES
-    }
-    donut = {}
-    seller_rows = queries.platform_sellers(window)
-    for currency in queries.CURRENCIES:
-        rows = [row for row in seller_rows if row["currency"] == currency]
-        entries = [{"name": row["name"], "amount": str(row["accepted_total"]), "other": False} for row in rows[:4]]
-        rest = rows[4:]
-        if rest:
-            entries.append({"name": "", "amount": str(sum((row["accepted_total"] for row in rest), Decimal(0))), "other": True})
-        donut[currency] = entries
-    return {
-        "days": days,
-        "primary": primary,
-        "totals": totals,
-        "totals_primary": totals.get(primary, {"current": "0", "previous": "0"}),
-        "previous": {"start": previous["start"], "end": previous["end"]},
-        "dates": [(window["start"] + timedelta(days=offset)).isoformat() for offset in range(days)],
-        "daily_primary": [
-            {"date": (window["start"] + timedelta(days=offset)).isoformat(),
-             "current": str(series[primary][offset]) if primary else "0.00",
-             "previous": str(previous_series[primary][offset]) if primary else "0.00"}
-            for offset in range(days)
+        "sellers": table([_("Seller"), _("Accepted orders"), _("Accepted value"), _("Value share")], [
+            {
+                "label": row["name"],
+                "url": reverse("admin:organizations_businessprofile_change", args=[row["seller"]]),
+                "values": [row["accepted"], number(row["accepted_total"]),
+                           f'{number(row["accepted_total"] / total * 100, 1)}%' if total else "—"],
+            }
+            for row in sellers
+        ]),
+        "locations": [
+            {"label": row["city"] or row["country"] or _("Unknown destination"),
+             "country": row["country"] if row["city"] else "", "value": row["count"],
+             "bar": round(row["count"] / scale * 100)}
+            for row in locations
         ],
-        "series": {
-            currency: {"current": [str(value) for value in series[currency]],
-                       "previous": [str(value) for value in previous_series[currency]]}
-            for currency in queries.CURRENCIES
-        },
-        "locations": locations,
-        "donut": donut,
-        "donut_primary": donut.get(primary, []),
-        "kpis": {
-            "sales": money_kpi(orders_now, orders_before, "accepted_total"),
-            "orders": count_kpi(accepted_count, accepted_before_count),
-            "revenue": money_kpi(finance_now, finance_before, "goods_received"),
-            "customers": count_kpi(
-                accepted_now.aggregate(n=Count("buyer_id", distinct=True))["n"],
-                accepted_before.aggregate(n=Count("buyer_id", distinct=True))["n"],
-            ),
-        },
-        "logistics_delta": {key: delta(logistics_now.get(key, 0), logistics_before.get(key, 0)) for key in ("dispatched", "delivered", "completed")},
-        "completion": {"current": completion, "previous": completion_before,
-                       "points": completion - completion_before},
     }
+
+
+def dashboard(orders, window, *, tab, currency):
+    """Only run the queries needed for the selected report view."""
+    previous = previous_window(window)
+    if tab == "orders":
+        report = orders_detail(orders, window, previous, currency)
+    elif tab == "finance":
+        report = finance_detail(orders, window, previous, currency)
+    elif tab == "sellers":
+        report = sellers_detail(orders, window, currency)
+    else:
+        report = overview(orders, window, previous, currency)
+    return {"previous": previous, **report}
