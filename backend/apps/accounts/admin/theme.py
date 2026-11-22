@@ -233,6 +233,11 @@ VERIFICATION_THEME = {
     "disclosure": WORKSPACE_THEME["disclosure"],
 }
 
+DELIVERY_CASE_THEME = {
+    **VERIFICATION_THEME,
+    "amount": f"text-xl font-semibold {TEXT}",
+}
+
 # Moderation case workspace: reported message, conversation history and the
 # guarded decision form share one visual language.
 MESSAGING_THEME = {

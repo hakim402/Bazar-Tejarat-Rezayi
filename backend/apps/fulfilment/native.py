@@ -16,10 +16,23 @@ from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, U
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor
 from apps.accounts.admin.copy import COPY as COPY
+from apps.accounts.admin.theme import DELIVERY_CASE_THEME
 from apps.orders.admin import private_document
 from apps.payments.models import Finance
 from apps.inventory.models import Bucket
 from . import access, models as m, queries, services, selection, review, contracts as c, documents, validation as v
+
+
+REVIEW_TITLES = {
+    "logistics": _("Delivery coordination review"),
+    "charge": _("Delivery charge review"),
+    "payment": _("Delivery payment review"),
+    "correction": _("Delivery receipt correction"),
+    "blocker": _("Delivery hold review"),
+    "stock": _("Delivery stock review"),
+    "exception": _("Delivery exception review"),
+    "refund": _("Delivery refund review"),
+}
 
 
 class ReviewerChoice(forms.ModelChoiceField):
@@ -253,7 +266,7 @@ def workflow(request, pk, *, case_pk=None):
     if not 1 <= page <= 10000:
         raise PermissionDenied()
     selected = case_pk or request.GET.get("case")
-    case = get_object_or_404(access.case_scope(actor), pk=v.identifier(selected)) if selected else None
+    case = get_object_or_404(access.case_scope(actor).select_related("assigned_to"), pk=v.identifier(selected)) if selected else None
     if case and case.order_id != pk:
         raise PermissionDenied()
     order = get_object_or_404(
@@ -263,6 +276,15 @@ def workflow(request, pk, *, case_pk=None):
     detail = queries.detail(actor, pk, page=page) if inspect else None
     caps = detail["capabilities"] if detail else {}
     choices = actions(actor, order, case, caps)
+    review_choices = [(key, label) for key, label in choices if key.startswith("case_")] if case else []
+    action_choices = choices
+    if case and choices:
+        delivery_choices = [(key, label) for key, label in choices if not key.startswith("case_")]
+        action_choices = [("", _("Choose an action"))]
+        if review_choices:
+            action_choices.append((_("Case review actions"), review_choices))
+        if delivery_choices:
+            action_choices.append((_("Delivery operations"), delivery_choices))
     reviewer_notice = ""
     if actor.context == "owner" and case and case.state == "open":
         try:
@@ -284,13 +306,19 @@ def workflow(request, pk, *, case_pk=None):
         "occurred_at": timezone.now().isoformat(),
         "arranger": "rezayi",
     }
+    reviewer_ids = [user.pk for user in review.reviewers(case)] if case else []
+    can_assign = "assign_fulfilment" in access.rights(actor)
+    if len(review_choices) == 1:
+        initial["action"] = review_choices[0][0]
+        if initial["action"] == "case_assign" and not case.assigned_to_id and actor.user.pk in reviewer_ids:
+            initial["assigned_to"] = actor.user.pk
     form = WorkflowForm(request.POST if request.method == "POST" else None, initial=initial)
-    form.fields["action"].choices = choices
-    if case:
+    form.fields["action"].choices = action_choices
+    if case and can_assign:
         form.fields["assigned_to"].queryset = __import__("apps.accounts.models", fromlist=["User"]).User.objects.filter(
-            pk__in=[u.pk for u in review.reviewers(case)]
+            pk__in=reviewer_ids,
         )
-    if "assign_fulfilment" not in access.rights(actor):
+    if not can_assign:
         form.fields.pop("assigned_to")
     stock = stock_forms(order, request) if caps.get("prepare") and order.payment_method == "cod" else None
     pending = None
@@ -303,11 +331,13 @@ def workflow(request, pk, *, case_pk=None):
                 validated.is_valid(raise_exception=True)
                 if request.POST.get("cancel_review"):
                     form = WorkflowForm(initial={**initial, **raw, "action": "dispatch"})
-                    form.fields["action"].choices = choices
-                    if case:
+                    form.fields["action"].choices = action_choices
+                    if case and can_assign:
                         form.fields["assigned_to"].queryset = __import__(
                             "apps.accounts.models", fromlist=["User"]
-                        ).User.objects.filter(pk__in=[u.pk for u in review.reviewers(case)])
+                        ).User.objects.filter(pk__in=reviewer_ids)
+                    if not can_assign:
+                        form.fields.pop("assigned_to")
                 else:
                     services.mutate(actor, pk, "dispatch", validated.validated_data)
                     return HttpResponseRedirect(
@@ -370,14 +400,17 @@ def workflow(request, pk, *, case_pk=None):
         ]
     response = render(
         request,
-        "fulfilment/workflow.html",
+        "fulfilment/case_workflow.html" if case else "fulfilment/workflow.html",
         {
             **owner_site.each_context(request),
-            "opts": m.State._meta,
-            "title": COPY["fulfilment_title"],
+            "opts": m.ReviewCase._meta if case else m.State._meta,
+            "title": _("Delivery review") if case else COPY["fulfilment_title"],
+            "case_title": REVIEW_TITLES.get(case.kind, _("Delivery review")) if case else "",
+            "rz_case": DELIVERY_CASE_THEME,
             "detail": detail,
             "order": order,
             "case": case,
+            "review_choices": review_choices,
             "reviewer_notice": reviewer_notice,
             "form": form,
             "stock": stock,
@@ -390,6 +423,7 @@ def workflow(request, pk, *, case_pk=None):
             "history_has_more": bool(detail and page * 50 < detail["history_count"]),
             "handover_url": reverse("admin:fulfilment_state_handover", args=[pk]),
             "stock_url": reverse("admin:fulfilment_state_options", args=[pk]),
+            "delivery_url": reverse("admin:fulfilment_state_workflow", args=[pk]),
         },
         status=status,
     )

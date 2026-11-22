@@ -1,7 +1,84 @@
 {% load i18n order_admin %}
-{% if case.proposal_id %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Exact delivery charge proposal" %}</h2><p><bdi>{{ case.proposal.provider.name }} · {{ case.proposal.amount|admin_amount }} {{ case.proposal.currency }}</bdi></p><p dir="auto">{{ case.proposal.reason }}</p></section>{% endif %}
-{% if case.claim_id and detail.capabilities.financial_details %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Exact unconfirmed claim" %}</h2><p><bdi>{{ case.claim.charge.provider.name }} · {{ case.claim.amount|admin_amount }} {{ case.claim.currency }}</bdi> · {{ case.claim.paid_at }}</p><p dir="auto">{{ case.claim.description }}</p><p>{% translate "Approve only actual receipt by this named provider. Submission is not settlement." %}</p></section>{% endif %}
-{% if case.correction_id and detail.capabilities.financial_details %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Exact delivery receipt correction" %}</h2><p>{% translate "Retained original" %}: <bdi>{{ case.correction.receipt.claim.amount|admin_amount }} {{ order.currency }}</bdi> · {{ case.correction.receipt.claim.paid_at }}</p><p dir="auto">{{ case.correction.receipt.claim.description }}</p><p>{% translate "Effective before" %}: <bdi>{{ before.amount|admin_amount }} {{ order.currency }}</bdi> · {{ before.paid_at }}</p><p dir="auto">{{ before.description }}</p><p>{% translate "Proposed after" %}: <bdi>{{ case.correction.amount|admin_amount }} {{ order.currency }}</bdi> · {% translate "Target version" %} <bdi>{{ case.correction.target_version }}</bdi> · {{ case.correction.paid_at }}</p><p dir="auto">{{ case.correction.description }}</p><p dir="auto">{{ case.correction.reason }}</p></section>{% endif %}
-{% if case.blocker_id %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Exact operational hold" %}</h2><p>{{ case.blocker.kind|admin_badge }}</p><p dir="auto">{{ case.blocker.reason }}</p><p>{% translate "Independent clearing is limited to erroneous or withdrawn holds. Referral does not clear a blocker or execute a cancellation, dispute or refund." %}</p></section>{% endif %}
-{% if case.refund_id and detail.capabilities.financial_details %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Exact provider delivery refund" %}</h2><p><bdi>{{ case.refund.provider.name }} · {{ case.refund.amount|admin_amount }} {{ case.refund.currency }}</bdi> · {{ case.refund.sent_at }}</p><p dir="auto">{{ case.refund.reference }}</p><p dir="auto">{{ case.refund.description }}</p><p>{% translate "Provider-issued delivery money only, bounded by confirmed provider receipts in the goods-order currency. Goods totals, goods invoices and seller goods receipts are unchanged; confirmation requires an independent reviewer who is not the reporter." %}</p></section>{% endif %}
-{% if images %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Protected delivery evidence" %}</h2>{% for image in images %}<p><a href="{{ image.url }}" rel="noreferrer">{% translate "Open protected image" %} <bdi>{{ forloop.counter }}</bdi></a></p>{% endfor %}</section>{% endif %}
+<section class="{{ rz_case.panel }}" aria-labelledby="delivery-case-details">
+    <h2 id="delivery-case-details" class="{{ rz_case.section_heading }}">
+        <span class="material-symbols-outlined {{ rz_case.section_icon }}" aria-hidden="true">description</span>
+        {% translate "Case details" %}
+    </h2>
+
+    {% if case.proposal_id %}
+        <p class="{{ rz_case.amount }}"><bdi>{{ case.proposal.amount|admin_amount }} {{ case.proposal.currency }}</bdi></p>
+        <p class="{{ rz_case.muted }}" dir="auto">{{ case.proposal.provider.name }}</p>
+        <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.proposal.reason }}</p>
+    {% elif case.claim_id and detail.capabilities.financial_details %}
+        <p class="{{ rz_case.amount }}"><bdi>{{ case.claim.amount|admin_amount }} {{ case.claim.currency }}</bdi></p>
+        <p class="{{ rz_case.muted }}"><bdi>{{ case.claim.charge.provider.name }}</bdi> · <bdi>{{ case.claim.paid_at|date:"DATETIME_FORMAT" }}</bdi></p>
+        <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.claim.description }}</p>
+        <p class="{{ rz_case.help }}">{% translate "Approve only actual receipt by this named provider. Submission is not settlement." %}</p>
+    {% elif case.correction_id and detail.capabilities.financial_details %}
+        <div class="{{ rz_case.evidence_grid }}">
+            <div class="{{ rz_case.evidence_group }}">
+                <h3 class="{{ rz_case.label }}">{% translate "Effective before" %}</h3>
+                <p class="{{ rz_case.amount }}"><bdi>{{ before.amount|admin_amount }} {{ order.currency }}</bdi></p>
+                <p class="{{ rz_case.help }}"><bdi>{{ before.paid_at|date:"DATETIME_FORMAT" }}</bdi></p>
+                <p class="whitespace-pre-wrap break-words" dir="auto">{{ before.description }}</p>
+            </div>
+            <div class="{{ rz_case.evidence_group }}">
+                <h3 class="{{ rz_case.label }}">{% translate "Proposed after" %}</h3>
+                <p class="{{ rz_case.amount }}"><bdi>{{ case.correction.amount|admin_amount }} {{ order.currency }}</bdi></p>
+                <p class="{{ rz_case.help }}"><bdi>{{ case.correction.paid_at|date:"DATETIME_FORMAT" }}</bdi> · {% translate "Target version" %} <bdi>{{ case.correction.target_version }}</bdi></p>
+                <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.correction.description }}</p>
+            </div>
+        </div>
+        <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.correction.reason }}</p>
+        <details class="{{ rz_case.evidence_group }}">
+            <summary class="{{ rz_case.disclosure }}">{% translate "Retained original" %}</summary>
+            <p class="mt-2"><bdi>{{ case.correction.receipt.claim.amount|admin_amount }} {{ order.currency }}</bdi> · <bdi>{{ case.correction.receipt.claim.paid_at|date:"DATETIME_FORMAT" }}</bdi></p>
+            <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.correction.receipt.claim.description }}</p>
+        </details>
+    {% elif case.blocker_id %}
+        <p>{{ case.blocker.kind|admin_badge }}</p>
+        <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.blocker.reason }}</p>
+        <p class="{{ rz_case.help }}">{% translate "Independent clearing is limited to erroneous or withdrawn holds. Referral does not clear a blocker or execute a cancellation, dispute or refund." %}</p>
+    {% elif case.refund_id and detail.capabilities.financial_details %}
+        <p class="{{ rz_case.amount }}"><bdi>{{ case.refund.amount|admin_amount }} {{ case.refund.currency }}</bdi></p>
+        <p class="{{ rz_case.muted }}"><bdi>{{ case.refund.provider.name }}</bdi> · <bdi>{{ case.refund.sent_at|date:"DATETIME_FORMAT" }}</bdi></p>
+        {% if case.refund.reference %}<p class="break-words"><bdi>{{ case.refund.reference }}</bdi></p>{% endif %}
+        <p class="whitespace-pre-wrap break-words" dir="auto">{{ case.refund.description }}</p>
+        <p class="{{ rz_case.help }}">{% translate "Confirm the provider sent the refund. Approval is limited to confirmed delivery receipts." %}</p>
+    {% else %}
+        <dl>
+            <div class="{{ rz_case.fact_row }}">
+                <dt class="{{ rz_case.label }}">{% translate "Physical movement" %}</dt>
+                <dd>{{ detail.stage|admin_badge }}</dd>
+            </div>
+            <div class="{{ rz_case.fact_row }}">
+                <dt class="{{ rz_case.label }}">{% translate "Delivery provider" %}</dt>
+                <dd class="min-w-0 break-words {{ rz_case.muted }}"><bdi>{{ detail.arrangement.provider|default:unassigned_label }}</bdi></dd>
+            </div>
+            <div class="{{ rz_case.fact_row }}">
+                <dt class="{{ rz_case.label }}">{% translate "Completion" %}</dt>
+                <dd>{{ detail.completion|admin_badge }}</dd>
+            </div>
+            {% for blocker in detail.blockers %}
+                <div class="{{ rz_case.fact_row }}">
+                    <dt class="{{ rz_case.label }}">{% translate "Active operational hold" %}</dt>
+                    <dd>{{ blocker.kind|admin_badge }}</dd>
+                </div>
+            {% endfor %}
+        </dl>
+    {% endif %}
+
+    {% if images %}
+        <div class="{{ rz_case.evidence_group }}">
+            <h3 class="{{ rz_case.label }}">{% translate "Protected delivery evidence" %}</h3>
+            <ul class="mt-2 flex flex-col gap-2">
+                {% for image in images %}
+                    <li><a class="{{ rz_case.document_link }}" href="{{ image.url }}" target="_blank" rel="noopener noreferrer">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">image</span>
+                        {% translate "Open protected image" %} <bdi>{{ forloop.counter }}</bdi>
+                    </a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</section>

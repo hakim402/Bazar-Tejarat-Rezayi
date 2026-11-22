@@ -18,7 +18,6 @@
 <section class="{{ rz_order.panel }}"><span class="{{ rz_order.eyebrow }}"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>{% translate "Completion" %}</span><div>{{ detail.completion|admin_badge }}</div>{% if detail.completed_at %}<p class="{{ rz_order.muted }}">{{ detail.completed_at }}</p>{% endif %}</section>
 </div>
 {% for blocker in detail.blockers %}<p class="{{ rz_order.notice }}" role="status"><span class="material-symbols-outlined" aria-hidden="true">pause_circle</span>{% translate "Active operational hold" %}: {{ blocker.kind|admin_badge }}</p>{% endfor %}
-{% include "fulfilment/includes/workflow_review.html" %}
 {% endif %}
 <div class="{{ rz_order.workspace_grid }}">
 <div class="{{ rz_order.main_column }}">{% include "fulfilment/includes/workflow_action.html" %}</div>
@@ -42,7 +41,7 @@
 </div></details>{% endif %}
 {% if detail.cases %}<details class="{{ rz_order.panel }}"><summary class="{{ rz_order.disclosure }}">{% translate "Assigned review items" %} <bdi>({{ detail.cases|length }})</bdi></summary><div class="{{ rz_order.detail_body }}">{% for item in detail.cases %}<p><a href="{% url 'admin:fulfilment_reviewcase_review' item.id %}">{{ item.kind|admin_badge }} · {{ item.state|admin_badge }}</a></p>{% empty %}<p>{% translate "No review items on this page." %}</p>{% endfor %}</div>
 </details>{% endif %}
-<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "History" %}</h2>{% for item in detail.history|slice:":5" %}<p class="{{ rz_order.history }}"><bdi>{{ item.version }}</bdi> · {{ item.action|admin_badge }} · {{ item.context|admin_context }} · {{ item.created_at }}</p>{% empty %}<p>{% translate "No published delivery history." %}</p>{% endfor %}{% if detail.history|length > 5 %}<details><summary class="{{ rz_order.disclosure }}">{% translate "View more activity" %}</summary>{% for item in detail.history|slice:"5:" %}<p class="{{ rz_order.history }}"><bdi>{{ item.version }}</bdi> · {{ item.action|admin_badge }} · {{ item.context|admin_context }} · {{ item.created_at }}</p>{% endfor %}</details>{% endif %}{% if history_has_more %}<a href="?page={{ next_page }}{% if case %}&amp;case={{ case.id }}{% endif %}">{% translate "Next history page" %}</a>{% endif %}</section>
+<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "History" %}</h2>{% include "fulfilment/includes/workflow_history.html" %}</section>
 {% endif %}
 </div>
 <script src="{% static 'fulfilment/workflow.js' %}" defer></script>

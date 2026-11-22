@@ -1,0 +1,2 @@
+{% load order_admin %}
+<p class="{{ rz_order.history }}"><bdi>{{ item.version }}</bdi> · {{ item.action|admin_badge }} · {{ item.context|admin_context }} · <bdi>{{ item.created_at|date:"DATETIME_FORMAT" }}</bdi></p>

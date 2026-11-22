@@ -1,0 +1,21 @@
+{% load i18n order_admin %}
+<div class="{{ rz_order.detail_body }}">
+    {% for item in detail.history|slice:":5" %}
+        {% include "fulfilment/includes/workflow_history_item.html" %}
+    {% empty %}
+        <p class="{{ rz_order.muted }}">{% translate "No published delivery history." %}</p>
+    {% endfor %}
+    {% if detail.history|length > 5 %}
+        <details>
+            <summary class="{{ rz_order.disclosure }}">{% translate "View more activity" %}</summary>
+            <div class="{{ rz_order.detail_body }}">
+                {% for item in detail.history|slice:"5:" %}
+                    {% include "fulfilment/includes/workflow_history_item.html" %}
+                {% endfor %}
+            </div>
+        </details>
+    {% endif %}
+    {% if history_has_more %}
+        <a class="{{ rz_order.disclosure }}" href="?page={{ next_page }}{% if case %}&amp;case={{ case.id }}{% endif %}">{% translate "Next history page" %}</a>
+    {% endif %}
+</div>

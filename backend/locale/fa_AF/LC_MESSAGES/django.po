@@ -8120,3 +8120,48 @@ msgstr "اسناد جایگزین"
 
 msgid "Internal note"
 msgstr "یادداشت داخلی"
+
+msgid "Delivery coordination review"
+msgstr "بررسی هماهنگی تحویل"
+
+msgid "Delivery charge review"
+msgstr "بررسی هزینه تحویل"
+
+msgid "Delivery payment review"
+msgstr "بررسی پرداخت تحویل"
+
+msgid "Delivery receipt correction"
+msgstr "اصلاح رسید تحویل"
+
+msgid "Delivery hold review"
+msgstr "بررسی توقف تحویل"
+
+msgid "Delivery stock review"
+msgstr "بررسی موجودی تحویل"
+
+msgid "Delivery exception review"
+msgstr "بررسی مورد استثنایی تحویل"
+
+msgid "Delivery refund review"
+msgstr "بررسی بازپرداخت تحویل"
+
+msgid "Choose an action"
+msgstr "یک اقدام را انتخاب کنید"
+
+msgid "Case review actions"
+msgstr "اقدام‌های بررسی پرونده"
+
+msgid "Assigned"
+msgstr "واگذار شده"
+
+msgid "The review decision has been recorded."
+msgstr "تصمیم بررسی ثبت شده است."
+
+msgid "Delivery history"
+msgstr "تاریخچه تحویل"
+
+msgid "Confirm the provider sent the refund. Approval is limited to confirmed delivery receipts."
+msgstr "بررسی کنید که ارائه‌دهنده بازپرداخت را انجام داده باشد. تأیید تنها تا سقف رسیدهای تأییدشده تحویل ممکن است."
+
+msgid "Record review action"
+msgstr "ثبت اقدام بررسی"

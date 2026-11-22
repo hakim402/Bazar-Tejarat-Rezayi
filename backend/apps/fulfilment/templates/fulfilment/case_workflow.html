@@ -1,0 +1,79 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static order_admin %}
+
+{% block content %}
+{% translate "Not assigned" as unassigned_label %}
+{% translate "Select stock bucket" as stock_select_label %}
+{% translate "Standard stock" as stock_standard_label %}
+{% translate "No expiry" as stock_expiry_label %}
+{% translate "No expiry" as no_expiry_label %}
+{% translate "Non-batch" as non_batch_label %}
+{% translate "Available" as stock_available_label %}
+{% translate "Page" as stock_page_label %}
+{% translate "stock buckets. Current selections retained." as stock_count_label %}
+{% translate "Stock options unavailable. Existing fields are retained; retry after checking access and connectivity." as stock_unavailable_label %}
+
+<div class="{{ rz_case.layout }}">
+    <header class="{{ rz_case.header }}">
+        <div class="flex min-w-0 items-center gap-3">
+            <span class="material-symbols-outlined {{ rz_case.identity_icon }}" aria-hidden="true">local_shipping</span>
+            <div class="min-w-0">
+                <h1 class="{{ rz_case.title }}">{{ case_title }}</h1>
+                <p class="text-sm {{ rz_case.muted }}">
+                    {% translate "Order" %}
+                    {% if detail %}<bdi>{{ detail.number }}</bdi>{% else %}<bdi title="{{ order.pk }}">{{ order.pk|truncatechars:12 }}</bdi>{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {{ case.state|admin_badge }}
+            <a class="{{ rz_case.secondary_button }}" href="{% url 'admin:orders_sellerorder_change' order.pk %}">{% translate "View order" %}</a>
+            <a class="{{ rz_case.secondary_button }}" href="{{ delivery_url }}">{% translate "Open delivery workflow" %}</a>
+        </div>
+    </header>
+
+    <div class="{{ rz_case.grid }}">
+        {% if detail %}
+            {% include "fulfilment/includes/workflow_review.html" %}
+        {% else %}
+            <section class="{{ rz_case.panel }}" aria-labelledby="delivery-case-details">
+                <h2 id="delivery-case-details" class="{{ rz_case.section_heading }}">{% translate "Case details" %}</h2>
+                <p class="{{ rz_case.muted }}">{% translate "Assignment metadata only. Current resource assignment and explicit permissions are required for private recipient, money and evidence content." %}</p>
+            </section>
+        {% endif %}
+
+        <section class="{{ rz_case.panel }}" aria-labelledby="delivery-review-action">
+            <h2 id="delivery-review-action" class="{{ rz_case.section_heading }}">
+                <span class="material-symbols-outlined {{ rz_case.section_icon }}" aria-hidden="true">fact_check</span>
+                {% translate "Delivery review" %}
+            </h2>
+            <dl>
+                <div class="{{ rz_case.fact_row }}">
+                    <dt class="{{ rz_case.label }}">{% translate "Assigned reviewer" %}</dt>
+                    <dd class="{{ rz_case.muted }}">
+                        {% if not case.assigned_to_id %}{{ unassigned_label }}
+                        {% elif case.assigned_to.display_name %}<bdi>{{ case.assigned_to.display_name }}</bdi>
+                        {% else %}{% translate "Assigned" %}{% endif %}
+                    </dd>
+                </div>
+            </dl>
+            {% if reviewer_notice %}<p class="{{ rz_case.muted }}" role="status">{{ reviewer_notice }}</p>{% endif %}
+            {% if pending or review_choices or form.is_bound or form.action.value %}
+                {% include "fulfilment/includes/workflow_action.html" with embedded=True %}
+            {% elif case.state == "open" %}
+                <p class="{{ rz_case.muted }}" role="status">{% translate "No action is available under your current assignment, independence and permission." %}</p>
+            {% else %}
+                <p class="{{ rz_case.muted }}" role="status">{% translate "The review decision has been recorded." %}</p>
+            {% endif %}
+        </section>
+    </div>
+
+    {% if detail.history or history_has_more %}
+        <details class="{{ rz_case.panel }}"{% if page > 1 %} open{% endif %}>
+            <summary class="{{ rz_case.disclosure }}">{% translate "Delivery history" %}</summary>
+            {% include "fulfilment/includes/workflow_history.html" %}
+        </details>
+    {% endif %}
+</div>
+<script src="{% static 'fulfilment/workflow.js' %}" defer></script>
+{% endblock %}
