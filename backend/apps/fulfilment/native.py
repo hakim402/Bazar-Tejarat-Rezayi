@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied as ActionDenied, ValidationError
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget, UnfoldBooleanWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor
@@ -97,6 +97,27 @@ class WorkflowForm(forms.Form):
         required=False,
         widget=UnfoldAdminSelectWidget,
     )
+
+    def clean(self):
+        data = super().clean()
+        if data.get("action") == "arrange":
+            for field, message in (
+                ("provider", _("Enter the delivery provider name.")),
+                ("arranger", _("Select who is arranging delivery.")),
+            ):
+                if field not in self.errors and not data.get(field):
+                    self.add_error(field, message)
+        return data
+
+    def add_action_validation_errors(self, error):
+        fields = [
+            name for name in error.detail
+            if name in self.fields and not self.fields[name].widget.is_hidden
+        ] if isinstance(error.detail, dict) else []
+        for name in fields:
+            self.add_error(name, _("Check this value and try again."))
+        if not fields or len(fields) != len(error.detail):
+            self.add_error(None, _("Review the delivery details and try again."))
 
 
 class StockRow(forms.Form):
@@ -364,6 +385,10 @@ def workflow(request, pk, *, case_pk=None):
                     return HttpResponseRedirect(
                         request.path + ("?case=" + str(case.pk) if case and not case_pk else "")
                     )
+        except ValidationError as error:
+            form.add_action_validation_errors(error)
+        except ActionDenied:
+            form.add_error(None, _("Your current assignment or permissions do not allow this delivery action."))
         except (APIException, ValueError, KeyError) as error:
             form.add_error(None, COPY["payment_changed"])
             status = getattr(error, "status_code", 400)

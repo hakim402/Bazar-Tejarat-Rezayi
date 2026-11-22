@@ -8165,3 +8165,18 @@ msgstr "بررسی کنید که ارائه‌دهنده بازپرداخت را
 
 msgid "Record review action"
 msgstr "ثبت اقدام بررسی"
+
+msgid "Enter the delivery provider name."
+msgstr "نام ارائه‌دهنده خدمات تحویل را وارد کنید."
+
+msgid "Select who is arranging delivery."
+msgstr "هماهنگ‌کننده تحویل را انتخاب کنید."
+
+msgid "Check this value and try again."
+msgstr "این مقدار را بررسی کنید و دوباره تلاش کنید."
+
+msgid "Review the delivery details and try again."
+msgstr "جزئیات تحویل را بررسی کنید و دوباره تلاش کنید."
+
+msgid "Your current assignment or permissions do not allow this delivery action."
+msgstr "واگذاری یا دسترسی فعلی شما اجازه انجام این اقدام تحویل را نمی‌دهد."
