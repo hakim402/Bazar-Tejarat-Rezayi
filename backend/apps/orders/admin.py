@@ -1580,6 +1580,11 @@ class ReviewAdmin(OwnerOrderPresentation, ReviewScopedAdmin):
     badge_fields = ("state",)
     fields = ["order", "buyer", "rating", "text", "language", "state", "version", "event", "created_at", "workspace"]
 
+    def lookup_allowed(self, lookup, value, request=None):
+        if lookup == "order__seller__id__exact":
+            return request is not None and is_owner(request)
+        return super().lookup_allowed(lookup, value, request)
+
     def get_readonly_fields(self, request, obj=None):
         return self.owner_readonly(request, self.fields)
 

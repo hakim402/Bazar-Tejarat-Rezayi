@@ -17,7 +17,7 @@ from apps.organizations.access import manage_profile, visible_profiles
 from apps.organizations.profiles import effective_entitlement
 from apps.verification.models import ReviewCase
 from . import access
-from .models import PUBLIC_REVISION_STATES, Store, StoreRevision, StoreMedia, FeaturedStore
+from .models import Store, StoreRevision, StoreMedia, FeaturedStore
 
 PAGE_SIZE = 20
 
@@ -44,7 +44,7 @@ def category_units(category, locale):
 
 def identity_profiles(base, locale):
     name = ReviewCase.objects.filter(pk=OuterRef("approved_case")).annotate(public_name=KeyTextTransform("display_name", "snapshot"))
-    revision = StoreRevision.objects.filter(store_id=OuterRef("pk"), pk=OuterRef("public_store__published_id"), business_case_id=OuterRef("approved_case"), state__in=PUBLIC_REVISION_STATES)
+    revision = StoreRevision.objects.filter(store_id=OuterRef("pk"), pk=OuterRef("public_store__published_id"), business_case_id=OuterRef("approved_case"), state="approved")
     profiles = base.annotate(
         public_name=Coalesce(Subquery(name.values("public_name")[:1], output_field=CharField()), Value("")),
         optional_body=Subquery(revision.values("body")[:1], output_field=JSONField()),
@@ -304,6 +304,9 @@ def private_store(actor, pk):
     revisions = list(store.revisions.order_by("-number")[:30]) if store else []
     if store and store.published_id and not any(row.pk == store.published_id for row in revisions):
         revisions.append(store.published)
+    seller_publications = set(store.events.filter(
+        action="seller_publish", revision_id__in=[row.pk for row in revisions if row.state == "approved"],
+    ).values_list("revision_id", flat=True)) if store else set()
     current_case = ReviewCase.objects.filter(profile=profile, revision=profile.revision, status="approved").values_list("pk", flat=True).first()
     verified = bool(current_case and access.eligible_profiles([pk]).exists())
     return {"id": str(pk), "name": profile.display_name, "version": store.version if store else 0,
@@ -311,7 +314,9 @@ def private_store(actor, pk):
         "can_publish": bool(editable and store and store.published_id and verified),
         "business_verified": verified,
         "contacts_enabled": bool(store and store.contacts_enabled), "premium_active": bool(store and store.premium_active),
-        "revisions": [{"id": str(row.pk), "number": row.number, "body": row.body, "state": row.state, "reason": row.reason, "current_business": row.business_case_id == current_case} for row in revisions],
+        "revisions": [{"id": str(row.pk), "number": row.number, "body": row.body,
+            "state": "published" if row.pk in seller_publications else row.state,
+            "reason": row.reason, "current_business": row.business_case_id == current_case} for row in revisions],
         "media": [{"id": str(item.pk), "url": image_url(item.pk, private=True), "width": item.width, "height": item.height} for item in store.media.order_by("created_at")[:100]] if store else []}
 
 
@@ -319,6 +324,6 @@ def public_media(pk):
     item = get_object_or_404(StoreMedia.objects.select_related("store__published"), pk=pk)
     current_case = access.eligible_profiles([item.store_id]).values_list("approved_case", flat=True).first()
     revision = item.store.published
-    if not revision or revision.state not in PUBLIC_REVISION_STATES or revision.business_case_id != current_case or str(item.pk) not in {revision.body.get("logo"), revision.body.get("banner")}:
+    if not revision or revision.state != "approved" or revision.business_case_id != current_case or str(item.pk) not in {revision.body.get("logo"), revision.body.get("banner")}:
         raise NotFound()
     return item

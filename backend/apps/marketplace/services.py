@@ -87,16 +87,16 @@ def seller_action(actor, profile_id, data):
             or bool(store.published_id) != (action == "publish")
         ):
             raise Conflict()
-        if revision.business_case_id != business_case(profile).pk:
+        if revision.business_case_id != business_case(profile).pk or not access.eligible_profiles([profile.pk]).exists():
             raise Conflict()
         media_references(store, revision.body)
+        revision.state = "submitted"
         if action == "publish":
-            if not access.eligible_profiles([profile.pk]).exists():
-                raise Conflict()
-            revision.state = "published"
+            # Native guards require both transitions on the same retained revision.
+            # The transaction only exposes the final publication and its seller event.
+            persist(revision, update_fields=["state"])
+            revision.state = "approved"
             store.published = revision
-        else:
-            revision.state = "submitted"
     elif action == "withdraw" and revision.state == "submitted":
         revision.state = "withdrawn"
     else:

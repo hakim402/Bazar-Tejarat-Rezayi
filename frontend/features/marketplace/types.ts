@@ -15,6 +15,15 @@ export type CategoryDetail = NonNullable<ProductPage["category"]> & {
 	units?: CategoryUnit[];
 };
 export type ReviewSummary = components["schemas"]["MarketplaceReviewSummary"];
+export type ContactChannel =
+	components["schemas"]["MarketplaceContact"]["channel"];
+export const storeContactLabels = {
+	whatsapp: "WhatsApp",
+	instagram: "Instagram",
+	facebook: "Facebook",
+	tiktok: "TikTok",
+	website: null,
+} satisfies Record<ContactChannel, string | null>;
 export type Home = components["schemas"]["MarketplaceHome"];
 export type PrivateStore = components["schemas"]["StorePrivate"];
 export type StoreProfiles = components["schemas"]["StoreProfiles"];
@@ -33,4 +42,5 @@ export type StoreBody = {
 	city: string;
 	logo: string | null;
 	banner: string | null;
+	contacts?: Partial<Record<ContactChannel, string>>;
 };

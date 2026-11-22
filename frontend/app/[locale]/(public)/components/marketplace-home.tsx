@@ -2,8 +2,7 @@ import type { Locale } from "../../../../lib/i18n/locales";
 import type {
 	Home,
 	ProductPage,
-	PublicProduct,
-	ReviewSummary,
+	PublicStore,
 } from "../../../../features/marketplace/types";
 import { readMarketplace } from "../../../../features/marketplace/server";
 import { marketplaceCopy } from "../../../../features/marketplace/copy";
@@ -26,19 +25,15 @@ export async function MarketplaceHome({
 }) {
 	const t = marketplaceCopy[locale],
 		featured = home.featured_store;
-	let featuredProducts: PublicProduct[] = [],
-		featuredSummary: ReviewSummary | null = null;
-	if (featured) {
-		const [productsResult, summaryResult] = await Promise.all([
-			readMarketplace<ProductPage>(locale, `stores/${featured.id}/products/`),
-			readMarketplace<ReviewSummary>(
-				locale,
-				`stores/${featured.id}/reviews/summary/`,
-			),
-		]);
-		featuredProducts = productsResult.data?.results.slice(0, 8) ?? [];
-		featuredSummary = summaryResult.data;
-	}
+	const featuredProducts = featured
+		? ((
+				await readMarketplace<ProductPage>(
+					locale,
+					`stores/${featured.id}/products/`,
+				)
+			).data?.results.slice(0, 8) ?? [])
+		: [];
+	const sponsored = home.sponsored_stores ?? [];
 	return (
 		<div className="space-y-8" data-testid="marketplace-home">
 			{featured && (
@@ -46,8 +41,18 @@ export async function MarketplaceHome({
 					locale={locale}
 					store={featured}
 					products={featuredProducts}
-					summary={featuredSummary}
 				/>
+			)}
+			{sponsored.length > 0 && (
+				<section className="space-y-4">
+					<h2 className="text-2xl">{t.sponsoredStores}</h2>
+					<StoreCarousel
+						label={t.sponsoredStores}
+						locale={locale}
+						stores={sponsored}
+						sponsored
+					/>
+				</section>
 			)}
 			<section className="space-y-4">
 				<div className="flex flex-wrap items-center justify-between gap-3">
@@ -61,16 +66,11 @@ export async function MarketplaceHome({
 					</a>
 				</div>
 				{home.stores.length ? (
-					<MarketplaceCarousel locale={locale} label={t.stores}>
-						{home.stores.map((store) => (
-							<div
-								key={store.id}
-								className="w-72 shrink-0 snap-start min-[520px]:w-80"
-							>
-								<StoreCard store={store} locale={locale} />
-							</div>
-						))}
-					</MarketplaceCarousel>
+					<StoreCarousel
+						label={t.stores}
+						locale={locale}
+						stores={home.stores}
+					/>
 				) : (
 					<p>{t.noStores}</p>
 				)}
@@ -99,5 +99,30 @@ export async function MarketplaceHome({
 				)}
 			</section>
 		</div>
+	);
+}
+
+function StoreCarousel({
+	label,
+	locale,
+	stores,
+	sponsored = false,
+}: {
+	label: string;
+	locale: Locale;
+	stores: PublicStore[];
+	sponsored?: boolean;
+}) {
+	return (
+		<MarketplaceCarousel locale={locale} label={label}>
+			{stores.map((store) => (
+				<div
+					key={store.id}
+					className="w-72 shrink-0 snap-start min-[520px]:w-80"
+				>
+					<StoreCard store={store} locale={locale} sponsored={sponsored} />
+				</div>
+			))}
+		</MarketplaceCarousel>
 	);
 }

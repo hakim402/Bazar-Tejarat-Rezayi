@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('marketplace', '0002_seller_publication'),
+        ('marketplace', '0001_mariadb_schema'),
     ]
 
     operations = [
@@ -34,9 +34,5 @@ class Migration(migrations.Migration):
             model_name='store',
             name='verification_badge_enabled',
             field=models.BooleanField(default=True),
-        ),
-        migrations.AddConstraint(
-            model_name='store',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('premium_ends_on__isnull', True), ('premium_starts_on__isnull', True), ('sponsored_placement', False)), models.Q(('premium_ends_on__gte', models.F('premium_starts_on')), ('premium_ends_on__isnull', False), ('premium_starts_on__isnull', False)), _connector='OR'), name='marketplace_premium_window'),
         ),
     ]

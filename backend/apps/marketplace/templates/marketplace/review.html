@@ -5,7 +5,7 @@
 <div class="{{ rz_order.layout }}">
 <header class="{{ rz_order.panel }}">
 <div class="{{ rz_order.toolbar }}">
-<div class="min-w-0"><p class="{{ rz_order.eyebrow }}">{% translate "Store review" %}</p><h1 class="{{ rz_order.heading }}"><bdi>{{ revision.store.profile.display_name }}</bdi></h1><p class="{{ rz_order.muted }}">{% blocktranslate with number=revision.number %}Store revision {{ number }}{% endblocktranslate %} · {{ revision.state|admin_badge }}</p></div>
+<div class="min-w-0"><p class="{{ rz_order.eyebrow }}">{% translate "Store review" %}</p><h1 class="{{ rz_order.heading }}"><bdi>{{ revision.store.profile.display_name }}</bdi></h1><p class="{{ rz_order.muted }}">{% blocktranslate with number=revision.number %}Store revision {{ number }}{% endblocktranslate %} · {{ revision_status }}</p></div>
 <a class="{{ rz_order.secondary_button }}" href="{{ public_store_url }}" target="_blank" rel="noopener">{% translate "Compare the current public store" %}<span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span></a>
 </div>
 <div class="{{ rz_order.detail_body }}">{{ revision.store.profile|admin_business }}</div>

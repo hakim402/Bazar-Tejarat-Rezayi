@@ -2,7 +2,12 @@ import Link from "next/link";
 import type { Locale } from "../../../lib/i18n/locales";
 import { direction } from "../../../lib/i18n/locales";
 import { Icon, iconName } from "../../../components/ui/icon";
-import type { PublicProduct, PublicStore, CategoryAssets } from "../types";
+import type {
+	PublicProduct,
+	PublicStore,
+	CategoryAssets,
+	ReviewSummary,
+} from "../types";
 import { marketplaceCopy } from "../copy";
 import {
 	featuredPlaceholders,
@@ -63,15 +68,60 @@ export function RatingStars({
 		</span>
 	);
 }
+export function VerifiedBusiness({ locale }: { locale: Locale }) {
+	return (
+		<span className="inline-flex items-center gap-1 rounded-full bg-info px-2.5 py-0.5 text-xs font-semibold text-action">
+			<Icon name="shield" className="size-3.5" />
+			{marketplaceCopy[locale].verifiedBusiness}
+		</span>
+	);
+}
+export function StoreRating({
+	locale,
+	summary,
+	showStars = false,
+}: {
+	locale: Locale;
+	summary?: ReviewSummary;
+	showStars?: boolean;
+}) {
+	const t = marketplaceCopy[locale];
+	if (!summary) return null;
+	if (summary.count === 0 || summary.average === null) {
+		return <span className="text-muted">{t.noReviews}</span>;
+	}
+	const average = Number(summary.average);
+	const rating = new Intl.NumberFormat(locale, {
+		minimumFractionDigits: 1,
+	}).format(average);
+	const count = new Intl.NumberFormat(locale).format(summary.count);
+	return (
+		<span className="inline-flex flex-wrap items-center gap-1.5">
+			{showStars ? (
+				<RatingStars average={average} />
+			) : (
+				<Icon
+					name="star"
+					className="size-3.5 fill-current text-chip-warning-icon"
+				/>
+			)}
+			<bdi className="font-bold text-foreground">{rating}</bdi>
+			<span className="text-muted">
+				(<bdi>{count}</bdi> {t.reviewCount})
+			</span>
+		</span>
+	);
+}
 export function StoreCard({
 	store,
 	locale,
+	sponsored = false,
 }: {
 	store: PublicStore;
 	locale: Locale;
+	sponsored?: boolean;
 }) {
 	const t = marketplaceCopy[locale],
-		fmt = new Intl.NumberFormat(locale),
 		dir = direction(store.resolved_locale as Locale),
 		location = [store.city, store.country]
 			.filter(Boolean)
@@ -102,10 +152,10 @@ export function StoreCard({
 					<Icon name="store" className="size-3" />
 					{t[store.kind]}
 				</span>
-				{store.featured && (
+				{(store.featured || sponsored) && (
 					<span className="absolute top-2 end-2 inline-flex items-center gap-1 rounded-full bg-info px-2 py-0.5 text-[0.65rem] font-bold text-action shadow-sm">
 						<Icon name="sparkle" className="size-3" />
-						{t.topSeller}
+						{sponsored ? t.sponsored : t.topSeller}
 					</span>
 				)}
 			</span>
@@ -125,18 +175,9 @@ export function StoreCard({
 				>
 					{store.name || t.stores}
 				</h2>
-				<span className="text-xs text-muted">{t.tagline}</span>
-				<span className="flex items-center gap-1 text-xs text-muted">
-					<Icon
-						name="star"
-						className="size-3.5 fill-current text-chip-warning-icon"
-					/>
-					<bdi className="font-bold text-foreground">
-						{fmt.format(featuredPlaceholders.rating)}
-					</bdi>
-					<span>
-						(<bdi>{featuredPlaceholders.ratingCount}</bdi> {t.reviewCount})
-					</span>
+				{store.verified_business && <VerifiedBusiness locale={locale} />}
+				<span className="text-xs">
+					<StoreRating locale={locale} summary={store.review_summary} />
 				</span>
 				<span className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted">
 					{location && (

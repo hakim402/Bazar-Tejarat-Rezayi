@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { ExternalLink, MessageCircle } from "lucide-react";
+import { Button } from "@/components/shadcn/button";
 import type { Locale } from "../../../../../../lib/i18n/locales";
 import { direction } from "../../../../../../lib/i18n/locales";
 import {
@@ -7,20 +9,20 @@ import {
 	Feedback,
 	Breadcrumbs,
 } from "../../../../../../features/marketplace/server";
-import type {
-	PublicStore,
-	ReviewSummary,
+import {
+	storeContactLabels,
+	type PublicStore,
 } from "../../../../../../features/marketplace/types";
 import { marketplaceCopy } from "../../../../../../features/marketplace/copy";
 import {
 	Asset,
-	RatingStars,
 	StoreAvatar,
+	StoreRating,
+	VerifiedBusiness,
 } from "../../../../../../features/marketplace/components/cards";
 import { Icon } from "../../../../../../components/ui/icon";
 import { CopyLinkButton } from "../../../../../../features/marketplace/components/copy-link-button";
 import { TrustStrip } from "../../../../../../features/marketplace/components/trust-strip";
-import { featuredPlaceholders } from "../../../../../../features/marketplace/featured-placeholders";
 import { mediaUrl } from "../../../../../../features/marketplace/api";
 import { publicOrigin } from "../../../../../../features/pages/metadata";
 export async function StoreShell({
@@ -34,14 +36,11 @@ export async function StoreShell({
 	tab?: "products" | "about" | "reviews";
 	children: React.ReactNode;
 }) {
-	const [result, summaryResult] = await Promise.all([
-			readMarketplace<PublicStore>(locale, `stores/${id}/`),
-			readMarketplace<ReviewSummary>(locale, `stores/${id}/reviews/summary/`),
-		]),
-		t = marketplaceCopy[locale];
+	const result = await readMarketplace<PublicStore>(locale, `stores/${id}/`);
+	const t = marketplaceCopy[locale];
 	if (result.status === 404) notFound();
 	const store = result.data,
-		summary = summaryResult.data,
+		summary = store?.review_summary,
 		rating =
 			summary && summary.count > 0 && summary.average !== null
 				? Number(summary.average)
@@ -51,8 +50,7 @@ export async function StoreShell({
 					.filter(Boolean)
 					.join(locale === "en" ? ", " : "، ")
 			: "",
-		dir = direction((store?.resolved_locale || locale) as Locale),
-		yearFmt = new Intl.NumberFormat(locale, { useGrouping: false });
+		dir = direction((store?.resolved_locale || locale) as Locale);
 	return (
 		<MarketplaceShell locale={locale}>
 			{store ? (
@@ -131,37 +129,13 @@ export async function StoreShell({
 									<span className="rounded-full bg-info px-2.5 py-0.5 text-xs font-semibold text-action">
 										{t[store.kind]}
 									</span>
-									<span className="inline-flex items-center gap-1 rounded-full bg-page px-2.5 py-0.5 text-xs font-semibold text-muted">
-										<Icon name="history" className="size-3.5" />
-										{t.memberSince}{" "}
-										<bdi>
-											{yearFmt.format(featuredPlaceholders.memberSince)}
-										</bdi>
-									</span>
-								</div>
-								<p className="text-sm text-muted">{t.tagline}</p>
-								<p className="flex flex-wrap items-center gap-2 text-sm max-desktop:justify-center">
-									{rating !== null && summary ? (
-										<>
-											<RatingStars average={rating} />
-											<bdi className="font-bold">{summary.average}</bdi>
-											<span className="text-muted">
-												(<bdi>{summary.count}</bdi> {t.reviewCount})
-											</span>
-										</>
-									) : (
-										<span className="text-muted">{t.noReviews}</span>
+									{store.verified_business && (
+										<VerifiedBusiness locale={locale} />
 									)}
-									<span aria-hidden className="h-4 w-px bg-border" />
-									<Icon
-										name="award"
-										className="size-4 text-chip-warning-icon"
-									/>
-									<bdi className="font-bold">
-										{featuredPlaceholders.customers}
-									</bdi>
-									<span className="sr-only">{t.customers}</span>
-								</p>
+								</div>
+								<div className="flex flex-wrap items-center gap-2 text-sm max-desktop:justify-center">
+									<StoreRating locale={locale} summary={summary} showStars />
+								</div>
 								<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted max-desktop:justify-center">
 									{location && (
 										<span className="inline-flex items-center gap-1.5">
@@ -194,6 +168,35 @@ export async function StoreShell({
 								)}
 								{store.source_fallback && (
 									<p className="text-xs text-muted">{t.fallback}</p>
+								)}
+								{store.contacts && store.contacts.length > 0 && (
+									<div className="flex flex-wrap gap-2 max-desktop:justify-center">
+										{store.contacts.map(({ channel, url }) => {
+											const ContactIcon =
+												channel === "whatsapp" ? MessageCircle : ExternalLink;
+											return (
+												<Button
+													key={channel}
+													asChild
+													size="sm"
+													variant="outline"
+													className="min-h-9 shadow-none"
+												>
+													<a
+														href={url}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														<ContactIcon
+															aria-hidden="true"
+															className="size-4"
+														/>
+														{storeContactLabels[channel] ?? t.website}
+													</a>
+												</Button>
+											);
+										})}
+									</div>
 								)}
 							</div>
 							<div className="flex shrink-0 flex-wrap items-center gap-3 max-desktop:justify-center desktop:w-48 desktop:flex-col desktop:items-stretch desktop:pt-5">

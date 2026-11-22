@@ -2,34 +2,28 @@ import Link from "next/link";
 import type { Locale } from "../../../lib/i18n/locales";
 import { direction } from "../../../lib/i18n/locales";
 import { Icon } from "../../../components/ui/icon";
-import type { PublicProduct, PublicStore, ReviewSummary } from "../types";
+import type { PublicProduct, PublicStore } from "../types";
 import { marketplaceCopy } from "../copy";
-import { featuredPlaceholders } from "../featured-placeholders";
-import { Asset, FeaturedProductCard, StoreAvatar } from "./cards";
+import {
+	Asset,
+	FeaturedProductCard,
+	StoreAvatar,
+	StoreRating,
+	VerifiedBusiness,
+} from "./cards";
 import { carouselItemClass, MarketplaceCarousel } from "./carousel";
 import { TrustStrip } from "./trust-strip";
 export function FeaturedStore({
 	locale,
 	store,
 	products,
-	summary,
 }: {
 	locale: Locale;
 	store: PublicStore;
 	products: PublicProduct[];
-	summary: ReviewSummary | null;
 }) {
 	const t = marketplaceCopy[locale],
-		fmt = new Intl.NumberFormat(locale),
-		dir = direction(store.resolved_locale as Locale),
-		real =
-			summary && summary.count > 0 && summary.average !== null
-				? { value: Number(summary.average), count: summary.count }
-				: null,
-		rating = real?.value ?? featuredPlaceholders.rating,
-		ratingCount = real
-			? fmt.format(real.count)
-			: featuredPlaceholders.ratingCount;
+		dir = direction(store.resolved_locale as Locale);
 	return (
 		<section className="space-y-6" aria-label={t.featured}>
 			<div className="relative rounded-card border border-border bg-surface p-4 shadow-card sm:p-6">
@@ -54,23 +48,14 @@ export function FeaturedStore({
 								>
 									{store.name}
 								</h2>
-								<p className="mt-1 text-sm text-muted">{t.tagline}</p>
+								{store.verified_business && (
+									<VerifiedBusiness locale={locale} />
+								)}
 							</div>
 						</div>
-						<p className="flex flex-wrap items-center gap-2 text-sm">
-							<Icon
-								name="star"
-								className="size-4 fill-current text-chip-warning-icon"
-							/>
-							<bdi className="font-bold">{fmt.format(rating)}</bdi>
-							<span className="text-muted">
-								(<bdi>{ratingCount}</bdi> {t.reviewCount})
-							</span>
-							<span aria-hidden className="h-4 w-px bg-border" />
-							<Icon name="award" className="size-4 text-chip-warning-icon" />
-							<bdi className="font-bold">{featuredPlaceholders.customers}</bdi>
-							<span className="sr-only">{t.customers}</span>
-						</p>
+						<div className="text-sm">
+							<StoreRating locale={locale} summary={store.review_summary} />
+						</div>
 						<p className="flex items-center gap-1 text-sm text-muted">
 							<span
 								className="line-clamp-1"

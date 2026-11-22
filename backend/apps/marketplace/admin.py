@@ -5,18 +5,19 @@ from decimal import Decimal
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q, F
+from django.db.models import Exists, F, OuterRef, Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.contrib import admin, messages
 from django.utils.formats import localize
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _, ngettext
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget, UnfoldBooleanWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
-from apps.accounts.admin.display import short_id
+from apps.accounts.admin.display import short_id, state_badge
 from apps.catalogue.admin.helpers import link_button
 from apps.catalogue.admin.presentation import seller_cell
 from apps.orders.admin_presentation import account_cell
@@ -92,14 +93,24 @@ class StoreSettingsForm(forms.Form):
 
 
 class RevisionAdmin(ReadOnlyAdmin):
-    list_display = ["business_identity", "number", "state", "reviewer", "created_at", "review_link"]
+    list_display = ["business_identity", "number", "revision_status", "reviewer", "created_at", "review_link"]
     list_display_links = ["business_identity"]
     list_filter = ["state", "created_at"]
     search_fields = ["store__profile__display_name"]
     list_per_page = 20
     list_select_related = ["store__profile__account__user", "assigned_to__user"]
     ordering = ["-created_at", "pk"]
-    badge_fields = ("state",)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(seller_published=Exists(
+            StoreEvent.objects.filter(store_id=OuterRef("store_id"), revision_id=OuterRef("pk"), action="seller_publish")
+        ))
+
+    @admin.display(ordering="state", description=_("Status"))
+    def revision_status(self, obj):
+        if obj.state == "approved" and obj.seller_published:
+            return state_badge("published", _("Published by seller"))
+        return state_badge(obj.state)
 
     @admin.display(description=_("Business"))
     def business_identity(self, obj):
@@ -199,7 +210,8 @@ class RevisionAdmin(ReadOnlyAdmin):
             images = {str(item.pk): item for item in StoreMedia.objects.filter(store_id=revision.store_id, pk__in=ids)}
             media = [{"url": reverse("admin:marketplace_store_media", args=[images[revision.body[role]].pk]), "name": role.capitalize()} for role in ("logo", "banner") if revision.body.get(role) in images]
         return render(request, "marketplace/review.html", {**self.admin_site.each_context(request), "title": _("Review public store details"),
-            "revision": revision, "form": form, "independent_decision": independent_decision, "can_act": len(choices) > 1, "can_read": can_read,
+            "revision": revision, "revision_status": self.revision_status(revision), "form": form,
+            "independent_decision": independent_decision, "can_act": len(choices) > 1, "can_read": can_read,
             "public_store_url": f"{settings.FRONTEND_ORIGIN}/en/stores/{revision.store_id}",
             "editions": revision.body["editions"].items() if can_read else [], "public_body": revision.body if can_read else None,
             "contact_fields": revision.body.get("contacts", {}).items() if can_read else (), "media": media}, status=status)
@@ -289,11 +301,16 @@ class StoreAdmin(ReadOnlyAdmin):
     @admin.display(description=_("Buyer rating"))
     def buyer_rating(self, obj):
         rating = aggregate(obj.profile)
+        label = _("No approved buyer reviews")
         if rating["count"]:
-            return ngettext("%(average)s out of 5 · %(count)s review", "%(average)s out of 5 · %(count)s reviews", rating["count"]) % {
+            label = ngettext("%(average)s out of 5 · %(count)s review", "%(average)s out of 5 · %(count)s reviews", rating["count"]) % {
                 "average": localize(Decimal(rating["average"])), "count": localize(rating["count"]),
             }
-        return _("No approved buyer reviews")
+        url = reverse("admin:orders_review_changelist", query={"order__seller__id__exact": obj.profile_id})
+        return format_html(
+            '<div class="flex flex-wrap items-center gap-3"><span>{}</span>{}</div>',
+            label, link_button(url, _("View buyer reviews"), "rate_review"),
+        )
 
     @admin.display(description=_("Shop plan"))
     def paid_shop(self, obj):

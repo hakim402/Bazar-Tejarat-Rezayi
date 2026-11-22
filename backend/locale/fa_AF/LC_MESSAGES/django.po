@@ -8042,3 +8042,9 @@ msgid "%(average)s out of 5 · %(count)s review"
 msgid_plural "%(average)s out of 5 · %(count)s reviews"
 msgstr[0] "%(average)s از ۵ · %(count)s نظر"
 msgstr[1] "%(average)s از ۵ · %(count)s نظر"
+
+msgid "View buyer reviews"
+msgstr "دیدن نظرهای خریداران"
+
+msgid "Published by seller"
+msgstr "نشرشده توسط فروشنده"

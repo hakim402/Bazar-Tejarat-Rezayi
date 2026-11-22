@@ -21,7 +21,6 @@ import {
 import { DashboardCard, cardClass } from "@/components/ui/dashboard-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon } from "@/components/ui/icon";
-import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge, statusVariant } from "@/components/ui/status-badge";
 import {
 	locales,
@@ -35,10 +34,12 @@ import { authCopy } from "@/lib/i18n/auth";
 import { privateRequest, AccountError } from "@/lib/api/private-client";
 import { sellerHref } from "@/lib/routes/account-routes";
 import { marketplaceCopy } from "@/features/marketplace/copy";
-import type {
-	PrivateStore,
-	StoreBody,
-	StoreProfiles,
+import {
+	storeContactLabels,
+	type ContactChannel,
+	type PrivateStore,
+	type StoreBody,
+	type StoreProfiles,
 } from "@/features/marketplace/types";
 import { Asset } from "@/features/marketplace/components/cards";
 import {
@@ -53,7 +54,9 @@ const blank = (locale: Locale): StoreBody => ({
 	logo: null,
 	banner: null,
 });
+const contactChannels = Object.keys(storeContactLabels) as ContactChannel[];
 const storeFields = [
+	...contactChannels,
 	"source_locale",
 	"editions",
 	"description",
@@ -155,6 +158,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 			requestOwner.current ||
 			loading ||
 			!item?.can_edit ||
+			!item.business_verified ||
 			item.id !== id ||
 			item.revisions[0]?.state === "submitted"
 		)
@@ -255,7 +259,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 		setError(message);
 		toast.error(message);
 	}
-	async function mutate(action: "save" | "submit" | "withdraw") {
+	async function mutate(action: "save" | "submit" | "publish" | "withdraw") {
 		if (
 			!item ||
 			item.id !== id ||
@@ -266,8 +270,12 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 		)
 			return;
 		const latest = item.revisions[0];
-		if (action === "save" && (latest?.state === "submitted" || !dirty)) return;
-		if (action === "submit" && (dirty || latest?.state !== "draft")) return;
+		if (action === "save" && !canSave) return;
+		if (
+			(action === "submit" || action === "publish") &&
+			(!canSubmit || action !== publishAction)
+		)
+			return;
 		if (action === "withdraw" && latest?.state !== "submitted") return;
 		const current = {};
 		requestOwner.current = current;
@@ -285,24 +293,26 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 			if (requestOwner.current !== current) return;
 			setItem(value);
 			if (action === "save") setBaseline(JSON.stringify(body));
-			const message =
-				action === "save"
-					? copy.draftSaved
-					: action === "submit"
-						? copy.reviewSubmitted
-						: copy.reviewWithdrawn;
+			const message = {
+				save: copy.draftSaved,
+				submit: copy.reviewSubmitted,
+				publish: t.publishDone,
+				withdraw: copy.reviewWithdrawn,
+			}[action];
 			setNotice(message);
 			toast.success(message);
 		} catch (cause) {
-			if (requestOwner.current === current)
+			if (requestOwner.current === current) {
 				failure(
 					cause,
-					action === "save"
-						? copy.saveFailed
-						: action === "submit"
-							? copy.submitFailed
-							: copy.withdrawFailed,
+					{
+						save: copy.saveFailed,
+						submit: copy.submitFailed,
+						publish: t.publishFailed,
+						withdraw: copy.withdrawFailed,
+					}[action],
 				);
+			}
 		} finally {
 			if (requestOwner.current === current) {
 				requestOwner.current = null;
@@ -318,6 +328,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 			!body ||
 			requestOwner.current ||
 			!item.can_edit ||
+			!item.business_verified ||
 			loading ||
 			item.revisions[0]?.state === "submitted"
 		)
@@ -360,15 +371,27 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 	const current = item?.id === id ? item : null,
 		latest = current?.revisions[0],
 		pending = latest?.state === "submitted",
-		editable = !!current?.can_edit && !pending && !busy && !loading,
-		canSubmit =
+		editable =
 			!!current?.can_edit &&
+			current.business_verified &&
+			!pending &&
 			!busy &&
-			!loading &&
+			!loading,
+		staleDraft = !!latest && !pending && !latest.current_business,
+		canSave = editable && (dirty || staleDraft),
+		canSubmit =
+			editable &&
 			!dirty &&
-			latest?.state === "draft";
+			latest?.state === "draft" &&
+			latest.current_business,
+		publishAction = current?.can_publish ? "publish" : "submit",
+		reviewHelp = current?.can_publish ? t.publishHelp : copy.reviewHelp;
 	const edition = body?.editions[language],
-		approved = current?.revisions.find((row) => row.id === current.published),
+		published = current?.business_verified
+			? current.revisions.find(
+					(row) => row.id === current.published && row.current_business,
+				)
+			: undefined,
 		logoImage = current?.media.find((image) => image.id === body?.logo);
 	const stateLabel = (state: string) => t[state as "draft"] || state;
 	const labels: Record<string, string> = {
@@ -384,6 +407,9 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 		file: t.upload,
 		version: t.version,
 		revision: t.history,
+		...Object.fromEntries(
+			contactChannels.map((key) => [key, storeContactLabels[key] ?? t.website]),
+		),
 	};
 	const mutationFeedback = (
 		<>
@@ -516,6 +542,17 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 											<span className="sr-only">{t.status}: </span>
 											{latest ? stateLabel(latest.state) : copy.noRevision}
 										</StatusBadge>
+										<StatusBadge
+											variant={current.premium_active ? "success" : "neutral"}
+										>
+											{current.premium_active ? t.paidShop : t.freeShop}
+										</StatusBadge>
+										{published && (
+											<span className="text-xs text-muted">
+												{t.publishedVersion}{" "}
+												<bdi>{published.number.toLocaleString(locale)}</bdi>
+											</span>
+										)}
 										<span className="text-xs text-muted">
 											{t.version}:{" "}
 											<bdi>{current.version.toLocaleString(locale)}</bdi>
@@ -544,8 +581,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 								</BusinessDialog>
 								<BusinessDialog
 									locale={locale}
-									title={t.approved}
-									description={copy.approvedPreviewHelp}
+									title={t.publishedVersion}
 									trigger={
 										<Button
 											type="button"
@@ -554,13 +590,13 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 											className="min-h-11 sm:min-h-8"
 										>
 											<Icon name="check-circle" className="size-4" />
-											{t.approved}
+											{t.publishedVersion}
 										</Button>
 									}
 								>
-									{approved ? (
+									{published ? (
 										<Preview
-											body={approved.body as StoreBody}
+											body={published.body as StoreBody}
 											locale={locale}
 											media={current.media}
 										/>
@@ -636,24 +672,6 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 								</Button>
 							</div>
 						</div>
-						<div className="grid auto-rows-fr grid-cols-2 gap-2 sm:gap-4">
-							<StatCard
-								compact
-								icon="shield"
-								chip={statusVariant(latest?.state ?? "")}
-								label={t.status}
-								value={latest ? stateLabel(latest.state) : "—"}
-								locale={locale}
-							/>
-							<StatCard
-								compact
-								icon="award"
-								chip={approved ? "success" : "neutral"}
-								label={t.approved}
-								value={approved ? approved.number : "—"}
-								locale={locale}
-							/>
-						</div>
 						{latest?.reason && (
 							<p className="m-0 rounded-xl bg-info p-3 text-sm leading-relaxed">
 								<span className="font-medium">{t.reason}: </span>
@@ -668,15 +686,19 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 								<span className="block text-action">{copy.pendingHelp}</span>
 							)}
 							<span className="block">
-								{approved ? copy.approvedPreviewHelp : t.noAbout}
+								{!current.business_verified
+									? t.businessVerificationRequired
+									: staleDraft
+										? t.refreshDraftHelp
+										: null}
 							</span>
 						</p>
 						<form
 							className="space-y-4"
 							onSubmit={(event) => {
 								event.preventDefault();
-								if (dirty) void mutate("save");
-								else if (canSubmit) void mutate("submit");
+								if (canSave) void mutate("save");
+								else if (canSubmit) void mutate(publishAction);
 							}}
 						>
 							<DashboardCard
@@ -1078,7 +1100,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 														{common.unsaved} ·{" "}
 													</span>
 												)}
-												{copy.reviewHelp}
+												{reviewHelp}
 											</p>
 										</div>
 									</BusinessDialog>
@@ -1135,18 +1157,78 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 									})}
 								</ul>
 							</DashboardCard>
+							<DashboardCard
+								title={t.storeContacts}
+								description={
+									current.contacts_enabled
+										? t.contactsVisible
+										: t.contactsHidden
+								}
+								icon="globe"
+							>
+								<p id="store-social-help" className="m-0 text-xs text-muted">
+									{t.socialHint}
+								</p>
+								<fieldset
+									disabled={!editable}
+									className="m-0 grid min-w-0 gap-3 border-0 p-0 sm:grid-cols-2"
+								>
+									{contactChannels.map((channel) => {
+										const label = storeContactLabels[channel] ?? t.website;
+										const isPhone = channel === "whatsapp";
+										const fieldId = `store-${channel}`;
+										return (
+											<div key={channel} className="min-w-0 space-y-1.5">
+												<Label htmlFor={fieldId}>{label}</Label>
+												<Input
+													id={fieldId}
+													name={channel}
+													dir="ltr"
+													type={isPhone ? "tel" : "url"}
+													maxLength={isPhone ? 16 : 500}
+													autoComplete="off"
+													className="rounded-lg shadow-none"
+													value={body.contacts?.[channel] ?? ""}
+													aria-invalid={fieldInvalid(channel)}
+													aria-describedby={`${isPhone ? "store-whatsapp-help" : "store-social-help"}${fieldInvalid(channel) ? ` ${fieldId}-error` : ""}`}
+													onChange={(event) =>
+														changeBody({
+															...body,
+															contacts: {
+																...body.contacts,
+																[channel]: event.target.value,
+															},
+														})
+													}
+												/>
+												{isPhone && (
+													<p
+														id="store-whatsapp-help"
+														className="m-0 text-xs text-muted"
+													>
+														{t.whatsappHint}
+													</p>
+												)}
+												{fieldFeedback(channel)}
+											</div>
+										);
+									})}
+								</fieldset>
+							</DashboardCard>
 							<div
 								className={`${cardClass} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}
 							>
 								<div className="min-w-0 space-y-1">
 									<h2 className="m-0 text-base font-semibold">
-										{copy.reviewActions}
+										{current.can_publish
+											? t.publishChanges
+											: copy.reviewActions}
 									</h2>
 									<p
 										id="store-review-help"
 										className="m-0 text-sm leading-relaxed text-muted"
 									>
-										{copy.reviewHelp}
+										{reviewHelp}
 									</p>
 									{dirty && (
 										<p className="m-0 text-sm font-medium text-warning">
@@ -1155,7 +1237,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 									)}
 								</div>
 								<div className="flex flex-wrap gap-2 [&>button]:min-h-11 sm:[&>button]:min-h-9">
-									{dirty ? (
+									{dirty || (staleDraft && current.business_verified) ? (
 										<Button
 											type="submit"
 											disabled={!editable}
@@ -1171,7 +1253,7 @@ function StoreEditor({ locale, id }: { locale: Locale; id: string }) {
 											aria-describedby="store-review-help"
 										>
 											<Icon name="send" className="size-4" />
-											{t.submit}
+											{current.can_publish ? t.publishChanges : t.submit}
 										</Button>
 									) : null}
 									{pending && (

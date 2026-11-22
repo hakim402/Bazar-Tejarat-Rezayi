@@ -8,8 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 PERMISSIONS = ("view_store_queue", "read_store_submission", "assign_store_review", "review_store", "moderate_store")
-PUBLIC_REVISION_STATES = ("approved", "published")
-STATES = ("draft", "submitted", *PUBLIC_REVISION_STATES, "rejected", "withdrawn")
+STATES = ("draft", "submitted", "approved", "rejected", "withdrawn")
 
 
 class ProtectedQuerySet(models.QuerySet):
@@ -53,21 +52,12 @@ class Store(GuardedRecord):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        if self.published_id and not StoreRevision.objects.filter(pk=self.published_id, store_id=self.pk, state__in=PUBLIC_REVISION_STATES).exists():
-            raise ValidationError("Publication requires this store's publishable revision.")
+        if self.published_id and not StoreRevision.objects.filter(pk=self.published_id, store_id=self.pk, state="approved").exists():
+            raise ValidationError("Publication requires this store's approved revision.")
         return super().save(*args, **kwargs)
 
     class Meta:
         permissions = [(code, code.replace("_", " ")) for code in PERMISSIONS]
-        constraints = [
-            models.CheckConstraint(
-                condition=(
-                    Q(premium_starts_on__isnull=True, premium_ends_on__isnull=True, sponsored_placement=False)
-                    | Q(premium_starts_on__isnull=False, premium_ends_on__isnull=False, premium_ends_on__gte=models.F("premium_starts_on"))
-                ),
-                name="marketplace_premium_window",
-            ),
-        ]
 
     def __str__(self):
         return str(self.profile_id)
