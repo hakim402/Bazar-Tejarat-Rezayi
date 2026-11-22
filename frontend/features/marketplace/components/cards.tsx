@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { displayDecimal } from "@/lib/display-decimal";
 import type { Locale } from "../../../lib/i18n/locales";
 import { direction } from "../../../lib/i18n/locales";
 import { Icon, iconName } from "../../../components/ui/icon";
@@ -9,10 +10,6 @@ import type {
 	ReviewSummary,
 } from "../types";
 import { marketplaceCopy } from "../copy";
-import {
-	featuredPlaceholders,
-	placeholderCompareAt,
-} from "../featured-placeholders";
 import { mediaUrl } from "../api";
 export function StoreAvatar({
 	store,
@@ -324,7 +321,7 @@ export function ProductCard({
 							{v.retail !== null ? (
 								<>
 									<bdi dir="ltr">
-										{v.retail} {product.currency}
+										{displayDecimal(v.retail)} {product.currency}
 									</bdi>
 									<span className="hidden font-normal text-muted min-[400px]:inline">
 										{" "}
@@ -351,19 +348,12 @@ export function ProductCard({
 export function FeaturedProductCard({
 	product,
 	locale,
-	discounted = false,
 }: {
 	product: PublicProduct;
 	locale: Locale;
-	discounted?: boolean;
 }) {
 	const t = marketplaceCopy[locale],
-		v = product.variants.length === 1 ? product.variants[0] : null,
-		fmt = new Intl.NumberFormat(locale),
-		compare =
-			discounted && v?.retail
-				? placeholderCompareAt(v.retail, featuredPlaceholders.discountPercent)
-				: null;
+		v = product.variants.length === 1 ? product.variants[0] : null;
 	return (
 		<article className="flex h-full min-w-0 flex-col rounded-card border border-border/60 bg-surface p-3 shadow-card transition-[border-color,box-shadow] duration-200 hover:border-action/40 hover:shadow-lifted motion-reduce:transition-none">
 			<Link
@@ -382,12 +372,6 @@ export function FeaturedProductCard({
 							<Icon name="image" className="size-10" />
 						</span>
 					)}
-					{discounted && (
-						<span className="absolute top-2 start-2 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[0.65rem] font-bold text-on-primary shadow-sm">
-							<bdi>{fmt.format(featuredPlaceholders.discountPercent)}%</bdi>
-							{t.off}
-						</span>
-					)}
 				</span>
 				<h2
 					className="line-clamp-1 break-words text-center text-sm font-bold"
@@ -396,32 +380,12 @@ export function FeaturedProductCard({
 				>
 					{product.body.title}
 				</h2>
-				<span className="flex items-center justify-center gap-1 text-xs text-muted">
-					<Icon
-						name="star"
-						className="size-3.5 fill-current text-chip-warning-icon"
-					/>
-					<bdi className="font-bold text-foreground">
-						{fmt.format(featuredPlaceholders.productRating)}
-					</bdi>
-					<span>
-						(<bdi>{featuredPlaceholders.productRatingCount}</bdi>{" "}
-						{t.reviewCount})
-					</span>
-				</span>
 				<span className="mt-auto flex flex-wrap items-center justify-center gap-2 pb-1 text-center">
 					{v ? (
 						v.retail !== null ? (
-							<>
-								<bdi dir="ltr" className="text-base font-extrabold text-action">
-									{v.retail} {product.currency}
-								</bdi>
-								{compare && (
-									<bdi dir="ltr" className="text-xs text-muted line-through">
-										{compare} {product.currency}
-									</bdi>
-								)}
-							</>
+							<bdi dir="ltr" className="text-base font-extrabold text-action">
+								{displayDecimal(v.retail)} {product.currency}
+							</bdi>
 						) : (
 							<span className="text-xs text-muted">{t.noPrice}</span>
 						)

@@ -1,4 +1,5 @@
 "use client";
+import { displayDecimal } from "@/lib/display-decimal";
 import toast from "react-hot-toast";
 import { AccountError } from "../../../lib/api/private-client";
 import { SessionEntry } from "./session-entry";
@@ -334,11 +335,15 @@ function Checkout({
 									<span dir="auto">{row.title || t.unavailable}</span> ·{" "}
 									{t[row.tier]} ·{" "}
 									<bdi>
-										{row.quantity} × {row.price ?? "—"} {row.currency}
+										{row.quantity} × {displayDecimal(row.price)} {row.currency}
 									</bdi>{" "}
 									·{" "}
 									<bdi>
-										{row.price ? estimate(row.price, row.quantity) : "—"}{" "}
+										{displayDecimal(
+											row.price === null
+												? null
+												: estimate(row.price, row.quantity),
+										)}{" "}
 										{row.currency}
 									</bdi>
 								</span>
@@ -528,7 +533,7 @@ function Checkout({
 							{row.code === "ready" ? t.goods : t.unavailable}{" "}
 							{row.total && (
 								<bdi>
-									{row.total} {row.currency}
+									{displayDecimal(row.total)} {row.currency}
 								</bdi>
 							)}
 						</p>

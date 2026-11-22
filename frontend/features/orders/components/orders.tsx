@@ -1,4 +1,5 @@
 "use client";
+import { displayDecimal } from "@/lib/display-decimal";
 import toast from "react-hot-toast";
 import {
 	SellerOrdersTable,
@@ -1141,7 +1142,10 @@ function SubmissionResult({
 				<p className="m-0 text-sm font-semibold">
 					{t.total}:{" "}
 					{fullyAccepted ? (
-						<Money amount={grandTotal} currency={row.currency} />
+						<Money
+							amount={displayDecimal(grandTotal)}
+							currency={row.currency}
+						/>
 					) : (
 						<span className="font-normal text-muted">
 							{orderListCopy[locale].unknown}
@@ -1239,7 +1243,10 @@ function OutcomeRow({
 				<div className="space-y-2">
 					<p className="text-sm">
 						<span className="font-semibold">
-							<Money amount={o.goods_total ?? "0"} currency={currency} />
+							<Money
+								amount={displayDecimal(o.goods_total ?? "0")}
+								currency={currency}
+							/>
 						</span>
 						{o.accepted_at && (
 							<span className="ms-2 text-caption text-muted">

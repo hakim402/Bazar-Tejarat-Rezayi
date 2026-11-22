@@ -130,13 +130,9 @@ export function FeaturedStore({
 						</Link>
 					</div>
 					<MarketplaceCarousel locale={locale} label={t.featuredProducts}>
-						{products.map((product, index) => (
+						{products.map((product) => (
 							<div key={product.id} className={carouselItemClass}>
-								<FeaturedProductCard
-									product={product}
-									locale={locale}
-									discounted={index === 0}
-								/>
+								<FeaturedProductCard product={product} locale={locale} />
 							</div>
 						))}
 					</MarketplaceCarousel>

@@ -1,4 +1,5 @@
 "use client";
+import { displayDecimal } from "@/lib/display-decimal";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Locale } from "../../lib/i18n/locales";
@@ -191,7 +192,7 @@ export function HeaderCart({ locale }: { locale: Locale }) {
 											<span className="shrink-0 text-end">
 												{row.price !== null ? (
 													<bdi dir="ltr" className="block text-sm font-bold">
-														{row.price}
+														{displayDecimal(row.price)}
 														<span className="ms-1 text-[0.625rem] font-semibold text-muted">
 															{row.currency}
 														</span>
@@ -240,7 +241,7 @@ export function HeaderCart({ locale }: { locale: Locale }) {
 											dir="ltr"
 											className="text-sm font-extrabold text-foreground"
 										>
-											{total ?? "—"} {currency}
+											{displayDecimal(total)} {currency}
 										</bdi>
 									</p>
 								);

@@ -1,24 +1,60 @@
 "use client";
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { direction, type Locale } from "../../../lib/i18n/locales";
-import { Icon } from "../../../components/ui/icon";
-import type { PublicProduct, ReviewSummary } from "../types";
-import { marketplaceCopy } from "../copy";
-import {
-	featuredPlaceholders,
-	placeholderCompareAt,
-} from "../featured-placeholders";
-import { EnquiryEntry } from "../../messaging/components/enquiry-entry";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { Button } from "@/components/shadcn/button";
+import { Icon } from "@/components/ui/icon";
+import { displayDecimal } from "@/lib/display-decimal";
+import { catalogueCopy } from "@/lib/i18n/catalogue";
+import { direction, type Locale } from "@/lib/i18n/locales";
 import { ProductCartAction } from "../../cart/components/product-cart-action";
-import { RatingStars, StoreAvatar } from "./cards";
+import { EnquiryEntry } from "../../messaging/components/enquiry-entry";
+import { communicationCopy } from "../../messaging/copy";
+import { marketplaceCopy } from "../copy";
+import type { PublicProduct, ReviewSummary } from "../types";
+import { StoreAvatar, VerifiedBusiness } from "./cards";
 import { CopyLinkButton } from "./copy-link-button";
 import { ProductGallery } from "./product-gallery";
-import { ProductTabs } from "./product-tabs";
 import { ProductReportPanel } from "./product-report";
-import { TrustStrip } from "./trust-strip";
+
+function attributes(values: unknown, labels: unknown, locale: Locale) {
+	if (!values || typeof values !== "object" || Array.isArray(values)) return [];
+	const names = labels as Record<string, Record<string, string>> | null;
+	return Object.entries(values)
+		.filter(
+			([, value]) =>
+				typeof value === "number" ||
+				(typeof value === "string" && value.trim()),
+		)
+		.map(([key, value]) => ({
+			label: names?.[key]?.[locale] || names?.[key]?.["fa-AF"] || key,
+			value: String(value),
+		}));
+}
+
+function Price({
+	value,
+	unit,
+	currency,
+	className,
+}: {
+	value: string;
+	unit: string;
+	currency: string;
+	className: string;
+}) {
+	return (
+		<span className="inline-flex flex-wrap items-baseline gap-x-1.5">
+			<bdi dir="ltr" className={className}>
+				{displayDecimal(value)} {currency}
+			</bdi>
+			<span className="text-muted">/ {unit}</span>
+		</span>
+	);
+}
+
 export function ProductDetail({
 	product,
 	locale,
@@ -28,166 +64,227 @@ export function ProductDetail({
 	locale: Locale;
 	summary: ReviewSummary | null;
 }) {
-	const t = marketplaceCopy[locale],
-		fmt = new Intl.NumberFormat(locale),
-		dir = direction(product.resolved_locale as Locale),
-		query = useSearchParams(),
-		initial = query.get("variant"),
-		[variantId, setVariantId] = useState(
-			product.variants.some((row) => row.id === initial)
-				? initial
-				: product.variants[0]?.id,
-		),
-		[imageId, setImageId] = useState(product.images[0]?.id),
-		[canShare, setCanShare] = useState(false);
+	const t = marketplaceCopy[locale];
+	const query = useSearchParams();
+	const [variantId, setVariantId] = useState(
+		() =>
+			(
+				product.variants.find((row) => row.id === query.get("variant")) ??
+				product.variants[0]
+			)?.id,
+	);
+	const [reportOpened, setReportOpened] = useState(false);
+	const [imageId, setImageId] = useState<string>();
+	const [canShare, setCanShare] = useState(false);
 	useEffect(() => {
 		setCanShare(typeof navigator.share === "function");
 	}, []);
-	const v = product.variants.find((row) => row.id === variantId),
-		compare = v?.retail
-			? placeholderCompareAt(v.retail, featuredPlaceholders.discountPercent)
-			: null,
-		availability =
-			v?.availability === "unavailable"
+
+	const variant = product.variants.find((row) => row.id === variantId);
+	const availability =
+		variant?.availability === "available"
+			? "available"
+			: variant?.availability === "unavailable"
 				? "unavailableStock"
-				: v?.availability === "available"
-					? "available"
-					: "unknown",
-		categoryLabel =
-			product.body.category_labels[locale] ||
-			product.body.category_labels["fa-AF"] ||
-			product.body.category,
-		storeLocation = [product.store.city, product.store.country]
-			.filter(Boolean)
-			.join(locale === "en" ? ", " : "، "),
-		variantLabel = (row: PublicProduct["variants"][number]) =>
-			Object.values(row.attributes as Record<string, string>).join(" / ") ||
-			row.sku,
-		selectVariant = (id: string) => {
-			setVariantId(id);
-			const next = new URL(window.location.href);
-			next.searchParams.set("variant", id);
-			history.pushState(null, "", next);
-			const picture = product.images.find((row) => row.variant === id);
-			if (picture) setImageId(picture.id);
-		},
-		share = async () => {
-			try {
-				await navigator.share({
-					title: product.body.title,
-					url: `${window.location.origin}/${locale}/products/${product.id}`,
-				});
-			} catch (error) {
-				if ((error as Error)?.name !== "AbortError")
-					toast.error(t.linkCopyFailed);
-			}
-		},
-		names = (labels: unknown) =>
-			labels && typeof labels === "object"
-				? (labels as Record<string, Record<string, string>>)
-				: {},
-		entries = (values: unknown, labels: unknown) => {
-			const map = names(labels);
-			return values && typeof values === "object" && !Array.isArray(values)
-				? Object.entries(values as Record<string, unknown>).map(
-						([key, value]) => ({
-							label: map[key]?.[locale] || map[key]?.["fa-AF"] || key,
-							value: String(value),
-						}),
-					)
-				: [];
-		},
-		bodyRows = entries(product.body.attributes, product.body.attribute_labels),
-		bullets = [
-			...bodyRows.map((row) => `${row.label}: ${row.value}`),
-			...(v?.contents ? [v.contents] : []),
-		].slice(0, 8),
-		specRows = [
-			{ label: t.sku, value: v?.sku },
-			{ label: t.brand, value: product.body.brand },
-			{ label: t.category, value: categoryLabel },
-			{ label: t.unit, value: v ? v.unit_labels[locale] || v.unit : undefined },
-			{ label: t.increment, value: v?.increment },
-			{ label: t.minimum, value: v?.minimum },
-			{ label: t.pricing_mode, value: t[product.pricing_mode] },
-			{ label: t.availability, value: v ? t[availability] : undefined },
-			...bodyRows,
-			...(v ? entries(v.attributes, v.attribute_labels) : []),
-		]
-			.filter((row): row is { label: string; value: string } => !!row.value)
-			.filter(
-				(row, i, all) => all.findIndex((x) => x.label === row.label) === i,
-			);
+				: "unknown";
+	const productPath = `/${locale}/products/${product.id}`;
+	const storePath = `/${locale}/stores/${product.store.id}`;
+	const language = product.resolved_locale as Locale;
+	const hasImages = product.images.length > 0;
+	const variantImage =
+		product.images.find((image) => image.variant === variantId) ??
+		product.images.find((image) => !image.variant);
+	const description = product.body.description.trim();
+	const unit = (row: PublicProduct["variants"][number]) =>
+		row.unit_labels[locale] || row.unit;
+	const reviewCount =
+		summary?.count ?? product.store.review_summary?.count ?? 0;
+	const specs = [
+		{ label: t.sku, value: variant?.sku },
+		{ label: t.brand, value: product.body.brand },
+		{ label: catalogueCopy[locale].contents, value: variant?.contents },
+		...attributes(
+			product.body.attributes,
+			product.body.attribute_labels,
+			locale,
+		),
+		...attributes(variant?.attributes, variant?.attribute_labels, locale),
+	]
+		.filter(
+			(row): row is { label: string; value: string } => !!row.value?.trim(),
+		)
+		.filter(
+			(row, index, all) =>
+				all.findIndex(({ label }) => label === row.label) === index,
+		);
+
+	function selectVariant(id: string) {
+		setVariantId(id);
+		setImageId(undefined);
+		const url = new URL(window.location.href);
+		url.searchParams.set("variant", id);
+		history.pushState(null, "", url);
+	}
+
+	async function share() {
+		try {
+			await navigator.share({
+				title: product.body.title,
+				url: new URL(productPath, window.location.origin).href,
+			});
+		} catch (error) {
+			if ((error as Error).name !== "AbortError") toast.error(t.linkCopyFailed);
+		}
+	}
+
 	return (
 		<article
-			className="mx-auto w-full max-w-6xl space-y-5"
+			className="min-w-0 space-y-8 desktop:space-y-10"
 			data-testid="product-detail"
 		>
-			<div className="rounded-card border border-border bg-surface p-4 shadow-card sm:p-5">
-				<div className="grid min-w-0 gap-5 desktop:grid-cols-[minmax(0,1fr)_minmax(0,23rem)] desktop:gap-6">
-					<ProductGallery
-						images={product.images}
-						locale={locale}
-						activeId={imageId}
-						onSelect={setImageId}
-					/>
-					<section className="min-w-0 space-y-3">
-						<div className="space-y-1.5">
-							{product.body.category && (
-								<Link
-									prefetch={false}
-									href={`/${locale}/categories/${product.body.category}`}
-									className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-info px-2.5 text-xs font-bold text-action no-underline hover:underline"
-								>
-									<Icon name="grid" className="size-3.5" />
-									{categoryLabel}
-								</Link>
-							)}
-							<h1
-								className="break-words text-xl font-extrabold leading-snug sm:text-2xl"
-								lang={product.resolved_locale}
-								dir={dir}
-							>
-								{product.body.title}
-							</h1>
-							{product.source_fallback && (
-								<p className="text-xs text-muted">{t.fallback}</p>
-							)}
-						</div>
-						<p className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-							<RatingStars
-								average={featuredPlaceholders.productRating}
-								className="size-3.5"
+			<div
+				className={
+					hasImages
+						? "grid items-start gap-5 desktop:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] desktop:grid-rows-[auto_1fr] desktop:gap-x-10"
+						: "max-w-2xl space-y-5"
+				}
+			>
+				<header
+					className={
+						hasImages
+							? "min-w-0 desktop:col-start-2 desktop:row-start-1"
+							: "min-w-0"
+					}
+				>
+					<h1
+						className="wrap-break-word text-2xl font-bold leading-tight sm:text-3xl"
+						lang={language}
+						dir={direction(language)}
+					>
+						{product.body.title}
+					</h1>
+					{product.source_fallback && (
+						<p className="mt-1.5 text-xs text-muted">{t.fallback}</p>
+					)}
+					<div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+						<Link
+							prefetch={false}
+							href={storePath}
+							className="inline-flex min-w-0 items-center gap-2 text-action no-underline hover:underline"
+						>
+							<StoreAvatar
+								store={product.store}
+								className="size-8"
+								textClassName="text-xs"
+								padding="p-0.5"
 							/>
-							<bdi className="font-bold">
-								{fmt.format(featuredPlaceholders.productRating)}
-							</bdi>
-							<span className="text-muted">
-								(<bdi>{featuredPlaceholders.productRatingCount}</bdi>{" "}
-								{t.reviewCount})
+							<span className="min-w-0 truncate">
+								<span className="me-1.5 text-muted">{t.soldBy}</span>
+								<bdi
+									className="font-semibold"
+									lang={product.store.resolved_locale}
+								>
+									{product.store.name}
+								</bdi>
 							</span>
-							<span aria-hidden className="h-4 w-px bg-border" />
+						</Link>
+						{product.store.verified_business && (
+							<VerifiedBusiness locale={locale} />
+						)}
+						{reviewCount > 0 && (
 							<Link
 								prefetch={false}
-								href={`/${locale}/stores/${product.store.id}/reviews`}
-								className="font-semibold text-action no-underline hover:underline"
+								href={`${storePath}/reviews`}
+								className="text-muted underline-offset-4 hover:underline"
 							>
-								{summary && summary.count > 0
-									? `${fmt.format(summary.count)} ${t.storeReviews}`
-									: t.storeReviews}
+								{new Intl.NumberFormat(locale).format(reviewCount)}{" "}
+								{t.storeReviews}
 							</Link>
-						</p>
-						{v && (
-							<p className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-								<span
+						)}
+					</div>
+				</header>
+				{hasImages && (
+					<section
+						aria-label={t.images}
+						className="min-w-0 desktop:col-start-1 desktop:row-span-2 desktop:row-start-1"
+					>
+						<ProductGallery
+							images={product.images}
+							locale={locale}
+							activeId={imageId ?? variantImage?.id}
+							onSelect={setImageId}
+						/>
+					</section>
+				)}
+				<div
+					className={
+						hasImages
+							? "min-w-0 space-y-5 desktop:col-start-2 desktop:row-start-2"
+							: "min-w-0 space-y-5"
+					}
+				>
+					{product.variants.length > 1 && (
+						<fieldset className="m-0 min-w-0 border-0 p-0">
+							<legend className="mb-2 text-sm font-semibold">{t.choose}</legend>
+							<div className="flex flex-wrap gap-2">
+								{product.variants.map((row) => {
+									const label =
+										attributes(row.attributes, row.attribute_labels, locale)
+											.map(({ value }) => value)
+											.join(" / ") || row.sku;
+									return (
+										<Button
+											key={row.id}
+											type="button"
+											variant={row.id === variantId ? "secondary" : "outline"}
+											className="max-w-full"
+											aria-pressed={row.id === variantId}
+											onClick={() => selectVariant(row.id)}
+										>
+											<bdi className="max-w-52 truncate" title={label}>
+												{label}
+											</bdi>
+										</Button>
+									);
+								})}
+							</div>
+						</fieldset>
+					)}
+					<div className="space-y-2 border-y border-border py-4 text-sm">
+						{variant?.retail != null ? (
+							<p>
+								<Price
+									value={variant.retail}
+									unit={unit(variant)}
+									currency={product.currency}
+									className="text-3xl font-bold tracking-tight text-action"
+								/>
+							</p>
+						) : (
+							variant?.wholesale == null && (
+								<p className="text-muted">{t.noPrice}</p>
+							)
+						)}
+						{variant?.wholesale != null && (
+							<p className="flex flex-wrap items-baseline gap-x-2">
+								<span className="text-muted">{t.wholesale}</span>
+								<Price
+									value={variant.wholesale}
+									unit={unit(variant)}
+									currency={product.currency}
+									className={
+										variant.retail == null
+											? "text-2xl font-bold text-action"
+											: "font-semibold"
+									}
+								/>
+							</p>
+						)}
+						<div className="flex flex-wrap gap-x-4 gap-y-1">
+							{variant && (
+								<p
 									role="status"
-									className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-										availability === "available"
-											? "bg-success/10 text-success"
-											: availability === "unavailableStock"
-												? "bg-danger/10 text-danger"
-												: "bg-page text-muted"
-									}`}
+									className={`inline-flex items-center gap-1.5 ${availability === "available" ? "text-success" : availability === "unavailableStock" ? "text-danger" : "text-muted"}`}
 								>
 									<Icon
 										name={
@@ -197,250 +294,106 @@ export function ProductDetail({
 													? "close"
 													: "help"
 										}
-										className="size-3.5"
+										className="size-4"
 									/>
 									{t[availability]}
-								</span>
-								<span className="text-muted">
-									{t.sku}:{" "}
-									<bdi className="font-semibold text-foreground">{v.sku}</bdi>
-								</span>
-							</p>
-						)}
-						<div className="space-y-1 border-y border-border py-3">
-							<p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-								{v?.retail != null ? (
-									<>
-										<bdi
-											dir="ltr"
-											className="text-2xl font-extrabold text-action"
-										>
-											{v.retail} {product.currency}
-										</bdi>
-										<span className="text-xs text-muted sm:text-sm">
-											/ {v.unit_labels[locale] || v.unit}
-										</span>
-										{compare && (
-											<bdi
-												dir="ltr"
-												className="text-xs text-muted line-through sm:text-sm"
-											>
-												{compare} {product.currency}
-											</bdi>
-										)}
-										{compare && (
-											<span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-on-primary">
-												<bdi>
-													{fmt.format(featuredPlaceholders.discountPercent)}%
-												</bdi>{" "}
-												{t.off}
-											</span>
-										)}
-									</>
-								) : (
-									<span className="text-sm text-muted">{t.noPrice}</span>
-								)}
-								{product.pricing_mode === "negotiable" && (
-									<span className="inline-flex items-center gap-1 rounded-full bg-page px-2.5 py-0.5 text-xs font-semibold text-muted">
-										<Icon name="handshake" className="size-3.5" />
-										{t.negotiable}
-									</span>
-								)}
-							</p>
-							{v?.wholesale != null && (
-								<p className="text-xs text-muted sm:text-sm">
-									{t.wholesale}:{" "}
-									<bdi dir="ltr" className="font-semibold text-foreground">
-										{v.wholesale} {product.currency}
-									</bdi>{" "}
-									/ {v.unit_labels[locale] || v.unit}
+								</p>
+							)}
+							{product.pricing_mode === "negotiable" && (
+								<p className="inline-flex items-center gap-1.5 text-muted">
+									<Icon name="handshake" className="size-4" />
+									{t.negotiable}
 								</p>
 							)}
 						</div>
-						{product.variants.length > 1 && (
-							<div className="space-y-1.5">
-								<p className="text-sm font-semibold">{t.choose}</p>
-								<div className="flex flex-wrap gap-2">
-									{product.variants.map((row) => (
-										<button
-											key={row.id}
-											type="button"
-											aria-pressed={row.id === variantId}
-											onClick={() => selectVariant(row.id)}
-											className={`inline-flex min-h-10 flex-col items-start justify-center gap-0.5 rounded-control border px-3 py-1 text-start shadow-sm transition-colors active:scale-[0.98] motion-reduce:active:scale-100 ${
-												row.id === variantId
-													? "border-action bg-info text-action"
-													: "border-border bg-surface hover:border-action/50"
-											}`}
-										>
-											<span className="max-w-44 truncate text-sm font-semibold">
-												{variantLabel(row)}
-											</span>
-											<span
-												className={`text-xs ${row.id === variantId ? "text-action/80" : "text-muted"}`}
-											>
-												{row.retail != null ? (
-													<bdi dir="ltr">
-														{row.retail} {product.currency}
-													</bdi>
-												) : (
-													t.noPrice
-												)}{" "}
-												/ {row.unit_labels[locale] || row.unit}
-											</span>
-										</button>
-									))}
-								</div>
-							</div>
-						)}
-						{v && (
-							<ProductCartAction
-								key={`${locale}:${product.id}:${v.id}`}
-								locale={locale}
-								product={product}
-								variant={v.id}
-							/>
-						)}
-					</section>
-				</div>
-				<div className="mt-5 space-y-4 border-t border-border pt-5">
-					<div className="flex flex-col gap-3 desktop:flex-row desktop:items-center">
-						<div className="min-w-0 flex-1">
-							<EnquiryEntry
-								key={`${locale}:${product.id}`}
-								locale={locale}
-								product={product.id}
-							/>
-						</div>
-						<div className="flex shrink-0 flex-wrap items-center gap-2.5">
-							<CopyLinkButton
-								locale={locale}
-								path={`/${locale}/products/${product.id}`}
-							/>
-							{canShare && (
-								<button
-									type="button"
-									onClick={() => void share()}
-									aria-label={t.shareLink}
-									title={t.shareLink}
-									className="inline-flex size-11 items-center justify-center gap-2 rounded-control border border-border bg-surface text-sm font-bold text-foreground shadow-sm transition-colors hover:border-action/50 hover:text-action active:scale-95 motion-reduce:active:scale-100 desktop:size-auto desktop:min-h-11 desktop:px-4"
-								>
-									<Icon name="share" className="size-4" />
-									<span className="hidden desktop:inline">{t.shareLink}</span>
-								</button>
-							)}
-						</div>
 					</div>
-					<div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-page/40 p-3 sm:p-4">
-						<StoreAvatar
-							store={product.store}
-							className="size-12"
-							textClassName="text-base"
-							padding="p-1"
+					{variant && (
+						<ProductCartAction
+							key={`${locale}:${product.id}:${variant.id}`}
+							locale={locale}
+							product={product}
+							variant={variant.id}
 						/>
-						<div className="min-w-0 flex-1">
-							<span className="block text-xs text-muted">{t.soldBy}</span>
-							<Link
-								prefetch={false}
-								href={`/${locale}/stores/${product.store.id}`}
-								className="block truncate text-sm font-bold no-underline hover:underline"
-								lang={product.store.resolved_locale}
-								dir={direction(product.store.resolved_locale as Locale)}
+					)}
+					<div className="flex flex-wrap items-start gap-2">
+						<EnquiryEntry
+							key={`${locale}:${product.id}`}
+							locale={locale}
+							product={product.id}
+						/>
+						<CopyLinkButton locale={locale} path={productPath} />
+						{canShare && (
+							<Button
+								type="button"
+								variant="outline"
+								size="icon-lg"
+								className="size-11"
+								onClick={() => void share()}
+								aria-label={t.shareLink}
+								title={t.shareLink}
 							>
-								{product.store.name || t.stores}
-							</Link>
-							{storeLocation && (
-								<span className="block truncate text-xs text-muted">
-									{storeLocation}
-								</span>
-							)}
-						</div>
-						<Link
-							prefetch={false}
-							href={`/${locale}/stores/${product.store.id}`}
-							className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-control border border-border bg-surface px-4 text-xs font-bold text-action no-underline transition-colors hover:border-action/50 hover:bg-info sm:text-sm"
-						>
-							{t.viewStore}
-							<Icon name="chevron" className="size-4" />
-						</Link>
+								<Icon name="share" className="size-4" />
+							</Button>
+						)}
 					</div>
 				</div>
 			</div>
-			<ProductTabs
-				locale={locale}
-				tabs={[
-					{
-						id: "description",
-						label: t.productDescription,
-						panel: (
-							<div className="space-y-3">
-								<p
-									className={`whitespace-pre-wrap break-words text-sm leading-6 ${product.body.description ? "" : "text-muted"}`}
-									lang={product.resolved_locale}
-									dir={dir}
-								>
-									{product.body.description || t.descriptionPlaceholder}
-								</p>
-								{bullets.length > 0 && (
-									<ul className="space-y-1.5">
-										{bullets.map((bullet) => (
-											<li key={bullet} className="flex gap-2 text-sm">
-												<Icon
-													name="check"
-													className="mt-1 size-3.5 shrink-0 text-success"
-												/>
-												<span className="break-words">{bullet}</span>
-											</li>
-										))}
-									</ul>
-								)}
-							</div>
-						),
-					},
-					{
-						id: "specifications",
-						label: t.specifications,
-						panel: <SpecTable rows={specRows} />,
-					},
-					{
-						id: "store-delivery",
-						label: t.storeDelivery,
-						panel: (
-							<div className="space-y-3 text-sm">
-								<TrustStrip locale={locale} />
-								<p className="text-muted">{t.delivery}</p>
-								<p className="text-muted">{t.wholesaleRule}</p>
-							</div>
-						),
-					},
-					{
-						id: "report",
-						label: t.reportTab,
-						panel: <ProductReportPanel locale={locale} id={product.id} />,
-					},
-				]}
-			/>
-		</article>
-	);
-}
-function SpecTable({ rows }: { rows: { label: string; value: string }[] }) {
-	return (
-		<dl className="overflow-hidden rounded-card border border-border">
-			{rows.map((row, i) => (
+			{(description || specs.length > 0) && (
 				<div
-					key={row.label}
-					className={`grid grid-cols-[8rem_1fr] border-b border-border/60 transition-colors last:border-b-0 hover:bg-info/40 max-[480px]:grid-cols-[6.5rem_1fr] ${
-						i % 2 ? "bg-page/60" : "bg-surface"
-					}`}
+					className={`grid gap-7 border-t border-border pt-6 ${description && specs.length > 0 ? "desktop:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] desktop:gap-10" : ""}`}
 				>
-					<dt className="border-e border-border/60 px-3 py-2 text-xs font-bold text-muted sm:px-4">
-						{row.label}
-					</dt>
-					<dd className="break-words px-3 py-2 text-sm font-semibold sm:px-4">
-						{row.value}
-					</dd>
+					{description && (
+						<section className="min-w-0 space-y-3">
+							<h2 className="text-lg font-bold">{t.productDescription}</h2>
+							<p
+								className="max-w-prose wrap-break-word whitespace-pre-wrap text-sm leading-relaxed text-muted"
+								lang={language}
+								dir={direction(language)}
+							>
+								{description}
+							</p>
+						</section>
+					)}
+					{specs.length > 0 && (
+						<section className="min-w-0 space-y-2">
+							<h2 className="text-lg font-bold">{t.specifications}</h2>
+							<dl className="max-w-2xl divide-y divide-border text-sm">
+								{specs.map(({ label, value }) => (
+									<div
+										key={label}
+										className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-4 py-2.5"
+									>
+										<dt className="wrap-break-word text-muted">{label}</dt>
+										<dd className="wrap-break-word">
+											<bdi>{value}</bdi>
+										</dd>
+									</div>
+								))}
+							</dl>
+						</section>
+					)}
 				</div>
-			))}
-		</dl>
+			)}
+			<details
+				className="group/report border-t border-border pt-3"
+				onToggle={(event) => {
+					if (event.currentTarget.open) setReportOpened(true);
+				}}
+			>
+				<summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm text-muted hover:text-action [&::-webkit-details-marker]:hidden">
+					<Icon name="shield" className="size-4" />
+					{communicationCopy[locale].reportProduct}
+					<Icon
+						name="chevron-down"
+						className="size-4 transition-transform group-open/report:rotate-180 motion-reduce:transition-none"
+					/>
+				</summary>
+				{reportOpened && (
+					<div className="max-w-2xl pb-3">
+						<ProductReportPanel locale={locale} id={product.id} />
+					</div>
+				)}
+			</details>
+		</article>
 	);
 }

@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { Button } from "@/components/shadcn/button";
+import { displayDecimal } from "@/lib/display-decimal";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 import { AccountError } from "../../../lib/api/private-client";
@@ -69,9 +71,11 @@ function ProductCartEditor({
 }) {
 	const v = product.variants.find((x) => x.id === variant);
 	const t = commerceCopy[locale],
-		[tier, setTier] = useState<"retail" | "wholesale">("retail"),
+		[tier, setTier] = useState<"retail" | "wholesale">(
+			v?.retail === null && v.wholesale !== null ? "wholesale" : "retail",
+		),
 		[quantity, setQuantity] = useState(() =>
-			initialCartQuantity(v?.increment ?? "1.000"),
+			displayDecimal(initialCartQuantity(v?.increment ?? "1.000")),
 		),
 		[error, setError] = useState<unknown>(),
 		[busy, setBusy] = useState(false),
@@ -266,16 +270,13 @@ function ProductCartEditor({
 		step = (delta: 1 | -1) => {
 			setSaved(false);
 			try {
-				setQuantity(stepQuantity(quantity, v.increment, delta));
+				setQuantity(displayDecimal(stepQuantity(quantity, v.increment, delta)));
 			} catch {
-				setQuantity(initialCartQuantity(v.increment));
+				setQuantity(displayDecimal(initialCartQuantity(v.increment)));
 			}
 		};
 	return (
-		<section
-			className="space-y-3 rounded-card border border-border bg-page p-3 sm:p-4"
-			data-testid="product-cart-action"
-		>
+		<section className="space-y-3" data-testid="product-cart-action">
 			<form
 				className="space-y-3"
 				onSubmit={(e) => {
@@ -283,28 +284,26 @@ function ProductCartEditor({
 					void add();
 				}}
 			>
-				<fieldset className="m-0 grid min-w-0 grid-cols-2 gap-1 rounded-control border border-border bg-surface p-1">
-					<legend className="sr-only">{t.tier}</legend>
-					{(["retail", "wholesale"] as const).map((row) => (
-						<button
-							key={row}
-							type="button"
-							aria-pressed={tier === row}
-							disabled={locked || (row === "wholesale" && v.wholesale === null)}
-							onClick={() => {
-								setTier(row);
-								setSaved(false);
-							}}
-							className={`min-h-9 rounded-control px-3 text-sm font-bold transition-colors active:scale-[0.98] motion-reduce:active:scale-100 disabled:opacity-50 ${
-								tier === row
-									? "bg-primary text-on-primary shadow-sm"
-									: "text-muted hover:bg-page hover:text-foreground"
-							}`}
-						>
-							{t[row]}
-						</button>
-					))}
-				</fieldset>
+				{v.retail !== null && v.wholesale !== null && (
+					<fieldset className="m-0 flex flex-wrap gap-2 border-0 p-0">
+						<legend className="mb-2 text-sm font-semibold">{t.tier}</legend>
+						{(["retail", "wholesale"] as const).map((row) => (
+							<Button
+								key={row}
+								type="button"
+								aria-pressed={tier === row}
+								disabled={locked}
+								variant={tier === row ? "secondary" : "outline"}
+								onClick={() => {
+									setTier(row);
+									setSaved(false);
+								}}
+							>
+								{t[row]}
+							</Button>
+						))}
+					</fieldset>
+				)}
 				<div className="space-y-1.5">
 					<span
 						id={`quantity-label-${v.id}`}
@@ -312,7 +311,7 @@ function ProductCartEditor({
 					>
 						{t.quantity} · {unit}
 					</span>
-					<div className="flex items-stretch overflow-hidden rounded-control border border-border bg-surface focus-within:border-action">
+					<div className="flex w-full max-w-52 items-stretch overflow-hidden rounded-control border border-border bg-surface focus-within:border-action">
 						<button
 							type="button"
 							aria-label={market.decreaseQuantity}
@@ -353,19 +352,21 @@ function ProductCartEditor({
 					<p className="flex items-baseline justify-between gap-3 text-sm">
 						<span className="text-muted">{market.subtotal}</span>
 						<bdi dir="ltr" className="text-base font-extrabold">
-							{total} {product.currency}
+							{displayDecimal(total)} {product.currency}
 						</bdi>
 					</p>
 				)}
 				<p className="text-xs text-muted">
-					{t.increment}: <bdi>{v.increment}</bdi> · {t.minimum}:{" "}
-					<bdi>{v.minimum}</bdi>
+					{t.increment}: <bdi>{displayDecimal(v.increment)}</bdi>
+					{tier === "wholesale" && (
+						<>
+							{" "}
+							· {t.minimum}: <bdi>{displayDecimal(v.minimum)}</bdi>
+						</>
+					)}
 				</p>
 				{tier === "wholesale" && (
 					<p className="text-xs text-muted">{t.wholesaleHelp}</p>
-				)}
-				{product.pricing_mode === "negotiable" && (
-					<p className="text-xs text-muted">{t.negotiable}</p>
 				)}
 				<Failure locale={locale} error={error} />
 
@@ -385,14 +386,20 @@ function ProductCartEditor({
 						</button>
 					</div>
 				)}
-				<button
-					className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-5 text-sm font-bold text-on-primary shadow-sm transition-opacity hover:opacity-90 active:scale-[0.99] motion-reduce:active:scale-100 disabled:opacity-60"
-					disabled={busy || guestChanged}
-					type="submit"
-				>
-					<Icon name="cart" className="size-4" />
-					{busy ? t.loading : pending.current ? t.retry : t.add}
-				</button>
+				<div className="flex flex-wrap gap-2">
+					<Button
+						type="submit"
+						size="lg"
+						className="min-h-11"
+						disabled={busy || guestChanged}
+					>
+						<Icon name="cart" className="size-4" />
+						{busy ? t.loading : pending.current ? t.retry : t.add}
+					</Button>
+					<Button asChild variant="outline" size="lg" className="min-h-11">
+						<Link href={`/${locale}/cart`}>{t.cart}</Link>
+					</Button>
+				</div>
 				{saved && (
 					<p
 						role="status"
@@ -408,13 +415,6 @@ function ProductCartEditor({
 					</p>
 				)}
 			</form>
-			<Link
-				className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-border bg-surface text-sm font-bold text-foreground no-underline transition-colors hover:border-action/50 hover:text-action"
-				href={`/${locale}/cart`}
-			>
-				<Icon name="shopping-bag" className="size-4" />
-				{t.cart}
-			</Link>
 		</section>
 	);
 }

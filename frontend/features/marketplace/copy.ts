@@ -46,10 +46,6 @@ const en = {
 	unit: "Unit",
 	increment: "Quantity increment",
 	minimum: "Wholesale minimum",
-	wholesaleRule:
-		"Wholesale purchasing requires a staff-verified business and the variant minimum. Viewing a price does not grant eligibility.",
-	delivery:
-		"Delivery is arranged separately; this page does not promise delivery coverage.",
 	commerce: "Purchasing and enquiries are not available yet.",
 	about: "About",
 	reviews: "Reviews",
@@ -138,7 +134,6 @@ const en = {
 	trustSupport: "24/7 support",
 	viewStore: "View store",
 	featuredProducts: "Top products from this store",
-	off: "off",
 	moreAbout: "More about this store",
 	copyLink: "Copy link",
 	linkCopied: "Link copied.",
@@ -154,7 +149,6 @@ const en = {
 	breadcrumbs: "Breadcrumb",
 	productDescription: "Description",
 	specifications: "Specifications",
-	storeDelivery: "Store & delivery",
 	relatedProducts: "Related products",
 	zoomImage: "Zoom image",
 	images: "Images",
@@ -168,9 +162,6 @@ const en = {
 	decreaseQuantity: "Decrease quantity",
 	increaseQuantity: "Increase quantity",
 	subtotal: "Subtotal",
-	descriptionPlaceholder:
-		"The seller has not added a description yet. Contact the store for details about this product.",
-	reportTab: "Report",
 	reportSignIn:
 		"Sign in to report this product. Reports are private and reviewed by staff.",
 };
@@ -221,9 +212,6 @@ const fa: Copy = {
 	unit: "واحد",
 	increment: "گام مقدار",
 	minimum: "حداقل مقدار عمده",
-	wholesaleRule:
-		"خرید عمده به تجارت تأییدشده توسط مسئول و حداقل مقدار این نوع نیاز دارد. دیدن قیمت به معنی واجد شرایط بودن نیست.",
-	delivery: "تحویل جداگانه هماهنگ می‌شود؛ این صفحه پوشش تحویل را تضمین نمی‌کند.",
 	commerce: "خرید و ارسال درخواست هنوز فعال نیست.",
 	about: "درباره",
 	reviews: "دیدگاه‌ها",
@@ -313,7 +301,6 @@ const fa: Copy = {
 	trustSupport: "پشتیبانی ۲۴/۷",
 	viewStore: "مشاهده فروشگاه",
 	featuredProducts: "محصولات برتر فروشگاه",
-	off: "تخفیف",
 	moreAbout: "درباره این فروشگاه بیشتر",
 	copyLink: "کپی پیوند",
 	linkCopied: "پیوند کپی شد.",
@@ -329,7 +316,6 @@ const fa: Copy = {
 	breadcrumbs: "مسیر صفحه",
 	productDescription: "توضیحات",
 	specifications: "مشخصات",
-	storeDelivery: "فروشگاه و تحویل",
 	relatedProducts: "محصولات مرتبط",
 	zoomImage: "بزرگ‌نمایی تصویر",
 	images: "تصاویر",
@@ -343,9 +329,6 @@ const fa: Copy = {
 	decreaseQuantity: "کاهش مقدار",
 	increaseQuantity: "افزایش مقدار",
 	subtotal: "مجموع",
-	descriptionPlaceholder:
-		"فروشنده هنوز توضیحاتی اضافه نکرده است. برای جزئیات این محصول با فروشگاه تماس بگیرید.",
-	reportTab: "گزارش",
 	reportSignIn:
 		"برای گزارش این محصول وارد حساب شوید. گزارش‌ها خصوصی هستند و توسط کارمند بررسی می‌شوند.",
 };
@@ -395,9 +378,6 @@ const ps: Copy = {
 	unit: "واحد",
 	increment: "د مقدار ګام",
 	minimum: "د عمدې لږ مقدار",
-	wholesaleRule:
-		"عمده پېرود د کارکوونکي تایید شوي کاروبار او د بڼې لږ مقدار ته اړتیا لري. د بیې لیدل د پېرود اجازه نه ده.",
-	delivery: "لېږد جلا تنظیمېږي؛ دا پاڼه د لېږد پوښښ نه تضمینوي.",
 	commerce: "پېرود او غوښتنې لا فعالې نه دي.",
 	about: "په اړه",
 	reviews: "نظرونه",
@@ -486,7 +466,6 @@ const ps: Copy = {
 	trustSupport: "۲۴/۷ ملاتړ",
 	viewStore: "پلورنځی وګورئ",
 	featuredProducts: "د پلورنځي غوره محصولات",
-	off: "تخفیف",
 	moreAbout: "د دې پلورنځي په اړه نور",
 	copyLink: "لینک کاپي کړئ",
 	linkCopied: "لینک کاپي شو.",
@@ -502,7 +481,6 @@ const ps: Copy = {
 	breadcrumbs: "د پاڼې لار",
 	productDescription: "توضیحات",
 	specifications: "ځانګړتیاوې",
-	storeDelivery: "پلورنځی او لېږد",
 	relatedProducts: "اړوند محصولات",
 	zoomImage: "انځور لویول",
 	images: "انځورونه",
@@ -516,9 +494,6 @@ const ps: Copy = {
 	decreaseQuantity: "مقدار کمول",
 	increaseQuantity: "مقدار زیاتول",
 	subtotal: "ټولګه",
-	descriptionPlaceholder:
-		"پلورونکي لا توضیحات نه دي زیات کړي. د دې محصول د جزئیاتو لپاره له پلورنځي سره اړیکه ونیسئ.",
-	reportTab: "راپور",
 	reportSignIn:
 		"د دې محصول د راپور لپاره حساب ته ننوځئ. راپورونه شخصي دي او د کارکوونکي لخوا کتل کېږي.",
 };
@@ -568,9 +543,6 @@ const ar: Copy = {
 	unit: "الوحدة",
 	increment: "خطوة الكمية",
 	minimum: "الحد الأدنى للجملة",
-	wholesaleRule:
-		"يتطلب شراء الجملة نشاطاً تجارياً موثقاً من الموظف والحد الأدنى للنوع. عرض السعر لا يمنح أهلية الشراء.",
-	delivery: "يُنسق التوصيل بصورة منفصلة؛ هذه الصفحة لا تضمن نطاق التوصيل.",
 	commerce: "الشراء والاستفسارات غير متاحين بعد.",
 	about: "حول المتجر",
 	reviews: "المراجعات",
@@ -656,7 +628,6 @@ const ar: Copy = {
 	trustSupport: "دعم ٢٤/٧",
 	viewStore: "عرض المتجر",
 	featuredProducts: "أفضل منتجات المتجر",
-	off: "خصم",
 	moreAbout: "المزيد عن هذا المتجر",
 	copyLink: "نسخ الرابط",
 	linkCopied: "تم نسخ الرابط.",
@@ -672,7 +643,6 @@ const ar: Copy = {
 	breadcrumbs: "مسار الصفحة",
 	productDescription: "الوصف",
 	specifications: "المواصفات",
-	storeDelivery: "المتجر والتوصيل",
 	relatedProducts: "منتجات ذات صلة",
 	zoomImage: "تكبير الصورة",
 	images: "الصور",
@@ -686,9 +656,6 @@ const ar: Copy = {
 	decreaseQuantity: "تقليل الكمية",
 	increaseQuantity: "زيادة الكمية",
 	subtotal: "المجموع",
-	descriptionPlaceholder:
-		"لم يضف البائع وصفاً بعد. تواصل مع المتجر للحصول على تفاصيل هذا المنتج.",
-	reportTab: "بلاغ",
 	reportSignIn:
 		"سجّل الدخول للإبلاغ عن هذا المنتج. البلاغات خاصة ويراجعها الموظفون.",
 };

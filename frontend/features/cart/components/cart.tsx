@@ -1,4 +1,5 @@
 "use client";
+import { displayDecimal } from "@/lib/display-decimal";
 import { negotiationCopy } from "../../negotiations/copy";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -500,7 +501,7 @@ function CartRow({
 			</select>
 			<span className="min-w-0 text-sm">
 				<bdi dir="ltr" className="font-bold">
-					{row.price ?? "—"}
+					{displayDecimal(row.price)}
 				</bdi>
 				{row.price && (
 					<span className="ms-1 text-[0.6875rem] font-semibold text-muted">
@@ -569,7 +570,7 @@ function CartRow({
 			<span className="ms-auto min-w-0 wide:ms-0 wide:w-full wide:text-end">
 				<bdi dir="ltr" className="text-sm font-extrabold">
 					{row.price
-						? `${estimate(row.price, row.quantity)} ${row.currency}`
+						? `${displayDecimal(estimate(row.price, row.quantity))} ${row.currency}`
 						: `— ${row.currency}`}
 				</bdi>
 			</span>
@@ -621,7 +622,7 @@ function CartTotals({
 				<dt className={cap}>{t.subtotal}</dt>
 				<dd className="m-0 font-bold">
 					<bdi dir="ltr">
-						{total ?? "—"} {group}
+						{displayDecimal(total)} {group}
 					</bdi>
 				</dd>
 			</div>
@@ -633,7 +634,7 @@ function CartTotals({
 				<dt className={cap}>{t.total}</dt>
 				<dd className="m-0 text-base font-extrabold">
 					<bdi dir="ltr">
-						{total ?? "—"} {group}
+						{displayDecimal(total)} {group}
 					</bdi>
 				</dd>
 			</div>
@@ -723,7 +724,7 @@ function PaymentPanel({
 									<span>
 										{t.checkout} · <bdi>{group}</bdi>
 									</span>
-									<bdi dir="ltr">{estimateTotal(lines) ?? "—"}</bdi>
+									<bdi dir="ltr">{displayDecimal(estimateTotal(lines))}</bdi>
 								</Link>
 							))
 						: signInLink

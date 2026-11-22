@@ -5,7 +5,8 @@ import { accountSession } from "../../identity/api/accounts";
 import { AccountError } from "../../../lib/api/private-client";
 import type { Locale } from "../../../lib/i18n/locales";
 import { communicationCopy } from "../copy";
-import { actionBtn, Failure } from "./ui";
+import { Button } from "@/components/shadcn/button";
+import { Failure } from "./ui";
 import { Icon } from "../../../components/ui/icon";
 export function EnquiryEntry({
 	locale,
@@ -28,9 +29,10 @@ export function EnquiryEntry({
 	}, []);
 	return (
 		<div className="space-y-3">
-			<button
+			<Button
 				type="button"
-				className={`${actionBtn} w-full gap-2`}
+				variant="outline"
+				className="min-h-11"
 				disabled={busy}
 				onClick={() => {
 					if (lock.current) return;
@@ -62,8 +64,7 @@ export function EnquiryEntry({
 			>
 				<Icon name="mail" className="size-4" />
 				{busy ? t.loading : t.enquire}
-			</button>
-			<p className="text-xs text-muted">{t.enquiryNote}</p>
+			</Button>
 			{!!error && <Failure locale={locale} error={error} />}
 		</div>
 	);
