@@ -8,7 +8,7 @@
       </div>
       <p class="{{ rz_report.metric_value }} mt-1 break-words"><bdi>{{ metric.value }}</bdi> {% if metric.unit %}<small class="{{ rz_report.note }}">{{ metric.unit }}</small>{% endif %}</p>
       <p class="{{ rz_report.note }}">{{ metric.note }}</p>
-      <p class="mt-2 {{ rz_report.note }}"><bdi class="{{ rz_report.chip }}">{{ metric.change }}</bdi> {% translate "vs previous period" %}</p>
+      <p class="mt-auto pt-2 {{ rz_report.note }}"><bdi class="{{ rz_report.chip }}">{{ metric.change }}</bdi> {% translate "vs previous period" %}</p>
     </article>
   {% endfor %}
 </div>
@@ -60,7 +60,7 @@
     </div>
   </section>
   <div class="flex min-w-0 flex-col gap-4">
-    <section class="{{ rz_report.card }}" aria-labelledby="commerce-queues-title">
+    <section class="{{ rz_report.card }} flex-1" aria-labelledby="commerce-queues-title">
       <header class="{{ rz_report.head }}">
         <div><h2 id="commerce-queues-title" class="{{ rz_report.heading }}">{% translate "Open work now" %}</h2>
           <p class="{{ rz_report.note }}">{% translate "Current queues, independent of the selected dates." %}</p></div>
