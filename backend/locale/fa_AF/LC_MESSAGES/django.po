@@ -172,6 +172,9 @@ msgstr "پیشرفته: رسانهٔ میزبانی‌شده در خارج"
 msgid "After you've created a user, you’ll be able to edit more user options."
 msgstr "پس از ایجاد کاربر، می‌توانید گزینه‌های بیشتری را ویرایش کنید."
 
+msgid "Notification issues"
+msgstr "مشکلات ارسال اعلان ها"
+
 msgid "Aftercare"
 msgstr "خدمات پس از فروش"
 

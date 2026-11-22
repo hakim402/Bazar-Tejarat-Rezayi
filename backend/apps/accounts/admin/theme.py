@@ -127,6 +127,15 @@ ACCOUNT_THEME = {
     "profile_value": f"break-words text-sm font-medium {TEXT}",
 }
 
+NAVIGATION_THEME = {
+    "section": f"mx-3 mt-3 mb-1 px-3 py-1.5 text-xs font-semibold {MUTED}",
+    "group": f"flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-default px-3 py-2 text-start hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",
+    "branch": f"ms-5 my-1 flex flex-col gap-0.5 border-s-2 ps-2 {DIVIDER}",
+    "child": f"flex min-h-9 items-center gap-2 rounded-default px-3 py-1.5 text-sm hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",
+    "expanded": f"font-semibold {ACTION}",
+    "active": ACCOUNT_THEME["row_primary"],
+}
+
 DIRECTORY_THEME = {
     "backdrop": "bg-base-900/20 backdrop-blur-xs dark:bg-base-900/80",
     "panel": f"border-e {DIVIDER} bg-white shadow-lg dark:bg-base-900",
@@ -138,6 +147,7 @@ DIRECTORY_THEME = {
     "button": f"rounded-md hover:bg-base-100 dark:hover:bg-base-800 {MUTED}",
     "group": f"rounded-xl border {DIVIDER}",
     "heading": f"rounded-xl px-3 py-2 font-semibold hover:bg-base-50 dark:hover:bg-base-800 {TEXT}",
+    "current_heading": ACTION,
     "subheading": f"rounded-md px-3 py-2 font-medium hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",
     "count": f"rounded-md bg-base-100 px-1.5 py-0.5 text-xs dark:bg-base-800 {MUTED}",
     "link": f"rounded-md hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",

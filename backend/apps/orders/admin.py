@@ -53,7 +53,7 @@ from .models import (
     ReviewDecision,
 )
 from . import access, queries, services
-from .admin_presentation import OwnerOrderPresentation, RelatedOrderMixin, decimal_value, line_identity
+from .admin_presentation import OwnerOrderPresentation, RelatedOrderMixin, account_cell, decimal_value, line_identity
 from .admin_records import (
     CheckoutOutcomeAdmin,
     CheckoutSubmissionAdmin,

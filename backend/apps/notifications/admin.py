@@ -194,7 +194,8 @@ class DeliveryIssueFilter(SimpleListFilter):
     def lookups(self, request, model_admin):
         from apps.accounts.admin.review_queues import review_labels
 
-        return (("issues", review_labels()["aftercare_email_issues"]),)
+        label = review_labels()["aftercare_email_issues"] if model_admin.model is AftercareEmail else _("Notification issues")
+        return (("issues", label),)
 
     def queryset(self, request, queryset):
         return queryset.filter(status__in=DELIVERY_FAILURE_STATUSES) if self.value() == "issues" else queryset

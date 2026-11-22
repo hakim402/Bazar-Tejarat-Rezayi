@@ -21,14 +21,19 @@ OWNER_NAVIGATION_DARI = {
     "Cancellation hold": "توقف به دلیل درخواست لغو",
     "Last attempt: %(reason)s": "آخرین تلاش: %(reason)s",
     "Check delivery workflow": "بررسی روند تحویل",
-    "Website & content": "وب‌سایت و محتوا",
-    "General settings": "تنظیمات عمومی",
+    "Website & content": "وب سایت و محتوا",
+    "Site settings": "تنظیمات وب سایت",
+    "Content pages": "صفحات وب سایت",
     "Payments & refunds": "پرداخت‌ها و بازپرداخت‌ها",
     "Open payment reviews": "بررسی‌های پرداخت باز",
     "Refunds needing attention": "بازپرداخت‌های نیازمند رسیدگی",
     "Confirmed receipts": "رسیدهای تأییدشده",
-    "Open reports": "گزارش‌های باز",
-    "Notification delivery": "تحویل اعلان‌ها",
+    "Messages & reports": "پیام ها و گزارش ها",
+    "Open reports": "گزارش های باز",
+    "Pending cancellations": "لغوهای در انتظار بررسی",
+    "Open disputes": "اختلاف های باز",
+    "Pending amendments": "تغییرات در انتظار بررسی",
+    "Unresolved shortages": "کمبودهای حل نشده",
 }
 
 
@@ -36,6 +41,34 @@ def navigation_title(title):
     if get_language() == "fa-af" and title in OWNER_NAVIGATION_DARI:
         return OWNER_NAVIGATION_DARI[title]
     return _(title)
+
+
+def destination_key(url):
+    target = urlsplit(str(url))
+    return target.path, tuple(sorted((name, tuple(values)) for name, values in parse_qs(target.query).items()))
+
+
+def active_destination(request, urls, index_path):
+    """Prefer the most specific matching shortcut, including filters from change forms."""
+    params = parse_qs(request.GET.get("_changelist_filters", ""))
+    params.update(request.GET.lists())
+
+    def current_values(name):
+        alias = name.removesuffix("__exact") if name.endswith("__exact") else f"{name}__exact"
+        return tuple(params.get(name, params.get(alias, ())))
+
+    best = None
+    best_score = (-1, -1)
+    for url in urls:
+        path, filters = destination_key(url)
+        if not (request.path == path or path != index_path and request.path.startswith(path.rstrip("/") + "/")):
+            continue
+        if any(current_values(name) != values for name, values in filters):
+            continue
+        score = (len(path), len(filters))
+        if score > best_score:
+            best, best_score = destination_key(url), score
+    return best
 
 
 def navigation(request):
@@ -72,41 +105,31 @@ def navigation(request):
     if root:
         section_of = {
             "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work",
-            "payments": "Daily work", "delivery": "Daily work", "moderation": "Daily work",
+            "payments": "Daily work", "delivery": "Daily work", "aftercare": "Daily work", "moderation": "Daily work",
             "catalogue": "Manage", "people": "Manage", "website": "Manage", "reports": "Manage",
         }
     index_url = overview["link"]
-    preserved_filters = parse_qs(request.GET.get("_changelist_filters", ""))
+    visible_active = active_destination(
+        request, (item["link"] for key, _, items in groups if key != "settings" for item in items if item), index_url,
+    )
+    settings_active = active_destination(
+        request, (item["link"] for key, _, items in groups if key == "settings" for item in items if item), index_url,
+    )
     icons = {
         "orders": "receipt_long", "people": "groups", "delivery": "local_shipping", "website": "language",
         "commerce": "receipt_long", "payments": "payments", "fulfilment": "local_shipping",
         "aftercare": "assignment_return", "catalogue": "inventory_2", "stores": "storefront",
         "inventory": "inventory", "business": "business", "access": "manage_accounts",
-        "communication": "forum", "system": "settings_suggest", "settings": "settings",
+        "communication": "forum", "moderation": "forum", "system": "settings_suggest", "settings": "settings",
     }
     result = []
     for key, title, items in groups:
-        children = [item for item in items if item]
+        children = [item.copy() for item in items if item]
         if not children:
             continue
+        active = settings_active if key == "settings" else visible_active
         for item in children:
-            target = urlsplit(item["link"])
-            expected = parse_qs(target.query)
-            path_matches = request.path == target.path or (
-                target.path != index_url and request.path.startswith(target.path.rstrip("/") + "/")
-            )
-            item["active"] = bool(path_matches and all(
-                (request.GET.getlist(param) if param in request.GET else preserved_filters.get(param, [])) == value
-                for param, value in expected.items()
-            ))
-        # The General link shares its path with the individual settings editors.
-        if key in {"settings", "website"} and request.GET.get("section"):
-            for item in children:
-                if item.get("section") == "general":
-                    item["active"] = False
-        dispatch_filter = request.GET.getlist("dispatch") or preserved_filters.get("dispatch", [])
-        if root and key == "orders" and dispatch_filter == ["not_dispatched"]:
-            children[0]["active"] = False
+            item["active"] = destination_key(item["link"]) == active
         if key in icons:
             children = [{
                 "title": navigation_title(title), "icon": icons[key], "link": children[0]["link"],
@@ -129,14 +152,15 @@ def owner_groups(entry, overview):
     from apps.site.sections import ROUTE_SECTIONS, SECTIONS
     from .review_queues import review_labels
 
+    settings = entry("Site settings", "settings", "site.sitesettings")
     settings_url = reverse("admin:site_sitesettings_change", args=(1,))
     settings_titles = {section.key: section.title for section in SECTIONS}
+    main_settings_tabs = " ".join(str(section.title) for section in SECTIONS if section.key not in ROUTE_SECTIONS)
     sections = {
         key: {"title": settings_titles[key], "link": f"{settings_url}?section={key}"}
         for key in ROUTE_SECTIONS
-    }
-    general = {"title": settings_titles["general"], "icon": "tune", "link": settings_url, "section": "general"}
-    pages = entry("Pages", "description", "site.contentpage")
+    } if settings else {}
+    pages = entry("Content pages", "description", "site.contentpage")
     return [
         ("overview", "Overview", [overview]),
         ("reviews", "Review queues", [
@@ -157,19 +181,22 @@ def owner_groups(entry, overview):
             entry("Not dispatched", "local_shipping", "orders.sellerorder", UNDISPATCHED_FILTER),
             entry("Open holds", "pause_circle", "fulfilment.blocker", OPEN_HOLDS_FILTER),
             entry("Shipments", "inventory_2", "fulfilment.shipment"),
-            entry("All delivery records", "inventory_2", "fulfilment.state"),
         ]),
-        ("moderation", "Reports & delivery", [
+        ("aftercare", "Aftercare", [
+            entry("Open disputes", "gavel", "orders.disputerequest", {"state": "pending"}),
+            entry("Pending cancellations", "cancel", "orders.cancellationrequest", {"state": "pending"}),
+            entry("Pending amendments", "edit_note", "orders.amendment", {"state": "pending"}),
+        ]),
+        ("moderation", "Messages & reports", [
             entry("Open reports", "flag", "messaging.report", {"status__exact": "open"}),
-            entry("Notification delivery", "outgoing_mail", "notifications.outbox"),
+            entry("Notification issues", "mail", "notifications.outbox", {"delivery": "issues"}),
         ]),
         ("catalogue", "Catalogue & stock", [
             entry("Products", "inventory_2", "catalogue.product"),
             entry("Product source review", "fact_check", "catalogue.sourcerevision", {"state__exact": "submitted"}),
             entry("Variants", "sell", "catalogue.variant"),
             entry("Stock positions", "inventory", "inventory.position"),
-            entry("Categories", "category", "catalogue.category"),
-            entry("Sale units", "straighten", "catalogue.saleunit"),
+            entry("Unresolved shortages", "warning", "inventory.shortage", {"shortage_state": "unresolved_roots"}),
         ]),
         ("people", "People & stores", [
             entry("Users", "group", "accounts.user"),
@@ -182,14 +209,15 @@ def owner_groups(entry, overview):
         ]),
         ("website", "Website & content", [
             pages,
-            {**sections["hero"], "icon": "image"},
-            {**general, "title": navigation_title("General settings")},
+            {**sections["hero"], "icon": "image"} if sections else None,
+            settings,
         ]),
         ("reports", "Commerce reports", [
             {"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")},
         ]),
         ("settings", "Site Settings", [
-            general, *sections.values(), pages,
+            {**settings, "title": settings_titles["general"], "search_aliases": main_settings_tabs} if settings else None,
+            *sections.values(), pages,
         ]),
     ]
 

@@ -2,8 +2,10 @@
 
 from urllib.parse import urlsplit
 
+from django.urls import reverse
 from django.utils.translation import get_language
 
+from .navigation import active_destination, destination_key
 
 WORKFLOWS = (
     ("Orders & aftercare", "سفارش‌ها و پیگیری", "receipt_long", (
@@ -15,11 +17,7 @@ WORKFLOWS = (
         "payments.reviewcase", "payments.claim", "payments.receipt",
         "payments.refunddue", "payments.refundreport", "payments.correction", "payments.finance",
     )),
-    ("Delivery & fulfilment", "ارسال و تحویل", "local_shipping", (
-        "fulfilment.state", "fulfilment.reviewcase", "fulfilment.shipment", "fulfilment.preparation",
-        "fulfilment.provider", "fulfilment.chargeproposal", "fulfilment.receipt",
-        "fulfilment.deliveryrefund", "fulfilment.blocker", "fulfilment.completion",
-    )),
+    ("Delivery & fulfilment", "ارسال و تحویل", "local_shipping", ()),
     ("Catalogue & stock", "کاتالوگ و موجودی", "inventory_2", (
         "catalogue.product", "catalogue.sourcerevision", "inventory.position",
         "inventory.shortage", "catalogue.category", "catalogue.saleunit",
@@ -38,7 +36,7 @@ WORKFLOWS = (
 REPORTS = ("Reports and moderation", "گزارش‌ها و نظارت", "flag", (
     "messaging.report",
 ))
-DELIVERY = ("Notification delivery", "تحویل اعلان‌ها", "outgoing_mail", (
+DELIVERY = ("Notifications", "اعلان ها", "mail", (
     "notifications.outbox", "notifications.attempt",
     "notifications.aftercareemail", "notifications.aftercareemailattempt",
 ))
@@ -51,6 +49,32 @@ SYSTEM = ("System, audit & access", "سیستم، حسابرسی و دسترسی
     "accounts.auditevent", "admin.logentry", "accounts.accountmail", "accounts.mailattempt",
     "auth.group", "auth.permission",
 ))
+RUNTIME = ("System health", "وضعیت سیستم", "monitoring", (
+    "runtime.job", "runtime.scheduler", "runtime.schema", "runtime.transfer",
+))
+
+# Keep supporting records with their workflow, so they remain findable when the
+# operator browses instead of being mixed into the global technical section.
+SUPPORTING_SECTIONS = {
+    "Orders & aftercare": (
+        ("Order and request history", "تاریخچه سفارش ها و درخواست ها", ("orders", "cart")),
+    ),
+    "Payments & refunds": (
+        ("Stock reservations", "ذخیره موجودی", ("payments.stockplan", "payments.stockplanline", "payments.stockplanseal",
+            "payments.allocationintent", "payments.allocationattempt")),
+        ("Decisions, evidence and history", "تصمیم ها، مدارک و تاریخچه", ("payments.claimdecision", "payments.refunddecision",
+            "payments.receiptseal", "payments.refundseal", "payments.extension", "payments.caseevent", "payments.evidence",
+            "payments.evidencebinding", "payments.event")),
+        ("Payment email delivery", "ارسال ایمیل پرداخت", ("payments.email", "payments.emailattempt")),
+    ),
+    "Catalogue & stock": (
+        ("Catalogue history and media", "تاریخچه و رسانه های کاتالوگ", ("catalogue",)),
+        ("Stock operations and history", "عملیات و تاریخچه موجودی", ("inventory",)),
+    ),
+    "People & stores": (
+        ("Account details", "جزئیات حساب", ("accounts.address",)),
+    ),
+}
 
 DIRECTORY_COPY = {
     "search": ("Find a page", "جستجوی صفحه"),
@@ -79,8 +103,7 @@ def application_directory(request, available_apps, sidebar_navigation):
                 page = {
                     "title": model["name"],
                     "url": url,
-                    "active": request.path.startswith(url),
-                    "search": f'{model["name"]} {app["name"]} {app["app_label"]}',
+                    "search": f'{model["name"]} {model["object_name"]} {app["name"]} {app["app_label"]}',
                     "application": app["name"],
                     "app_label": app["app_label"],
                 }
@@ -89,6 +112,8 @@ def application_directory(request, available_apps, sidebar_navigation):
     # Reuse unfiltered sidebar labels where available, such as “Accepted orders”.
     # Filtered shortcuts still lead to the full changelist from this directory.
     sidebar_links = {}
+    shortcuts = {}
+    tools = []
     settings_links = []
     for group in sidebar_navigation:
         for item in group["items"]:
@@ -101,25 +126,53 @@ def application_directory(request, available_apps, sidebar_navigation):
                     settings_links.append(link)
                 else:
                     target = urlsplit(str(link["link"]))
+                    shortcuts.setdefault(target.path, []).append(str(link["title"]))
                     if not target.query:
                         sidebar_links[target.path] = link["title"]
+                    if group.get("key") in {"reviews", "reports"}:
+                        tools.append({"title": link["title"], "url": link["link"], "search": str(link["title"])})
+
+    seen = set()
+
+    def unique(rows, search_title):
+        result = []
+        for row in rows:
+            key = destination_key(row["url"])
+            if key not in seen:
+                seen.add(key)
+                result.append({**row, "search": f'{row["search"]} {search_title}'})
+        return result
 
     def add_group(titles, icon, rows=(), sections=()):
-        if not rows and not sections:
+        search_title = " ".join(titles)
+        rows = unique(rows, search_title)
+        visible_sections = []
+        for section in sections:
+            entries = unique(section["rows"], f'{search_title} {section["title"]}')
+            if entries:
+                visible_sections.append({**section, "rows": entries})
+        if not rows and not visible_sections:
             return
         groups.append({
-            "title": titles[language], "icon": icon, "rows": rows, "sections": sections,
-            "count": len(rows) + sum(len(section["rows"]) for section in sections),
+            "title": titles[language], "icon": icon, "rows": rows, "sections": visible_sections,
+            "count": len(rows) + sum(len(section["rows"]) for section in visible_sections),
         })
 
     def add_workflow(en, fa, icon, labels):
-        add_group((en, fa), icon, [pages.pop(label) for label in labels if label in pages])
+        rows = [pages.pop(label) for label in labels if label in pages]
+        sections = []
+        for title_en, title_fa, matches in SUPPORTING_SECTIONS.get(en, ()):
+            related = [pages.pop(label) for label in tuple(pages) if label in matches or label.split(".")[0] in matches]
+            sections.append({"title": (title_en, title_fa)[language], "rows": related})
+        add_group((en, fa), icon, rows, sections)
 
     for page in pages.values():
         if title := sidebar_links.get(page["url"]):
             page["title"] = title
-            page["search"] = f'{title} {page["search"]}'
+        if aliases := shortcuts.get(page["url"]):
+            page["search"] = f'{page["search"]} {" ".join(aliases)}'
 
+    add_group(("Review queues and reports", "صف های بررسی و گزارش ها"), "monitoring", tools)
     for workflow in (*WORKFLOWS, REPORTS, DELIVERY, MESSAGING_AUDIT):
         if workflow[0] == "Delivery & fulfilment":
             sections = []
@@ -142,13 +195,14 @@ def application_directory(request, available_apps, sidebar_navigation):
         elif settings_model and target.path.startswith(settings_model["url"]):
             native_page = settings_model
             if not target.query:
-                # The native General entry handles an uninitialized singleton.
-                url = pages.pop("site.sitesettings")["url"]
+                # Use the native entry, which handles an uninitialized singleton.
+                url = settings_model["url"]
+                pages.pop("site.sitesettings", None)
         else:
             continue
         settings_pages.append({
             "title": link["title"], "url": url,
-            "search": f'{link["title"]} {native_page["search"]}', "active": link["active"],
+            "search": f'{link["title"]} {native_page["search"]} {link.get("search_aliases", "")}',
         })
     for model_label in ("site.sitesettings", "site.contentpage", "site.heroslide"):
         if model_label in pages:
@@ -156,11 +210,21 @@ def application_directory(request, available_apps, sidebar_navigation):
     add_group(("Site Settings", "تنظیمات وب‌سایت"), "settings", settings_pages)
 
     add_workflow(*SYSTEM)
+    add_workflow(*RUNTIME)
 
     technical_apps = {}
     for page in pages.values():
         section = technical_apps.setdefault(page["app_label"], {"title": page["application"], "rows": []})
         section["rows"].append(page)
     add_group(("Technical records", "سوابق فنی"), "storage", sections=list(technical_apps.values()))
+
+    rows = [row for group in groups for section in (group, *group["sections"]) for row in section["rows"]]
+    active = active_destination(request, (row["url"] for row in rows), reverse("admin:index"))
+    for group in groups:
+        for section in (group, *group["sections"]):
+            for row in section["rows"]:
+                row["active"] = destination_key(row["url"]) == active
+            section["active"] = any(row["active"] for row in section["rows"])
+        group["active"] |= any(section["active"] for section in group["sections"])
 
     return {"groups": groups, "copy": {key: value[language] for key, value in DIRECTORY_COPY.items()}}
