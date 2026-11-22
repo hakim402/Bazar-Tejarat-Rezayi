@@ -147,7 +147,7 @@ class StoreSave(StrictSerializer):
 class StoreAction(StrictSerializer):
     version = s.IntegerField(min_value=0)
     revision = s.UUIDField()
-    action = s.ChoiceField(choices=["submit", "withdraw"])
+    action = s.ChoiceField(choices=["submit", "publish", "withdraw"])
 
 
 class StoreUpload(StrictSerializer):
@@ -161,6 +161,7 @@ class StorePrivateRevision(s.Serializer):
     body = s.JSONField()
     state = s.CharField()
     reason = s.CharField()
+    current_business = s.BooleanField()
 
 
 class StorePrivateMedia(s.Serializer):
@@ -175,6 +176,7 @@ class StorePrivate(s.Serializer):
     name = s.CharField()
     version = s.IntegerField()
     can_edit = s.BooleanField()
+    can_publish = s.BooleanField()
     published = s.UUIDField(allow_null=True)
     revisions = StorePrivateRevision(many=True)
     media = StorePrivateMedia(many=True)

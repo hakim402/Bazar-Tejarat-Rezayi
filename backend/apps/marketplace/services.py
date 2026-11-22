@@ -78,19 +78,26 @@ def seller_action(actor, profile_id, data):
     store = locked_store(profile)
     assert_version(store, v.version(data.get("version")))
     revision = get_object_or_404(store.revisions.select_for_update(), pk=v.identifier(data.get("revision"), "revision"))
-    if data.get("action") == "submit":
+    action = data.get("action")
+    if action in {"submit", "publish"}:
         if revision.state != "draft" or store.revisions.order_by("-number").first().pk != revision.pk or store.revisions.filter(state="submitted").exists():
             raise Conflict()
         if revision.business_case_id != business_case(profile).pk:
             raise Conflict()
         media_references(store, revision.body)
-        revision.state = "submitted"
-    elif data.get("action") == "withdraw" and revision.state == "submitted":
+        if action == "publish":
+            if not store.published_id or not access.eligible_profiles([profile.pk]).exists():
+                raise Conflict()
+            revision.state = "published"
+            store.published = revision
+        else:
+            revision.state = "submitted"
+    elif action == "withdraw" and revision.state == "submitted":
         revision.state = "withdrawn"
     else:
         fail("action", "transition")
     persist(revision)
-    bump(actor, store, "seller_" + data["action"], revision)
+    bump(actor, store, "seller_" + action, revision)
     return store
 
 

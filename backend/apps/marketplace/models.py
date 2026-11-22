@@ -7,7 +7,8 @@ from django.db import models
 from django.db.models import Q
 
 PERMISSIONS = ("view_store_queue", "read_store_submission", "assign_store_review", "review_store", "moderate_store")
-STATES = ("draft", "submitted", "approved", "rejected", "withdrawn")
+PUBLIC_REVISION_STATES = ("approved", "published")
+STATES = ("draft", "submitted", *PUBLIC_REVISION_STATES, "rejected", "withdrawn")
 
 
 class ProtectedQuerySet(models.QuerySet):
@@ -46,8 +47,8 @@ class Store(GuardedRecord):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        if self.published_id and not StoreRevision.objects.filter(pk=self.published_id, store_id=self.pk, state="approved").exists():
-            raise ValidationError("Publication requires this store's approved revision.")
+        if self.published_id and not StoreRevision.objects.filter(pk=self.published_id, store_id=self.pk, state__in=PUBLIC_REVISION_STATES).exists():
+            raise ValidationError("Publication requires this store's publishable revision.")
         return super().save(*args, **kwargs)
 
     class Meta:
