@@ -100,7 +100,7 @@ def navigation(request):
         "commerce": "Operations", "payments": "Operations", "fulfilment": "Operations", "aftercare": "Operations",
         "catalogue": "Catalogue & Inventory", "stores": "Catalogue & Inventory", "inventory": "Catalogue & Inventory",
         "business": "Marketplace & People", "access": "Marketplace & People",
-        "communication": "System & Settings", "system": "System & Settings",
+        "communication": "System & Settings", "website": "System & Settings", "system": "System & Settings",
     }
     if root:
         section_of = {
@@ -145,6 +145,13 @@ def navigation(request):
             "directory_only": key == "settings",
         })
     return result
+
+
+def website_taxonomy_links(entry):
+    return [
+        entry("Categories", "category", "catalogue.category"),
+        entry("Sale units", "straighten", "catalogue.saleunit"),
+    ]
 
 
 def owner_groups(entry, overview):
@@ -209,7 +216,13 @@ def owner_groups(entry, overview):
         ]),
         ("website", "Website & content", [
             pages,
-            {**sections["hero"], "icon": "image"} if sections else None,
+            sections.get("hero"),
+            sections.get("promotions"),
+            entry("Featured store", "star", "marketplace.featuredstore"),
+            *website_taxonomy_links(entry),
+            sections.get("announcement"),
+            sections.get("contacts"),
+            sections.get("seo"),
             settings,
         ]),
         ("reports", "Commerce reports", [
@@ -280,8 +293,6 @@ def staff_groups(entry, overview):
                 entry("Products", "inventory_2", "catalogue.product"),
                 entry("Product source review", "fact_check", "catalogue.sourcerevision", {"state__exact": "submitted"}),
                 entry("Translation review", "translate", "catalogue.translation"),
-                entry("Categories", "category", "catalogue.category"),
-                entry("Sale units", "straighten", "catalogue.saleunit"),
                 entry("Product media", "image", "catalogue.productimage"),
             ],
         ),
@@ -291,7 +302,6 @@ def staff_groups(entry, overview):
             [
                 entry("Public stores", "store", "marketplace.store"),
                 entry("Store reviews", "fact_check", "marketplace.storerevision"),
-                entry("Featured Rezayi store", "star", "marketplace.featuredstore"),
                 entry("Store media", "image", "marketplace.storemedia"),
             ],
         ),
@@ -336,6 +346,7 @@ def staff_groups(entry, overview):
                 entry("Communication delivery", "mail", "notifications.outbox"),
             ],
         ),
+        ("website", "Website & content", website_taxonomy_links(entry)),
         (
             "system",
             "System Records",

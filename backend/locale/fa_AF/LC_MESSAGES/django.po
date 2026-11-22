@@ -953,6 +953,9 @@ msgstr "تصویر آیکون سایت (PNG، JPEG یا WebP)"
 msgid "Featured Rezayi store"
 msgstr "فروشگاه ویژهٔ رضایی"
 
+msgid "Featured store"
+msgstr "فروشگاه ویژه"
+
 msgid "Fields apply to the selected action. An expired reservation is preserved and referred; it is never replaced at dispatch. Completion is automatic when every prerequisite is satisfied."
 msgstr "فیلدها به اقدام انتخاب شده مربوط اند. رزرو منقضی شده حفظ و ارجاع می شود؛ هرگز هنگام ارسال جایگزین نمی شود. تکمیل وقتی همهٔ پیش نیازها برآورده شود خودکار است."
 

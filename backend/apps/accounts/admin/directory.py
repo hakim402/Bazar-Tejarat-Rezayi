@@ -20,14 +20,14 @@ WORKFLOWS = (
     ("Delivery & fulfilment", "ارسال و تحویل", "local_shipping", ()),
     ("Catalogue & stock", "کاتالوگ و موجودی", "inventory_2", (
         "catalogue.product", "catalogue.sourcerevision", "inventory.position",
-        "inventory.shortage", "catalogue.category", "catalogue.saleunit",
+        "inventory.shortage",
         "catalogue.variant", "catalogue.translation", "inventory.batch", "inventory.movement",
     )),
     ("People & stores", "کاربران و فروشگاه‌ها", "storefront", (
         "accounts.user", "accounts.account", "organizations.businessprofile",
         "verification.reviewcase", "verification.evidence",
         "marketplace.store", "marketplace.storerevision", "marketplace.storemedia",
-        "marketplace.storeevent", "marketplace.featuredstore",
+        "marketplace.storeevent",
         "organizations.membership", "organizations.ownershiptransfer",
         "organizations.invitation", "organizations.invitationmail",
     )),
@@ -172,18 +172,6 @@ def application_directory(request, available_apps, sidebar_navigation):
         if aliases := shortcuts.get(page["url"]):
             page["search"] = f'{page["search"]} {" ".join(aliases)}'
 
-    add_group(("Review queues and reports", "صف های بررسی و گزارش ها"), "monitoring", tools)
-    for workflow in (*WORKFLOWS, REPORTS, DELIVERY, MESSAGING_AUDIT):
-        if workflow[0] == "Delivery & fulfilment":
-            sections = []
-            for en, fa, models in DELIVERY_SECTIONS:
-                rows = [pages.pop("fulfilment." + name) for name in models if "fulfilment." + name in pages]
-                if rows:
-                    sections.append({"title": (en, fa)[language], "rows": rows})
-            add_group((workflow[0], workflow[1]), workflow[2], sections=sections)
-        else:
-            add_workflow(*workflow)
-
     settings_pages = []
     content_page = pages.get("site.contentpage")
     settings_model = pages.get("site.sitesettings")
@@ -204,10 +192,25 @@ def application_directory(request, available_apps, sidebar_navigation):
             "title": link["title"], "url": url,
             "search": f'{link["title"]} {native_page["search"]} {link.get("search_aliases", "")}',
         })
-    for model_label in ("site.sitesettings", "site.contentpage", "site.heroslide"):
+    for model_label in (
+        "site.sitesettings", "site.contentpage", "site.heroslide", "marketplace.featuredstore",
+        "catalogue.category", "catalogue.saleunit",
+    ):
         if model_label in pages:
             settings_pages.append(pages.pop(model_label))
-    add_group(("Site Settings", "تنظیمات وب‌سایت"), "settings", settings_pages)
+
+    add_group(("Review queues and reports", "صف های بررسی و گزارش ها"), "monitoring", tools)
+    for workflow in (*WORKFLOWS, REPORTS, DELIVERY, MESSAGING_AUDIT):
+        if workflow[0] == "Delivery & fulfilment":
+            sections = []
+            for en, fa, models in DELIVERY_SECTIONS:
+                rows = [pages.pop("fulfilment." + name) for name in models if "fulfilment." + name in pages]
+                if rows:
+                    sections.append({"title": (en, fa)[language], "rows": rows})
+            add_group((workflow[0], workflow[1]), workflow[2], sections=sections)
+        else:
+            add_workflow(*workflow)
+    add_group(("Website & content", "وب سایت و محتوا"), "language", settings_pages)
 
     add_workflow(*SYSTEM)
     add_workflow(*RUNTIME)
