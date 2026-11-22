@@ -6,7 +6,7 @@ from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseRedirect
 from django.utils import formats, timezone
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
 from unfold.widgets import UnfoldAdminTextareaWidget
@@ -91,15 +91,18 @@ def attempt_history(attempts):
     if not total:
         return _("No delivery attempt recorded yet.")
     rows = list(attempts.order_by("-created_at")[:ATTEMPT_HISTORY_LIMIT])
-    body = "".join(
-        format_html(
-            '<p class="{}">{} · <bdi>{}</bdi> · <bdi>{}</bdi></p>',
-            T["history"],
-            delivery_badge(row.status),
-            code_label(row.code),
-            formats.localize(timezone.template_localtime(row.created_at)),
-        )
-        for row in rows
+    body = format_html_join(
+        "",
+        '<p class="{}">{} · <bdi>{}</bdi> · <bdi>{}</bdi></p>',
+        (
+            (
+                T["history"],
+                delivery_badge(row.status),
+                code_label(row.code),
+                formats.localize(timezone.template_localtime(row.created_at)),
+            )
+            for row in rows
+        ),
     )
     if total > len(rows):
         body += format_html(
