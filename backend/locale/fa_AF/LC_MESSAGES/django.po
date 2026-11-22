@@ -7023,3 +7023,7 @@ msgstr "خوانده‌شده"
 
 msgid "unread"
 msgstr "خوانده‌نشده"
+
+# Delivery attempt history in the notification delivery diagnostics.
+msgid "Showing the %(shown)s most recent of %(total)s recorded attempts."
+msgstr "تنها %(shown)s تلاش ثبت‌شدهٔ آخر از %(total)s تلاش نمایش داده می‌شود."

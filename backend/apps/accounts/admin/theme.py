@@ -192,16 +192,23 @@ MESSAGING_THEME = {
 
 # Notification delivery diagnostics: delivery state, attempts and the guarded
 # retry controls stay together so an uncertain send is never read as a receipt.
+# Delivery states keep their own tones: a cancelled delivery is a normal end
+# state ("no longer eligible"), not a failure, so it must not read as an error.
+DELIVERY_TONES = {
+    "queued": "warning",
+    "claimed": "warning",
+    "dispatching": "info",
+    "captured": "success",
+    "smtp_accepted": "success",
+    "retry_due": "warning",
+    "cancelled": "default",
+    "exhausted": "danger",
+    "delivery_unknown": "danger",
+}
 DELIVERY_THEME = {
     **WORKSPACE_THEME,
     "state": f"rounded-default border {DIVIDER} p-4 text-sm {TEXT}",
-    "state_tones": {
-        "pending": BADGE_COLORS["warning"],
-        "accepted": BADGE_COLORS["success"],
-        "failed": BADGE_COLORS["danger"],
-        "info": BADGE_COLORS["info"],
-        "default": BADGE_COLORS["default"],
-    },
+    "state_tones": DELIVERY_TONES,
 }
 
 # --- Site settings, homepage media and content pages ------------------------

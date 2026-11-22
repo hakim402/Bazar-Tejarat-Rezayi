@@ -5,6 +5,7 @@ from django.contrib import admin, messages
 from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseRedirect
+from django.utils import formats, timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import APIException
@@ -14,6 +15,7 @@ from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, permits
 from apps.accounts.admin.display import state_badge
 from apps.accounts.admin.theme import DELIVERY_THEME as T
+from apps.accounts.admin.theme import DELIVERY_TONES
 from apps.catalogue.admin.presentation import identity
 from apps.organizations.admin import ReadOnlyAdmin
 from .delivery import retry
@@ -32,6 +34,7 @@ from .models import (
 
 # Only an uncertain or exhausted delivery may be retried.
 RETRYABLE = {"delivery_unknown", "exhausted"}
+ATTEMPT_HISTORY_LIMIT = 10
 STATE_LABELS = {
     "queued": _("Queued"),
     "claimed": _("Claimed"),
@@ -77,11 +80,42 @@ def code_label(code):
     return CODE_LABELS.get(code, code)
 
 
+def delivery_badge(status):
+    """Delivery badge in the delivery tone palette, with a readable label."""
+    return state_badge(status, state_label(status), DELIVERY_TONES.get(status))
+
+
+def attempt_history(attempts):
+    """Recorded attempts of one delivery, newest first, with honest truncation."""
+    total = attempts.count()
+    if not total:
+        return _("No delivery attempt recorded yet.")
+    rows = list(attempts.order_by("-created_at")[:ATTEMPT_HISTORY_LIMIT])
+    body = "".join(
+        format_html(
+            '<p class="{}">{} · <bdi>{}</bdi> · <bdi>{}</bdi></p>',
+            T["history"],
+            delivery_badge(row.status),
+            code_label(row.code),
+            formats.localize(timezone.template_localtime(row.created_at)),
+        )
+        for row in rows
+    )
+    if total > len(rows):
+        body += format_html(
+            '<p class="{}">{}</p>',
+            T["muted"],
+            _("Showing the %(shown)s most recent of %(total)s recorded attempts.")
+            % {"shown": len(rows), "total": total},
+        )
+    return format_html('<div class="flex flex-col gap-2">{}</div>', body)
+
+
 def delivery_summary(obj):
     """Readable delivery state for one outbox or aftercare email record."""
     return {
         "status": obj.status,
-        "badge": state_badge(obj.status, state_label(obj.status)),
+        "badge": delivery_badge(obj.status),
         "label": state_label(obj.status),
         "meaning": STATE_MEANING.get(obj.status, ""),
         "retryable": obj.status in RETRYABLE,
@@ -288,26 +322,11 @@ class OutboxAdmin(ReadOnlyAdmin):
 
     @admin.display(description=_("Delivery state"))
     def delivery_state(self, obj):
-        return state_badge(obj.status, state_label(obj.status))
+        return delivery_badge(obj.status)
 
     @admin.display(description=_("Delivery attempts"))
     def delivery_attempts(self, obj):
-        rows = obj.delivery_attempts.order_by("-created_at")[:10]
-        if not rows:
-            return _("No delivery attempt recorded yet.")
-        return format_html(
-            '<div class="flex flex-col gap-2">{}</div>',
-            "".join(
-                format_html(
-                    '<p class="{}">{} · <bdi>{}</bdi> · <bdi>{}</bdi></p>',
-                    T["history"],
-                    state_badge(row.status, state_label(row.status)),
-                    code_label(row.code),
-                    row.created_at.strftime("%Y-%m-%d %H:%M"),
-                )
-                for row in rows
-            ),
-        )
+        return attempt_history(obj.delivery_attempts)
 
 
 class DiagnosticAdmin(ReadOnlyAdmin):
@@ -347,7 +366,7 @@ class AttemptAdmin(DiagnosticAdmin):
 
     @admin.display(description=_("Delivery state"))
     def delivery_state(self, obj):
-        return state_badge(obj.status, state_label(obj.status))
+        return delivery_badge(obj.status)
 
     @admin.display(description=_("Outcome"))
     def code_label(self, obj):
@@ -360,7 +379,10 @@ class PrivateMetadataAdmin(DiagnosticAdmin):
 
 
 class AftercareEmailAdmin(PrivateMetadataAdmin):
-    fields = ["email_identity", "delivery_state", "attempts", "due_at", "accepted_at", "created_at"]
+    fields = [
+        "email_identity", "delivery_state", "attempts", "due_at", "accepted_at", "created_at",
+        "delivery_attempts",
+    ]
     list_display = ["email_identity", "delivery_state", "attempts", "due_at", "accepted_at"]
     list_display_links = ["email_identity"]
     list_filter = ["status", DeliveryIssueFilter]
@@ -379,7 +401,11 @@ class AftercareEmailAdmin(PrivateMetadataAdmin):
 
     @admin.display(description=_("Delivery state"))
     def delivery_state(self, obj):
-        return state_badge(obj.status, state_label(obj.status))
+        return delivery_badge(obj.status)
+
+    @admin.display(description=_("Delivery attempts"))
+    def delivery_attempts(self, obj):
+        return attempt_history(obj.delivery_attempts)
 
 
 class AftercareEmailAttemptAdmin(PrivateMetadataAdmin):
@@ -402,7 +428,7 @@ class AftercareEmailAttemptAdmin(PrivateMetadataAdmin):
 
     @admin.display(description=_("Delivery state"))
     def delivery_state(self, obj):
-        return state_badge(obj.status, state_label(obj.status))
+        return delivery_badge(obj.status)
 
     @admin.display(description=_("Outcome"))
     def code_label(self, obj):

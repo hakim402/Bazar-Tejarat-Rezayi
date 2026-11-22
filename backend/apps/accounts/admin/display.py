@@ -26,10 +26,12 @@ def state_variant(value):
     return "default"
 
 
-def state_badge(value, label=None):
+def state_badge(value, label=None, tone=None):
+    """Badge for one state. ``tone`` overrides the shared palette for a context
+    whose own states must not read like the generic ones."""
     if value in (None, ""):
         return "—"
-    variant = state_variant(value)
+    variant = tone if tone in BADGE_COLORS else state_variant(value)
     text = label if label is not None else _(str(value)).replace("_", " ")
     return format_html('<span class="{} {}">{}</span>', BADGE_BASE, BADGE_COLORS[variant], text)
 

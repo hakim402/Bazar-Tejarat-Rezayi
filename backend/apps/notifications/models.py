@@ -237,6 +237,14 @@ class Outbox(models.Model):
             models.Index(fields=["status", "lease_until"], name="notifications_leases"),
         ]
 
+    def __str__(self):
+        """Readable record identity for the owner admin, not a UUID heading."""
+        user = self.account.user
+        label = user.display_name or user.email
+        if not self.created_at:
+            return label
+        return f"{label} · {timezone.localtime(self.created_at):%Y-%m-%d}"
+
 
 class Attempt(models.Model):
     outbox = models.ForeignKey(Outbox, on_delete=models.PROTECT, related_name="delivery_attempts")
@@ -296,6 +304,14 @@ class AftercareEmail(models.Model):
             ),
         ]
         indexes = [models.Index(fields=["status", "due_at"], name="notifications_aftercare_due")]
+
+    def __str__(self):
+        """Readable record identity for the owner admin, not a UUID heading."""
+        user = self.account.user
+        label = user.display_name or user.email
+        if not self.created_at:
+            return label
+        return f"{label} · {timezone.localtime(self.created_at):%Y-%m-%d}"
 
 
 class AftercareEmailAttempt(models.Model):
