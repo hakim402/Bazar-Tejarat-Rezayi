@@ -9,6 +9,7 @@
             <button type="button" x-bind:aria-expanded="navigationOpen" aria-controls="nav-group-{{ group.key }}" x-on:click="navigationOpen = !navigationOpen" class="{{ rz_navigation.group }} {% if item.active %}{{ rz_navigation.expanded }}{% endif %}">
               <span data-admin-icon aria-hidden="true" class="material-symbols-outlined md-18">{{ item.icon }}</span>
               <span class="min-w-0 truncate" title="{{ item.title }}">{{ item.title }}</span>
+              {% include 'unfold/helpers/app_list_badge.html' with item=item %}
               <span data-admin-icon aria-hidden="true" class="material-symbols-outlined ms-auto select-none transition-all rtl:-scale-x-100" x-bind:class="{'rotate-90 rtl:-rotate-90': navigationOpen}">chevron_right</span>
             </button>
             <ul id="nav-group-{{ group.key }}" x-cloak x-show="navigationOpen" class="{{ rz_navigation.branch }}">

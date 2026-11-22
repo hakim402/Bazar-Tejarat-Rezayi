@@ -1,7 +1,10 @@
 """Curated destinations derived from the freshly authorized native model directory."""
 
+from functools import cache
 from urllib.parse import parse_qs, urlencode, urlsplit
+
 from django.urls import reverse
+from django.utils.functional import lazy
 from django.utils.translation import get_language, gettext_lazy as _
 
 
@@ -71,6 +74,14 @@ def active_destination(request, urls, index_path):
     return best
 
 
+def review_badge(counter):
+    def label():
+        total = counter()
+        return str(total) if total else ""
+
+    return {"badge": lazy(label, str)(), "badge_variant": "warning", "badge_class": "shrink-0"}
+
+
 def navigation(request):
     from .site import owner_site
     from .access import is_owner
@@ -80,15 +91,27 @@ def navigation(request):
         model["model"]._meta.label_lower: model for app in owner_site.get_app_list(request) for model in app["models"]
     }
 
-    def entry(title, icon, model, filters=None):
+    people_review_counts = []
+
+    def entry(title, icon, model, filters=None, *, queue=None):
         record = available.get(model)
         if not record or not record.get("admin_url"):
             return None
-        return {
+        item = {
             "title": navigation_title(title),
             "icon": icon,
             "link": record["admin_url"] + ("?" + urlencode(filters) if filters else ""),
         }
+        if queue is not None and root:
+            # Reuse each count in the parent badge and its child. Evaluate it only when rendered.
+            @cache
+            def pending_count():
+                return queue.open_items(record["model"]._default_manager.all(), request.user).count()
+
+            people_review_counts.append(pending_count)
+            item["link"] = queue.url(record["admin_url"])
+            item.update(review_badge(pending_count))
+        return item
 
     overview = {"title": _("Overview"), "icon": "space_dashboard", "link": reverse("admin:index")}
     if root:
@@ -133,10 +156,13 @@ def navigation(request):
         for item in children:
             item["active"] = destination_key(item["link"]) == active
         if key in icons:
-            children = [{
+            parent = {
                 "title": navigation_title(title), "icon": icons[key], "link": children[0]["link"],
                 "active": any(item["active"] for item in children), "items": children,
-            }]
+            }
+            if key == "people" and people_review_counts:
+                parent.update(review_badge(lambda: sum(count() for count in people_review_counts)))
+            children = [parent]
         section = section_of.get(key)
         result.append({
             "key": key,
@@ -159,7 +185,7 @@ def website_taxonomy_links(entry):
 def owner_groups(entry, overview):
     from apps.fulfilment.queries import OPEN_HOLDS_FILTER, UNDISPATCHED_FILTER
     from apps.site.sections import ROUTE_SECTIONS, SECTIONS
-    from .review_queues import review_labels
+    from .review_queues import STORE_REVIEW_QUEUE, VERIFICATION_QUEUE, review_labels
 
     settings = entry("Site settings", "settings", "site.sitesettings")
     settings_url = reverse("admin:site_sitesettings_change", args=(1,))
@@ -213,6 +239,10 @@ def owner_groups(entry, overview):
         ("people", "People & stores", [
             entry("Buyer accounts", "person", "accounts.account", {"context__exact": "buyer"}),
             entry("Seller accounts", "storefront", "accounts.account", {"context__exact": "seller"}),
+            entry("Business profiles", "business", "organizations.businessprofile"),
+            entry("Verification cases", "verified_user", "verification.reviewcase", queue=VERIFICATION_QUEUE),
+            entry("Public stores", "store", "marketplace.store"),
+            entry("Store reviews", "fact_check", "marketplace.storerevision", queue=STORE_REVIEW_QUEUE),
         ]),
         ("access", "Access Control", [
             entry("Users", "group", "accounts.user"),

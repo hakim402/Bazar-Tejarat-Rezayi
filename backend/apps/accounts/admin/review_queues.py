@@ -127,6 +127,13 @@ class Queue:
         return f"{native}?{urlencode({self.field: value})}"
 
 
+# The owner sidebar uses these same review subsets for its badges and links.
+VERIFICATION_QUEUE = Queue(_("Business verification"), "verified_user", "verification.ReviewCase", "marketplace", "today",
+                           "status__in", ("submitted", "under_review"))
+STORE_REVIEW_QUEUE = Queue(_("Store reviews"), "storefront", "marketplace.StoreRevision", "marketplace", "routine",
+                          "state__exact", "submitted")
+
+
 # Use the same lookup for the count and destination. Payment, delivery and
 # aftercare ModelAdmins allow raw state, while ordinary list filters use __exact.
 QUEUES = (
@@ -148,15 +155,13 @@ QUEUES = (
           "refund_review", "awaiting_report", refund_report_scope),
     Queue("unresolved_shortages", "warning", "inventory.Shortage", "trading", "today",
           "shortage_state", "unresolved_roots", unresolved_shortage_roots),
-    Queue(_("Business verification"), "verified_user", "verification.ReviewCase", "marketplace", "today",
-          "status__in", ("submitted", "under_review")),
+    VERIFICATION_QUEUE,
     Queue("verification_needs_reviewer", "group", "verification.ReviewCase", "marketplace", "today",
           "reviewer", "independent", user_scope=cases_requiring_another_reviewer),
     Queue(_("Content & order reports"), "flag", "messaging.Report", "marketplace", "today", "status__exact", "open"),
     Queue(_("Product source review"), "inventory_2", "catalogue.SourceRevision", "marketplace", "routine",
           "state__exact", "submitted"),
-    Queue(_("Store reviews"), "storefront", "marketplace.StoreRevision", "marketplace", "routine",
-          "state__exact", "submitted"),
+    STORE_REVIEW_QUEUE,
     Queue(_("Buyer reviews"), "rate_review", "orders.Review", "marketplace", "routine", "state", "pending"),
     Queue("scheduler_attention", "schedule", "runtime.Scheduler", "platform", "routine", counter=scheduler_issue_count),
     Queue("overdue_jobs", "hourglass_empty", "runtime.Job", "platform", "routine",
