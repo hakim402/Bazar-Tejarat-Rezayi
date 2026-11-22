@@ -128,6 +128,14 @@ class Queue:
 
 
 # The owner sidebar uses these same review subsets for its badges and links.
+PAYMENT_REVIEW_QUEUE = Queue(_("Goods payment review"), "payments", "payments.ReviewCase", "trading", "urgent",
+                             "state", "open", assignments=True)
+REFUND_REVIEW_QUEUE = Queue(_("Goods refund review"), "currency_exchange", "payments.RefundDue", "trading", "urgent",
+                            "refund_review", "pending", refund_review_scope, assignments=True)
+DISPUTE_QUEUE = Queue(_("Order disputes"), "gavel", "orders.DisputeRequest", "trading", "urgent",
+                      "state", "pending", assignments=True)
+CANCELLATION_QUEUE = Queue(_("Cancellation requests"), "cancel", "orders.CancellationRequest", "trading", "today",
+                           "state", "pending", assignments=True)
 VERIFICATION_QUEUE = Queue(_("Business verification"), "verified_user", "verification.ReviewCase", "marketplace", "today",
                            "status__in", ("submitted", "under_review"))
 STORE_REVIEW_QUEUE = Queue(_("Store reviews"), "storefront", "marketplace.StoreRevision", "marketplace", "routine",
@@ -137,18 +145,14 @@ STORE_REVIEW_QUEUE = Queue(_("Store reviews"), "storefront", "marketplace.StoreR
 # Use the same lookup for the count and destination. Payment, delivery and
 # aftercare ModelAdmins allow raw state, while ordinary list filters use __exact.
 QUEUES = (
-    Queue(_("Goods payment review"), "payments", "payments.ReviewCase", "trading", "urgent", "state", "open",
-          assignments=True),
-    Queue(_("Goods refund review"), "currency_exchange", "payments.RefundDue", "trading", "urgent",
-          "refund_review", "pending", refund_review_scope, assignments=True),
+    PAYMENT_REVIEW_QUEUE,
+    REFUND_REVIEW_QUEUE,
     Queue(_("Delivery review"), "local_shipping", "fulfilment.ReviewCase", "trading", "urgent", "state", "open",
           assignments=True),
-    Queue(_("Order disputes"), "gavel", "orders.DisputeRequest", "trading", "urgent", "state", "pending",
-          assignments=True),
+    DISPUTE_QUEUE,
     Queue("dispute_refund_needs_reviewer", "group", "payments.RefundDue", "trading", "urgent",
           "refund_review", "another_confirmer", user_scope=refunds_requiring_another_confirmer),
-    Queue(_("Cancellation requests"), "cancel", "orders.CancellationRequest", "trading", "today", "state", "pending",
-          assignments=True),
+    CANCELLATION_QUEUE,
     Queue(_("Amendments"), "edit_note", "orders.Amendment", "trading", "today", "state", "pending",
           assignments=True),
     Queue("refunds_awaiting_report", "currency_exchange", "payments.RefundDue", "trading", "today",

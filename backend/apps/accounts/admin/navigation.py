@@ -91,7 +91,7 @@ def navigation(request):
         model["model"]._meta.label_lower: model for app in owner_site.get_app_list(request) for model in app["models"]
     }
 
-    people_review_counts = []
+    badge_counts = {}
 
     def entry(title, icon, model, filters=None, *, queue=None):
         record = available.get(model)
@@ -108,8 +108,8 @@ def navigation(request):
             def pending_count():
                 return queue.open_items(record["model"]._default_manager.all(), request.user).count()
 
-            people_review_counts.append(pending_count)
             item["link"] = queue.url(record["admin_url"])
+            badge_counts[item["link"]] = pending_count
             item.update(review_badge(pending_count))
         return item
 
@@ -160,8 +160,10 @@ def navigation(request):
                 "title": navigation_title(title), "icon": icons[key], "link": children[0]["link"],
                 "active": any(item["active"] for item in children), "items": children,
             }
-            if key == "people" and people_review_counts:
-                parent.update(review_badge(lambda: sum(count() for count in people_review_counts)))
+            if key == "people":
+                counters = tuple(badge_counts[item["link"]] for item in children if item["link"] in badge_counts)
+                if counters:
+                    parent.update(review_badge(lambda: sum(count() for count in counters)))
             children = [parent]
         section = section_of.get(key)
         result.append({
@@ -183,9 +185,20 @@ def website_taxonomy_links(entry):
 
 
 def owner_groups(entry, overview):
-    from apps.fulfilment.queries import OPEN_HOLDS_FILTER, UNDISPATCHED_FILTER
+    from apps.fulfilment.queries import OPEN_HOLDS_FILTER, UNDISPATCHED_FILTER, not_dispatched, open_blockers
     from apps.site.sections import ROUTE_SECTIONS, SECTIONS
-    from .review_queues import STORE_REVIEW_QUEUE, VERIFICATION_QUEUE, review_labels
+    from .review_queues import (
+        CANCELLATION_QUEUE, DISPUTE_QUEUE, PAYMENT_REVIEW_QUEUE, REFUND_REVIEW_QUEUE,
+        STORE_REVIEW_QUEUE, VERIFICATION_QUEUE, Queue, review_labels,
+    )
+
+    def review_link(title, queue):
+        return entry(title, queue.icon, queue.model.lower(), queue=queue)
+
+    dispatch_queue = Queue("Not dispatched", "local_shipping", "orders.SellerOrder", "trading", "today",
+                           "dispatch", UNDISPATCHED_FILTER["dispatch"], scope=not_dispatched)
+    hold_queue = Queue("Open holds", "pause_circle", "fulfilment.Blocker", "trading", "today",
+                       "hold", OPEN_HOLDS_FILTER["hold"], scope=lambda qs: qs.filter(pk__in=open_blockers().values("pk")))
 
     settings = entry("Site settings", "settings", "site.sitesettings")
     settings_url = reverse("admin:site_sitesettings_change", args=(1,))
@@ -210,19 +223,19 @@ def owner_groups(entry, overview):
             entry("Goods invoices", "description", "orders.invoice"),
         ]),
         ("payments", "Payments & refunds", [
-            entry("Open payment reviews", "fact_check", "payments.reviewcase", {"state": "open"}),
-            entry("Refunds needing attention", "currency_exchange", "payments.refunddue", {"refund_review": "pending"}),
+            review_link("Open payment reviews", PAYMENT_REVIEW_QUEUE),
+            review_link("Refunds needing attention", REFUND_REVIEW_QUEUE),
             entry("Confirmed receipts", "payments", "payments.receipt"),
         ]),
         ("delivery", "Delivery operations", [
             entry("Open delivery reviews", "fact_check", "fulfilment.reviewcase", {"state__exact": "open"}),
-            entry("Not dispatched", "local_shipping", "orders.sellerorder", UNDISPATCHED_FILTER),
-            entry("Open holds", "pause_circle", "fulfilment.blocker", OPEN_HOLDS_FILTER),
+            review_link("Not dispatched", dispatch_queue),
+            review_link("Open holds", hold_queue),
             entry("Shipments", "inventory_2", "fulfilment.shipment"),
         ]),
         ("aftercare", "Aftercare", [
-            entry("Open disputes", "gavel", "orders.disputerequest", {"state": "pending"}),
-            entry("Pending cancellations", "cancel", "orders.cancellationrequest", {"state": "pending"}),
+            review_link("Open disputes", DISPUTE_QUEUE),
+            review_link("Pending cancellations", CANCELLATION_QUEUE),
             entry("Pending amendments", "edit_note", "orders.amendment", {"state": "pending"}),
         ]),
         ("moderation", "Messages & reports", [
@@ -240,9 +253,9 @@ def owner_groups(entry, overview):
             entry("Buyer accounts", "person", "accounts.account", {"context__exact": "buyer"}),
             entry("Seller accounts", "storefront", "accounts.account", {"context__exact": "seller"}),
             entry("Business profiles", "business", "organizations.businessprofile"),
-            entry("Verification cases", "verified_user", "verification.reviewcase", queue=VERIFICATION_QUEUE),
+            review_link("Verification cases", VERIFICATION_QUEUE),
             entry("Public stores", "store", "marketplace.store"),
-            entry("Store reviews", "fact_check", "marketplace.storerevision", queue=STORE_REVIEW_QUEUE),
+            review_link("Store reviews", STORE_REVIEW_QUEUE),
         ]),
         ("access", "Access Control", [
             entry("Users", "group", "accounts.user"),
