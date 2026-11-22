@@ -322,6 +322,9 @@ msgstr "میان‌برهای موجود"
 msgid "Awaiting dispatch"
 msgstr "منتظر ارسال"
 
+msgid "Back to content pages"
+msgstr "بازگشت به صفحه‌های محتوا"
+
 msgid "Back to library"
 msgstr "بازگشت به کتابخانه"
 
@@ -330,6 +333,9 @@ msgstr "بازگشت به فهرست"
 
 msgid "Back to marketplace"
 msgstr "بازگشت به بازار"
+
+msgid "Back to post library"
+msgstr "بازگشت به کتابخانهٔ پست‌ها"
 
 msgid "Banner alt:"
 msgstr "متن جایگزین بنر:"
@@ -1066,6 +1072,9 @@ msgstr "پنهان کردن شمارها"
 
 msgid "History"
 msgstr "تاریخچه"
+
+msgid "Homepage content"
+msgstr "محتوای صفحهٔ اصلی"
 
 msgid "Homepage hero"
 msgstr "بخش اصلی صفحهٔ خانه"
@@ -2705,6 +2714,9 @@ msgstr "آیکون سایت"
 msgid "Website icon and logos for light and dark backgrounds."
 msgstr "آیکون سایت و لوگوها برای پس‌زمینه‌های روشن و تاریک."
 
+msgid "Website management"
+msgstr "مدیریت وب‌سایت"
+
 msgid "Website name"
 msgstr "نام سایت"
 
@@ -2713,6 +2725,12 @@ msgstr "نام سایت و شعار"
 
 msgid "Website name, tagline, default language and appearance."
 msgstr "نام سایت، شعار، زبان پیش‌فرض و ظاهر."
+
+msgid "Website pages"
+msgstr "صفحه‌های وب‌سایت"
+
+msgid "Website settings"
+msgstr "تنظیمات وب‌سایت"
 
 msgid "Welcome back"
 msgstr "خوش آمدید"

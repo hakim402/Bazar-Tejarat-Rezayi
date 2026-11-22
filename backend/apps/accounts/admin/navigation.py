@@ -22,7 +22,9 @@ OWNER_NAVIGATION_DARI = {
     "Last attempt: %(reason)s": "آخرین تلاش: %(reason)s",
     "Check delivery workflow": "بررسی روند تحویل",
     "Website & content": "وب‌سایت و محتوا",
-    "General settings": "تنظیمات عمومی",
+    "Content pages": "صفحه‌های محتوا",
+    "Homepage content": "محتوای صفحهٔ اصلی",
+    "Site settings": "تنظیمات سایت",
     "Payments & refunds": "پرداخت‌ها و بازپرداخت‌ها",
     "Open payment reviews": "بررسی‌های پرداخت باز",
     "Refunds needing attention": "بازپرداخت‌های نیازمند رسیدگی",
@@ -97,10 +99,20 @@ def navigation(request):
                 (request.GET.getlist(param) if param in request.GET else preserved_filters.get(param, [])) == value
                 for param, value in expected.items()
             ))
-        # The General link shares its path with the individual settings editors.
-        if key in {"settings", "website"} and request.GET.get("section"):
+        # The settings directory lists every section; General yields to any of them.
+        if key == "settings" and request.GET.get("section"):
             for item in children:
-                if item.get("section") == "general":
+                if item.get("key") == "general":
+                    item["active"] = False
+        # The compact website group keeps Homepage content active across its libraries.
+        if root and key == "website":
+            homepage_active = request.GET.get("section") in {"hero", "promotions"} or request.path.startswith(
+                reverse("admin:site_heroslide_changelist")
+            )
+            for item in children:
+                if item.get("site_destination") == "homepage":
+                    item["active"] = homepage_active
+                elif item.get("site_destination") == "settings" and homepage_active:
                     item["active"] = False
         dispatch_filter = request.GET.getlist("dispatch") or preserved_filters.get("dispatch", [])
         if root and key == "orders" and dispatch_filter == ["not_dispatched"]:
@@ -124,17 +136,13 @@ def navigation(request):
 
 def owner_groups(entry, overview):
     from apps.fulfilment.queries import OPEN_HOLDS_FILTER, UNDISPATCHED_FILTER
-    from apps.site.sections import ROUTE_SECTIONS, SECTIONS
+    from apps.site.admin.navigation import destination_groups, settings_url
     from .review_queues import review_labels
 
-    settings_url = reverse("admin:site_sitesettings_change", args=(1,))
-    settings_titles = {section.key: section.title for section in SECTIONS}
-    sections = {
-        key: {"title": settings_titles[key], "link": f"{settings_url}?section={key}"}
-        for key in ROUTE_SECTIONS
-    }
-    general = {"title": settings_titles["general"], "icon": "tune", "link": settings_url, "section": "general"}
-    pages = entry("Pages", "description", "site.contentpage")
+    # One shared destination set feeds both the compact sidebar and the directory.
+    site_items = [item for group in destination_groups() for item in group["items"]]
+    hero = next(item for item in site_items if item["key"] == "hero")
+    pages = entry("Content pages", "description", "site.contentpage")
     return [
         ("overview", "Overview", [overview]),
         ("reviews", "Review queues", [
@@ -176,15 +184,15 @@ def owner_groups(entry, overview):
         ]),
         ("website", "Website & content", [
             pages,
-            {**sections["hero"], "icon": "image"},
-            {**general, "title": navigation_title("General settings")},
+            {"title": navigation_title("Homepage content"), "icon": "image",
+             "link": hero["link"], "site_destination": "homepage"},
+            {"title": navigation_title("Site settings"), "icon": "tune",
+             "link": settings_url(), "site_destination": "settings"},
         ]),
         ("reports", "Commerce reports", [
             {"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")},
         ]),
-        ("settings", "Site Settings", [
-            general, *sections.values(), pages,
-        ]),
+        ("settings", "Site Settings", site_items),
     ]
 
 

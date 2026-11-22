@@ -124,6 +124,7 @@ def application_directory(request, available_apps, sidebar_navigation):
     settings_pages = []
     content_page = pages.get("site.contentpage")
     settings_model = pages.get("site.sitesettings")
+    slide_model = pages.get("site.heroslide")
     for link in settings_links:
         url = str(link["link"])
         target = urlsplit(url)
@@ -134,6 +135,8 @@ def application_directory(request, available_apps, sidebar_navigation):
             if not target.query:
                 # The native General entry handles an uninitialized singleton.
                 url = pages.pop("site.sitesettings")["url"]
+        elif slide_model and target.path.startswith(slide_model["url"]):
+            native_page = pages.pop("site.heroslide")
         else:
             continue
         settings_pages.append({

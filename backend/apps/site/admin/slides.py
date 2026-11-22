@@ -45,6 +45,8 @@ class HeroSlideAdmin(ServiceFormMixin, ModelAdmin):
     list_per_page = 24
     actions_submit_line = ["save_draft", "publish"]
     warn_unsaved_form = True
+    list_before_template = "site/admin/navigation.html"
+    change_form_outer_before_template = "site/admin/navigation.html"
     readonly_fields = ["media_preview"]
     fieldsets = [
         (_("Post details"), {

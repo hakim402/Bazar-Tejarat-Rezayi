@@ -19,7 +19,7 @@ from apps.accounts.admin.theme import SITE_THEME
 from .helpers import ServiceFormMixin, asset_img, slide_thumbnail, slide_state, submit_pressed, with_initial
 from .inlines import SEOInline
 
-# Sections that stay as tabs on the main page; their localized inputs stay with them.
+# General stays the main page; its localized name/tagline inputs stay with it.
 MAIN_SECTIONS = tuple(section for section in SECTIONS if section.key not in ROUTE_SECTIONS)
 MAIN_LOCALIZED = tuple(dict.fromkeys(name for section in MAIN_SECTIONS for name in section.localized))
 
@@ -31,6 +31,7 @@ class SiteSettingsAdmin(ServiceFormMixin, ModelAdmin):
     inlines = [SEOInline]
     actions_submit_line = ["save_draft", "publish"]
     warn_unsaved_form = True
+    change_form_outer_before_template = "site/admin/navigation.html"
 
     def has_add_permission(self, request):
         return False
@@ -89,13 +90,16 @@ class SiteSettingsAdmin(ServiceFormMixin, ModelAdmin):
         if section is not None:
             # Routed pages lead with their own guidance; a saved draft takes precedence.
             fieldsets = [self._section_fieldset(section, obj, note if draft else section.description)]
-            if section.localized:
+            if section.key == "branding":
+                # Logo previews and replacement/restore controls live here, per language.
+                fieldsets += self._language_fieldsets((), logos=True)
+            elif section.localized:
                 fieldsets += self._language_fieldsets(section.localized)
         else:
             fieldsets = [self._section_fieldset(item, obj, note if index == 0 else item.description)
                          for index, item in enumerate(MAIN_SECTIONS)]
             fieldsets[0][1]["fields"].insert(0, "version")
-            fieldsets += self._language_fieldsets(MAIN_LOCALIZED, logos=True)
+            fieldsets += self._language_fieldsets(MAIN_LOCALIZED)
         if draft is not None and draft.uploads.exists():
             fieldsets.append((_("Saved draft images"), {
                 "fields": ["draft_uploads_preview"],

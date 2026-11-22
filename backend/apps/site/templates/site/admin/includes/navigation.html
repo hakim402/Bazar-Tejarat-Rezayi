@@ -1,0 +1,24 @@
+{% load i18n %}
+<nav aria-label="{% translate 'Website management' %}" class="{{ nav.nav_card }}">
+    {% if back %}
+        <a href="{{ back.url }}" class="{{ nav.nav_back }}">
+            <span class="{{ nav.nav_back_icon }}">arrow_back</span>{{ back.label }}
+        </a>
+    {% endif %}
+    <div class="{{ nav.nav_groups }}">
+        {% for group in groups %}
+            <div class="{{ nav.nav_group }}">
+                <span class="{{ nav.nav_label }}">{{ group.title }}</span>
+                <div class="{{ nav.nav_links }}">
+                    {% for item in group.items %}
+                        {% if item.key == active %}
+                            <a href="{{ item.link }}" class="{{ nav.nav_link_active }}" aria-current="page">{{ item.title }}</a>
+                        {% else %}
+                            <a href="{{ item.link }}" class="{{ nav.nav_link }}">{{ item.title }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</nav>
