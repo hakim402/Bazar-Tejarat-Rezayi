@@ -81,6 +81,7 @@ class RevisionAdmin(ReadOnlyAdmin):
         return [path("<uuid:pk>/review/", self.admin_site.admin_view(self.workflow), name="marketplace_storerevision_review"),
             path("media/<uuid:pk>/download/", self.admin_site.admin_view(self.download), name="marketplace_store_media"), *super().get_urls()]
 
+    @admin.display(description=_("Review"))
     def review_link(self, obj):
         return link_button(reverse("admin:marketplace_storerevision_review", args=[obj.pk]), _("Open guarded review"), "fact_check")
 
@@ -264,6 +265,7 @@ class MediaAdmin(ReadOnlyAdmin):
     def business_identity(self, obj):
         return seller_cell(obj.store.profile)
 
+    @admin.display(description=_("Protected download"))
     def protected_download(self, obj):
         return link_button(reverse('admin:marketplace_store_media', args=[obj.pk]), _("Inspect protected media"), "download")
 

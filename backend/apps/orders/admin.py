@@ -124,9 +124,11 @@ class OrderAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
         "snapshot",
     ]
 
+    @django_admin.display(description=_("Buyer"))
     def buyer_display(self, obj):
         return obj.snapshot["buyer"]
 
+    @django_admin.display(description=_("Seller"))
     def seller_display(self, obj):
         return obj.snapshot["seller"]
 
@@ -808,6 +810,7 @@ class CancellationAdmin(OwnerOrderPresentation, AftercareAdmin):
     def staff_queryset(self, request, qs):
         return qs.filter(pk__in=access.cancellation_scope(admin_actor(request)).values("pk"))
 
+    @django_admin.display(description=_("Requester"))
     def requester(self, obj):
         return _(obj.requester_context.capitalize())
 

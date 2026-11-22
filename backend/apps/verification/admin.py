@@ -70,6 +70,7 @@ class CaseAdmin(WorkflowAdmin):
     def reviewer(self, obj):
         return account_cell(obj.assigned_to) if obj.assigned_to_id else _("Unassigned")
 
+    @admin.display(description=_("Review"))
     def review_case(self, obj):
         return link_button(reverse("admin:verification_reviewcase_workflow", args=[obj.pk]), _("Open guarded review"), "fact_check")
 
@@ -111,6 +112,7 @@ class EvidenceAdmin(ReadOnlyAdmin):
     def get_readonly_fields(self, request, obj=None):
         return ["id", "case", "category", "content_type", "size", "created_at", "protected_download"]
 
+    @admin.display(description=_("Protected download"))
     def protected_download(self, obj):
         return link_button(
             reverse("admin:verification_evidence_download", args=[obj.pk]), ADMIN_COPY["protected_evidence"], "download"

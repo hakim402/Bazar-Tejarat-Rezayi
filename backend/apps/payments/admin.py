@@ -2,7 +2,7 @@
 
 import uuid
 from django import forms
-from django.contrib.admin import SimpleListFilter
+from django.contrib.admin import SimpleListFilter, display
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -184,9 +184,11 @@ class CaseAdmin(PaymentAdmin):
     def get_readonly_fields(self, request, obj=None):
         return self.owner_readonly(request, list(self.fields))
 
+    @display(description=_("Assigned reviewer"))
     def reviewer(self, obj):
         return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
+    @display(description=_("Review"))
     def workspace(self, obj):
         return link_button(reverse("admin:payments_reviewcase_workflow", args=[obj.pk]), ADMIN_COPY["payment_open_review"], "fact_check")
 
@@ -425,12 +427,15 @@ class RefundDueAdmin(PaymentAdmin):
     def get_readonly_fields(self, request, obj=None):
         return self.owner_readonly(request, list(self.fields))
 
+    @display(description=_("Status"))
     def state(self, obj):
         return state_badge(queries.due_state(obj))
 
+    @display(description=_("Assigned reviewer"))
     def reviewer(self, obj):
         return obj.assigned_to.display_name if obj.assigned_to_id else ADMIN_COPY["payment_unassigned"]
 
+    @display(description=_("Review"))
     def workspace(self, obj):
         return link_button(self.review_url(obj.pk), _("Open guarded refund review"), "currency_exchange")
 

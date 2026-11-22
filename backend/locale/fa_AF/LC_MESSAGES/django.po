@@ -7596,3 +7596,139 @@ msgstr "آنچه سرویس‌های مورد اعتماد سفارش ثبت ک�
 
 msgid "Where this seller delivers, as accepted at the time."
 msgstr "محل‌هایی که این فروشنده در آن زمان پذیرفته بود تحویل می‌دهد."
+
+# Admin release translation review.
+msgid "This account has audit history. Set its status to Archived to remove access."
+msgstr "این حساب سابقه حسابرسی دارد. برای قطع دسترسی، وضعیت حساب را به بایگانی شده تغییر دهید."
+
+msgid "Suspending this account immediately removes access for this account type."
+msgstr "تعلیق این حساب، دسترسی مربوط به این نوع حساب را فوراً قطع می کند."
+
+msgid "Account"
+msgstr "حساب"
+
+msgid "This user no longer has staff access."
+msgstr "این کاربر دیگر دسترسی کارمندی ندارد."
+
+msgid "Search by action, request ID, name or email"
+msgstr "جستجو با اقدام، شناسه درخواست، نام یا ایمیل"
+
+msgid "Request ID"
+msgstr "شناسه درخواست"
+
+msgid "Profile photo"
+msgstr "عکس پروفایل"
+
+msgid "Upload a JPEG, PNG or WebP image."
+msgstr "یک تصویر با فرمت JPEG، PNG یا WebP بارگذاری کنید."
+
+msgid "Remove profile photo"
+msgstr "حذف عکس پروفایل"
+
+msgid "Status change reason"
+msgstr "دلیل تغییر وضعیت"
+
+msgid "Required when suspending, archiving or reopening. Recorded in the audit history."
+msgstr "برای تعلیق، بایگانی یا بازگشایی، دلیل لازم است و در سوابق حسابرسی ثبت می شود."
+
+msgid "Give a reason for this status change."
+msgstr "دلیل این تغییر وضعیت را وارد کنید."
+
+msgid "Choose an account type that matches this role."
+msgstr "نوع حساب متناسب با این نقش را انتخاب کنید."
+
+msgid "Enable staff access on the user before adding a staff account."
+msgstr "پیش از افزودن حساب کارمندی، دسترسی کارمندی را برای کاربر فعال کنید."
+
+msgid "This user already has an account for this role."
+msgstr "این کاربر برای این نقش از قبل حساب دارد."
+
+msgid "This user has audit history. Clear Active in Account access to remove sign-in access."
+msgstr "این کاربر سابقه حسابرسی دارد. برای قطع دسترسی ورود، گزینه فعال را در بخش دسترسی حساب خاموش کنید."
+
+msgid "Profile"
+msgstr "پروفایل"
+
+msgid "Last login"
+msgstr "آخرین ورود"
+
+msgid "The legacy owner flag is retained for history. Super admin is the canonical administrative role."
+msgstr "نشان قدیمی مالک برای حفظ سابقه نگه داشته شده است. نقش اصلی مدیریت، مدیر ارشد است."
+
+msgid "Keep at least one usable super admin."
+msgstr "دسترسی حداقل یک مدیر ارشد باید فعال بماند."
+
+msgid "This record is linked to other records and could not be deleted."
+msgstr "این سابقه به سوابق دیگری وابسته است و حذف نشد."
+
+msgid "Revoke"
+msgstr "لغو دسترسی"
+
+msgid "Purpose"
+msgstr "هدف"
+
+msgid "Revoke this record?"
+msgstr "دسترسی مربوط به این سابقه لغو شود؟"
+
+msgid "Record revoked."
+msgstr "دسترسی لغو شد."
+
+msgid "This record is already inactive."
+msgstr "این سابقه از قبل غیرفعال است."
+
+msgid "Attention"
+msgstr "نیاز به رسیدگی"
+
+msgid "Addresses"
+msgstr "آدرس ها"
+
+msgid "province"
+msgstr "ولایت"
+
+msgid "city"
+msgstr "شهر"
+
+msgid "is default"
+msgstr "پیش فرض"
+
+msgid "Tier"
+msgstr "نوع قیمت"
+
+msgid "Guest cart"
+msgstr "سبد خرید مهمان"
+
+msgid "Buyer cart"
+msgstr "سبد خرید خریدار"
+
+msgid "Protected download"
+msgstr "دانلود محافظت شده"
+
+msgid "rating"
+msgstr "امتیاز"
+
+msgid "Job"
+msgstr "کار سیستم"
+
+msgid "Next execution"
+msgstr "اجرای بعدی"
+
+msgid "Lock"
+msgstr "قفل"
+
+msgid "Scheduler"
+msgstr "زمان بند"
+
+msgid "Guards"
+msgstr "کنترول های حفاظتی"
+
+msgid "Search text"
+msgstr "متن جستجو"
+
+msgid "Progress"
+msgstr "پیشرفت"
+
+msgid "Please correct the error below."
+msgstr "لطفاً خطای زیر را اصلاح کنید."
+
+msgid "Please correct the errors below."
+msgstr "لطفاً خطاهای زیر را اصلاح کنید."

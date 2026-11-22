@@ -2,7 +2,7 @@
 <div class="ra:rounded-xl ra:border ra:border-line ra:bg-panel ra:p-5">
   <h2 id="my-work-heading" class="ra:text-base ra:font-bold">{% translate "My work" %}</h2>
   <p class="ra:mt-1 ra:text-sm ra:text-muted">{% translate "Open items in the queues your current roles allow. Counts exclude businesses you belong to." %}</p>
-  <p class="ra:mt-3"><a href="{% url 'admin:reports_work' %}" class="ra:text-action">{% translate "Download CSV" %}</a></p>
+  <p class="ra:mt-3"><a href="{% url 'admin:reports_work' %}?export=1" class="ra:text-action">{% translate "Download CSV" %}</a></p>
   <div class="ra:mt-4 ra:overflow-auto">
     <table class="ra:w-full ra:text-sm">
       <thead><tr class="ra:text-muted"><th scope="col" class="ra:py-2 ra:text-start">{% translate "Queue" %}</th><th scope="col" class="ra:py-2 ra:text-end">{% translate "Open" %}</th><th scope="col" class="ra:py-2 ra:text-end">{% translate "Assigned to me" %}</th><th scope="col" class="ra:py-2 ra:text-end">{% translate "Unassigned" %}</th></tr></thead>

@@ -108,6 +108,8 @@ def localize_model(model):
         config = apps.get_app_config(opts.app_label)
         app_name = str(config.verbose_name)
     verbose_name, verbose_name_plural = {**CATALOGUE_NAMES, **ORDER_NAMES}.get(opts.label_lower, (verbose_name, verbose_name_plural))
+    if opts.label_lower == "accounts.address":
+        verbose_name, verbose_name_plural = "Address", "Addresses"
     if opts.app_label == "fulfilment":
         verbose_name, verbose_name_plural = DELIVERY_NAMES.get(opts.model_name, (verbose_name, verbose_name_plural))
     opts.verbose_name = _(verbose_name)

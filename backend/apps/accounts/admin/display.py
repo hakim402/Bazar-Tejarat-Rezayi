@@ -6,6 +6,7 @@ lives in ``admin_theme`` (single source of truth) and is re-exported here so exi
 reuse Unfold's compiled palette, so no extra CSS build is required.
 """
 
+from django.contrib.admin.utils import label_for_field
 from django.template.defaultfilters import truncatechars
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
@@ -149,5 +150,5 @@ class AdminDisplayMixin:
         else:
             return name
         render.admin_order_field = name
-        render.short_description = name.replace("_", " ").capitalize()
+        render.short_description = label_for_field(name, self.model, model_admin=self)
         return render

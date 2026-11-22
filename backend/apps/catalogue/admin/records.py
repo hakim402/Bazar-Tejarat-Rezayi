@@ -57,6 +57,7 @@ class RevisionAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
             (_("Review"), {"fields": ["reason", "workflow_link"]}),
         ]
 
+    @admin.display(description=_("Review"))
     def workflow_link(self, obj):
         url = reverse("admin:catalogue_workflow", args=[obj.product_id])
         return link_button(f"{url}?{urlencode({'revision': obj.pk})}", _("Review"), icon="fact_check")
@@ -249,6 +250,7 @@ class TranslationAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
             (_("Review status"), {"fields": ["state", "version", "human_edited", "reason", "approved_content"]}),
         ]
 
+    @admin.display(description=_("Review"))
     def workflow_link(self, obj):
         url = reverse("admin:catalogue_workflow", args=[obj.revision.product_id])
         query = urlencode({"translation": "1", "revision": str(obj.revision_id), "target": obj.locale})
