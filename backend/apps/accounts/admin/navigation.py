@@ -106,7 +106,7 @@ def navigation(request):
         section_of = {
             "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work", "reports": "Daily work",
             "payments": "Daily work", "delivery": "Daily work", "aftercare": "Daily work", "moderation": "Daily work",
-            "catalogue": "Manage", "people": "Manage", "website": "Manage", "system": "Manage",
+            "catalogue": "Manage", "people": "Manage", "website": "Manage", "system_health": "Manage", "audit": "Manage",
         }
     index_url = overview["link"]
     visible_active = active_destination(
@@ -121,6 +121,7 @@ def navigation(request):
         "aftercare": "assignment_return", "catalogue": "inventory_2", "stores": "storefront",
         "inventory": "inventory", "business": "business", "access": "manage_accounts",
         "communication": "forum", "moderation": "forum", "system": "settings_suggest", "settings": "settings",
+        "system_health": "monitoring", "audit": "policy",
     }
     result = []
     for key, title, items in groups:
@@ -228,9 +229,11 @@ def owner_groups(entry, overview):
             sections.get("seo"),
             settings,
         ]),
-        ("system", "System Health and Audit", [
+        ("system_health", "System Health", [
             entry("Background jobs", "task_alt", "runtime.job"),
             entry("Schedulers", "schedule", "runtime.scheduler"),
+        ]),
+        ("audit", "Audit", [
             entry("Audit log", "policy", "accounts.auditevent"),
             entry("Admin change history", "history", "admin.logentry"),
         ]),

@@ -301,8 +301,11 @@ msgstr "ویژگی ها باید یک فهرست JSON باشد، برای مثا
 msgid "Audit activity"
 msgstr "فعالیت ممیزی"
 
-msgid "System Health and Audit"
-msgstr "وضعیت و حسابرسی سیستم"
+msgid "System Health"
+msgstr "وضعیت سیستم"
+
+msgid "Audit"
+msgstr "حسابرسی"
 
 msgid "Background jobs"
 msgstr "کارهای پس زمینه"
