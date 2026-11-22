@@ -680,8 +680,8 @@ msgstr "واحد پول"
 msgid "Current"
 msgstr "فعلی"
 
-msgid "Current approved optional revision: %(published)s."
-msgstr "نسخهٔ اختیاری تأییدشدهٔ فعلی: %(published)s."
+msgid "Current published revision %(published)s"
+msgstr "نسخه فعلی نشرشده %(published)s"
 
 msgid "Current card image"
 msgstr "تصویر فعلی کارت"
@@ -944,8 +944,8 @@ msgstr "طرح دستهٔ جایگزین دقیق"
 msgid "Exact stock bucket / batch"
 msgstr "دسته/بستهٔ موجودی دقیق"
 
-msgid "Exact submitted revision %(number)s"
-msgstr "نسخهٔ ارسال‌شدهٔ دقیق %(number)s"
+msgid "Store revision %(number)s"
+msgstr "نسخه %(number)s فروشگاه"
 
 msgid "Exact unconfirmed claim"
 msgstr "ادعای تأییدنشدهٔ دقیق"
@@ -7935,3 +7935,110 @@ msgstr "پاک کردن فیلترها"
 
 msgid "No open queues match these filters."
 msgstr "هیچ صف بازی با این فیلترها مطابقت ندارد."
+
+msgid "Show public contact links"
+msgstr "نمایش راه‌های تماس عمومی"
+
+msgid "Show WhatsApp and social links from the published store revision."
+msgstr "واتس‌اپ و پیوندهای اجتماعی نسخه نشرشده فروشگاه را نمایش دهید."
+
+msgid "Show verified business badge"
+msgstr "نمایش نشان کسب‌وکار تأییدشده"
+
+msgid "The badge is available only while the business verification is current."
+msgstr "این نشان تا زمانی نمایش می‌یابد که تأیید کسب‌وکار معتبر باشد."
+
+msgid "Paid shop starts"
+msgstr "آغاز طرح پولی فروشگاه"
+
+msgid "Paid shop ends"
+msgstr "پایان طرح پولی فروشگاه"
+
+msgid "The last day is included. Clear both dates to remove the grant."
+msgstr "روز پایان نیز شامل طرح است. برای لغو طرح، هر دو تاریخ را پاک کنید."
+
+msgid "Show in sponsored stores"
+msgstr "نمایش در فروشگاه‌های تبلیغاتی"
+
+msgid "The homepage can show this shop in Sponsored stores during its paid period if it is published and verified."
+msgstr "فروشگاه در دوره طرح پولی می‌تواند در بخش فروشگاه‌های تبلیغاتی صفحه اصلی نمایش یابد، به شرطی که نشر و تأیید شده باشد."
+
+msgid "Enter both dates with the end on or after the start."
+msgstr "هر دو تاریخ را وارد کنید. پایان باید در همان روز یا پس از آغاز باشد."
+
+msgid "Set the paid shop dates to enable sponsorship."
+msgstr "برای فعال کردن نمایش تبلیغاتی، تاریخ‌های طرح پولی را وارد کنید."
+
+msgid "Current business verification"
+msgstr "وضعیت فعلی تأیید کسب‌وکار"
+
+msgid "Open business verification"
+msgstr "باز کردن پرونده تأیید کسب‌وکار"
+
+msgid "Not submitted"
+msgstr "ارسال نشده"
+
+msgid "Buyer rating"
+msgstr "امتیاز خریداران"
+
+msgid "No approved buyer reviews"
+msgstr "هنوز نظری از خریداران تأیید نشده است"
+
+msgid "Shop plan"
+msgstr "طرح فروشگاه"
+
+msgid "Free shop"
+msgstr "فروشگاه رایگان"
+
+msgid "Paid shop"
+msgstr "فروشگاه پولی"
+
+msgid "Store settings"
+msgstr "تنظیمات فروشگاه"
+
+msgid "Manage store features"
+msgstr "مدیریت امکانات فروشگاه"
+
+msgid "This store changed. Reload the page and try again."
+msgstr "این فروشگاه تغییر کرده است. صفحه را دوباره باز کنید و تلاش کنید."
+
+msgid "Review the store settings and try again."
+msgstr "تنظیمات فروشگاه را بررسی کرده و دوباره تلاش کنید."
+
+msgid "Store features saved."
+msgstr "امکانات فروشگاه ذخیره شد."
+
+msgid "Save store features"
+msgstr "ذخیره امکانات فروشگاه"
+
+msgid "Back to store"
+msgstr "بازگشت به فروشگاه"
+
+msgid "Store status"
+msgstr "وضعیت فروشگاه"
+
+msgid "Business verification current"
+msgstr "تأیید کسب‌وکار معتبر است"
+
+msgid "Business verification required"
+msgstr "کسب‌وکار به تأیید نیاز دارد"
+
+msgid "Published contact details"
+msgstr "راه‌های تماس نشرشده"
+
+msgid "No published contact details"
+msgstr "راه تماسی نشر نشده است"
+
+msgid "Website"
+msgstr "وب‌سایت"
+
+msgid "Contact links in this revision"
+msgstr "راه‌های تماس در این نسخه"
+
+msgid "Public contact links"
+msgstr "راه‌های تماس عمومی"
+
+msgid "%(average)s out of 5 · %(count)s review"
+msgid_plural "%(average)s out of 5 · %(count)s reviews"
+msgstr[0] "%(average)s از ۵ · %(count)s نظر"
+msgstr[1] "%(average)s از ۵ · %(count)s نظر"

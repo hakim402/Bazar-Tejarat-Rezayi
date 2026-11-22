@@ -80,13 +80,18 @@ def seller_action(actor, profile_id, data):
     revision = get_object_or_404(store.revisions.select_for_update(), pk=v.identifier(data.get("revision"), "revision"))
     action = data.get("action")
     if action in {"submit", "publish"}:
-        if revision.state != "draft" or store.revisions.order_by("-number").first().pk != revision.pk or store.revisions.filter(state="submitted").exists():
+        if (
+            revision.state != "draft"
+            or store.revisions.order_by("-number").first().pk != revision.pk
+            or store.revisions.filter(state="submitted").exists()
+            or bool(store.published_id) != (action == "publish")
+        ):
             raise Conflict()
         if revision.business_case_id != business_case(profile).pk:
             raise Conflict()
         media_references(store, revision.body)
         if action == "publish":
-            if not store.published_id or not access.eligible_profiles([profile.pk]).exists():
+            if not access.eligible_profiles([profile.pk]).exists():
                 raise Conflict()
             revision.state = "published"
             store.published = revision
@@ -199,3 +204,41 @@ def feature(actor, profile_id, version, reason):
     AuditEvent.objects.create(actor=actor.user, context="owner", action="marketplace_feature_configured", reason=reason,
         resource_type="marketplace.feature", resource_id=profile.pk if profile else None, state={"version": current.version}, request_id=getattr(actor.request, "request_id", None))
     return current
+
+
+@transaction.atomic
+def configure_store(actor, profile_id, data):
+    if actor.context != "owner":
+        raise PermissionDenied()
+    actor.account
+    profile = get_object_or_404(BusinessProfile.objects.select_for_update(), pk=profile_id)
+    store = get_object_or_404(Store.objects.select_for_update(), pk=profile.pk)
+    assert_version(store, v.version(data["version"]))
+    reason = v.plain(data["reason"], "reason", 1000)
+    if not reason:
+        fail("reason", "required")
+    starts_on, ends_on = data["premium_starts_on"], data["premium_ends_on"]
+    if (starts_on is None) != (ends_on is None) or (starts_on and starts_on > ends_on):
+        fail("premium_ends_on", "invalid_date_range")
+    if data["sponsored_placement"] and not starts_on:
+        fail("sponsored_placement", "premium_period_required")
+    fields = ("contacts_enabled", "verification_badge_enabled", "premium_starts_on", "premium_ends_on", "sponsored_placement")
+    before = {field: getattr(store, field) for field in fields}
+    after = {field: data[field] for field in fields}
+    if before == after:
+        return store
+    for field, value in after.items():
+        setattr(store, field, value)
+    bump(actor, store, "store_settings_updated", reason=reason)
+    AuditEvent.objects.create(
+        actor=actor.user, account=actor.account, context="owner", action="marketplace_store_settings_updated", reason=reason,
+        changed_fields=[field for field in fields if before[field] != after[field]],
+        resource_type="marketplace.store", resource_id=store.pk,
+        state={
+            "version": store.version,
+            "before": {key: value.isoformat() if hasattr(value, "isoformat") else value for key, value in before.items()},
+            "after": {key: value.isoformat() if hasattr(value, "isoformat") else value for key, value in after.items()},
+        },
+        request_id=getattr(actor.request, "request_id", None),
+    )
+    return store

@@ -7,6 +7,7 @@ from django.db.models.functions import Coalesce, Lower
 from apps.runtime.expressions import JsonPathText, Normalized, VariantReference, prepare_search
 from django.shortcuts import get_object_or_404
 from django.utils.functional import cached_property
+from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied
 from apps.catalogue.models import Category, LOCALES, Product, ProductImage, Translation, Variant
 from apps.inventory.models import Position, Bucket
@@ -44,7 +45,12 @@ def category_units(category, locale):
 def identity_profiles(base, locale):
     name = ReviewCase.objects.filter(pk=OuterRef("approved_case")).annotate(public_name=KeyTextTransform("display_name", "snapshot"))
     revision = StoreRevision.objects.filter(store_id=OuterRef("pk"), pk=OuterRef("public_store__published_id"), business_case_id=OuterRef("approved_case"), state__in=PUBLIC_REVISION_STATES)
-    profiles = base.annotate(public_name=Coalesce(Subquery(name.values("public_name")[:1], output_field=CharField()), Value("")), optional_body=Subquery(revision.values("body")[:1], output_field=JSONField()))
+    profiles = base.annotate(
+        public_name=Coalesce(Subquery(name.values("public_name")[:1], output_field=CharField()), Value("")),
+        optional_body=Subquery(revision.values("body")[:1], output_field=JSONField()),
+        show_verification=Coalesce("public_store__verification_badge_enabled", Value(True)),
+        show_contacts=F("public_store__contacts_enabled"),
+    )
     profiles = profiles.annotate(public_country=KeyTextTransform("country", "optional_body"), public_city=KeyTextTransform("city", "optional_body"), optional_source=KeyTextTransform("source_locale", "optional_body"))
     requested = KeyTransform(locale, KeyTransform("editions", "optional_body"))
     return profiles.annotate(public_description=Coalesce(KeyTextTransform("description", requested), JsonPathText(F("optional_body"), Value("editions"), F("optional_source"), Value("description")), Value(""), output_field=CharField()))
@@ -123,12 +129,13 @@ class PublicGate:
             return base.order_by("-public_price" if sort == "price_desc" else "public_price", "pk")
         return base.order_by(Lower("public_title"), "pk") if sort == "name" else base.order_by("-created_at", "pk")
 
-    def store_rows(self, profiles):
+    def store_rows(self, profiles, *, include_contacts=False, include_ratings=False):
         profiles = list(profiles)
         media_ids = {body[key] for profile in profiles if (body := profile.optional_body) for key in ("logo", "banner") if body.get(key)}
         media = {str(item.pk): item for item in StoreMedia.objects.filter(pk__in=media_ids)}
         counts = dict(self.products.filter(seller_id__in=[p.pk for p in profiles]).order_by().values("seller_id").annotate(total=Count("pk")).values_list("seller_id", "total"))
         featured = FeaturedStore.objects.values_list("profile_id", flat=True).first()
+        ratings = reviews.summaries([profile.pk for profile in profiles]) if include_ratings else {}
         result = []
         for profile in profiles:
             body = profile.optional_body
@@ -138,7 +145,16 @@ class PublicGate:
             item = {"id": str(profile.pk), "name": profile.public_name, "kind": profile.kind,
                 "country": profile.public_country or "", "city": profile.public_city or "", "description": profile.public_description,
                 "requested_locale": self.locale, "resolved_locale": resolved, "source_fallback": resolved != self.locale,
-                "product_count": counts.get(profile.pk, 0), "featured": featured == profile.pk, "logo": None, "banner": None}
+                "product_count": counts.get(profile.pk, 0), "featured": featured == profile.pk,
+                "verified_business": profile.show_verification, "logo": None, "banner": None}
+            if include_ratings:
+                item["review_summary"] = ratings.get(profile.pk, {"count": 0, "average": None})
+            if include_contacts:
+                contacts = body.get("contacts", {}) if body and profile.show_contacts else {}
+                item["contacts"] = [
+                    {"channel": key, "url": f"https://wa.me/{value[1:]}" if key == "whatsapp" else value}
+                    for key, value in contacts.items()
+                ]
             for role in ("logo", "banner"):
                 ref = body.get(role) if body else None
                 asset = media.get(ref)
@@ -201,7 +217,7 @@ class PublicGate:
 
     def store(self, pk):
         gate = PublicGate(self.locale, profile_ids=[pk])
-        return gate.store_rows([get_object_or_404(gate.profiles, pk=pk)])[0]
+        return gate.store_rows([get_object_or_404(gate.profiles, pk=pk)], include_contacts=True, include_ratings=True)[0]
 
     def review_profile(self, pk):
         # A store's public identity is its seller profile UUID; scope eligibility before any
@@ -229,7 +245,7 @@ class PublicGate:
                 base = base.filter(**{"public_" + key + "__iexact": filters[key]})
         base = base.order_by(Lower("public_name"), "pk") if filters.get("sort") == "name" else base.order_by("-created_at", "pk")
         page = filters["page"]
-        return {"results": self.store_rows(base[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]), "count": base.count(), "page": page, "page_size": PAGE_SIZE,
+        return {"results": self.store_rows(base[(page - 1) * PAGE_SIZE:page * PAGE_SIZE], include_ratings=True), "count": base.count(), "page": page, "page_size": PAGE_SIZE,
             "facets": {"locations": list(base.order_by().exclude(public_country__isnull=True).values("public_country", "public_city").distinct()[:100])}}
 
     def categories(self, page=1):
@@ -242,9 +258,15 @@ class PublicGate:
 
     def home(self):
         featured_id = FeaturedStore.objects.values_list("profile_id", flat=True).first()
-        featured = self.store_rows(self.profiles.filter(pk=featured_id)[:1]) if featured_id else []
+        featured = self.store_rows(self.profiles.filter(pk=featured_id)[:1], include_ratings=True) if featured_id else []
+        placement_day = timezone.localdate()
+        sponsored = self.profiles.filter(
+            public_store__sponsored_placement=True, public_store__premium_starts_on__lte=placement_day,
+            public_store__premium_ends_on__gte=placement_day, optional_body__isnull=False,
+        ).order_by("-public_store__premium_starts_on", "pk")[:6]
         return {"categories": self.categories()["results"][:12], "products": self.product_rows(self.products.order_by("-created_at", "pk").select_related("published")[:8]),
-            "stores": self.store_rows(self.profiles.order_by("-created_at", "pk")[:6]), "featured_store": featured[0] if featured else None}
+            "stores": self.store_rows(self.profiles.order_by("-created_at", "pk")[:6], include_ratings=True), "featured_store": featured[0] if featured else None,
+            "sponsored_stores": self.store_rows(sponsored, include_ratings=True)}
 
     def sitemap(self, page):
         products = self.products.order_by("pk")
@@ -283,9 +305,12 @@ def private_store(actor, pk):
     if store and store.published_id and not any(row.pk == store.published_id for row in revisions):
         revisions.append(store.published)
     current_case = ReviewCase.objects.filter(profile=profile, revision=profile.revision, status="approved").values_list("pk", flat=True).first()
+    verified = bool(current_case and access.eligible_profiles([pk]).exists())
     return {"id": str(pk), "name": profile.display_name, "version": store.version if store else 0,
         "can_edit": editable, "published": str(store.published_id) if store and store.published_id else None,
-        "can_publish": bool(editable and store and store.published_id and current_case and access.eligible_profiles([pk]).exists()),
+        "can_publish": bool(editable and store and store.published_id and verified),
+        "business_verified": verified,
+        "contacts_enabled": bool(store and store.contacts_enabled), "premium_active": bool(store and store.premium_active),
         "revisions": [{"id": str(row.pk), "number": row.number, "body": row.body, "state": row.state, "reason": row.reason, "current_business": row.business_case_id == current_case} for row in revisions],
         "media": [{"id": str(item.pk), "url": image_url(item.pk, private=True), "width": item.width, "height": item.height} for item in store.media.order_by("created_at")[:100]] if store else []}
 

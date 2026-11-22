@@ -3,13 +3,19 @@
 import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlsplit
 from uuid import UUID
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from apps.catalogue.validation import fail
 from apps.catalogue.models import LOCALES
 
 TEXT_CONTROLS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 CONTACT = re.compile(r"https?://|www\.|\b[\w.+-]+@[\w.-]+\.[\w-]+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|af|io|co|info|biz)\b|(?:\+?\d[\s().-]*){7,}|<[^>]+>", re.I)
 QUERY_KEYS = {"q", "category", "country", "city", "currency", "pricing_mode", "tier", "min_price", "max_price", "availability", "sort", "page"}
+SOCIAL_DOMAINS = {"instagram": "instagram.com", "facebook": "facebook.com", "tiktok": "tiktok.com"}
+CONTACT_FIELDS = ("whatsapp", *SOCIAL_DOMAINS, "website")
+HTTPS_URL = URLValidator(schemes=["https"])
 
 
 def plain(value, field, limit, *, contact=False):
@@ -85,8 +91,35 @@ def query(params, *, scope="products", category=None, page_only=False):
     return result
 
 
+def contacts(data):
+    if not isinstance(data, dict) or not data.keys() <= set(CONTACT_FIELDS):
+        fail("contacts", "fields")
+    result = {}
+    for key in CONTACT_FIELDS:
+        value = plain(data.get(key, ""), key, 500)
+        if not value:
+            continue
+        if key == "whatsapp":
+            if not re.fullmatch(r"\+[1-9][0-9]{7,14}", value):
+                fail(key, "international_phone")
+        else:
+            try:
+                HTTPS_URL(value)
+                url = urlsplit(value)
+                if url.username is not None or url.password is not None or "\\" in value:
+                    raise ValueError()
+                domain = SOCIAL_DOMAINS.get(key)
+                if domain and (url.hostname not in {domain, f"www.{domain}", f"m.{domain}"} or url.port not in {None, 443}):
+                    raise ValueError()
+            except (ValidationError, ValueError):
+                fail(key, "https_profile_url")
+        result[key] = value
+    return result
+
+
 def body(data):
-    if not isinstance(data, dict) or set(data) != {"source_locale", "editions", "country", "city", "logo", "banner"}:
+    required = {"source_locale", "editions", "country", "city", "logo", "banner"}
+    if not isinstance(data, dict) or data.keys() - {"contacts"} != required:
         fail("body", "fields")
     locale = data["source_locale"]
     editions = data["editions"]
@@ -102,4 +135,6 @@ def body(data):
         result[role] = str(identifier(data[role], role)) if data[role] is not None else None
         if result[role] and not cleaned[locale][role + "_alt"]:
             fail(role + "_alt", "required")
+    if "contacts" in data:
+        result["contacts"] = contacts(data["contacts"])
     return result

@@ -1,5 +1,7 @@
 """Native scoped storefront review; no staff REST adapter or generic publication CRUD."""
 
+from decimal import Decimal
+
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -7,19 +9,22 @@ from django.db.models import Q, F
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
-from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
+from django.contrib import admin, messages
+from django.utils.formats import localize
+from django.utils.translation import gettext_lazy as _, ngettext
 from rest_framework.exceptions import APIException
-from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget, UnfoldBooleanWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
 from apps.accounts.admin.display import short_id
 from apps.catalogue.admin.helpers import link_button
 from apps.catalogue.admin.presentation import seller_cell
 from apps.orders.admin_presentation import account_cell
+from apps.orders.reviews import aggregate
 from apps.organizations.access import independent
 from apps.organizations.admin import ReadOnlyAdmin
 from apps.organizations.models import BusinessProfile
+from apps.verification.models import ReviewCase
 from . import access, services
 from .models import Store, StoreRevision, StoreMedia, StoreEvent, FeaturedStore, PERMISSIONS
 from .views import media_response
@@ -43,6 +48,47 @@ class FeatureForm(forms.Form):
     version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
     profile = forms.ModelChoiceField(queryset=BusinessProfile.objects.none(), required=False, label=_("Featured Rezayi store"), widget=UnfoldAdminSelectWidget)
     reason = forms.CharField(max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+
+
+class StoreSettingsForm(forms.Form):
+    version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
+    contacts_enabled = forms.BooleanField(
+        label=_("Show public contact links"), required=False, widget=UnfoldBooleanWidget,
+        help_text=_("Show WhatsApp and social links from the published store revision."),
+    )
+    verification_badge_enabled = forms.BooleanField(
+        label=_("Show verified business badge"), required=False, widget=UnfoldBooleanWidget,
+        help_text=_("The badge is available only while the business verification is current."),
+    )
+    premium_starts_on = forms.DateField(
+        label=_("Paid shop starts"), required=False, input_formats=["%Y-%m-%d"],
+        widget=UnfoldAdminTextInputWidget(attrs={"type": "date"}),
+    )
+    premium_ends_on = forms.DateField(
+        label=_("Paid shop ends"), required=False, input_formats=["%Y-%m-%d"],
+        widget=UnfoldAdminTextInputWidget(attrs={"type": "date"}),
+        help_text=_("The last day is included. Clear both dates to remove the grant."),
+    )
+    sponsored_placement = forms.BooleanField(
+        label=_("Show in sponsored stores"), required=False, widget=UnfoldBooleanWidget,
+        help_text=_("The homepage can show this shop in Sponsored stores during its paid period if it is published and verified."),
+    )
+    reason = forms.CharField(label=_("Reason"), max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in ("premium_starts_on", "premium_ends_on"):
+            if self.initial.get(field):
+                self.initial[field] = self.initial[field].isoformat()
+
+    def clean(self):
+        data = super().clean()
+        start, end = data.get("premium_starts_on"), data.get("premium_ends_on")
+        if (start is None) != (end is None) or (start and start > end):
+            self.add_error("premium_ends_on", _("Enter both dates with the end on or after the start."))
+        elif data.get("sponsored_placement") and not start:
+            self.add_error("sponsored_placement", _("Set the paid shop dates to enable sponsorship."))
+        return data
 
 
 class RevisionAdmin(ReadOnlyAdmin):
@@ -155,7 +201,8 @@ class RevisionAdmin(ReadOnlyAdmin):
         return render(request, "marketplace/review.html", {**self.admin_site.each_context(request), "title": _("Review public store details"),
             "revision": revision, "form": form, "independent_decision": independent_decision, "can_act": len(choices) > 1, "can_read": can_read,
             "public_store_url": f"{settings.FRONTEND_ORIGIN}/en/stores/{revision.store_id}",
-            "editions": revision.body["editions"].items() if can_read else [], "public_body": revision.body if can_read else None, "media": media}, status=status)
+            "editions": revision.body["editions"].items() if can_read else [], "public_body": revision.body if can_read else None,
+            "contact_fields": revision.body.get("contacts", {}).items() if can_read else (), "media": media}, status=status)
 
     def download(self, request, pk):
         actor = admin_actor(request)
@@ -203,12 +250,18 @@ class FeatureAdmin(ReadOnlyAdmin):
 
 
 class StoreAdmin(ReadOnlyAdmin):
-    list_display = ["business_identity", "published_state", "version", "created_at"]
+    list_display = ["business_identity", "published_state", "paid_shop", "contacts_enabled", "store_settings", "created_at"]
     list_display_links = ["business_identity"]
     list_select_related = ["profile__account__user", "published"]
     search_fields = ["profile__display_name", "profile__legal_name"]
     ordering = ["-created_at"]
-    fields = ["business_identity", "published_state", "version", "created_at"]
+    fields = ["business_identity", "published_state", "business_verification", "buyer_rating", "paid_shop", "store_settings", "version", "created_at"]
+
+    def get_urls(self):
+        return [
+            path("<uuid:pk>/settings/", self.admin_site.admin_view(self.settings_view), name="marketplace_store_settings"),
+            *super().get_urls(),
+        ]
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
@@ -225,6 +278,59 @@ class StoreAdmin(ReadOnlyAdmin):
                 _("Published revision %(number)s") % {"number": obj.published.number}, "storefront",
             )
         return _("Not published yet")
+
+    @admin.display(description=_("Current business verification"))
+    def business_verification(self, obj):
+        case = ReviewCase.objects.filter(profile=obj.profile, revision=obj.profile.revision).first()
+        if case:
+            return link_button(reverse("admin:verification_reviewcase_workflow", args=[case.pk]), _("Open business verification"), "verified")
+        return _("Not submitted")
+
+    @admin.display(description=_("Buyer rating"))
+    def buyer_rating(self, obj):
+        rating = aggregate(obj.profile)
+        if rating["count"]:
+            return ngettext("%(average)s out of 5 · %(count)s review", "%(average)s out of 5 · %(count)s reviews", rating["count"]) % {
+                "average": localize(Decimal(rating["average"])), "count": localize(rating["count"]),
+            }
+        return _("No approved buyer reviews")
+
+    @admin.display(description=_("Shop plan"))
+    def paid_shop(self, obj):
+        return _("Paid shop") if obj.premium_active else _("Free shop")
+
+    @admin.display(description=_("Store settings"))
+    def store_settings(self, obj):
+        return link_button(reverse("admin:marketplace_store_settings", args=[obj.pk]), _("Manage store features"), "settings")
+
+    def settings_view(self, request, pk):
+        if not is_owner(request) or request.method not in {"GET", "HEAD", "POST"}:
+            raise PermissionDenied
+        store = get_object_or_404(self.get_queryset(request), pk=pk)
+        fields = ("version", "contacts_enabled", "verification_badge_enabled", "premium_starts_on", "premium_ends_on", "sponsored_placement")
+        form = StoreSettingsForm(
+            request.POST if request.method == "POST" else None,
+            initial={field: getattr(store, field) for field in fields},
+        )
+        status = 200
+        if request.method == "POST" and form.is_valid():
+            try:
+                services.configure_store(admin_actor(request), pk, form.cleaned_data)
+            except APIException as error:
+                if error.status_code == 409:
+                    form.add_error(None, _("This store changed. Reload the page and try again."))
+                else:
+                    form.add_error(None, _("Review the store settings and try again."))
+                status = error.status_code
+            else:
+                self.message_user(request, _("Store features saved."), level=messages.SUCCESS)
+                return HttpResponseRedirect(request.path)
+        return render(request, "marketplace/store_settings.html", {
+            **self.admin_site.each_context(request), "title": _("Manage store features"), "store": store, "form": form,
+            "verified": access.eligible_profiles([pk]).exists(),
+            "store_url": reverse("admin:marketplace_store_change", args=[pk]),
+            "contact_fields": (store.published.body.get("contacts", {}) if store.published_id else {}).items(),
+        }, status=status)
 
 
 class StoreEventAdmin(ReadOnlyAdmin):

@@ -12,6 +12,16 @@ class MarketplaceAsset(s.Serializer):
     variant = s.UUIDField(allow_null=True, required=False)
 
 
+class MarketplaceContact(s.Serializer):
+    channel = s.ChoiceField(choices=["whatsapp", "instagram", "facebook", "tiktok", "website"])
+    url = s.URLField()
+
+
+class MarketplaceReviewSummary(s.Serializer):
+    count = s.IntegerField()
+    average = s.CharField(allow_null=True)
+
+
 class MarketplaceStore(s.Serializer):
     id = s.UUIDField()
     name = s.CharField()
@@ -24,6 +34,9 @@ class MarketplaceStore(s.Serializer):
     source_fallback = s.BooleanField()
     product_count = s.IntegerField()
     featured = s.BooleanField()
+    verified_business = s.BooleanField()
+    contacts = MarketplaceContact(many=True, required=False)
+    review_summary = MarketplaceReviewSummary(required=False)
     logo = MarketplaceAsset(allow_null=True)
     banner = MarketplaceAsset(allow_null=True)
 
@@ -109,6 +122,7 @@ class MarketplaceHome(s.Serializer):
     products = MarketplaceProduct(many=True)
     stores = MarketplaceStore(many=True)
     featured_store = MarketplaceStore(allow_null=True)
+    sponsored_stores = MarketplaceStore(many=True)
 
 
 class MarketplaceSitemap(s.Serializer):
@@ -132,11 +146,6 @@ class MarketplaceReview(s.Serializer):
 
 class MarketplaceReviews(MarketplacePage):
     results = MarketplaceReview(many=True)
-
-
-class MarketplaceReviewSummary(s.Serializer):
-    count = s.IntegerField()
-    average = s.CharField(allow_null=True)
 
 
 class StoreSave(StrictSerializer):
@@ -177,6 +186,9 @@ class StorePrivate(s.Serializer):
     version = s.IntegerField()
     can_edit = s.BooleanField()
     can_publish = s.BooleanField()
+    business_verified = s.BooleanField()
+    contacts_enabled = s.BooleanField()
+    premium_active = s.BooleanField()
     published = s.UUIDField(allow_null=True)
     revisions = StorePrivateRevision(many=True)
     media = StorePrivateMedia(many=True)

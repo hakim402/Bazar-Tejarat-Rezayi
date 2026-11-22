@@ -3483,6 +3483,15 @@ export interface components {
             retail?: string | null;
             wholesale?: string | null;
         };
+        /**
+         * @description * `whatsapp` - whatsapp
+         *     * `instagram` - instagram
+         *     * `facebook` - facebook
+         *     * `tiktok` - tiktok
+         *     * `website` - website
+         * @enum {string}
+         */
+        ChannelEnum: "whatsapp" | "instagram" | "facebook" | "tiktok" | "website";
         ChargeCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -4601,11 +4610,17 @@ export interface components {
             };
             count: number;
         };
+        MarketplaceContact: {
+            channel: components["schemas"]["ChannelEnum"];
+            /** Format: uri */
+            url: string;
+        };
         MarketplaceHome: {
             categories: components["schemas"]["MarketplaceCategory"][];
             products: components["schemas"]["MarketplaceProduct"][];
             stores: components["schemas"]["MarketplaceStore"][];
             featured_store: components["schemas"]["MarketplaceStore"] | null;
+            sponsored_stores: components["schemas"]["MarketplaceStore"][];
         };
         MarketplaceProduct: {
             /** Format: uuid */
@@ -4670,6 +4685,9 @@ export interface components {
             source_fallback: boolean;
             product_count: number;
             featured: boolean;
+            verified_business: boolean;
+            contacts?: components["schemas"]["MarketplaceContact"][];
+            review_summary?: components["schemas"]["MarketplaceReviewSummary"];
             logo: components["schemas"]["MarketplaceAsset"] | null;
             banner: components["schemas"]["MarketplaceAsset"] | null;
         };
@@ -5638,10 +5656,11 @@ export interface components {
         StockEffectEnum: "consume_hold" | "deduct_cod";
         /**
          * @description * `submit` - submit
+         *     * `publish` - publish
          *     * `withdraw` - withdraw
          * @enum {string}
          */
-        StoreActionActionEnum: "submit" | "withdraw";
+        StoreActionActionEnum: "submit" | "publish" | "withdraw";
         StoreActionRequest: {
             version: number;
             /** Format: uuid */
@@ -5654,6 +5673,10 @@ export interface components {
             name: string;
             version: number;
             can_edit: boolean;
+            can_publish: boolean;
+            business_verified: boolean;
+            contacts_enabled: boolean;
+            premium_active: boolean;
             /** Format: uuid */
             published: string | null;
             revisions: components["schemas"]["StorePrivateRevision"][];
@@ -5673,6 +5696,7 @@ export interface components {
             body: unknown;
             state: string;
             reason: string;
+            current_business: boolean;
         };
         StoreProfile: {
             /** Format: uuid */

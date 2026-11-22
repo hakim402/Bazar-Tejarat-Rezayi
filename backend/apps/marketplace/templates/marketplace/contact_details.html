@@ -1,0 +1,9 @@
+{% load i18n %}
+<dl class="{{ rz_order.muted }}">
+    {% for kind, value in contact_fields %}
+    <div>
+        <dt>{% if kind == "whatsapp" %}WhatsApp{% elif kind == "instagram" %}Instagram{% elif kind == "facebook" %}Facebook{% elif kind == "tiktok" %}TikTok{% else %}{% translate "Website" %}{% endif %}</dt>
+        <dd class="break-all"><bdi>{{ value }}</bdi></dd>
+    </div>
+    {% endfor %}
+</dl>

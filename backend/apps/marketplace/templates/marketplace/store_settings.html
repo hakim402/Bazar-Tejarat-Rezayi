@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block content %}
+{% translate "Save store features" as submit_label %}
+<div class="{{ rz_order.layout }}">
+    <header class="{{ rz_order.panel }}">
+        <div class="{{ rz_order.toolbar }}">
+            <div class="min-w-0">
+                <h1 class="{{ rz_order.heading }}">{{ title }}</h1>
+                <p class="{{ rz_order.muted }}"><bdi>{{ store.profile.display_name }}</bdi></p>
+            </div>
+            <a class="{{ rz_order.secondary_button }}" href="{{ store_url }}">{% translate "Back to store" %}</a>
+        </div>
+    </header>
+    <div class="{{ rz_order.workspace_grid }}">
+        <section class="{{ rz_order.panel }}">
+            {% include "accounts/admin/includes/action_form.html" with submit_label=submit_label %}
+        </section>
+        <section class="{{ rz_order.panel }}">
+            <h2 class="{{ rz_order.section_heading }}">{% translate "Store status" %}</h2>
+            <ul class="{{ rz_order.muted }}">
+                <li>{% if verified %}{% translate "Business verification current" %}{% else %}{% translate "Business verification required" %}{% endif %}</li>
+                <li>{% if store.premium_active %}{% translate "Paid shop" %}{% else %}{% translate "Free shop" %}{% endif %}</li>
+            </ul>
+            <h3 class="{{ rz_order.section_heading }}">{% translate "Published contact details" %}</h3>
+            {% if contact_fields %}
+            {% include "marketplace/contact_details.html" %}
+            {% else %}
+            <p class="{{ rz_order.muted }}">{% translate "No published contact details" %}</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

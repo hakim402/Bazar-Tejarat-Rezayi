@@ -48,15 +48,25 @@ def eligible_reviews(seller=None):
     return qs.filter(order__seller_id=seller.pk) if seller is not None else qs
 
 
-def aggregate(seller):
-    """Public average and count. An empty set has no rating, never zero."""
-    figures = eligible_reviews(seller).aggregate(total=Count("order_id"), ratings=Sum("rating"))
-    if not figures["total"]:
+def _summary(total, ratings):
+    if not total:
         return {"count": 0, "average": None}
-    average = (Decimal(figures["ratings"]) / Decimal(figures["total"])).quantize(
+    average = (Decimal(ratings) / Decimal(total)).quantize(
         AVERAGE_STEP, rounding=ROUND_HALF_UP
     )
-    return {"count": figures["total"], "average": format(average, ".1f")}
+    return {"count": total, "average": format(average, ".1f")}
+
+
+def aggregate(seller):
+    """Public average and count. An empty set has no rating, never zero."""
+    return _summary(**eligible_reviews(seller).aggregate(total=Count("order_id"), ratings=Sum("rating")))
+
+
+def summaries(seller_ids):
+    rows = eligible_reviews().filter(order__seller_id__in=seller_ids).order_by().values("order__seller_id").annotate(
+        total=Count("order_id"), ratings=Sum("rating"),
+    )
+    return {row["order__seller_id"]: _summary(row["total"], row["ratings"]) for row in rows}
 
 
 def independent(order, user, *, review=None):

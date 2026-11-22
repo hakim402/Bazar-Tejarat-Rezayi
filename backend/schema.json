@@ -12618,6 +12618,17 @@
                     "unit"
                 ]
             },
+            "ChannelEnum": {
+                "enum": [
+                    "whatsapp",
+                    "instagram",
+                    "facebook",
+                    "tiktok",
+                    "website"
+                ],
+                "type": "string",
+                "description": "* `whatsapp` - whatsapp\n* `instagram` - instagram\n* `facebook` - facebook\n* `tiktok` - tiktok\n* `website` - website"
+            },
             "ChargeCommandRequest": {
                 "type": "object",
                 "properties": {
@@ -15976,6 +15987,22 @@
                     "name"
                 ]
             },
+            "MarketplaceContact": {
+                "type": "object",
+                "properties": {
+                    "channel": {
+                        "$ref": "#/components/schemas/ChannelEnum"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri"
+                    }
+                },
+                "required": [
+                    "channel",
+                    "url"
+                ]
+            },
             "MarketplaceHome": {
                 "type": "object",
                 "properties": {
@@ -16004,12 +16031,19 @@
                             }
                         ],
                         "nullable": true
+                    },
+                    "sponsored_stores": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MarketplaceStore"
+                        }
                     }
                 },
                 "required": [
                     "categories",
                     "featured_store",
                     "products",
+                    "sponsored_stores",
                     "stores"
                 ]
             },
@@ -16256,6 +16290,18 @@
                     "featured": {
                         "type": "boolean"
                     },
+                    "verified_business": {
+                        "type": "boolean"
+                    },
+                    "contacts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MarketplaceContact"
+                        }
+                    },
+                    "review_summary": {
+                        "$ref": "#/components/schemas/MarketplaceReviewSummary"
+                    },
                     "logo": {
                         "allOf": [
                             {
@@ -16286,7 +16332,8 @@
                     "product_count",
                     "requested_locale",
                     "resolved_locale",
-                    "source_fallback"
+                    "source_fallback",
+                    "verified_business"
                 ]
             },
             "MarketplaceStoreKindEnum": {
@@ -19596,10 +19643,11 @@
             "StoreActionActionEnum": {
                 "enum": [
                     "submit",
+                    "publish",
                     "withdraw"
                 ],
                 "type": "string",
-                "description": "* `submit` - submit\n* `withdraw` - withdraw"
+                "description": "* `submit` - submit\n* `publish` - publish\n* `withdraw` - withdraw"
             },
             "StoreActionRequest": {
                 "type": "object",
@@ -19638,6 +19686,18 @@
                     "can_edit": {
                         "type": "boolean"
                     },
+                    "can_publish": {
+                        "type": "boolean"
+                    },
+                    "business_verified": {
+                        "type": "boolean"
+                    },
+                    "contacts_enabled": {
+                        "type": "boolean"
+                    },
+                    "premium_active": {
+                        "type": "boolean"
+                    },
                     "published": {
                         "type": "string",
                         "format": "uuid",
@@ -19657,10 +19717,14 @@
                     }
                 },
                 "required": [
+                    "business_verified",
                     "can_edit",
+                    "can_publish",
+                    "contacts_enabled",
                     "id",
                     "media",
                     "name",
+                    "premium_active",
                     "published",
                     "revisions",
                     "version"
@@ -19706,10 +19770,14 @@
                     },
                     "reason": {
                         "type": "string"
+                    },
+                    "current_business": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
                     "body",
+                    "current_business",
                     "id",
                     "number",
                     "reason",

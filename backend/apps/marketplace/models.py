@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 PERMISSIONS = ("view_store_queue", "read_store_submission", "assign_store_review", "review_store", "moderate_store")
 PUBLIC_REVISION_STATES = ("approved", "published")
@@ -44,6 +45,11 @@ class Store(GuardedRecord):
     profile = models.OneToOneField("organizations.BusinessProfile", primary_key=True, on_delete=models.PROTECT, related_name="public_store")
     version = models.PositiveIntegerField(default=0)
     published = models.ForeignKey("StoreRevision", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    contacts_enabled = models.BooleanField(default=False)
+    verification_badge_enabled = models.BooleanField(default=True)
+    premium_starts_on = models.DateField(null=True, blank=True)
+    premium_ends_on = models.DateField(null=True, blank=True)
+    sponsored_placement = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -53,9 +59,22 @@ class Store(GuardedRecord):
 
     class Meta:
         permissions = [(code, code.replace("_", " ")) for code in PERMISSIONS]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(premium_starts_on__isnull=True, premium_ends_on__isnull=True, sponsored_placement=False)
+                    | Q(premium_starts_on__isnull=False, premium_ends_on__isnull=False, premium_ends_on__gte=models.F("premium_starts_on"))
+                ),
+                name="marketplace_premium_window",
+            ),
+        ]
 
     def __str__(self):
         return str(self.profile_id)
+
+    @property
+    def premium_active(self):
+        return bool(self.premium_starts_on and self.premium_ends_on and self.premium_starts_on <= timezone.localdate() <= self.premium_ends_on)
 
 
 class StoreRevision(GuardedRecord):
