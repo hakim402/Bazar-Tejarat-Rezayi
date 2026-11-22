@@ -1,0 +1,11 @@
+<div{% if switch %} class="{{ field_theme.switch_row }}"{% endif %}>
+    <div class="flex min-w-0 flex-col gap-1">
+        <label for="{{ field.id_for_label }}" class="{{ field_theme.label }}">
+            {{ field.label }}{% if field.field.required %} *{% endif %}
+        </label>
+        {% if not switch %}{{ field }}{% endif %}
+        {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="{{ field_theme.help }}">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<div class="{{ field_theme.error }}" role="alert">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% if switch %}<div class="shrink-0">{{ field }}</div>{% endif %}
+</div>

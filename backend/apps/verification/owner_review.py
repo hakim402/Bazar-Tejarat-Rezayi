@@ -9,6 +9,7 @@ from django.urls import reverse
 from rest_framework.exceptions import APIException
 
 from apps.accounts.admin.copy import COPY as ADMIN_COPY
+from apps.accounts.admin.theme import VERIFICATION_THEME
 from apps.accounts.models import Account, AuditEvent
 from apps.accounts.admin.access import admin_actor, permits, is_owner
 from apps.organizations.owner_copy import COPY
@@ -18,7 +19,7 @@ from .services import authorize_case, categories, review_action, reviewer
 
 def workflow(admin, request, pk):
     case = get_object_or_404(
-        admin.get_queryset(request).select_related("profile__account", "assigned_to__user"), pk=pk
+        admin.get_queryset(request).select_related("profile__account__user", "assigned_to__user"), pk=pk
     )
     actor = admin_actor(request)
     try:
@@ -101,7 +102,7 @@ def workflow(admin, request, pk):
         ("business_type", ADMIN_COPY["review_activity"]), ("location", ADMIN_COPY["review_location"]),
         ("contact_phone", ADMIN_COPY["review_phone"]), ("representative", ADMIN_COPY["review_representative"]),
     )
-    evidence = list(case.evidence.order_by("category", "created_at", "pk")) if permits(request, "verification", "read_evidence") and (is_owner(request) or case.assigned_to_id == actor.account.pk) else []
+    evidence = list(case.evidence.order_by("category", "created_at", "pk")) if can_read else []
     rows = []
     for category in categories(case.profile):
         rows.append({
@@ -112,11 +113,15 @@ def workflow(admin, request, pk):
                       for item in evidence if item.category == category],
         })
     latest = case.profile.cases.filter(revision=case.profile.revision).first() if not current else None
+    decision_fields = [form[name] for name in ("action", "assigned_to", "reason", "internal_note") if name in form.fields]
+    alternative_fields = [form[name] for name in form.fields if name.startswith("alternative_")]
     context = dict(
         admin.admin_site.each_context(request), title=ADMIN_COPY["review_title"], resource=case, review_copy=ADMIN_COPY,
+        rz_review=VERIFICATION_THEME, decision_fields=decision_fields, alternative_fields=alternative_fields,
+        show_alternatives=editable and any(field.errors or field.value() for field in alternative_fields),
         form=form, t=t, independent_decision=independent_decision, editable=editable, can_act=can_act, current=current, evidence_rows=rows if can_read else [], can_read=can_read,
         snapshot=[{"label": label, "value": case.snapshot.get(key, "")} for key, label in fields] if can_read else [],
-        has_reviewers=has_reviewers, review_events=AuditEvent.objects.filter(Q(resource_type="verification.reviewcase", resource_id=case.pk) | Q(resource_type="verification.evidence", state__case_id=str(case.pk))).order_by("created_at") if can_read else [], latest_url=(
+        review_events=AuditEvent.objects.filter(Q(resource_type="verification.reviewcase", resource_id=case.pk) | Q(resource_type="verification.evidence", state__case_id=str(case.pk))).order_by("-created_at", "-pk") if can_read else [], latest_url=(
             reverse("admin:verification_reviewcase_workflow", args=[latest.pk]) if latest else None
         ),
     )

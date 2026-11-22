@@ -2,30 +2,7 @@
 {% load i18n %}
 {% block content %}
 <div class="{{ rz_store.layout }}">
-    <header class="{{ rz_store.header }}">
-        <div class="flex min-w-0 items-center gap-3">
-            <span class="material-symbols-outlined {{ rz_store.identity_icon }}" aria-hidden="true">storefront</span>
-            <div class="min-w-0">
-                <h1 class="{{ rz_store.title }}"><bdi>{{ store.profile.display_name }}</bdi></h1>
-                <p class="text-sm {{ rz_store.muted }}">
-                    {% if verified %}
-                        {% translate "Business verification current" %}
-                    {% else %}
-                        {% translate "Business verification required" %}
-                    {% endif %}
-                </p>
-            </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            <a class="{{ rz_store.secondary_button }}" href="{{ store_url }}">{% translate "Back to store" %}</a>
-            {% if public_url %}
-                <a class="{{ rz_store.secondary_button }}" href="{{ public_url }}" target="_blank" rel="noopener">
-                    {% translate "Open public store" %}
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_outward</span>
-                </a>
-            {% endif %}
-        </div>
-    </header>
+    {% include "marketplace/store_header.html" %}
 
     <div class="{{ rz_store.grid }}">
         <form method="post" class="{{ rz_store.main }}">
@@ -44,8 +21,8 @@
                     {% translate "Public visibility" %}
                 </h2>
                 <div>
-                    {% include "marketplace/store_settings_field.html" with field=form.contacts_enabled switch=True %}
-                    {% include "marketplace/store_settings_field.html" with field=form.verification_badge_enabled switch=True %}
+                    {% include "accounts/admin/includes/workspace_field.html" with field=form.contacts_enabled field_theme=rz_store switch=True %}
+                    {% include "accounts/admin/includes/workspace_field.html" with field=form.verification_badge_enabled field_theme=rz_store switch=True %}
                 </div>
             </section>
 
@@ -58,14 +35,14 @@
                     {{ plan_badge }}
                 </div>
                 <div class="{{ rz_store.fields }}">
-                    {% include "marketplace/store_settings_field.html" with field=form.premium_starts_on %}
-                    {% include "marketplace/store_settings_field.html" with field=form.premium_ends_on %}
+                    {% include "accounts/admin/includes/workspace_field.html" with field=form.premium_starts_on field_theme=rz_store %}
+                    {% include "accounts/admin/includes/workspace_field.html" with field=form.premium_ends_on field_theme=rz_store %}
                 </div>
-                {% include "marketplace/store_settings_field.html" with field=form.sponsored_placement switch=True %}
+                {% include "accounts/admin/includes/workspace_field.html" with field=form.sponsored_placement field_theme=rz_store switch=True %}
             </section>
 
             <footer class="{{ rz_store.footer }}">
-                {% include "marketplace/store_settings_field.html" with field=form.reason %}
+                {% include "accounts/admin/includes/workspace_field.html" with field=form.reason field_theme=rz_store %}
                 <div class="{{ rz_store.actions }}">
                     <button type="submit" class="{{ rz_store.button }}">{% translate "Save store features" %}</button>
                 </div>
@@ -73,7 +50,7 @@
         </form>
 
         <aside class="{{ rz_store.layout }}">
-            <section class="{{ rz_store.panel }}" aria-labelledby="store-contacts">
+            <section class="{{ rz_store.panel }} grow" aria-labelledby="store-contacts">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h2 id="store-contacts" class="{{ rz_store.panel_title }}">{% translate "Published contact details" %}</h2>
                     {% if contact_fields %}{{ contact_badge }}{% endif %}

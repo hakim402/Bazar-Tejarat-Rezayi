@@ -1,38 +1,190 @@
 {% extends "admin/base_site.html" %}
 {% load i18n order_admin %}
+
 {% block content %}
-{% translate "Not provided" as not_provided %}{% translate "Kabul" as kabul_label %}
-<div class="{{ rz_order.layout }}" data-testid="owner-verification-review">
-<header class="{{ rz_order.panel }}">
-<div class="{{ rz_order.toolbar }}">
-<div class="min-w-0"><p class="{{ rz_order.eyebrow }}">{{ review_copy.review_title }}</p><h1 class="{{ rz_order.heading }}"><bdi>{{ resource.profile.display_name }}</bdi></h1><p class="{{ rz_order.muted }}">{{ resource.profile.get_kind_display }} · {% blocktranslate with revision=resource.revision version=resource.version %}Revision {{ revision }} · Version {{ version }}{% endblocktranslate %}</p></div>
-<div class="flex flex-wrap items-center gap-2"><span data-testid="review-status">{{ resource.status|admin_badge }}</span><a class="{{ rz_order.secondary_button }}" href="{% url 'admin:verification_reviewcase_changelist' %}">{{ review_copy.review_back }}</a></div>
-</div>
-<div class="{{ rz_order.detail_body }}">{{ resource.profile|admin_business }}</div>
-{% if not independent_decision %}<p class="{{ rz_order.notice }}" role="status">{% translate "You can inspect this record. An independent reviewer must decide your own or historically linked business submission." %}</p>{% endif %}
-<p class="{{ rz_order.muted }}">{% if is_owner_admin %}{{ review_copy.review_access }}{% else %}{% translate "Your assigned role and current case assignment control decisions and private document access." %}{% endif %}</p>
-</header>
-{% if not current %}<p class="{{ rz_order.notice }}" role="status">{{ review_copy.review_previous }} {% if latest_url %}<a class="{{ rz_order.disclosure }}" href="{{ latest_url }}">{{ review_copy.review_latest }}</a>{% endif %}</p>
-{% elif resource.status == "draft" %}<p class="{{ rz_order.notice }}" role="status">{{ review_copy.review_draft }}</p>
-{% elif not can_act and not is_owner_admin %}<p class="{{ rz_order.notice }}" role="status">{% translate "Your role permits inspection only. No decision action is assigned." %}</p>
-{% elif not editable %}<p class="{{ rz_order.notice }}" role="status">{{ review_copy.review_decided }}</p>{% endif %}
-<div class="{{ rz_order.workspace_grid }}">
-<div class="{{ rz_order.main_column }}">
-<section class="{{ rz_order.panel }}" aria-labelledby="decision-heading">
-<h2 id="decision-heading" class="{{ rz_order.section_heading }}">{% if editable %}{{ review_copy.review_decision }}{% else %}{{ review_copy.review_record }}{% endif %}</h2>
-<p class="{{ rz_order.muted }}">{% if editable %}{{ review_copy.review_instruction }}{% else %}{% translate "Status" %}: {{ resource.status|admin_badge }}{% endif %}</p>
-{% if resource.submitted_at %}<p class="{{ rz_order.muted }}">{% translate "Submitted" %}: <bdi dir="ltr">{{ resource.submitted_at|date:"M j, Y H:i" }}</bdi> ({{ kabul_label }})</p>{% endif %}
-{% if resource.decided_at %}<p class="{{ rz_order.muted }}">{% translate "Decided" %}: <bdi dir="ltr">{{ resource.decided_at|date:"M j, Y H:i" }}</bdi> ({{ kabul_label }})</p>{% endif %}
-{% if resource.reason and can_read or resource.reason and is_owner_admin %}<p class="whitespace-pre-wrap break-words" dir="auto">{{ resource.reason }}</p>{% endif %}
-<h3 class="{{ rz_order.label }}">{{ t.requested }}</h3><dl class="{{ rz_order.detail_body }}">{% for row in evidence_rows %}<div><dt class="{{ rz_order.label }}">{{ row.label }}</dt><dd class="{{ rz_order.muted }} whitespace-pre-wrap break-words" dir="auto">{{ row.requested|default:t.none }}</dd></div>{% empty %}<p class="{{ rz_order.muted }}">{{ review_copy.review_no_document }}</p>{% endfor %}</dl>
-{% if editable %}{% include "accounts/admin/includes/action_form.html" with submit_label=review_copy.review_save novalidate=True form_note=t.intro %}<p><a class="{{ rz_order.disclosure }}" href="{% url 'admin:verification_reviewcase_workflow' resource.pk %}">{{ review_copy.review_reload }}</a> <span class="{{ rz_order.muted }}">{{ review_copy.review_reload_help }}</span></p>{% endif %}
-</section>
-</div>
-<aside class="{{ rz_order.layout }}" aria-label="{% translate 'Submitted application' %}">
-<section class="{{ rz_order.panel }}" aria-labelledby="applicant-heading"><h2 id="applicant-heading" class="{{ rz_order.section_heading }}">{{ review_copy.review_applicant }}</h2><p class="{{ rz_order.muted }}">{{ review_copy.review_snapshot }}</p><dl class="{{ rz_order.detail_body }}">{% for item in snapshot %}<div><dt class="{{ rz_order.label }}">{{ item.label }}</dt><dd class="break-words" dir="auto">{{ item.value|default:not_provided }}</dd></div>{% empty %}<p class="{{ rz_order.muted }}">{% translate "Submission content requires assigned read permission." %}</p>{% endfor %}</dl></section>
-<section class="{{ rz_order.panel }}" aria-labelledby="documents-heading"><h2 id="documents-heading" class="{{ rz_order.section_heading }}">{{ review_copy.review_documents }}</h2><p class="{{ rz_order.muted }}">{{ review_copy.review_download_help }}</p><div class="{{ rz_order.detail_body }}">{% for row in evidence_rows %}<div class="border-t pt-3 {{ rz_order.divider }}"><h3 class="{{ rz_order.label }}">{{ row.label }}</h3>{% for file in row.files %}<p><a class="{{ rz_order.action }}" href="{{ file.url }}">{% blocktranslate with label=row.label n=forloop.counter %}Download {{ label }} {{ n }}{% endblocktranslate %}</a> <span class="{{ rz_order.muted }}" dir="ltr">{{ file.type }} · {{ file.size|filesizeformat }}</span></p>{% empty %}<p class="{{ rz_order.muted }}">{{ review_copy.review_no_document }}</p>{% endfor %}{% if row.accepted %}<p class="whitespace-pre-wrap break-words {{ rz_order.muted }}">{% translate "Accepted alternative:" %} <bdi dir="auto">{{ row.accepted }}</bdi></p>{% endif %}</div>{% endfor %}</div></section>
-</aside>
-</div>
-{% if review_events %}<section class="{{ rz_order.panel }}"><h2 class="{{ rz_order.section_heading }}">{% translate "Review activity" %}</h2>{% for event in review_events|slice:":5" %}<p class="{{ rz_order.history }}"><bdi>{{ event.created_at }}</bdi> · {{ event.action|admin_badge }} · <span dir="auto">{{ event.reason }}</span></p>{% empty %}<p class="{{ rz_order.muted }}">{% translate "No activity recorded yet." %}</p>{% endfor %}{% if review_events|length > 5 %}<details><summary class="{{ rz_order.disclosure }}">{% translate "View more activity" %}</summary><div class="{{ rz_order.detail_body }}">{% for event in review_events|slice:"5:" %}<p class="{{ rz_order.history }}"><bdi>{{ event.created_at }}</bdi> · {{ event.action|admin_badge }} · <span dir="auto">{{ event.reason }}</span></p>{% endfor %}</div></details>{% endif %}</section>{% endif %}
+{% translate "Not provided" as not_provided %}
+<div class="{{ rz_review.layout }}" data-testid="owner-verification-review">
+    <header class="{{ rz_review.header }}">
+        <div class="flex min-w-0 items-center gap-3">
+            <span class="material-symbols-outlined {{ rz_review.identity_icon }}" aria-hidden="true">verified_user</span>
+            <div class="min-w-0">
+                <h1 class="{{ rz_review.title }}"><bdi>{{ resource.profile.display_name }}</bdi></h1>
+                <p class="break-words text-sm {{ rz_review.muted }}">
+                    {{ resource.profile.get_kind_display }} · <bdi>{{ resource.profile.account.user.email }}</bdi>
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span data-testid="review-status">{{ resource.status|admin_badge }}</span>
+            <a class="{{ rz_review.secondary_button }}" href="{% url 'admin:verification_reviewcase_changelist' %}">
+                {% translate "All verification cases" %}
+            </a>
+        </div>
+    </header>
+
+    {% if not independent_decision %}
+        <p class="{{ rz_review.notice }}" role="status">{% translate "You can inspect this record. An independent reviewer must decide your own or historically linked business submission." %}</p>
+    {% endif %}
+    {% if not current %}
+        <p class="{{ rz_review.notice }}" role="status">
+            {{ review_copy.review_previous }}
+            {% if latest_url %}<a class="{{ rz_review.disclosure }}" href="{{ latest_url }}">{{ review_copy.review_latest }}</a>{% endif %}
+        </p>
+    {% elif resource.status == "draft" %}
+        <p class="{{ rz_review.notice }}" role="status">{{ review_copy.review_draft }}</p>
+    {% elif not can_act and not is_owner_admin %}
+        <p class="{{ rz_review.notice }}" role="status">{% translate "Your role permits inspection only. No decision action is assigned." %}</p>
+    {% elif not editable %}
+        <p class="{{ rz_review.notice }}" role="status">{{ review_copy.review_decided }}</p>
+    {% endif %}
+
+    <div class="{{ rz_review.grid }}">
+        <section class="{{ rz_review.panel }}" aria-labelledby="applicant-heading">
+            <h2 id="applicant-heading" class="{{ rz_review.section_heading }}">
+                <span class="material-symbols-outlined {{ rz_review.section_icon }}" aria-hidden="true">badge</span>
+                {{ review_copy.review_applicant }}
+            </h2>
+            {% if can_read %}
+                <dl class="{{ rz_review.fields }}">
+                    {% for item in snapshot %}
+                        <div class="min-w-0">
+                            <dt class="{{ rz_review.label }}">{{ item.label }}</dt>
+                            <dd class="break-words {{ rz_review.muted }}" dir="auto">{{ item.value|default:not_provided }}</dd>
+                        </div>
+                    {% endfor %}
+                </dl>
+            {% else %}
+                <p class="{{ rz_review.muted }}">{% translate "Submission content requires assigned read permission." %}</p>
+            {% endif %}
+        </section>
+
+        <section class="{{ rz_review.panel }}" aria-labelledby="review-record-heading">
+            <h2 id="review-record-heading" class="{{ rz_review.section_heading }}">
+                <span class="material-symbols-outlined {{ rz_review.section_icon }}" aria-hidden="true">description</span>
+                {{ review_copy.review_record }}
+            </h2>
+            <dl>
+                <div class="{{ rz_review.fact_row }}">
+                    <dt class="{{ rz_review.label }}">{% translate "Revision" %}</dt>
+                    <dd class="{{ rz_review.muted }}"><bdi>{{ resource.revision }}</bdi></dd>
+                </div>
+                {% if resource.assigned_to %}
+                    <div class="{{ rz_review.fact_row }}">
+                        <dt class="{{ rz_review.label }}">{% translate "Assigned reviewer" %}</dt>
+                        <dd class="min-w-0 break-words {{ rz_review.muted }}"><bdi>{{ resource.assigned_to.user.display_name|default:resource.assigned_to.user.email }}</bdi></dd>
+                    </div>
+                {% endif %}
+                {% if resource.submitted_at %}
+                    <div class="{{ rz_review.fact_row }}">
+                        <dt class="{{ rz_review.label }}">{% translate "Submitted" %}</dt>
+                        <dd class="{{ rz_review.muted }}"><bdi>{{ resource.submitted_at|date:"DATETIME_FORMAT" }}</bdi></dd>
+                    </div>
+                {% endif %}
+                {% if resource.decided_at %}
+                    <div class="{{ rz_review.fact_row }}">
+                        <dt class="{{ rz_review.label }}">{% translate "Decided" %}</dt>
+                        <dd class="{{ rz_review.muted }}"><bdi>{{ resource.decided_at|date:"DATETIME_FORMAT" }}</bdi></dd>
+                    </div>
+                {% endif %}
+            </dl>
+            {% if resource.reason and can_read or resource.reason and is_owner_admin %}
+                <div class="{{ rz_review.evidence_group }}">
+                    <h3 class="{{ rz_review.label }}">{% translate "Decision reason" %}</h3>
+                    <p class="whitespace-pre-wrap break-words" dir="auto">{{ resource.reason }}</p>
+                </div>
+            {% endif %}
+        </section>
+
+        {% if can_read %}
+            <section class="{{ rz_review.panel }}{% if not editable %} {{ rz_review.main_column }}{% endif %}" aria-labelledby="documents-heading">
+                <h2 id="documents-heading" class="{{ rz_review.section_heading }}">
+                    <span class="material-symbols-outlined {{ rz_review.section_icon }}" aria-hidden="true">folder_open</span>
+                    {{ review_copy.review_documents }}
+                </h2>
+                <div class="{{ rz_review.evidence_grid }}">
+                    {% for row in evidence_rows %}
+                        <div class="{{ rz_review.evidence_group }}">
+                            <h3 class="{{ rz_review.label }}">{{ row.label }}</h3>
+                            {% for file in row.files %}
+                                <p class="mt-2">
+                                    <a class="{{ rz_review.document_link }}" href="{{ file.url }}">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">download</span>
+                                        {% blocktranslate with label=row.label n=forloop.counter %}Download {{ label }} {{ n }}{% endblocktranslate %}
+                                    </a>
+                                    <bdi class="{{ rz_review.help }}" dir="ltr">{{ file.type }} · {{ file.size|filesizeformat }}</bdi>
+                                </p>
+                            {% empty %}
+                                <p class="mt-1 {{ rz_review.help }}">{{ review_copy.review_no_document }}</p>
+                            {% endfor %}
+                            {% if row.requested %}
+                                <p class="mt-2 break-words whitespace-pre-wrap {{ rz_review.muted }}">{{ t.requested }} <bdi dir="auto">{{ row.requested }}</bdi></p>
+                            {% endif %}
+                            {% if row.accepted %}
+                                <p class="mt-2 break-words whitespace-pre-wrap {{ rz_review.muted }}">{% translate "Accepted alternative:" %} <bdi dir="auto">{{ row.accepted }}</bdi></p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        {% if editable %}
+            <section class="{{ rz_review.panel }}{% if not can_read %} {{ rz_review.main_column }}{% endif %}" aria-labelledby="decision-heading">
+                <h2 id="decision-heading" class="{{ rz_review.section_heading }}">
+                    <span class="material-symbols-outlined {{ rz_review.section_icon }}" aria-hidden="true">fact_check</span>
+                    {{ review_copy.review_decision }}
+                </h2>
+                <form method="post" class="flex flex-col gap-3" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}<div class="{{ rz_review.error }}" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                    {% for field in form.hidden_fields %}
+                        {{ field }}
+                        {% if field.errors %}<div class="{{ rz_review.error }}" role="alert">{{ field.errors }}</div>{% endif %}
+                    {% endfor %}
+                    {% for field in decision_fields %}
+                        {% include "accounts/admin/includes/workspace_field.html" with field=field field_theme=rz_review %}
+                    {% endfor %}
+                    {% if alternative_fields %}
+                        <details class="{{ rz_review.evidence_group }}"{% if show_alternatives %} open{% endif %}>
+                            <summary class="{{ rz_review.disclosure }}">{% translate "Alternative evidence" %}</summary>
+                            <div class="mt-3 flex flex-col gap-3">
+                                {% for field in alternative_fields %}
+                                    {% include "accounts/admin/includes/workspace_field.html" with field=field field_theme=rz_review %}
+                                {% endfor %}
+                            </div>
+                        </details>
+                    {% endif %}
+                    <div class="{{ rz_review.actions }}">
+                        <a class="{{ rz_review.secondary_button }}" href="{% url 'admin:verification_reviewcase_workflow' resource.pk %}" title="{{ review_copy.review_reload_help }}">{{ review_copy.review_reload }}</a>
+                        <button type="submit" class="{{ rz_review.button }}">{{ review_copy.review_save }}</button>
+                    </div>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+
+    {% if review_events %}
+        <section class="{{ rz_review.panel }}" aria-labelledby="review-activity-heading">
+            <h2 id="review-activity-heading" class="{{ rz_review.section_heading }}">
+                <span class="material-symbols-outlined {{ rz_review.section_icon }}" aria-hidden="true">history</span>
+                {% translate "Review activity" %}
+            </h2>
+            <ol class="flex flex-col gap-2">
+                {% for event in review_events|slice:":5" %}
+                    {% include "verification/review_activity_row.html" %}
+                {% endfor %}
+            </ol>
+            {% if review_events|length > 5 %}
+                <details>
+                    <summary class="{{ rz_review.disclosure }}">{% translate "View more activity" %}</summary>
+                    <ol class="mt-3 flex flex-col gap-2">
+                        {% for event in review_events|slice:"5:" %}
+                            {% include "verification/review_activity_row.html" %}
+                        {% endfor %}
+                    </ol>
+                </details>
+            {% endif %}
+        </section>
+    {% endif %}
 </div>
 {% endblock %}

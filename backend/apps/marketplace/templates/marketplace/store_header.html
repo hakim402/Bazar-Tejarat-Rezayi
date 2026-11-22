@@ -1,0 +1,28 @@
+{% load i18n %}
+<header class="{{ rz_store.header }}">
+    <div class="flex min-w-0 items-center gap-3">
+        <span class="material-symbols-outlined {{ rz_store.identity_icon }}" aria-hidden="true">storefront</span>
+        <div class="min-w-0">
+            <h1 class="{{ rz_store.title }}"><bdi>{{ store.profile.display_name }}</bdi></h1>
+            <p class="text-sm {{ rz_store.muted }}">
+                {% if verified %}
+                    {% translate "Business verification current" %}
+                {% else %}
+                    {% translate "Business verification required" %}
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a class="{{ rz_store.secondary_button }}" href="{{ back_url }}">{{ back_label }}</a>
+        {% if public_url %}
+            <a class="{{ rz_store.secondary_button }}" href="{{ public_url }}" target="_blank" rel="noopener">
+                {% translate "Open public store" %}
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_outward</span>
+            </a>
+        {% endif %}
+        {% if settings_url %}
+            <a class="{{ rz_store.button }}" href="{{ settings_url }}">{% translate "Manage store features" %}</a>
+        {% endif %}
+    </div>
+</header>

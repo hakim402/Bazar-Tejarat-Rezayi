@@ -1,0 +1,8 @@
+{% load order_admin %}
+<li class="{{ rz_review.activity }}">
+    <div class="flex flex-wrap items-center gap-2">
+        {{ event.action|admin_badge }}
+        <bdi class="{{ rz_review.muted }}">{{ event.created_at|date:"DATETIME_FORMAT" }}</bdi>
+    </div>
+    {% if event.reason %}<p class="mt-1 break-words whitespace-pre-wrap" dir="auto">{{ event.reason }}</p>{% endif %}
+</li>

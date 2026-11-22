@@ -1,13 +1,17 @@
 """Category-scoped owner form; review rules remain in the shared transition service."""
 
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from unfold.widgets import UnfoldAdminTextareaWidget
 from apps.organizations.forms import WorkflowForm
 from .services import categories
 
 
 class ReviewWorkflowForm(WorkflowForm):
-    internal_note = forms.CharField(max_length=1000, required=False, label="Internal note", widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+    internal_note = forms.CharField(
+        max_length=1000, required=False, label=_("Internal note"), widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}),
+    )
+
     def __init__(self, *args, case, **kwargs):
         super().__init__(*args, **kwargs)
         self.categories = categories(case.profile)

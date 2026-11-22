@@ -193,11 +193,12 @@ WORKSPACE_THEME = {
     "chip": CHIP,
 }
 
-# Store settings keeps the editable controls alongside the saved-store preview.
-STORE_SETTINGS_THEME = {
+# Store details and settings share an identity header and compact record panels.
+STORE_THEME = {
     "layout": WORKSPACE_THEME["layout"],
-    "grid": WORKSPACE_THEME["workspace_grid"],
-    "main": f"{CARD} min-w-0 overflow-hidden lg:col-span-2",
+    "grid": "grid grid-cols-1 gap-6 lg:grid-cols-3",
+    "main": f"{CARD} flex min-w-0 flex-col overflow-hidden lg:col-span-2",
+    "main_column": WORKSPACE_THEME["main_column"],
     "header": f"{CARD} flex flex-wrap items-center justify-between gap-4 p-5",
     "title": f"text-2xl font-semibold break-words {TEXT}",
     "identity_icon": f"{ICON_TILE} h-10 w-10",
@@ -209,15 +210,27 @@ STORE_SETTINGS_THEME = {
     "fields": "grid grid-cols-1 gap-4 md:grid-cols-2",
     "label": f"block text-sm font-medium {TEXT}",
     "help": f"text-xs {MUTED}",
-    "footer": "flex flex-col gap-4 bg-base-50 p-5 dark:bg-base-800",
+    "footer": "mt-auto flex flex-col gap-4 bg-base-50 p-5 dark:bg-base-800",
     "actions": "flex flex-wrap items-center justify-end gap-2",
     "button": f'{WORKSPACE_THEME["button"]} cursor-pointer hover:bg-primary-700',
     "secondary_button": WORKSPACE_THEME["secondary_button"],
     "panel": WORKSPACE_THEME["panel"],
     "panel_title": SECTION_TITLE,
+    "fact_row": f"flex flex-wrap items-center justify-between gap-2 border-b py-2 last:border-b-0 {DIVIDER}",
     "contact_row": f"flex min-w-0 flex-col gap-1 border-b py-2 last:border-b-0 {DIVIDER}",
     "muted": MUTED,
     "error": WORKSPACE_THEME["error"],
+}
+
+VERIFICATION_THEME = {
+    **STORE_THEME,
+    "grid": "grid grid-cols-1 gap-6 lg:grid-cols-2",
+    "evidence_grid": "grid grid-cols-1 gap-3 md:grid-cols-2",
+    "evidence_group": f"min-w-0 rounded-default border p-3 {DIVIDER}",
+    "document_link": f"flex min-w-0 flex-wrap items-center gap-2 font-medium underline {ACTION}",
+    "notice": WORKSPACE_THEME["notice"],
+    "activity": WORKSPACE_THEME["history"],
+    "disclosure": WORKSPACE_THEME["disclosure"],
 }
 
 # Moderation case workspace: reported message, conversation history and the

@@ -20,7 +20,7 @@ from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
 from apps.accounts.admin.display import short_id, state_badge
 from apps.accounts.admin.locale import admin_language, frontend_locale
-from apps.accounts.admin.theme import STORE_SETTINGS_THEME
+from apps.accounts.admin.theme import STORE_THEME
 from apps.catalogue.admin.helpers import link_button
 from apps.catalogue.admin.presentation import seller_cell
 from apps.orders.admin_presentation import account_cell
@@ -85,7 +85,7 @@ class StoreSettingsForm(forms.Form):
             widget = self.fields[field].widget
             widget.attrs["role"] = "switch"
             classes = [item for item in widget.attrs["class"].split() if item != "focus:outline-none"]
-            widget.attrs["class"] = " ".join([*classes, STORE_SETTINGS_THEME["switch_control"]])
+            widget.attrs["class"] = " ".join([*classes, STORE_THEME["switch_control"]])
         for field in ("premium_starts_on", "premium_ends_on"):
             if self.initial.get(field):
                 self.initial[field] = self.initial[field].isoformat()
@@ -270,6 +270,7 @@ class FeatureAdmin(ReadOnlyAdmin):
 
 
 class StoreAdmin(ReadOnlyAdmin):
+    change_form_template = "marketplace/store_detail.html"
     list_display = ["business_identity", "published_state", "paid_shop", "contacts_enabled", "store_settings", "created_at"]
     list_display_links = ["business_identity"]
     list_select_related = ["profile__account__user", "published"]
@@ -285,6 +286,29 @@ class StoreAdmin(ReadOnlyAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         return self.fields
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        if obj is not None:
+            summary = self.store_summary(request, obj)
+            if summary["current_publication"]:
+                publication_badge = state_badge("published", _("Published"))
+            elif obj.published_id:
+                publication_badge = state_badge("pending", _("Publication paused"))
+            else:
+                publication_badge = state_badge("draft", _("Awaiting publication"))
+            pending = obj.revisions.filter(state="submitted").first()
+            context.update(
+                summary,
+                title=_("Store details"),
+                back_url=reverse("admin:marketplace_store_changelist"),
+                back_label=_("Back to public stores"),
+                settings_url=self.settings_url(obj),
+                publication_badge=publication_badge,
+                published_revision=self.published_state(obj) if obj.published_id else None,
+                verification_link=self.business_verification(obj),
+                pending_review_url=reverse("admin:marketplace_storerevision_review", args=[pending.pk]) if pending else None,
+            )
+        return super().render_change_form(request, context, add, change, form_url, obj)
 
     @admin.display(description=_("Business"))
     def business_identity(self, obj):
@@ -326,9 +350,48 @@ class StoreAdmin(ReadOnlyAdmin):
     def paid_shop(self, obj):
         return _("Paid shop") if obj.premium_active else _("Free shop")
 
+    def settings_url(self, obj):
+        return reverse("admin:marketplace_store_settings", args=[obj.pk])
+
     @admin.display(description=_("Store settings"))
     def store_settings(self, obj):
-        return link_button(reverse("admin:marketplace_store_settings", args=[obj.pk]), _("Manage store features"), "settings")
+        return link_button(self.settings_url(obj), _("Manage store features"), "settings")
+
+    def store_summary(self, request, store):
+        approved_case = access.eligible_profiles([store.pk]).values_list("approved_case", flat=True).first()
+        published = store.published
+        contact_fields = list(published.body.get("contacts", {}).items()) if published else []
+        current_publication = bool(
+            approved_case and published and published.state == "approved" and published.business_case_id == approved_case
+        )
+        if store.premium_active:
+            plan_badge = state_badge("active", _("Paid shop"))
+        elif store.premium_starts_on and store.premium_starts_on > timezone.localdate():
+            plan_badge = state_badge("pending", _("Paid plan scheduled"))
+        elif store.premium_ends_on:
+            plan_badge = state_badge("expired", _("Paid plan ended"))
+        else:
+            plan_badge = state_badge("free", _("Free shop"))
+        if not contact_fields:
+            contact_badge = state_badge("empty", _("No published links"))
+        elif not store.contacts_enabled:
+            contact_badge = state_badge("hidden", _("Hidden from the public"))
+        elif not current_publication:
+            contact_badge = state_badge("pending", _("Awaiting publication"))
+        else:
+            contact_badge = state_badge("published", _("Visible to the public"))
+        locale = frontend_locale(admin_language(request))
+        return {
+            "store": store,
+            "rz_store": STORE_THEME,
+            "verified": bool(approved_case),
+            "public_url": f"{settings.FRONTEND_ORIGIN}/{locale}/stores/{store.pk}" if approved_case else None,
+            "buyer_rating": self.buyer_rating(store),
+            "contact_fields": contact_fields,
+            "current_publication": current_publication,
+            "plan_badge": plan_badge,
+            "contact_badge": contact_badge,
+        }
 
     def settings_view(self, request, pk):
         if not is_owner(request) or request.method not in {"GET", "HEAD", "POST"}:
@@ -352,36 +415,11 @@ class StoreAdmin(ReadOnlyAdmin):
             else:
                 self.message_user(request, _("Store features saved."), level=messages.SUCCESS)
                 return HttpResponseRedirect(request.path)
-        approved_case = access.eligible_profiles([pk]).values_list("approved_case", flat=True).first()
-        published = store.published
-        current_publication = bool(
-            approved_case and published and published.state == "approved" and published.business_case_id == approved_case
-        )
-        if store.premium_active:
-            plan_badge = state_badge("active", _("Paid shop"))
-        elif store.premium_starts_on and store.premium_starts_on > timezone.localdate():
-            plan_badge = state_badge("pending", _("Paid plan scheduled"))
-        elif store.premium_ends_on:
-            plan_badge = state_badge("expired", _("Paid plan ended"))
-        else:
-            plan_badge = state_badge("free", _("Free shop"))
-        if not store.contacts_enabled:
-            contact_badge = state_badge("hidden", _("Hidden from the public"))
-        elif not current_publication:
-            contact_badge = state_badge("pending", _("Awaiting publication"))
-        else:
-            contact_badge = state_badge("published", _("Visible to the public"))
         return render(request, "marketplace/store_settings.html", {
-            **self.admin_site.each_context(request), "title": _("Manage store features"), "store": store, "form": form,
-            "rz_store": STORE_SETTINGS_THEME,
-            "verified": bool(approved_case),
-            "store_url": reverse("admin:marketplace_store_change", args=[pk]),
-            "public_url": f"{settings.FRONTEND_ORIGIN}/{frontend_locale(admin_language(request))}/stores/{pk}" if approved_case else None,
-            "buyer_rating": self.buyer_rating(store),
-            "contact_fields": list(published.body.get("contacts", {}).items()) if published else [],
-            "current_publication": current_publication,
-            "plan_badge": plan_badge,
-            "contact_badge": contact_badge,
+            **self.admin_site.each_context(request), **self.store_summary(request, store),
+            "title": _("Manage store features"), "form": form,
+            "back_url": reverse("admin:marketplace_store_change", args=[pk]),
+            "back_label": _("Back to store"),
         }, status=status)
 
 

@@ -1,0 +1,82 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="{{ rz_store.layout }}">
+    {% include "marketplace/store_header.html" %}
+
+    <div class="{{ rz_store.grid }}">
+        <section class="{{ rz_store.panel }} {{ rz_store.main_column }}" aria-labelledby="store-publication">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="store-publication" class="{{ rz_store.section_heading }}">
+                    <span class="material-symbols-outlined {{ rz_store.section_icon }}" aria-hidden="true">public</span>
+                    {% translate "Store publication" %}
+                </h2>
+                {{ publication_badge }}
+            </div>
+            <dl>
+                {% if published_revision %}
+                    <div class="{{ rz_store.fact_row }}">
+                        <dt class="{{ rz_store.label }}">{% translate "Revision" %}</dt>
+                        <dd>{{ published_revision }}</dd>
+                    </div>
+                {% endif %}
+                {% if pending_review_url %}
+                    <div class="{{ rz_store.fact_row }}">
+                        <dt class="{{ rz_store.label }}">{% translate "Submission awaiting review" %}</dt>
+                        <dd><a class="{{ rz_store.secondary_button }}" href="{{ pending_review_url }}">{% translate "Open guarded review" %}</a></dd>
+                    </div>
+                {% endif %}
+                <div class="{{ rz_store.fact_row }}">
+                    <dt class="{{ rz_store.label }}">{% translate "Current business verification" %}</dt>
+                    <dd>{{ verification_link }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="{{ rz_store.panel }}" aria-labelledby="store-feature-summary">
+            <h2 id="store-feature-summary" class="{{ rz_store.panel_title }}">{% translate "Store features" %}</h2>
+            <dl>
+                <div class="{{ rz_store.fact_row }}">
+                    <dt class="{{ rz_store.label }}">{% translate "Shop plan" %}</dt>
+                    <dd>{{ plan_badge }}</dd>
+                </div>
+                <div class="{{ rz_store.fact_row }}">
+                    <dt class="{{ rz_store.label }}">{% translate "Public contact links" %}</dt>
+                    <dd>{{ contact_badge }}</dd>
+                </div>
+                <div class="{{ rz_store.fact_row }}">
+                    <dt class="{{ rz_store.label }}">{% translate "Show in sponsored stores" %}</dt>
+                    <dd class="{{ rz_store.muted }}">
+                        {% if store.sponsored_placement %}{% translate "Enabled" %}{% else %}{% translate "Disabled" %}{% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="{{ rz_store.panel }} {{ rz_store.main_column }}" aria-labelledby="store-review-summary">
+            <h2 id="store-review-summary" class="{{ rz_store.section_heading }}">
+                <span class="material-symbols-outlined {{ rz_store.section_icon }}" aria-hidden="true">rate_review</span>
+                {% translate "Buyer reviews" %}
+            </h2>
+            {{ buyer_rating }}
+        </section>
+
+        <section class="{{ rz_store.panel }}" aria-labelledby="store-record">
+            <h2 id="store-record" class="{{ rz_store.panel_title }}">{% translate "Record details" %}</h2>
+            <dl>
+                <div class="{{ rz_store.fact_row }}">
+                    <dt class="{{ rz_store.label }}">{% translate "Version" %}</dt>
+                    <dd class="{{ rz_store.muted }}"><bdi>{{ store.version }}</bdi></dd>
+                </div>
+                <div class="{{ rz_store.fact_row }}">
+                    <dt class="{{ rz_store.label }}">{% translate "Created" %}</dt>
+                    <dd class="{{ rz_store.muted }}"><bdi>{{ store.created_at|date:"DATE_FORMAT" }}</bdi></dd>
+                </div>
+            </dl>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}

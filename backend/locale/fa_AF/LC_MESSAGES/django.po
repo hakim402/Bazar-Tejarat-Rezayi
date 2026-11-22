@@ -8084,3 +8084,39 @@ msgstr "در انتظار نشر"
 
 msgid "Visible to the public"
 msgstr "نمایان برای عموم"
+
+msgid "Store details"
+msgstr "جزئیات فروشگاه"
+
+msgid "Back to public stores"
+msgstr "بازگشت به فروشگاه‌های عمومی"
+
+msgid "Publication paused"
+msgstr "نشر متوقف شده"
+
+msgid "No published links"
+msgstr "پیوندی نشر نشده"
+
+msgid "Store publication"
+msgstr "نشر فروشگاه"
+
+msgid "Submission awaiting review"
+msgstr "درخواست در انتظار بررسی"
+
+msgid "Store features"
+msgstr "امکانات فروشگاه"
+
+msgid "Disabled"
+msgstr "غیرفعال"
+
+msgid "Created"
+msgstr "تاریخ ایجاد"
+
+msgid "All verification cases"
+msgstr "همه پرونده‌های تأیید"
+
+msgid "Alternative evidence"
+msgstr "اسناد جایگزین"
+
+msgid "Internal note"
+msgstr "یادداشت داخلی"
