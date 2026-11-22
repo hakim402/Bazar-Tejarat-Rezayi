@@ -6,15 +6,16 @@ lives in ``admin_theme`` (single source of truth) and is re-exported here so exi
 reuse Unfold's compiled palette, so no extra CSS build is required.
 """
 
+from django.template.defaultfilters import truncatechars
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
 
-from .theme import BADGE_BASE, BADGE_COLORS, STATE_VARIANTS
+from .theme import BADGE_BASE, BADGE_COLORS, IDENTITY_THEME, STATE_VARIANTS
 
 __all__ = [
     "BADGE_BASE", "BADGE_COLORS", "STATE_VARIANTS", "state_variant", "state_badge",
-    "money", "quantity", "short_id", "default_list_display", "default_search_fields",
-    "AdminDisplayMixin",
+    "money", "quantity", "short_id", "record_identity", "default_list_display",
+    "default_search_fields", "AdminDisplayMixin",
 ]
 
 
@@ -63,6 +64,24 @@ def short_id(value):
         return "—"
     text = str(value)
     return format_html('<span class="text-xs" title="{}">{}</span>', text, text[:8])
+
+
+def record_identity(name, secondary="", glyph="description", icon="", owner="", picture=None):
+    """Readable identity for a stored record: a name with its supporting detail.
+
+    Both lines are truncated for the listing and keep the full value in the
+    title attribute, so a technical record never appears as a bare identifier.
+    """
+    tile = picture or format_html('<span class="material-symbols-outlined" aria-hidden="true">{}</span>', glyph)
+    return format_html(
+        '<div class="{identity}">{tile}{icon}<div class="{text}">'
+        '<bdi class="{name}" title="{name_title}">{name_text}</bdi>'
+        '<bdi class="{meta}" title="{meta_title}">{meta_text}</bdi>{owner}</div></div>',
+        identity=IDENTITY_THEME["identity"], tile=tile, icon=icon, text=IDENTITY_THEME["text"],
+        name=IDENTITY_THEME["name"], name_title=name, name_text=truncatechars(name, 36),
+        meta=IDENTITY_THEME["meta"], meta_title=secondary, meta_text=truncatechars(secondary, 42),
+        owner=format_html('<bdi class="{}" title="{}">{}</bdi>', IDENTITY_THEME["meta"], owner, truncatechars(owner, 36)) if owner else "",
+    )
 
 
 # Curated, privacy-safe defaults for lists that define no explicit native columns.

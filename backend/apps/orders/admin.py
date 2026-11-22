@@ -53,8 +53,24 @@ from .models import (
     ReviewDecision,
 )
 from . import access, queries, services
-from .admin_presentation import OwnerOrderPresentation
-from apps.catalogue.admin.helpers import link_button
+from .admin_presentation import OwnerOrderPresentation, RelatedOrderMixin, decimal_value, line_identity
+from .admin_records import (
+    CheckoutOutcomeAdmin,
+    CheckoutSubmissionAdmin,
+    NegotiationCommandAdmin,
+    NegotiationOutcomeAdmin,
+    NegotiationSubmissionAdmin,
+    NegotiationSubmissionFenceAdmin,
+    OrderEventAdmin,
+    OrderLineAdmin,
+    SellerCheckoutTermsAdmin,
+    action_tone,
+    readable_action,
+)
+from apps.accounts.admin.display import money, quantity, state_badge
+from apps.catalogue.admin.helpers import link_button, panel_note, panel_table
+from apps.catalogue.admin.presentation import compact_text, identity
+from apps.catalogue.admin.summaries import localized
 from apps.accounts.admin.locale import admin_language, frontend_locale
 from unfold.widgets import UnfoldAdminIntegerFieldWidget, UnfoldAdminTextareaWidget
 
@@ -298,32 +314,6 @@ class InvoiceAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
         return response
 
 
-class MetadataAdmin(ReadOnlyAdmin):
-    fields = ["identifier"]
-    list_display = ["identifier"]
-    search_fields = []
-
-    def identifier(self, obj):
-        return str(obj.pk)
-
-    def get_readonly_fields(self, request, obj=None):
-        return self.fields
-
-    def lookup_allowed(self, lookup, value, request=None):
-        return lookup in {self.model._meta.pk.name, self.model._meta.pk.name + "__exact"}
-
-
-class LineAdmin(OrderAdmin):
-    fields = ["id", "order", "variant", "tier", "quantity", "unit_price", "goods_amount", "snapshot"]
-    list_display = ["id", "order", "tier", "quantity", "unit_price", "goods_amount"]
-    list_filter = ["tier"]
-    ordering = ["pk"]
-    search_fields = ["order__id"]
-
-    def lookup_allowed(self, lookup, value, request=None):
-        return lookup in {"id", "id__exact", "tier", "tier__exact"}
-
-
 class PolicyForm(forms.ModelForm):
     expected_version = forms.IntegerField(widget=forms.HiddenInput)
     reason = forms.CharField(label=_("Reason for change"), min_length=3, max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
@@ -392,13 +382,13 @@ class PolicyAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
 
 for model, admin in [
     (SellerOrder, OrderAdmin),
-    (OrderLine, LineAdmin),
+    (OrderLine, OrderLineAdmin),
     (Invoice, InvoiceAdmin),
     (OrderPolicy, PolicyAdmin),
-    (SellerCheckoutTerms, MetadataAdmin),
-    (CheckoutSubmission, MetadataAdmin),
-    (CheckoutOutcome, MetadataAdmin),
-    (OrderEvent, MetadataAdmin),
+    (SellerCheckoutTerms, SellerCheckoutTermsAdmin),
+    (CheckoutSubmission, CheckoutSubmissionAdmin),
+    (CheckoutOutcome, CheckoutOutcomeAdmin),
+    (OrderEvent, OrderEventAdmin),
 ]:
     owner_site.register(model, admin)
 
@@ -432,22 +422,172 @@ class NegotiationAdmin(OwnerOrderPresentation, ReadOnlyAdmin):
         return obj
 
 
-class ProposalHistoryAdmin(NegotiationAdmin):
-    list_display = ["id", "request", "created_at"]
+class NegotiationRevisionAdmin(NegotiationAdmin):
+    """One retained proposal of a formal request."""
+
+    list_display = ["proposal_identity", "request_reference", "revision_number", "actor_identity", "proposed_total", "created_at"]
     list_filter = ["created_at"]
-    search_fields = ["request__id"]
+    search_fields = ["request__id", "request__buyer__user__email", "actor__user__email"]
+    search_help_text = _("Find by request, buyer email or actor email")
+    ordering = ["-created_at"]
+    fields = [
+        "proposal_identity",
+        "request_reference",
+        "revision_number",
+        "actor_identity",
+        "proposed_total",
+        "created_at",
+        "proposed_items",
+        "request_workspace",
+    ]
+    fieldset_groups = [
+        (_("Proposal"), _("One retained proposal of the formal request. Proposals accumulate as history; the request workspace keeps the full revision history."),
+         ["proposal_identity", "revision_number", "actor_identity", "proposed_total", "created_at"]),
+        (_("Proposed items"), _("The items this proposal carried when it was recorded."), ["proposed_items"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["request_reference", "request_workspace"]),
+    ]
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "request__buyer__user", "request__seller__account__user", "actor__user"
+        )
+
+    @django_admin.display(description=_("Proposal"))
+    def proposal_identity(self, obj):
+        return identity(_("Negotiation proposal"), str(obj.pk)[:8], glyph="receipt_long")
+
+    @django_admin.display(description=_("Request"))
+    def request_reference(self, obj):
+        return identity(_("Negotiation"), str(obj.request_id)[:8], glyph="receipt_long")
+
+    @django_admin.display(description=_("Revision"))
+    def revision_number(self, obj):
+        return obj.number
+
+    @django_admin.display(description=_("Submitted by"))
+    def actor_identity(self, obj):
+        return account_cell(obj.actor)
+
+    @django_admin.display(description=_("Proposed goods total"))
+    def proposed_total(self, obj):
+        return money(decimal_value((obj.body or {}).get("goods_total")), obj.request.currency)
+
+    @django_admin.display(description=_("Proposed items"))
+    def proposed_items(self, obj):
+        body = obj.body or {}
+        products = {str(row.get("variant")): row for row in body.get("context", {}).get("products", [])}
+        rows = []
+        for row in body.get("lines", []):
+            product = products.get(str(row.get("variant")), {})
+            rows.append([
+                identity(localized(product.get("titles"), product.get("sku") or _("Retained order item")), product.get("sku", "—")),
+                state_badge(row.get("tier", "")),
+                quantity(row.get("quantity")),
+                quantity(row.get("max_quantity")),
+                money(decimal_value(row.get("unit_price")), obj.request.currency),
+                money(decimal_value(row.get("max_unit_price")), obj.request.currency),
+            ])
+        return panel_table(
+            [_("Product"), _("Sales tier"), _("Quantity"), _("Maximum quantity"), _("Proposed unit price"), _("Maximum unit price")],
+            rows,
+            _("No proposed items."),
+        )
+
+    @django_admin.display(description=_("Request workspace"))
+    def request_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_negotiation_change", args=[obj.request_id]), _("View formal request"), "receipt_long"
+        )
+
+
+class NegotiationEventAdmin(NegotiationAdmin):
+    """One recorded activity of a formal request."""
+
+    list_display = ["event_identity", "request_reference", "action_label", "version_label", "actor_identity", "reason_excerpt", "created_at"]
+    list_filter = ["action", "created_at"]
+    search_fields = ["request__id", "request__buyer__user__email", "actor__user__email"]
+    search_help_text = _("Find by request, buyer email or actor email")
+    ordering = ["-created_at"]
+    fields = [
+        "event_identity",
+        "request_reference",
+        "action_label",
+        "version_label",
+        "revision_label",
+        "actor_identity",
+        "reason_excerpt",
+        "created_at",
+        "event_state",
+        "request_workspace",
+    ]
+    fieldset_groups = [
+        (_("Recorded activity"), _("What the request services recorded, and who recorded it. The activity log is append-only history."),
+         ["event_identity", "action_label", "version_label", "revision_label", "actor_identity", "reason_excerpt", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["request_reference", "request_workspace", "event_state"]),
+    ]
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "request__buyer__user", "request__seller__account__user", "actor__user"
+        )
+
+    @django_admin.display(description=_("Activity"))
+    def event_identity(self, obj):
+        return identity(readable_action(obj.action), str(obj.pk)[:8], glyph="bolt")
+
+    @django_admin.display(description=_("Request"))
+    def request_reference(self, obj):
+        return identity(_("Negotiation"), str(obj.request_id)[:8], glyph="receipt_long")
+
+    @django_admin.display(description=_("Action"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Version"))
+    def version_label(self, obj):
+        return obj.version
+
+    @django_admin.display(description=_("Revision"))
+    def revision_label(self, obj):
+        return obj.revision
+
+    @django_admin.display(description=_("Recorded by"))
+    def actor_identity(self, obj):
+        return account_cell(obj.actor)
+
+    @django_admin.display(description=_("Reason"))
+    def reason_excerpt(self, obj):
+        return compact_text(obj.reason, 80)
+
+    @django_admin.display(description=_("Recorded state"))
+    def event_state(self, obj):
+        state = obj.state or {}
+        rows = [[key, compact_text(str(value), 80)] for key, value in list(state.items())[:12]]
+        return panel_table([_("State detail"), _("Value")], rows, _("No additional state was recorded."))
+
+    @django_admin.display(description=_("Request workspace"))
+    def request_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_negotiation_change", args=[obj.request_id]), _("View formal request"), "receipt_long"
+        )
 
 
 for model, model_admin in [
     (Negotiation, NegotiationAdmin),
-    (NegotiationRevision, ProposalHistoryAdmin),
-    (NegotiationEvent, ProposalHistoryAdmin),
-    (NegotiationSubmission, MetadataAdmin),
-    (NegotiationOutcome, MetadataAdmin),
-    (NegotiationCommand, MetadataAdmin),
+    (NegotiationRevision, NegotiationRevisionAdmin),
+    (NegotiationEvent, NegotiationEventAdmin),
+    (NegotiationSubmission, NegotiationSubmissionAdmin),
+    (NegotiationOutcome, NegotiationOutcomeAdmin),
+    (NegotiationCommand, NegotiationCommandAdmin),
 ]:
     owner_site.register(model, model_admin)
-owner_site.register(NegotiationSubmissionFence, MetadataAdmin)
+owner_site.register(NegotiationSubmissionFence, NegotiationSubmissionFenceAdmin)
 
 
 def aftercare_orders(actor, *, include_disputes_reviews=False):
@@ -463,9 +603,12 @@ def aftercare_orders(actor, *, include_disputes_reviews=False):
     return SellerOrder.objects.filter(scoped).distinct()
 
 
-class AftercareAdmin(ReadOnlyAdmin):
+class AftercareAdmin(RelatedOrderMixin, ReadOnlyAdmin):
     list_per_page = 20
     order_path = "order_id"
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.fields
 
     def staff_view(self, request, obj=None):
         return allowed(request, "read_aftercare") and (
@@ -503,7 +646,15 @@ class AftercareTechnicalAdmin(AftercareAdmin):
 
 
 class AftercareStateAdmin(AftercareAdmin):
-    list_display = ["order", "version", "created_at"]
+    """The aftercare version of one accepted order."""
+
+    list_display = ["order_reference", "buyer_identity", "seller_identity", "version", "created_at"]
+    fields = ["order_reference", "buyer_identity", "seller_identity", "version", "created_at", "order_workspace"]
+    fieldset_groups = [
+        (_("Aftercare record"), _("The aftercare version of one accepted order. It moves forward only through the guarded aftercare workflows, never by editing this record."),
+         ["order_reference", "buyer_identity", "seller_identity", "version", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_workspace"]),
+    ]
 
     def staff_view(self, request, obj=None):
         return permits(request, "orders", "read_aftercare", "read_dispute", "read_review") and (
@@ -514,10 +665,32 @@ class AftercareStateAdmin(AftercareAdmin):
         orders = aftercare_orders(admin_actor(request), include_disputes_reviews=True)
         return qs.filter(order_id__in=orders.values("pk"))
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "order__invoice", "order__buyer__user", "order__seller__account__user"
+        )
+
 
 class AftercareEventAdmin(AftercareStateAdmin):
-    list_display = ["id", "order", "version", "action", "context", "created_at"]
+    """One recorded aftercare activity of an order."""
+
+    list_display = ["event_identity", "order_reference", "action_label", "version_label", "actor_identity", "context_label", "created_at"]
     list_filter = ["action", "context"]
+    fields = [
+        "event_identity",
+        "order_reference",
+        "action_label",
+        "version_label",
+        "actor_identity",
+        "context_label",
+        "created_at",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Recorded activity"), _("What the aftercare services recorded, and who recorded it. The activity log is append-only history."),
+         ["event_identity", "action_label", "version_label", "actor_identity", "context_label", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "order_workspace"]),
+    ]
 
     def staff_queryset(self, request, qs):
         actor = admin_actor(request)
@@ -530,9 +703,73 @@ class AftercareEventAdmin(AftercareStateAdmin):
             | Q(order_id__in=reviews, action__startswith="review_")
         ).distinct()
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "order__invoice", "order__buyer__user", "order__seller__account__user", "actor"
+        )
+
+    @django_admin.display(description=_("Activity"))
+    def event_identity(self, obj):
+        return identity(readable_action(obj.action), str(obj.pk)[:8], glyph="bolt")
+
+    @django_admin.display(description=_("Action"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Version"))
+    def version_label(self, obj):
+        return obj.version
+
+    @django_admin.display(description=_("Recorded by"))
+    def actor_identity(self, obj):
+        if obj.actor_id is None:
+            return panel_note(_("Recorded by the system."))
+        return identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @django_admin.display(description=_("Context"))
+    def context_label(self, obj):
+        return state_badge(obj.context)
+
 
 class AftercareCommandAdmin(AftercareTechnicalAdmin):
-    list_display = ["id", "order", "action", "context", "created_at"]
+    """A settled aftercare command: the exact input that was accepted once."""
+
+    list_display = ["command_identity", "order_reference", "action_label", "actor_identity", "context_label", "created_at"]
+    fields = [
+        "command_identity",
+        "order_reference",
+        "action_label",
+        "actor_identity",
+        "context_label",
+        "created_at",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Command"), _("One accepted aftercare command. Commands are settled once and carry the digest of the exact input that was authorised."),
+         ["command_identity", "action_label", "actor_identity", "context_label", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "order_workspace"]),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "order__invoice", "order__buyer__user", "order__seller__account__user", "actor"
+        )
+
+    @django_admin.display(description=_("Command"))
+    def command_identity(self, obj):
+        return identity(_("Aftercare command"), str(obj.pk)[:8], glyph="bolt")
+
+    @django_admin.display(description=_("Action"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Authorised by"))
+    def actor_identity(self, obj):
+        return identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @django_admin.display(description=_("Context"))
+    def context_label(self, obj):
+        return state_badge(obj.context)
 
 
 def reviewer_name(obj):
@@ -686,8 +923,55 @@ class CancellationAdmin(OwnerOrderPresentation, AftercareAdmin):
 
 
 class CancellationDecisionAdmin(AftercareAdmin):
+    """The retained decision on one cancellation request."""
+
     order_path = "request__order_id"
-    list_display = ["request", "action", "created_at"]
+    order_source = "request__order"
+    list_display = ["decision_identity", "order_reference", "action_label", "actor_identity", "reason_excerpt", "created_at"]
+    fields = [
+        "decision_identity",
+        "order_reference",
+        "action_label",
+        "actor_identity",
+        "reason_excerpt",
+        "created_at",
+        "case_workspace",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Retained decision"), _("The decision that closed one cancellation request. It is final history; the request workspace keeps the live case."),
+         ["decision_identity", "action_label", "actor_identity", "reason_excerpt", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "case_workspace", "order_workspace"]),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "request__order__invoice", "request__order__buyer__user", "request__order__seller__account__user", "actor"
+        )
+
+    @django_admin.display(description=_("Decision"))
+    def decision_identity(self, obj):
+        return identity(readable_action(obj.action), str(obj.pk)[:8], glyph="fact_check")
+
+    @django_admin.display(description=_("Decision"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Decided by"))
+    def actor_identity(self, obj):
+        return identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @django_admin.display(description=_("Reason"))
+    def reason_excerpt(self, obj):
+        return compact_text(obj.reason, 120)
+
+    @django_admin.display(description=_("Cancellation workspace"))
+    def case_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_cancellationrequest_change", args=[obj.request_id]),
+            _("View cancellation request"),
+            "fact_check",
+        )
 
 
 class AmendmentAdmin(OwnerOrderPresentation, AftercareAdmin):
@@ -815,13 +1099,108 @@ class AmendmentAdmin(OwnerOrderPresentation, AftercareAdmin):
 
 
 class AmendmentLineAdmin(AftercareAdmin):
+    """One proposed change to an accepted order item."""
+
     order_path = "amendment__order_id"
-    list_display = ["id", "amendment", "line", "proposed_quantity", "proposed_unit_price"]
+    order_source = "amendment__order"
+    list_display = ["line_identity", "order_reference", "tier_label", "proposed_quantity", "proposed_unit_price"]
+    fields = [
+        "line_identity",
+        "order_reference",
+        "tier_label",
+        "proposed_quantity",
+        "proposed_unit_price",
+        "case_workspace",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Proposed change"), _("One proposed change to an accepted order item. The original accepted line stays frozen; an approved amendment writes its own adjustment."),
+         ["line_identity", "tier_label", "proposed_quantity", "proposed_unit_price"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "case_workspace", "order_workspace"]),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "line__variant", "amendment__order__invoice", "amendment__order__buyer__user",
+            "amendment__order__seller__account__user",
+        )
+
+    @django_admin.display(description=_("Accepted item"))
+    def line_identity(self, obj):
+        return line_identity(obj.line)
+
+    @django_admin.display(description=_("Sales tier"))
+    def tier_label(self, obj):
+        return state_badge(obj.line.tier)
+
+    @django_admin.display(description=_("Proposed quantity"))
+    def proposed_quantity(self, obj):
+        return quantity(obj.proposed_quantity)
+
+    @django_admin.display(description=_("Proposed unit price"))
+    def proposed_unit_price(self, obj):
+        return money(obj.proposed_unit_price, obj.amendment.order.currency)
+
+    @django_admin.display(description=_("Amendment workspace"))
+    def case_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_amendment_change", args=[obj.amendment_id]),
+            _("View order amendment"),
+            "fact_check",
+        )
 
 
 class AmendmentDecisionAdmin(AftercareAdmin):
+    """The retained decision on one order amendment."""
+
     order_path = "amendment__order_id"
-    list_display = ["amendment", "action", "created_at"]
+    order_source = "amendment__order"
+    list_display = ["decision_identity", "order_reference", "action_label", "actor_identity", "reason_excerpt", "created_at"]
+    fields = [
+        "decision_identity",
+        "order_reference",
+        "action_label",
+        "actor_identity",
+        "reason_excerpt",
+        "created_at",
+        "case_workspace",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Retained decision"), _("The decision that closed one order amendment. It is final history; the amendment workspace keeps the live case."),
+         ["decision_identity", "action_label", "actor_identity", "reason_excerpt", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "case_workspace", "order_workspace"]),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "amendment__order__invoice", "amendment__order__buyer__user",
+            "amendment__order__seller__account__user", "actor",
+        )
+
+    @django_admin.display(description=_("Decision"))
+    def decision_identity(self, obj):
+        return identity(readable_action(obj.action), str(obj.pk)[:8], glyph="fact_check")
+
+    @django_admin.display(description=_("Decision"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Decided by"))
+    def actor_identity(self, obj):
+        return identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @django_admin.display(description=_("Reason"))
+    def reason_excerpt(self, obj):
+        return compact_text(obj.reason, 120)
+
+    @django_admin.display(description=_("Amendment workspace"))
+    def case_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_amendment_change", args=[obj.amendment_id]),
+            _("View order amendment"),
+            "fact_check",
+        )
 
 
 class AdjustmentAdmin(OwnerOrderPresentation, AftercareAdmin):
@@ -1084,14 +1463,98 @@ class DisputeRequestAdmin(OwnerOrderPresentation, DisputeScopedAdmin):
 
 
 class DisputeResponseAdmin(DisputeScopedAdmin):
+    """The recorded seller response to one order dispute."""
+
     inspection_only = True
     dispute_path = "dispute_id"
-    list_display = ["dispute", "created_at"]
+    order_source = "dispute__order"
+    actor_relation = "actor__user"
+    list_display = ["response_identity", "order_reference", "actor_identity", "response_excerpt", "created_at"]
+    fields = [
+        "response_identity",
+        "order_reference",
+        "actor_identity",
+        "response_excerpt",
+        "created_at",
+        "case_workspace",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Recorded response"), _("The response that was recorded for one dispute. It is retained history; the dispute workspace keeps the live case."),
+         ["response_identity", "actor_identity", "response_excerpt", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "case_workspace", "order_workspace"]),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "dispute__order__invoice", "dispute__order__buyer__user",
+            "dispute__order__seller__account__user", self.actor_relation,
+        )
+
+    @django_admin.display(description=_("Response"))
+    def response_identity(self, obj):
+        return identity(_("Dispute response"), str(obj.pk)[:8], glyph="forum")
+
+    @django_admin.display(description=_("Responded by"))
+    def actor_identity(self, obj):
+        return account_cell(obj.actor)
+
+    @django_admin.display(description=_("Response"))
+    def response_excerpt(self, obj):
+        return compact_text(obj.text, 160)
+
+    @django_admin.display(description=_("Dispute workspace"))
+    def case_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_disputerequest_change", args=[obj.dispute_id]),
+            _("View order dispute"),
+            "fact_check",
+        )
 
 
 class DisputeDecisionAdmin(DisputeResponseAdmin):
-    list_display = ["dispute", "action", "created_at"]
-    badge_fields = ("action",)
+    """The retained decision on one order dispute."""
+
+    actor_relation = "actor"
+    list_display = ["decision_identity", "order_reference", "action_label", "actor_identity", "amount_label", "created_at"]
+    fields = [
+        "decision_identity",
+        "order_reference",
+        "action_label",
+        "actor_identity",
+        "amount_label",
+        "reason_excerpt",
+        "created_at",
+        "case_workspace",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Retained decision"), _("The decision that closed one dispute. An ordered refund creates a bounded refund due; it never moves money by itself."),
+         ["decision_identity", "action_label", "actor_identity", "amount_label", "reason_excerpt", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "case_workspace", "order_workspace"]),
+    ]
+
+    @django_admin.display(description=_("Decision"))
+    def decision_identity(self, obj):
+        return identity(readable_action(obj.action), str(obj.pk)[:8], glyph="fact_check")
+
+    @django_admin.display(description=_("Decision"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Decided by"))
+    def actor_identity(self, obj):
+        return identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @django_admin.display(description=_("Ordered refund amount"))
+    def amount_label(self, obj):
+        if obj.amount is None:
+            return "—"
+        return money(obj.amount, obj.dispute.order.currency)
+
+    @django_admin.display(description=_("Reason"))
+    def reason_excerpt(self, obj):
+        return compact_text(obj.reason, 120)
 
 
 class ReviewScopedAdmin(AftercareAdmin):
@@ -1168,9 +1631,56 @@ class ReviewAdmin(OwnerOrderPresentation, ReviewScopedAdmin):
 
 
 class ReviewDecisionAdmin(ReviewScopedAdmin):
+    """The retained moderation decision on one buyer review."""
+
     review_path = "review_id"
-    list_display = ["id", "review", "action", "created_at"]
-    badge_fields = ("action",)
+    order_source = "review__order"
+    list_display = ["decision_identity", "order_reference", "action_label", "actor_identity", "reason_excerpt", "created_at"]
+    fields = [
+        "decision_identity",
+        "order_reference",
+        "action_label",
+        "actor_identity",
+        "reason_excerpt",
+        "created_at",
+        "case_workspace",
+        "order_workspace",
+    ]
+    fieldset_groups = [
+        (_("Retained decision"), _("One moderation decision on a buyer review. An approved review can later be withdrawn; every decision stays in the history."),
+         ["decision_identity", "action_label", "actor_identity", "reason_excerpt", "created_at"]),
+        (_("Related records"), _("The workspace that owns this record. Any change happens there, never in this retained history."), ["order_reference", "case_workspace", "order_workspace"]),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "review__order__invoice", "review__order__buyer__user",
+            "review__order__seller__account__user", "actor",
+        )
+
+    @django_admin.display(description=_("Decision"))
+    def decision_identity(self, obj):
+        return identity(readable_action(obj.action), str(obj.pk)[:8], glyph="rate_review")
+
+    @django_admin.display(description=_("Decision"))
+    def action_label(self, obj):
+        return state_badge(obj.action, readable_action(obj.action), action_tone(obj.action))
+
+    @django_admin.display(description=_("Decided by"))
+    def actor_identity(self, obj):
+        return identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @django_admin.display(description=_("Reason"))
+    def reason_excerpt(self, obj):
+        return compact_text(obj.reason, 120)
+
+    @django_admin.display(description=_("Review workspace"))
+    def case_workspace(self, obj):
+        return link_button(
+            reverse("admin:orders_review_change", args=[obj.review_id]),
+            _("View buyer review"),
+            "rate_review",
+        )
 
 
 owner_site.register(DisputeResponse, DisputeResponseAdmin)

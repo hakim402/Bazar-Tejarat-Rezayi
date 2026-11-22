@@ -13,7 +13,8 @@ from urllib.parse import urlencode
 
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import is_owner
-from apps.accounts.admin.display import money, quantity
+from apps.accounts.admin.display import money, quantity, record_identity, state_badge
+from apps.accounts.admin.presentation import action_label, context_status, label
 from apps.organizations.admin import ReadOnlyAdmin
 from ..models import (
     SourceRevision, Variant, PriceChange, Translation, TranslationJob,
@@ -120,18 +121,41 @@ class VariantAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
         return money(obj.wholesale, obj.product.currency)
 
 
-class PriceChangeAdmin(CatalogueRecordAdmin):
-    list_display = ["product", "variant", "retail_price", "wholesale_price", "product_version", "created_at"]
+class PriceChangeAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
+    product_path = "product"
+    list_display = ["product_identity", "seller_identity", "variant_sku", "retail_price",
+                    "wholesale_price", "product_version", "created_at"]
+    list_select_related = ["product__seller__account__user", "variant"]
     ordering = ["-created_at"]
-    search_fields = ["variant__sku", "product__seller__display_name"]
+    search_fields = ["variant__sku", "product__seller__display_name",
+                     "product__seller__account__user__email", "product__revisions__body__title"]
+    search_help_text = _("Find by product name, SKU, seller or email")
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*super().get_readonly_fields(request, obj), "product_identity", "seller_identity",
+                "variant_sku", "retail_price", "wholesale_price"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "seller_identity", "variant_sku", "created_at"]}),
+            (_("Recorded prices"), {"fields": ["retail_price", "wholesale_price", "product_version"]}),
+        ]
+
+    @admin.display(description=_("Product"))
+    def product_identity(self, obj):
+        return product_cell(obj, obj.variant.sku)
+
+    @admin.display(description=_("SKU"), ordering="variant__sku")
+    def variant_sku(self, obj):
+        return compact_text(obj.variant.sku)
 
     @admin.display(description=_("Retail"))
     def retail_price(self, obj):
-        return money(obj.retail)
+        return money(obj.retail, obj.product.currency)
 
     @admin.display(description=_("Wholesale"))
     def wholesale_price(self, obj):
-        return money(obj.wholesale)
+        return money(obj.wholesale, obj.product.currency)
 
 
 class TranslationLanguageFilter(SimpleListFilter):
@@ -231,28 +255,100 @@ class TranslationAdmin(ProductIdentityMixin, CatalogueRecordAdmin):
         return link_button(f"{url}?{query}", _("Open"), icon="translate")
 
 
+JOB_TONES = {
+    "queued": "warning", "running": "info", "completed": "success",
+    "failed": "danger", "retry": "warning", "blocked": "default", "stale": "default",
+}
+CONTEXT_TONES = {
+    "buyer": "info", "seller": "info", "staff": "default",
+    "owner": "info", "system": "default", "other": "default",
+}
+
+
 class TranslationJobAdmin(CatalogueRecordAdmin):
-    list_display = ["translation", "status", "attempts", "next_attempt_at", "error_code"]
+    list_display = ["job_identity", "job_locale", "job_state", "attempts", "next_attempt_at", "error_code"]
     list_filter = ["status"]
     ordering = ["-next_attempt_at"]
+    search_fields = ["translation__revision__body__title", "translation__revision__product__seller__display_name",
+                     "translation__revision__product__seller__account__user__email"]
+    search_help_text = _("Find by product name, seller or email")
     badge_fields = ["status"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "translation__revision__product__seller__account__user")
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*super().get_readonly_fields(request, obj), "job_identity", "job_locale", "job_state"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["job_identity", "job_locale", "translation", "expected_version", "created_at"]}),
+            (_("Delivery"), {"fields": ["job_state", "attempts", "next_attempt_at", "error_code", "input_chars"]}),
+        ]
+
+    @admin.display(description=_("Product"))
+    def job_identity(self, obj):
+        revision = obj.translation.revision
+        title = revision.body.get("title") or _("Untitled product")
+        return record_identity(title, obj.translation.revision.product.seller.display_name, glyph="translate")
+
+    @admin.display(description=_("Language"), ordering="translation__locale")
+    def job_locale(self, obj):
+        return language_name(obj.translation.locale)
+
+    @admin.display(description=_("Status"), ordering="status")
+    def job_state(self, obj):
+        return state_badge(obj.status, action_label(obj.status), JOB_TONES.get(obj.status, "default"))
 
 
 class CatalogueEventAdmin(CatalogueRecordAdmin):
-    list_display = ["created_at", "product", "action", "context", "reason"]
+    list_display = ["event_identity", "event_context", "actor_identity", "event_reason", "created_at"]
     list_filter = ["action", "context"]
     ordering = ["-created_at"]
-    search_fields = ["reason"]
+    search_fields = ["reason", "action", "product__seller__display_name", "product__seller__account__user__email"]
+    search_help_text = _("Find by product, seller or email")
     badge_fields = ["action"]
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("product__seller__account__user", "actor")
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*super().get_readonly_fields(request, obj), "event_identity", "event_context", "actor_identity"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["event_identity", "event_context", "actor_identity", "created_at"]}),
+            (_("Event"), {"fields": ["action", "reason", "product", "translation", "translation_version", "version"]}),
+        ]
+
+    @admin.display(description=_("Event"), ordering="action")
+    def event_identity(self, obj):
+        subject = obj.product.seller.display_name if obj.product_id else label("System")
+        return record_identity(action_label(obj.action), subject, glyph="history")
+
+    @admin.display(description=_("Context"), ordering="context")
+    def event_context(self, obj):
+        key, title = context_status(obj.context)
+        return state_badge(obj.context, title, CONTEXT_TONES.get(key, "default"))
+
+    @admin.display(description=_("Actor"), ordering="actor__display_name")
+    def actor_identity(self, obj):
+        if not obj.actor_id:
+            return label("System")
+        return record_identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
     @admin.display(description=_("Reason"))
-    def reason(self, obj):
+    def event_reason(self, obj):
         return obj.reason or "—"
 
 
 class BudgetAdmin(ReadOnlyAdmin):
     list_display = ["day", "calls", "characters"]
     ordering = ["-day"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [(None, {"fields": ["day", "calls", "characters"], "description": self.RECORD_DESCRIPTION})]
 
 
 owner_site.register(SourceRevision, RevisionAdmin)

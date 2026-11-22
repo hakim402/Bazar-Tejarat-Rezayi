@@ -244,6 +244,12 @@ class AuditEvent(models.Model):
     state = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        """Readable record identity for the owner admin, not a UUID heading."""
+        action = self.action.replace("_", " ").capitalize()
+        actor = self.actor.display_name or self.actor.email if self.actor_id else ""
+        return f"{action} · {actor}" if actor else action
+
 
 class RateBucket(models.Model):
     key = models.CharField(max_length=64, primary_key=True)

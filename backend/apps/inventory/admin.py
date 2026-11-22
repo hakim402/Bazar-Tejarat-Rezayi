@@ -10,7 +10,7 @@ from unfold.admin import ModelAdmin
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import is_owner, permits
 from apps.accounts.admin.display import AdminDisplayMixin
-from apps.accounts.admin.display import quantity, state_badge, short_id
+from apps.accounts.admin.display import quantity, record_identity, state_badge, short_id
 from apps.catalogue.admin.presentation import ProductIdentityMixin, seller_cell, compact_text
 from apps.catalogue.admin.summaries import localized
 from apps.catalogue.admin.helpers import panel_table, link_button
@@ -35,7 +35,8 @@ INVENTORY_ACTIONS = {
     "receive": _("Stock received"), "adjust": _("Stock adjustment"),
     "reserve": _("Stock reservation"), "cod": _("Cash on delivery reservation"),
     "release": _("Reservation released"), "consume": _("Stock consumed"),
-    "reduce": _("Reservation reduced"),
+    "reduce": _("Reservation reduced"), "configure": _("Stock configured"),
+    "remove": _("Stock retired"),
 }
 
 
@@ -394,24 +395,376 @@ class MovementAdmin(ProductIdentityMixin, InventoryAuditAdmin):
         return format_html('<div class="flex flex-wrap gap-2">{}{}</div>', stock, batch)
 
 
-owner_site.register(Position, PositionAdmin)
-owner_site.register(Batch, BatchAdmin)
-owner_site.register(Bucket, InventoryAuditAdmin, list_display=['position', 'batch', 'physical', 'held'], quantity_fields=['physical', 'held'], search_fields=['position__variant__sku'])
-owner_site.register(Operation, InventoryAuditAdmin, list_display=['seller', 'action', 'reference', 'created_at'], list_filter=['action'], search_fields=['seller__display_name', 'reference'])
-owner_site.register(Movement, MovementAdmin)
-owner_site.register(Allocation, InventoryAuditAdmin, list_display=['operation', 'state'], list_filter=['state'], badge_fields=['state'])
-owner_site.register(AllocationLine, InventoryAuditAdmin, list_display=['allocation', 'bucket', 'quantity'], quantity_fields=['quantity'])
-owner_site.register(Recovery, InventoryAuditAdmin, list_display=['shortage', 'operation'])
-owner_site.register(Shortage, ShortageAdmin)
+class BucketAdmin(ProductIdentityMixin, InventoryAuditAdmin):
+    product_path = "position__variant__product"
+    list_display = ["product_identity", "seller_identity", "sku", "batch_number", "on_hand", "reserved", "available"]
+    list_filter = ["position__tracking"]
+    search_fields = ["position__variant__sku", "position__variant__product__revisions__body__title",
+                     "position__variant__product__seller__display_name",
+                     "position__variant__product__seller__account__user__email", "batch__code"]
+    search_help_text = _("Find by product name, SKU, batch number, seller or email")
+    ordering = ["-pk"]
+    readonly_fields = ["product_identity", "seller_identity", "sku", "batch_number", "on_hand",
+                       "reserved", "available", "related_records"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "position__variant__product__seller__account__user", "position__variant__unit", "batch")
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "seller_identity", "sku", "batch_number"]}),
+            (_("Current stock"), {"fields": ["on_hand", "reserved", "available"],
+                                  "description": _("Balances of this stock bucket. Stock changes are recorded through inventory operations.")}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("SKU"), ordering="position__variant__sku")
+    def sku(self, obj):
+        return compact_text(obj.position.variant.sku)
+
+    @admin.display(description=_("Batch number"), ordering="batch__code")
+    def batch_number(self, obj):
+        return compact_text(obj.batch.code) if obj.batch_id else _("Standard stock")
+
+    @admin.display(description=_("On hand"))
+    def on_hand(self, obj):
+        return quantity(obj.physical)
+
+    @admin.display(description=_("Reserved"))
+    def reserved(self, obj):
+        return quantity(obj.held)
+
+    @admin.display(description=_("Available"))
+    def available(self, obj):
+        if not services.active(obj.position.variant):
+            return quantity(0)
+        return quantity(obj.physical - obj.held if not services.expired(obj) else 0)
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        stock = link_button(reverse("admin:inventory_position_change", args=[obj.position_id]),
+                           _("View stock position"), "inventory")
+        batch = link_button(reverse("admin:inventory_batch_change", args=[obj.batch_id]),
+                            _("View batch"), "layers") if obj.batch_id else ""
+        return format_html('<div class="flex flex-wrap gap-2">{}{}</div>', stock, batch)
+
+
+class OperationAdmin(InventoryAuditAdmin):
+    list_display = ["operation_identity", "seller_identity", "operation_type", "reference_preview", "recorded_at"]
+    list_filter = ["action", "context"]
+    search_fields = ["seller__display_name", "seller__account__user__email", "reference", "reason"]
+    search_help_text = _("Find by seller, email, reference or reason")
+    ordering = ["-created_at", "-pk"]
+    readonly_fields = ["operation_identity", "seller_identity", "operation_type", "reference_value",
+                       "recorded_at", "actor_identity", "context", "reason_text", "related_records"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("seller__account__user", "actor")
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["operation_identity", "seller_identity", "operation_type", "reference_value", "recorded_at"]}),
+            (_("Recorded details"), {"fields": ["actor_identity", "context", "reason_text"],
+                                     "description": _("The recorded operation and its reason. Operations are written by trusted inventory services and are never edited here.")}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("Operation"), ordering="action")
+    def operation_identity(self, obj):
+        return record_identity(INVENTORY_ACTIONS.get(obj.action, obj.action.replace("_", " ").capitalize()),
+                               obj.reference or short_id(obj.pk), glyph="swap_horiz")
+
+    @admin.display(description=_("Seller"), ordering="seller__display_name")
+    def seller_identity(self, obj):
+        return seller_cell(obj.seller)
+
+    @admin.display(description=_("Action"), ordering="action")
+    def operation_type(self, obj):
+        return state_badge(INVENTORY_ACTIONS.get(obj.action, obj.action))
+
+    @admin.display(description=_("Reference"), ordering="reference")
+    def reference_value(self, obj):
+        return compact_text(obj.reference) if obj.reference else short_id(obj.pk)
+
+    @admin.display(description=_("Reference"), ordering="reference")
+    def reference_preview(self, obj):
+        return compact_text(obj.reference) if obj.reference else short_id(obj.pk)
+
+    @admin.display(description=_("Recorded at"), ordering="created_at")
+    def recorded_at(self, obj):
+        return obj.created_at
+
+    @admin.display(description=_("Actor"), ordering="actor__display_name")
+    def actor_identity(self, obj):
+        if not obj.actor_id:
+            return _("System")
+        return record_identity(obj.actor.display_name or obj.actor.email, obj.actor.email, glyph="person")
+
+    @admin.display(description=_("Reason"))
+    def reason_text(self, obj):
+        return compact_text(obj.reason, 120) if obj.reason else "—"
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        movements = link_button(reverse("admin:inventory_movement_changelist") + f"?operation__id__exact={obj.pk}",
+                                _("View stock movements"), "swap_horiz")
+        return format_html('<div class="flex flex-wrap gap-2">{}</div>', movements)
+
+
+class AllocationAdmin(InventoryAuditAdmin):
+    list_display = ["allocation_identity", "seller_identity", "allocation_state", "line_count", "recorded_at"]
+    list_filter = ["state"]
+    search_fields = ["operation__reference", "operation__seller__display_name",
+                     "operation__seller__account__user__email"]
+    search_help_text = _("Find by reference, seller or email")
+    ordering = ["-operation__created_at", "-pk"]
+    readonly_fields = ["allocation_identity", "seller_identity", "allocation_state", "line_count",
+                       "recorded_at", "related_records"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "operation__seller__account__user").prefetch_related("lines")
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["allocation_identity", "seller_identity", "recorded_at"]}),
+            (_("Reservation"), {"fields": ["allocation_state", "line_count"],
+                                "description": _("Reservation state and the held lines. Reservations change through the order and inventory workflows.")}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("Allocation"), ordering="operation__reference")
+    def allocation_identity(self, obj):
+        return record_identity(obj.operation.reference or short_id(obj.pk), _("Stock reservation"), glyph="lock")
+
+    @admin.display(description=_("Seller"), ordering="operation__seller__display_name")
+    def seller_identity(self, obj):
+        return seller_cell(obj.operation.seller)
+
+    @admin.display(description=_("State"), ordering="state")
+    def allocation_state(self, obj):
+        return state_badge(obj.state)
+
+    @admin.display(description=_("Held items"))
+    def line_count(self, obj):
+        return len(obj.lines.all())
+
+    @admin.display(description=_("Recorded at"), ordering="operation__created_at")
+    def recorded_at(self, obj):
+        return obj.operation.created_at
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        return link_button(reverse("admin:inventory_operation_change", args=[obj.operation_id]),
+                           _("View stock operation"), "history")
+
+
+class AllocationLineAdmin(ProductIdentityMixin, InventoryAuditAdmin):
+    product_path = "bucket__position__variant__product"
+    list_display = ["product_identity", "seller_identity", "allocation_reference", "line_quantity"]
+    search_fields = ["bucket__position__variant__sku", "bucket__position__variant__product__revisions__body__title",
+                     "bucket__position__variant__product__seller__display_name",
+                     "bucket__position__variant__product__seller__account__user__email",
+                     "allocation__operation__reference"]
+    search_help_text = _("Find by product name, SKU, seller or reference")
+    ordering = ["-pk"]
+    readonly_fields = ["product_identity", "seller_identity", "allocation_reference", "line_quantity",
+                       "related_records"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "bucket__position__variant__product__seller__account__user",
+            "allocation__operation")
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "seller_identity", "allocation_reference"]}),
+            (_("Held stock"), {"fields": ["line_quantity"],
+                               "description": _("Quantity held by this reservation line. Lines are written by the inventory services.")}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("Reservation"), ordering="allocation__operation__reference")
+    def allocation_reference(self, obj):
+        return compact_text(obj.allocation.operation.reference) if obj.allocation.operation.reference else short_id(obj.allocation_id)
+
+    @admin.display(description=_("Quantity"), ordering="quantity")
+    def line_quantity(self, obj):
+        return quantity(obj.quantity)
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        allocation = link_button(reverse("admin:inventory_allocation_change", args=[obj.allocation_id]),
+                                 _("View allocation"), "lock")
+        stock = link_button(reverse("admin:inventory_position_change", args=[obj.bucket.position_id]),
+                            _("View stock position"), "inventory")
+        return format_html('<div class="flex flex-wrap gap-2">{}{}</div>', allocation, stock)
+
+
+class RecoveryAdmin(InventoryAuditAdmin):
+    list_display = ["recovery_identity", "seller_identity", "recovery_state", "recorded_at"]
+    search_fields = ["shortage__operation__reference", "operation__seller__display_name",
+                     "operation__seller__account__user__email"]
+    search_help_text = _("Find by reference, seller or email")
+    ordering = ["-operation__created_at", "-pk"]
+    readonly_fields = ["recovery_identity", "seller_identity", "recovery_state", "recorded_at",
+                       "related_records"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "shortage__operation", "operation__seller__account__user")
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["recovery_identity", "seller_identity", "recorded_at"]}),
+            (_("Recovery"), {"fields": ["recovery_state"],
+                             "description": _("A successful recovery of a stock shortage. Recovery is recorded by the order and inventory workflows.")}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("Recovery"), ordering="shortage__operation__reference")
+    def recovery_identity(self, obj):
+        reference = obj.shortage.operation.reference
+        return record_identity(reference or short_id(obj.pk), _("Shortage recovery"), glyph="replay")
+
+    @admin.display(description=_("Seller"), ordering="operation__seller__display_name")
+    def seller_identity(self, obj):
+        return seller_cell(obj.operation.seller)
+
+    @admin.display(description=_("State"))
+    def recovery_state(self, obj):
+        return state_badge("recovered")
+
+    @admin.display(description=_("Recorded at"), ordering="operation__created_at")
+    def recorded_at(self, obj):
+        return obj.operation.created_at
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        return link_button(reverse("admin:inventory_shortage_change", args=[obj.shortage_id]),
+                           _("View shortage"), "warning")
 
 
 class StockTransitionAdmin(InventoryAuditAdmin):
+    list_display = ["transition_identity", "transition_state", "stock_change", "reservation_change", "created_at"]
+    search_fields = ["bucket__position__variant__sku", "bucket__position__variant__product__seller__display_name",
+                     "bucket__position__variant__product__seller__account__user__email"]
+    search_help_text = _("Find by SKU or seller")
+    ordering = ["-created_at", "-pk"]
+    readonly_fields = ["transition_identity", "transition_state", "stock_change", "reservation_change",
+                       "before_stock", "after_stock", "created_at", "related_records"]
+
     def has_view_permission(self, request, obj=None):
         return is_owner(request)
 
     def has_module_permission(self, request):
         return self.has_view_permission(request)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "bucket__position__variant__product__seller__account__user", "movement")
 
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["transition_identity", "transition_state", "created_at"]}),
+            (_("Recorded balances"), {"fields": ["before_stock", "after_stock", "stock_change", "reservation_change"]}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("Transition"), ordering="created_at")
+    def transition_identity(self, obj):
+        return record_identity(_("Stock transition"), obj.bucket.position.variant.sku, glyph="compare_arrows")
+
+    @admin.display(description=_("State"))
+    def transition_state(self, obj):
+        return state_badge("pending" if obj.pending else "applied")
+
+    @admin.display(description=_("Stock change"), ordering="after_physical")
+    def stock_change(self, obj):
+        return quantity(obj.after_physical - obj.before_physical)
+
+    @admin.display(description=_("Reservation change"), ordering="after_held")
+    def reservation_change(self, obj):
+        return quantity(obj.after_held - obj.before_held)
+
+    @admin.display(description=_("Stock before"))
+    def before_stock(self, obj):
+        return quantity(obj.before_physical)
+
+    @admin.display(description=_("Stock after"))
+    def after_stock(self, obj):
+        return quantity(obj.after_physical)
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        stock = link_button(reverse("admin:inventory_position_change", args=[obj.bucket.position_id]),
+                            _("View stock position"), "inventory")
+        movement = link_button(reverse("admin:inventory_movement_change", args=[obj.movement_id]),
+                               _("View stock movement"), "swap_horiz") if obj.movement_id else ""
+        return format_html('<div class="flex flex-wrap gap-2">{}{}</div>', stock, movement)
+
+
+class AllocationReductionAdmin(ProductIdentityMixin, InventoryAuditAdmin):
+    product_path = "bucket__position__variant__product"
+    list_display = ["product_identity", "seller_identity", "allocation_reference", "line_quantity", "recorded_at"]
+    search_fields = ["bucket__position__variant__sku", "bucket__position__variant__product__seller__display_name",
+                     "bucket__position__variant__product__seller__account__user__email",
+                     "allocation__operation__reference"]
+    search_help_text = _("Find by SKU, seller or reference")
+    ordering = ["-operation__created_at", "-pk"]
+    readonly_fields = ["product_identity", "seller_identity", "allocation_reference", "line_quantity",
+                       "recorded_at", "related_records"]
+
+    def has_view_permission(self, request, obj=None):
+        return is_owner(request)
+
+    def has_module_permission(self, request):
+        return self.has_view_permission(request)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "bucket__position__variant__product__seller__account__user",
+            "allocation__operation", "operation")
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (_("Identity"), {"fields": ["product_identity", "seller_identity", "allocation_reference", "recorded_at"]}),
+            (_("Released stock"), {"fields": ["line_quantity"],
+                                   "description": _("Quantity released from a still-held reservation. Reductions are written by the inventory services.")}),
+            (_("Related records"), {"fields": ["related_records"]}),
+        ]
+
+    @admin.display(description=_("Reservation"), ordering="allocation__operation__reference")
+    def allocation_reference(self, obj):
+        reference = obj.allocation.operation.reference
+        return compact_text(reference) if reference else short_id(obj.allocation_id)
+
+    @admin.display(description=_("Quantity"), ordering="quantity")
+    def line_quantity(self, obj):
+        return quantity(obj.quantity)
+
+    @admin.display(description=_("Recorded at"), ordering="operation__created_at")
+    def recorded_at(self, obj):
+        return obj.operation.created_at
+
+    @admin.display(description=_("Related records"))
+    def related_records(self, obj):
+        allocation = link_button(reverse("admin:inventory_allocation_change", args=[obj.allocation_id]),
+                                 _("View allocation"), "lock")
+        operation = link_button(reverse("admin:inventory_operation_change", args=[obj.operation_id]),
+                                _("View stock operation"), "history")
+        return format_html('<div class="flex flex-wrap gap-2">{}{}</div>', allocation, operation)
+
+
+owner_site.register(Position, PositionAdmin)
+owner_site.register(Batch, BatchAdmin)
+owner_site.register(Bucket, BucketAdmin)
+owner_site.register(Operation, OperationAdmin)
+owner_site.register(Movement, MovementAdmin)
+owner_site.register(Allocation, AllocationAdmin)
+owner_site.register(AllocationLine, AllocationLineAdmin)
+owner_site.register(Recovery, RecoveryAdmin)
+owner_site.register(Shortage, ShortageAdmin)
 owner_site.register(StockTransition, StockTransitionAdmin)
-owner_site.register(AllocationReduction, StockTransitionAdmin)
+owner_site.register(AllocationReduction, AllocationReductionAdmin)

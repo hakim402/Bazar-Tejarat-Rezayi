@@ -47,8 +47,9 @@ MESSAGING_AUDIT = ("Messaging audit", "حسابرسی پیام‌ها", "forum",
     "messaging.readstate", "messaging.caseevent", "messaging.caseaccess",
     "messaging.command",
 ))
-SYSTEM = ("System & audit", "سیستم و بررسی فعالیت‌ها", "admin_panel_settings", (
-    "accounts.auditevent", "admin.logentry", "accounts.accountmail", "auth.group",
+SYSTEM = ("System, audit & access", "سیستم، حسابرسی و دسترسی", "admin_panel_settings", (
+    "accounts.auditevent", "admin.logentry", "accounts.accountmail", "accounts.mailattempt",
+    "auth.group", "auth.permission",
 ))
 
 DIRECTORY_COPY = {

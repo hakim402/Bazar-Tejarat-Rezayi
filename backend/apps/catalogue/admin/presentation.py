@@ -7,22 +7,15 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.accounts.admin.display import record_identity
 from apps.accounts.admin.theme import CATALOGUE_THEME as T
 from ..models import ProductImage, SourceRevision
 from ..queries import working_revisions
 
 
 def identity(name, secondary, image=None, glyph="inventory_2", icon="", owner=""):
-    picture = format_html('<img src="{}" alt="" width="40" height="40" class="{}" loading="lazy">', image, T["image"]) if image else format_html(
-        '<span class="material-symbols-outlined" aria-hidden="true">{}</span>', glyph,
-    )
-    return format_html(
-        '<div class="{}">{}{}<div class="{}"><bdi class="{}" title="{}">{}</bdi>'
-        '<bdi class="{}" title="{}">{}</bdi>{}</div></div>',
-        T["identity"], picture, icon, T["text"], T["name"], name, truncatechars(name, 36),
-        T["meta"], secondary, truncatechars(secondary, 42),
-        format_html('<bdi class="{}" title="{}">{}</bdi>', T["meta"], owner, truncatechars(owner, 36)) if owner else "",
-    )
+    picture = format_html('<img src="{}" alt="" width="40" height="40" class="{}" loading="lazy">', image, T["image"]) if image else None
+    return record_identity(name, secondary, glyph=glyph, icon=icon, owner=owner, picture=picture)
 
 
 def seller_cell(seller):

@@ -1,6 +1,7 @@
 """Explicit safe metadata coverage. Security payloads never enter admin forms."""
 from django import forms
 from django.contrib.admin.models import LogEntry
+from django.contrib.admin import SimpleListFilter
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
@@ -17,6 +18,7 @@ from unfold.forms import BaseDialogForm
 from unfold.widgets import UnfoldAdminTextareaWidget
 
 from .access import is_owner
+from .display import record_identity
 from .presentation import CONTEXT_LABELS, context_status, label
 from ..models import (ActionToken, AuditEvent, Authenticator, RecoveryCode, RateBucket, MailAttempt,
                      BrowserAuthority, ContextGrant, GoogleIdentity, GoogleAttempt, AccountMail, User)
@@ -56,6 +58,11 @@ class UserMetadataAdmin(AccountMetadataAdmin):
     list_select_related = ["user"]
     search_fields = ["user__display_name", "user__email"]
     search_help_text = label("Find by name or email")
+
+    @display(description=label("Account"), ordering="user__display_name")
+    def account_identity(self, obj):
+        user = obj.user
+        return record_identity(user.display_name or user.email, user.email, glyph="person")
 
 
 class RevocationForm(BaseDialogForm):
@@ -111,6 +118,7 @@ TOKEN_STATES = {"used": "success", "unused": "default", "expired": "warning"}
 ACCESS_STATES = {"current": "default", "revoked": "danger"}
 CONFIRMATION_STATES = {"confirmed": "success", "unconfirmed": "warning"}
 MAIL_STATES = {"sent": "success", "failed": "danger"}
+MAIL_PURPOSES = {"verify": label("Verify email"), "reset": label("Reset password")}
 OUTBOX_STATES = {
     "queued": "default", "dispatching": "info", "captured": "success", "smtp_accepted": "success",
     "delivery_unknown": "warning", "delivery_failed": "danger", "expired": "warning", "other": "default",
@@ -131,7 +139,7 @@ def access_state(revoked):
 
 class TokenAdmin(RevocableRecordMixin, UserMetadataAdmin):
     fields = ["user", "purpose", "expires_at", "used_at", "created_at"]
-    list_display = ["user", "purpose", "token_status", "expires_at", "created_at"]
+    list_display = ["account_identity", "purpose", "token_status", "expires_at", "created_at"]
     list_filter = ["purpose", "used_at"]
 
     @display(description=_("Status"), label=TOKEN_STATES)
@@ -147,7 +155,7 @@ class TokenAdmin(RevocableRecordMixin, UserMetadataAdmin):
 
 class FactorAdmin(UserMetadataAdmin):
     fields = ["user", "name", "confirmed"]
-    list_display = ["user", "name", "factor_status"]
+    list_display = ["account_identity", "name", "factor_status"]
     list_filter = ["confirmed"]
 
     @display(description=_("Status"), ordering="confirmed", label=CONFIRMATION_STATES)
@@ -157,7 +165,7 @@ class FactorAdmin(UserMetadataAdmin):
 
 class RecoveryAdmin(UserMetadataAdmin):
     fields = ["user", "used_at"]
-    list_display = ["user", "recovery_status", "used_at"]
+    list_display = ["account_identity", "recovery_status", "used_at"]
     list_filter = ["used_at"]
 
     @display(description=_("Status"), ordering="used_at", label=TOKEN_STATES)
@@ -167,8 +175,12 @@ class RecoveryAdmin(UserMetadataAdmin):
 
 class RateAdmin(AccountMetadataAdmin):
     fields = ["count", "expires_at"]
-    list_display = ["expires_at", "count", "bucket_status"]
+    list_display = ["bucket", "count", "expires_at", "bucket_status"]
     ordering = ["-expires_at"]
+
+    @display(description=label("Bucket"), ordering="key")
+    def bucket(self, obj):
+        return record_identity(obj.key, label("Rate limit bucket"), glyph="speed")
 
     @display(description=_("Status"), label={"active": "info", "expired": "default"})
     def bucket_status(self, obj):
@@ -176,10 +188,14 @@ class RateAdmin(AccountMetadataAdmin):
 
 
 class DeliveryAdmin(UserMetadataAdmin):
-    section_title = label("Delivery record")
+    section_title = label("Account email attempt")
     fields = ["user", "purpose", "status", "created_at"]
-    list_display = ["user", "purpose", "delivery_status", "created_at"]
+    list_display = ["account_identity", "purpose_label", "delivery_status", "created_at"]
     list_filter = ["status", "purpose"]
+
+    @display(description=label("Purpose"), ordering="purpose")
+    def purpose_label(self, obj):
+        return MAIL_PURPOSES.get(obj.purpose, obj.purpose)
 
     @display(description=_("Status"), ordering="status", label=MAIL_STATES)
     def delivery_status(self, obj):
@@ -188,7 +204,7 @@ class DeliveryAdmin(UserMetadataAdmin):
 
 class AuthorityAdmin(RevocableRecordMixin, UserMetadataAdmin):
     fields = ["user", "revoked", "created_at"]
-    list_display = ["user", "authority_status", "created_at"]
+    list_display = ["account_identity", "authority_status", "created_at"]
     list_filter = ["revoked"]
 
     @display(description=_("Status"), ordering="revoked", label=ACCESS_STATES)
@@ -214,7 +230,8 @@ class GrantAdmin(RevocableRecordMixin, AccountMetadataAdmin):
 
     @display(description=label("Identity"), ordering="authority__user__display_name")
     def identity(self, obj):
-        return str(obj.authority.user)
+        user = obj.authority.user
+        return record_identity(user.display_name or user.email, user.email, glyph="person")
 
     @display(description=_("Context"), ordering="context", label=CONTEXT_LABELS)
     def grant_context(self, obj):
@@ -227,12 +244,12 @@ class GrantAdmin(RevocableRecordMixin, AccountMetadataAdmin):
 
 class GoogleIdentityAdmin(UserMetadataAdmin):
     fields = ["user", "issuer", "created_at"]
-    list_display = ["user", "issuer", "created_at"]
+    list_display = ["account_identity", "issuer", "created_at"]
 
 
 class GoogleAttemptAdmin(UserMetadataAdmin):
     fields = ["user", "context", "locale", "action", "expires_at", "consumed_at"]
-    list_display = ["user", "attempt_context", "action", "attempt_status", "expires_at"]
+    list_display = ["account_identity", "attempt_context", "action", "attempt_status", "expires_at"]
     list_filter = ["context", "action", "consumed_at"]
 
     @display(description=_("Context"), ordering="context", label=CONTEXT_LABELS)
@@ -245,7 +262,7 @@ class GoogleAttemptAdmin(UserMetadataAdmin):
 
 
 class OutboxAdmin(AccountMetadataAdmin):
-    section_title = label("Delivery record")
+    section_title = label("Account email record")
     fields = ["token", "status", "attempts", "next_attempt_at", "expires_at", "updated_at"]
     list_display = ["identity", "purpose", "delivery_status", "attempts", "next_attempt_at"]
     list_select_related = ["token__user"]
@@ -255,7 +272,8 @@ class OutboxAdmin(AccountMetadataAdmin):
 
     @display(description=label("Identity"), ordering="token__user__display_name")
     def identity(self, obj):
-        return str(obj.token.user)
+        user = obj.token.user
+        return record_identity(user.display_name or user.email, user.email, glyph="person")
 
     @display(description=_("Purpose"), ordering="token__purpose")
     def purpose(self, obj):
@@ -273,19 +291,80 @@ class PermissionAdmin(MetadataAdmin):
     list_display = ['name', 'content_type', 'codename']
     list_filter = ['content_type__app_label']
     search_fields = ['name', 'codename']
+    section_title = label("Permission metadata")
+
+    def get_fieldsets(self, request, obj=None):
+        return [(self.section_title, {"fields": self.fields, "description": label("Read-only record")})]
 
 
 class ContentTypeAdmin(MetadataAdmin):
     restriction_reason = 'Django-generated application/model registry; maintained by migrations.'
     fields = ['app_label', 'model']
-    list_display = ['app_label', 'model']
+    list_display = ['app_label', 'model', 'model_name']
     search_fields = ['app_label', 'model']
+    section_title = label("Registered model")
+
+    @display(description=label("Model name"), ordering="model")
+    def model_name(self, obj):
+        model = obj.model_class()
+        return model._meta.verbose_name if model else obj.model
+
+    def get_fieldsets(self, request, obj=None):
+        return [(self.section_title, {"fields": self.fields, "description": label("Read-only record")})]
+
+
+class LogActionFilter(SimpleListFilter):
+    title = label("Activity")
+    parameter_name = "log_action"
+
+    def lookups(self, request, model_admin):
+        return [(flag, title) for flag, title in LOG_ACTIONS.items()]
+
+    def queryset(self, request, queryset):
+        if not self.value():
+            return queryset
+        return queryset.filter(action_flag=int(self.value()))
+
+
+LOG_ACTIONS = {1: (label("Added"), "success"), 2: (label("Changed"), "info"), 3: (label("Removed"), "danger")}
+LOG_ACTION_TONES = {flag: tone for flag, (_, tone) in LOG_ACTIONS.items()}
 
 
 class NativeLogAdmin(MetadataAdmin):
-    fields = ['action_time', 'user', 'content_type', 'action_flag']
-    list_display = ['action_time', 'user', 'content_type', 'action_flag']
-    list_filter = ['action_flag', 'content_type']
+    section_title = label("Activity record")
+    fields = ["log_time", "log_actor", "log_action", "log_object", "content_type", "object_id", "change_message"]
+    list_display = ["log_time", "log_actor", "log_action", "log_object"]
+    list_filter = [LogActionFilter]
+    search_fields = ["object_repr", "change_message", "user__display_name", "user__email"]
+    search_help_text = label("Find by record, actor or email")
+    ordering = ["-action_time"]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (self.section_title, {"fields": ["log_time", "log_actor", "log_action", "log_object"]}),
+            (label("Technical record"), {"fields": ["content_type", "object_id", "change_message"],
+                                         "description": label("Read-only record")}),
+        ]
+
+    @display(description=label("Recorded at"), ordering="action_time")
+    def log_time(self, obj):
+        return obj.action_time
+
+    @display(description=label("Actor"), ordering="user__display_name")
+    def log_actor(self, obj):
+        if not obj.user_id:
+            return label("System")
+        return record_identity(obj.user.display_name or obj.user.email, obj.user.email, glyph="person")
+
+    @display(description=label("Action"), ordering="action_flag", label=LOG_ACTION_TONES)
+    def log_action(self, obj):
+        title = LOG_ACTIONS.get(obj.action_flag, (label("Activity"), "default"))[0]
+        return obj.action_flag, title
+
+    @display(description=label("Record"), ordering="object_repr")
+    def log_object(self, obj):
+        scope = obj.content_type.name if obj.content_type_id else label("Resource")
+        return record_identity(obj.object_repr or scope, scope, glyph="label")
 
 
 def register(site):

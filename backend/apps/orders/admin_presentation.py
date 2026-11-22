@@ -41,10 +41,16 @@ def account_cell(account):
     return identity(user.display_name or user.email, user.email, image, "person")
 
 
-def line_product(line):
+def line_identity(line, cover=None):
+    """Readable product identity for a retained order item."""
     snapshot = line.snapshot
-    image = reverse("admin:catalogue_private_image", args=[line.admin_cover]) if getattr(line, "admin_cover", None) else None
-    return identity(localized(snapshot.get("titles"), snapshot.get("sku") or _("Untitled product")), snapshot.get("sku") or line.variant.sku, image)
+    image = reverse("admin:catalogue_private_image", args=[cover]) if cover else None
+    return identity(localized(snapshot.get("titles"), snapshot.get("sku") or _("Untitled product")),
+                    snapshot.get("sku") or line.variant.sku, image)
+
+
+def line_product(line):
+    return line_identity(line, getattr(line, "admin_cover", None))
 
 
 def line_table(order, rows=None):
@@ -349,6 +355,49 @@ class OwnerOrderPresentation:
     def accepted_order(self, obj):
         order = getattr(obj, "order", None)
         return link_button(reverse("admin:orders_sellerorder_change", args=[order.pk]), _("View order"), "receipt_long") if order else panel_note(_("No accepted order yet."))
+
+
+class RelatedOrderMixin:
+    """Resolve the accepted order behind a retained secondary record.
+
+    Secondary records never repeat the order workspace: they show the invoice,
+    buyer and seller the record belongs to and link back to that workspace.
+    """
+
+    order_source = "order"
+
+    def related_order(self, obj):
+        value = obj
+        for part in self.order_source.split("__"):
+            value = getattr(value, part, None)
+            if value is None:
+                return None
+        return value
+
+    @admin.display(description=_("Order"))
+    def order_reference(self, obj):
+        order = self.related_order(obj)
+        if order is None:
+            return "—"
+        invoice = getattr(order, "invoice", None)
+        return invoice.number if invoice else _("Order %(reference)s") % {"reference": str(order.pk)[:8]}
+
+    @admin.display(description=_("Buyer account"))
+    def buyer_identity(self, obj):
+        order = self.related_order(obj)
+        return account_cell(order.buyer) if order else "—"
+
+    @admin.display(description=_("Seller account"))
+    def seller_identity(self, obj):
+        order = self.related_order(obj)
+        return seller_cell(order.seller) if order else "—"
+
+    @admin.display(description=_("Order workspace"))
+    def order_workspace(self, obj):
+        order = self.related_order(obj)
+        if order is None:
+            return panel_note(_("No accepted order is linked to this record."))
+        return link_button(reverse("admin:orders_sellerorder_change", args=[order.pk]), _("View order"), "receipt_long")
 
 
 def decimal_value(value):

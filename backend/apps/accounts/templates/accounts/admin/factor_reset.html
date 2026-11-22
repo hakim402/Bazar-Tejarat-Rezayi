@@ -1,4 +1,4 @@
-{% extends 'admin/base_site.html' %}{% load i18n %}
+{% extends 'admin/base_site.html' %}{% load i18n unfold %}
 {% block content %}
 <section class="mx-auto flex w-full max-w-xl flex-col gap-5">
   <p class="text-sm leading-6 text-base-500 dark:text-base-400">{% translate 'Confirm your password and current authenticator or one unused recovery code. This signs you out and requires new enrollment.' %}</p>
@@ -8,15 +8,12 @@
       {% if field.field.widget.input_type == 'checkbox' %}
         <label class="flex cursor-pointer items-center gap-2 text-sm font-medium text-base-900 dark:text-base-100">{{ field }}<span>{{ field.label }}</span></label>
       {% else %}
-        <div class="flex flex-col gap-1.5">
-          <label for="{{ field.id_for_label }}" class="text-sm font-medium text-base-900 dark:text-base-100">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}<p class="text-xs text-base-500 dark:text-base-400">{{ field.help_text }}</p>{% endif %}
-          {% for error in field.errors %}<p class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
-        </div>
+        {% include "unfold/helpers/field.html" with field=field %}
       {% endif %}
     {% endfor %}
-    <button type="submit" class="font-medium inline-flex items-center gap-1 relative rounded-default justify-center whitespace-nowrap cursor-pointer px-5 py-2.5 text-[14px] border border-transparent bg-primary-600 text-white hover:bg-primary-600/80">{% translate 'Reset authenticator' %}</button>
+    {% component "unfold/components/button.html" with submit=1 size="md" %}
+      {% translate 'Reset authenticator' %}
+    {% endcomponent %}
   </form>
 </section>
 {% endblock %}

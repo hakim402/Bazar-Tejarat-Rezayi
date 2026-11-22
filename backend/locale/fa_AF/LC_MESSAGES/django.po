@@ -5907,7 +5907,7 @@ msgid "Order dispute"
 msgstr "شکایت سفارش"
 
 msgid "Order items"
-msgstr "کالاهای سفارش"
+msgstr "اقلام سفارش"
 
 msgid "Order policy"
 msgstr "قواعد سفارش"
@@ -7027,3 +7027,539 @@ msgstr "خوانده‌نشده"
 # Delivery attempt history in the notification delivery diagnostics.
 msgid "Showing the %(shown)s most recent of %(total)s recorded attempts."
 msgstr "تنها %(shown)s تلاش ثبت‌شدهٔ آخر از %(total)s تلاش نمایش داده می‌شود."
+
+# Owner admin: secondary order, aftercare, inventory and runtime record labels.
+
+msgid "A request key that has already been settled. It exists so an uncertain submission can never be applied twice."
+msgstr "کلید درخواستی که پیش‌تر نهایی شده است. وجود آن تضمین می‌کند که یک ارسال نامطمئن هرگز دو بار اعمال نشود."
+
+msgid "A successful recovery of a stock shortage. Recovery is recorded by the order and inventory workflows."
+msgstr "رفع موفق یک کمبود موجودی. رفع کمبود از طریق روند سفارش و عملیات انبار ثبت می‌شود."
+
+msgid "Accepted item"
+msgstr "قلم پذیرفته‌شده"
+
+msgid "Aftercare activities"
+msgstr "فعالیت‌های خدمات پس از فروش"
+
+msgid "Aftercare activity"
+msgstr "فعالیت خدمات پس از فروش"
+
+msgid "Aftercare command"
+msgstr "دستور خدمات پس از فروش"
+
+msgid "Aftercare commands"
+msgstr "دستورهای خدمات پس از فروش"
+
+msgid "Aftercare record"
+msgstr "سابقهٔ خدمات پس از فروش"
+
+msgid "Aftercare records"
+msgstr "سوابق خدمات پس از فروش"
+
+msgid "Allocation"
+msgstr "تخصیص"
+
+msgid "Amendment decision"
+msgstr "تصمیم اصلاح"
+
+msgid "Amendment decisions"
+msgstr "تصمیم‌های اصلاح"
+
+msgid "Amendment item"
+msgstr "قلم اصلاح"
+
+msgid "Amendment items"
+msgstr "اقلام اصلاح"
+
+msgid "Amendment workspace"
+msgstr "بخش کاری اصلاح"
+
+msgid "Authorised by"
+msgstr "مجازشده توسط"
+
+msgid "Balances of this stock bucket. Stock changes are recorded through inventory operations."
+msgstr "موجودی این سطل کالا. تغییرات موجودی از طریق عملیات انبار ثبت می‌شوند."
+
+msgid "Cancellation decision"
+msgstr "تصمیم لغو"
+
+msgid "Cancellation decisions"
+msgstr "تصمیم‌های لغو"
+
+msgid "Cancellation workspace"
+msgstr "بخش کاری لغو"
+
+msgid "Checkout outcome"
+msgstr "نتیجهٔ خرید"
+
+msgid "Checkout outcomes"
+msgstr "نتیجه‌های خرید"
+
+msgid "Checkout submission"
+msgstr "ارسال خرید"
+
+msgid "Checkout submissions"
+msgstr "ارسال‌های خرید"
+
+msgid "Checkout terms"
+msgstr "شرایط خرید"
+
+msgid "Cities"
+msgstr "شهرها"
+
+msgid "City scope"
+msgstr "دامنهٔ شهر"
+
+msgid "Command key"
+msgstr "کلید دستور"
+
+msgid "Command result"
+msgstr "نتیجهٔ دستور"
+
+msgid "Context"
+msgstr "زمینه"
+
+msgid "Decided by"
+msgstr "تصمیم‌گرفته‌شده توسط"
+
+msgid "Delivery destinations"
+msgstr "مقصدهای تحویل"
+
+msgid "Destinations"
+msgstr "مقصدها"
+
+msgid "Dispute decision"
+msgstr "تصمیم اختلاف"
+
+msgid "Dispute decisions"
+msgstr "تصمیم‌های اختلاف"
+
+msgid "Dispute response"
+msgstr "پاسخ اختلاف"
+
+msgid "Dispute responses"
+msgstr "پاسخ‌های اختلاف"
+
+msgid "Dispute workspace"
+msgstr "بخش کاری اختلاف"
+
+msgid "Every city"
+msgstr "هر شهر"
+
+msgid "Find by actor email or invoice number"
+msgstr "جستجو بر اساس ایمیل عامل یا شماره صورتحساب"
+
+msgid "Find by actor email, buyer email or seller name"
+msgstr "جستجو بر اساس ایمیل عامل، ایمیل خریدار یا نام فروشنده"
+
+msgid "Find by buyer name or email"
+msgstr "جستجو بر اساس نام یا ایمیل خریدار"
+
+msgid "Find by order, invoice number or SKU"
+msgstr "جستجو بر اساس سفارش، شماره صورتحساب یا شناسه کالا"
+
+msgid "Find by product name, seller or email"
+msgstr "جستجو بر اساس نام محصول، فروشنده یا ایمیل"
+
+msgid "Find by product name, SKU, batch number, seller or email"
+msgstr "جستجو بر اساس نام محصول، شناسه کالا، شماره محموله، فروشنده یا ایمیل"
+
+msgid "Find by product name, SKU, seller or reference"
+msgstr "جستجو بر اساس نام محصول، شناسه کالا، فروشنده یا شماره مرجع"
+
+msgid "Find by product, seller or email"
+msgstr "جستجو بر اساس محصول، فروشنده یا ایمیل"
+
+msgid "Find by reference, seller or email"
+msgstr "جستجو بر اساس شماره مرجع، فروشنده یا ایمیل"
+
+msgid "Find by request, buyer email or actor email"
+msgstr "جستجو بر اساس درخواست، ایمیل خریدار یا ایمیل عامل"
+
+msgid "Find by seller name or buyer email"
+msgstr "جستجو بر اساس نام فروشنده یا ایمیل خریدار"
+
+msgid "Find by seller name or email"
+msgstr "جستجو بر اساس نام فروشنده یا ایمیل"
+
+msgid "Find by seller, email, reference or reason"
+msgstr "جستجو بر اساس فروشنده، ایمیل، شماره مرجع یا دلیل"
+
+msgid "Find by SKU or seller"
+msgstr "جستجو بر اساس شناسه کالا یا فروشنده"
+
+msgid "Find by SKU, seller or reference"
+msgstr "جستجو بر اساس شناسه کالا، فروشنده یا شماره مرجع"
+
+msgid "Held items"
+msgstr "اقلام نگه‌داشته‌شده"
+
+msgid "Held stock"
+msgstr "موجودی نگه‌داشته‌شده"
+
+msgid "How one seller's part of a checkout request ended. The accepted order and its invoice are created from the same request."
+msgstr "نتیجهٔ بخش یک فروشنده از درخواست خرید. سفارش پذیرفته‌شده و صورتحساب آن از همین درخواست ساخته می‌شوند."
+
+msgid "How one seller's part of a formal request ended. An accepted request becomes a negotiation with its own proposal history."
+msgstr "نتیجهٔ بخش یک فروشنده از درخواست رسمی. درخواست پذیرفته‌شده به مذاکره‌ای با تاریخچهٔ پیشنهادهای خود تبدیل می‌شود."
+
+msgid "Items"
+msgstr "اقلام"
+
+msgid "Negotiation activities"
+msgstr "فعالیت‌های مذاکره"
+
+msgid "Negotiation activity"
+msgstr "فعالیت مذاکره"
+
+msgid "Negotiation command"
+msgstr "دستور مذاکره"
+
+msgid "Negotiation commands"
+msgstr "دستورهای مذاکره"
+
+msgid "Negotiation proposal"
+msgstr "پیشنهاد مذاکره"
+
+msgid "Negotiation proposals"
+msgstr "پیشنهادهای مذاکره"
+
+msgid "No accepted order is linked to this record."
+msgstr "هیچ سفارش پذیرفته‌شده‌ای به این رکورد مرتبط نیست."
+
+msgid "No additional state was recorded."
+msgstr "وضعیت دیگری ثبت نشده است."
+
+msgid "No destinations are configured."
+msgstr "مقصدی تنظیم نشده است."
+
+msgid "No formal request is linked to this record."
+msgstr "هیچ درخواست رسمی‌ای به این رکورد مرتبط نیست."
+
+msgid "No items in this record."
+msgstr "قلمی در این رکورد نیست."
+
+msgid "No proposals were sent with this request."
+msgstr "هیچ پیشنهادی همراه این درخواست فرستاده نشد."
+
+msgid "No related records."
+msgstr "رکورد مرتبطی وجود ندارد."
+
+msgid "No result detail was recorded."
+msgstr "جزئیات نتیجه‌ای ثبت نشده است."
+
+msgid "Not dispatched"
+msgstr "ارسال‌نشده"
+
+msgid "One accepted aftercare command. Commands are settled once and carry the digest of the exact input that was authorised."
+msgstr "یک دستور پذیرفته‌شدهٔ خدمات پس از فروش. دستورها یک‌بار نهایی می‌شوند و خلاصهٔ دقیق همان ورودی مجازشده را با خود دارند."
+
+msgid "One accepted command of a formal request. Commands are settled once; the same command key cannot be replayed with different input."
+msgstr "یک دستور پذیرفته‌شده از درخواست رسمی. دستورها یک‌بار نهایی می‌شوند؛ همان کلید دستور را نمی‌توان با ورودی دیگری دوباره اجرا کرد."
+
+msgid "One moderation decision on a buyer review. An approved review can later be withdrawn; every decision stays in the history."
+msgstr "یک تصمیم بازبینی روی بازخورد خریدار. بازخورد تأییدشده بعداً می‌تواند پس گرفته شود؛ هر تصمیم در تاریخچه می‌ماند."
+
+msgid "One proposed change to an accepted order item. The original accepted line stays frozen; an approved amendment writes its own adjustment."
+msgstr "یک تغییر پیشنهادی روی قلم پذیرفته‌شدهٔ سفارش. قلم اصلیِ پذیرفته‌شده منجمد می‌ماند؛ اصلاح تأییدشده صورت‌حساب اصلاحی خود را می‌نویسد."
+
+msgid "One retained proposal of the formal request. Proposals accumulate as history; the request workspace keeps the full revision history."
+msgstr "یک پیشنهاد نگه‌داشته‌شده از درخواست رسمی. پیشنهادها روی هم انباشته می‌شوند؛ بخش کاری درخواست تاریخچهٔ کامل نسخه‌ها را نگه می‌دارد."
+
+msgid "Operation"
+msgstr "عملیات"
+
+msgid "Order activities"
+msgstr "فعالیت‌های سفارش"
+
+msgid "Order activity"
+msgstr "فعالیت سفارش"
+
+msgid "Order item"
+msgstr "قلم سفارش"
+
+msgid "Order workspace"
+msgstr "بخش کاری سفارش"
+
+msgid "Outcome code"
+msgstr "کد نتیجه"
+
+msgid "Payment methods"
+msgstr "روش‌های پرداخت"
+
+msgid "Proposal"
+msgstr "پیشنهاد"
+
+msgid "Proposed change"
+msgstr "تغییر پیشنهادی"
+
+msgid "Proposed items"
+msgstr "اقلام پیشنهادی"
+
+msgid "Quantity held by this reservation line. Lines are written by the inventory services."
+msgstr "مقدار نگه‌داشته‌شده در این ردیف رزرو. ردیف‌ها توسط سرویس‌های انبار نوشته می‌شوند."
+
+msgid "Quantity released from a still-held reservation. Reductions are written by the inventory services."
+msgstr "مقدار آزادشده از رزروی که هنوز نگه‌داشته شده است. کاهش‌ها توسط سرویس‌های انبار نوشته می‌شوند."
+
+msgid "Recorded activity"
+msgstr "فعالیت ثبت‌شده"
+
+msgid "Recorded balances"
+msgstr "موجودی‌های ثبت‌شده"
+
+msgid "Recorded by"
+msgstr "ثبت‌شده توسط"
+
+msgid "Recorded by the system."
+msgstr "ثبت‌شده توسط سیستم."
+
+msgid "Recorded details"
+msgstr "جزئیات ثبت‌شده"
+
+msgid "Recorded prices"
+msgstr "قیمت‌های ثبت‌شده"
+
+msgid "Recorded response"
+msgstr "پاسخ ثبت‌شده"
+
+msgid "Recorded state"
+msgstr "وضعیت ثبت‌شده"
+
+msgid "Recovery"
+msgstr "رفع"
+
+msgid "Recovery marker"
+msgstr "نشان رفع"
+
+msgid "Released stock"
+msgstr "موجودی آزادشده"
+
+msgid "Request"
+msgstr "درخواست"
+
+msgid "Request outcome"
+msgstr "نتیجهٔ درخواست"
+
+msgid "Request outcomes"
+msgstr "نتیجه‌های درخواست"
+
+msgid "Request submission"
+msgstr "ارسال درخواست"
+
+msgid "Request submissions"
+msgstr "ارسال‌های درخواست"
+
+msgid "Request workspace"
+msgstr "بخش کاری درخواست"
+
+msgid "Reservation"
+msgstr "رزرو"
+
+msgid "Reservation release"
+msgstr "آزادسازی رزرو"
+
+msgid "Reservation releases"
+msgstr "آزادسازی‌های رزرو"
+
+msgid "Reservation state and the held lines. Reservations change through the order and inventory workflows."
+msgstr "وضعیت رزرو و ردیف‌های نگه‌داشته‌شده. رزروها از طریق روند سفارش و عملیات انبار تغییر می‌کنند."
+
+msgid "Reserved item"
+msgstr "قلم رزروشده"
+
+msgid "Reserved items"
+msgstr "اقلام رزروشده"
+
+msgid "Responded by"
+msgstr "پاسخ‌داده‌شده توسط"
+
+msgid "Response"
+msgstr "پاسخ"
+
+msgid "Result detail"
+msgstr "جزئیات نتیجه"
+
+msgid "review"
+msgstr "بازخورد"
+
+msgid "Review decisions"
+msgstr "تصمیم‌های بررسی"
+
+msgid "Review workspace"
+msgstr "بخش کاری بررسی"
+
+msgid "Selected cities"
+msgstr "شهرهای انتخاب‌شده"
+
+msgid "Seller checkout terms"
+msgstr "شرایط خرید فروشنده"
+
+msgid "Seller proposals"
+msgstr "پیشنهادهای فروشنده"
+
+msgid "Sellers"
+msgstr "فروشندگان"
+
+msgid "Shortage recoveries"
+msgstr "رفع کمبودها"
+
+msgid "Shortage recovery"
+msgstr "رفع کمبود"
+
+msgid "State detail"
+msgstr "جزئیات وضعیت"
+
+msgid "Stock after"
+msgstr "موجودی پس از"
+
+msgid "Stock before"
+msgstr "موجودی پیش از"
+
+msgid "Stock bucket"
+msgstr "سطل موجودی"
+
+msgid "Stock buckets"
+msgstr "سطل‌های موجودی"
+
+msgid "Stock configured"
+msgstr "موجودی پیکربندی‌شده"
+
+msgid "Stock operation"
+msgstr "عملیات موجودی"
+
+msgid "Stock operations"
+msgstr "عملیات‌های موجودی"
+
+msgid "Stock reservations"
+msgstr "رزروهای موجودی"
+
+msgid "Stock retired"
+msgstr "موجودی برداشته‌شده"
+
+msgid "Stock transition"
+msgstr "گذار موجودی"
+
+msgid "Stock transitions"
+msgstr "گذارهای موجودی"
+
+msgid "Submission"
+msgstr "ارسال"
+
+msgid "Submission recovery marker"
+msgstr "نشان بازیابی ارسال"
+
+msgid "Submission recovery markers"
+msgstr "نشان‌های بازیابی ارسال"
+
+msgid "Submitted items"
+msgstr "اقلام ارسال‌شده"
+
+msgid "text"
+msgstr "متن"
+
+msgid "The accepted order this item belongs to."
+msgstr "سفارش پذیرفته‌شده‌ای که این قلم به آن تعلق دارد."
+
+msgid "The aftercare version of one accepted order. It moves forward only through the guarded aftercare workflows, never by editing this record."
+msgstr "نسخهٔ خدمات پس از فروشِ یک سفارش پذیرفته‌شده. این سابقه تنها از راه روندهای محافظت‌شدهٔ خدمات پس از فروش پیش می‌رود، نه با ویرایش این رکورد."
+
+msgid "The buyer's checkout request exactly as it was sent. It is retained history; the accepted order and its invoice hold the binding values."
+msgstr "درخواست خرید خریدار دقیقاً همان‌گونه که فرستاده شد. این سابقهٔ نگه‌داشته‌شده است؛ سفارش پذیرفته‌شده و صورتحساب آن مقادیر الزام‌آور را در بر دارند."
+
+msgid "The buyer's formal request exactly as it was sent, including one proposal per seller. The negotiation record holds the accepted proposal history."
+msgstr "درخواست رسمی خریدار دقیقاً همان‌گونه که فرستاده شد، شامل یک پیشنهاد برای هر فروشنده. سابقهٔ مذاکره تاریخچهٔ پیشنهادهای پذیرفته‌شده را در بر دارد."
+
+msgid "The decision that closed one cancellation request. It is final history; the request workspace keeps the live case."
+msgstr "تصمیمی که یک درخواست لغو را بست. این سابقهٔ نهایی است؛ بخش کاری درخواست پروندهٔ زنده را نگه می‌دارد."
+
+msgid "The decision that closed one dispute. An ordered refund creates a bounded refund due; it never moves money by itself."
+msgstr "تصمیمی که یک اختلاف را بست. بازپرداخت دستورشده یک بازپرداخت محدود ایجاد می‌کند؛ خودش پولی جابه‌جا نمی‌کند."
+
+msgid "The decision that closed one order amendment. It is final history; the amendment workspace keeps the live case."
+msgstr "تصمیمی که یک اصلاح سفارش را بست. این سابقهٔ نهایی است؛ بخش کاری اصلاح پروندهٔ زنده را نگه می‌دارد."
+
+msgid "The exact item that was accepted. Names, tier, quantity and prices are frozen history; approved amendments project new values without rewriting this line."
+msgstr "قلم دقیقی که پذیرفته شد. نام، نوع فروش، مقدار و قیمت‌ها تاریخچهٔ منجمد هستند؛ اصلاحات تأییدشده مقدارهای تازه را بدون بازنویسی این ردیف نشان می‌دهند."
+
+msgid "The items the buyer submitted with this request."
+msgstr "اقلامی که خریدار همراه این درخواست فرستاد."
+
+msgid "The items this proposal carried when it was recorded."
+msgstr "اقلامی که این پیشنهاد هنگام ثبت داشت."
+
+msgid "The proposal each seller received with this request."
+msgstr "پیشنهادی که هر فروشنده همراه این درخواست دریافت کرد."
+
+msgid "The recorded operation and its reason. Operations are written by trusted inventory services and are never edited here."
+msgstr "عملیات ثبت‌شده و دلیل آن. عملیات‌ها توسط سرویس‌های مورد اعتماد انبار نوشته می‌شوند و در اینجا هرگز ویرایش نمی‌شوند."
+
+msgid "The response that was recorded for one dispute. It is retained history; the dispute workspace keeps the live case."
+msgstr "پاسخی که برای یک اختلاف ثبت شد. این سابقهٔ نگه‌داشته‌شده است؛ بخش کاری اختلاف پروندهٔ زنده را نگه می‌دارد."
+
+msgid "The seller's own checkout terms. Buyers are only offered these destinations and payment methods; the seller changes them in their own store settings."
+msgstr "شرایط خرید خودِ فروشنده. خریداران تنها همین مقصدها و روش‌های پرداخت به آن‌ها پیشنهاد می‌شود؛ فروشنده آن‌ها را در تنظیمات فروشگاه خود تغییر می‌دهد."
+
+msgid "The workspace that owns this record. Any change happens there, never in this retained history."
+msgstr "بخش کاری که مالک این رکورد است. هر تغییری آنجا انجام می‌شود، نه در این سابقهٔ نگه‌داشته‌شده."
+
+msgid "Transition"
+msgstr "گذار"
+
+msgid "user"
+msgstr "کاربر"
+
+msgid "View allocation"
+msgstr "دیدن تخصیص"
+
+msgid "View buyer review"
+msgstr "دیدن بازخورد خریدار"
+
+msgid "View cancellation request"
+msgstr "دیدن درخواست لغو"
+
+msgid "View checkout outcome"
+msgstr "دیدن نتیجهٔ خرید"
+
+msgid "View checkout submission"
+msgstr "دیدن ارسال خرید"
+
+msgid "View formal request"
+msgstr "دیدن درخواست رسمی"
+
+msgid "View order amendment"
+msgstr "دیدن اصلاح سفارش"
+
+msgid "View order dispute"
+msgstr "دیدن اختلاف سفارش"
+
+msgid "View request outcome"
+msgstr "دیدن نتیجهٔ درخواست"
+
+msgid "View request submission"
+msgstr "دیدن ارسال درخواست"
+
+msgid "View shortage"
+msgstr "دیدن کمبود"
+
+msgid "View stock movement"
+msgstr "دیدن تغییر موجودی"
+
+msgid "View stock operation"
+msgstr "دیدن عملیات موجودی"
+
+msgid "What the accepted command produced. The technical digest stays secondary."
+msgstr "آنچه دستور پذیرفته‌شده به دست آورد. خلاصهٔ فنی در جایگاه دوم می‌ماند."
+
+msgid "What the aftercare services recorded, and who recorded it. The activity log is append-only history."
+msgstr "آنچه سرویس‌های خدمات پس از فروش ثبت کردند و چه کسی آن را ثبت کرد. گزارش فعالیت تاریخچه‌ای فقط‌افزودنی است."
+
+msgid "What the request services recorded, and who recorded it. The activity log is append-only history."
+msgstr "آنچه سرویس‌های درخواست ثبت کردند و چه کسی آن را ثبت کرد. گزارش فعالیت تاریخچه‌ای فقط‌افزودنی است."
+
+msgid "What the trusted order services recorded, and who recorded it. The event log is append-only history."
+msgstr "آنچه سرویس‌های مورد اعتماد سفارش ثبت کردند و چه کسی آن را ثبت کرد. گزارش رویداد تاریخچه‌ای فقط‌افزودنی است."
+
+msgid "Where this seller delivers, as accepted at the time."
+msgstr "محل‌هایی که این فروشنده در آن زمان پذیرفته بود تحویل می‌دهد."

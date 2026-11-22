@@ -83,12 +83,22 @@ STATE_VARIANTS = {
     },
 }
 
-CATALOGUE_THEME = {
+# --- Shared record identity (name with supporting detail, both truncated) -----
+# One definition for every listing that must show a readable record instead of
+# a bare identifier. Catalogue keeps its own image treatment on top of it.
+IDENTITY_THEME = {
     "identity": "flex items-center gap-3",
-    "image": "h-10 w-10 shrink-0 rounded-default object-cover",
     "text": "min-w-0 w-48",
     "name": "block truncate text-sm font-medium text-base-900 dark:text-base-100",
     "meta": "block truncate text-xs text-base-500 dark:text-base-400",
+}
+
+CATALOGUE_THEME = {
+    "identity": IDENTITY_THEME["identity"],
+    "image": "h-10 w-10 shrink-0 rounded-default object-cover",
+    "text": IDENTITY_THEME["text"],
+    "name": IDENTITY_THEME["name"],
+    "meta": IDENTITY_THEME["meta"],
     "badges": "flex flex-wrap gap-1",
 }
 
