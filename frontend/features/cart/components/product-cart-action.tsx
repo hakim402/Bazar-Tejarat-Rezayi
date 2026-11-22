@@ -304,58 +304,63 @@ function ProductCartEditor({
 						))}
 					</fieldset>
 				)}
-				<div className="space-y-1.5">
-					<span
-						id={`quantity-label-${v.id}`}
-						className="block text-sm font-semibold"
-					>
-						{t.quantity} · {unit}
-					</span>
-					<div className="flex w-full max-w-52 items-stretch overflow-hidden rounded-control border border-border bg-surface focus-within:border-action">
-						<button
-							type="button"
-							aria-label={market.decreaseQuantity}
-							title={market.decreaseQuantity}
-							disabled={locked}
-							onClick={() => step(-1)}
-							className="flex w-11 shrink-0 items-center justify-center border-e border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
+				<div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+					<div className="min-w-0 space-y-1.5">
+						<span
+							id={`quantity-label-${v.id}`}
+							className="block text-sm font-semibold"
 						>
-							<Icon name="minus" className="size-4" />
-						</button>
-						<input
-							inputMode="decimal"
-							dir="ltr"
-							aria-labelledby={`quantity-label-${v.id}`}
-							className="min-h-11 w-full min-w-0 border-0 bg-transparent px-2 text-center font-bold text-foreground"
-							value={quantity}
-							maxLength={20}
-							disabled={locked}
-							onChange={(e) => {
-								setQuantity(e.target.value);
-								setSaved(false);
-							}}
-							required
-						/>
-						<button
-							type="button"
-							aria-label={market.increaseQuantity}
-							title={market.increaseQuantity}
-							disabled={locked}
-							onClick={() => step(1)}
-							className="flex w-11 shrink-0 items-center justify-center border-s border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
-						>
-							<Icon name="plus" className="size-4" />
-						</button>
+							{t.quantity} · {unit}
+						</span>
+						<div className="flex w-full max-w-36 items-stretch overflow-hidden rounded-control border border-solid border-border bg-surface focus-within:border-action">
+							<button
+								type="button"
+								aria-label={market.decreaseQuantity}
+								title={market.decreaseQuantity}
+								disabled={locked}
+								onClick={() => step(-1)}
+								className="flex w-11 shrink-0 items-center justify-center border-e border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
+							>
+								<Icon name="minus" className="size-4" />
+							</button>
+							<input
+								inputMode="decimal"
+								dir="ltr"
+								aria-labelledby={`quantity-label-${v.id}`}
+								className="min-h-11 w-full min-w-0 border-0 bg-transparent px-2 text-center font-bold text-foreground"
+								value={quantity}
+								maxLength={20}
+								disabled={locked}
+								onChange={(e) => {
+									setQuantity(e.target.value);
+									setSaved(false);
+								}}
+								required
+							/>
+							<button
+								type="button"
+								aria-label={market.increaseQuantity}
+								title={market.increaseQuantity}
+								disabled={locked}
+								onClick={() => step(1)}
+								className="flex w-11 shrink-0 items-center justify-center border-s border-border text-foreground transition-colors hover:bg-info hover:text-action active:bg-info disabled:opacity-50"
+							>
+								<Icon name="plus" className="size-4" />
+							</button>
+						</div>
 					</div>
+					{total !== null && (
+						<p className="min-w-0 space-y-1 text-end text-sm">
+							<span className="block text-muted">{market.subtotal}</span>
+							<bdi
+								dir="ltr"
+								className="block break-all text-lg font-bold tabular-nums"
+							>
+								{displayDecimal(total)} {product.currency}
+							</bdi>
+						</p>
+					)}
 				</div>
-				{total !== null && (
-					<p className="flex items-baseline justify-between gap-3 text-sm">
-						<span className="text-muted">{market.subtotal}</span>
-						<bdi dir="ltr" className="text-base font-extrabold">
-							{displayDecimal(total)} {product.currency}
-						</bdi>
-					</p>
-				)}
 				<p className="text-xs text-muted">
 					{t.increment}: <bdi>{displayDecimal(v.increment)}</bdi>
 					{tier === "wholesale" && (
@@ -390,7 +395,7 @@ function ProductCartEditor({
 					<Button
 						type="submit"
 						size="lg"
-						className="min-h-11"
+						className="min-h-11 grow font-semibold"
 						disabled={busy || guestChanged}
 					>
 						<Icon name="cart" className="size-4" />

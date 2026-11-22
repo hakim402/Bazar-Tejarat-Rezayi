@@ -40,18 +40,18 @@ export function ProductGallery({
 
 	return (
 		<Dialog>
-			<div className="relative overflow-hidden rounded-control bg-surface">
+			<div className="relative isolate aspect-[5/4] max-h-[34rem] overflow-hidden rounded-card bg-linear-to-br from-surface to-info lg:aspect-square">
 				<Asset
 					asset={image}
 					loading="eager"
-					className="block aspect-[4/3] max-h-[32rem] w-full object-contain"
+					className="absolute inset-0 block size-full object-contain p-4 sm:p-7"
 				/>
 				<DialogTrigger asChild>
 					<Button
 						type="button"
 						variant="outline"
 						size="icon-lg"
-						className="absolute end-3 bottom-3"
+						className="absolute end-3 bottom-3 rounded-full sm:end-4 sm:bottom-4"
 						aria-label={t.zoomImage}
 						title={t.zoomImage}
 					>
@@ -71,7 +71,7 @@ export function ProductGallery({
 							aria-pressed={i === index}
 							aria-label={asset.alt || `${t.images} ${i + 1}`}
 							onClick={() => onSelect(asset.id)}
-							className={`size-14 overflow-hidden p-1 ${i === index ? "border-action" : ""}`}
+							className={`size-14 overflow-hidden rounded-control p-1 sm:size-16 ${i === index ? "border-action ring-1 ring-action" : ""}`}
 						>
 							<Asset asset={asset} className="size-full object-contain" />
 						</Button>

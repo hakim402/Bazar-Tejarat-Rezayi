@@ -7,17 +7,16 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/shadcn/button";
 import { Icon } from "@/components/ui/icon";
 import { displayDecimal } from "@/lib/display-decimal";
-import { catalogueCopy } from "@/lib/i18n/catalogue";
 import { direction, type Locale } from "@/lib/i18n/locales";
 import { ProductCartAction } from "../../cart/components/product-cart-action";
 import { EnquiryEntry } from "../../messaging/components/enquiry-entry";
-import { communicationCopy } from "../../messaging/copy";
 import { marketplaceCopy } from "../copy";
 import type { PublicProduct, ReviewSummary } from "../types";
 import { StoreAvatar, VerifiedBusiness } from "./cards";
 import { CopyLinkButton } from "./copy-link-button";
 import { ProductGallery } from "./product-gallery";
 import { ProductReportPanel } from "./product-report";
+import { ProductTabs } from "./product-tabs";
 
 function attributes(values: unknown, labels: unknown, locale: Locale) {
 	if (!values || typeof values !== "object" || Array.isArray(values)) return [];
@@ -35,23 +34,30 @@ function attributes(values: unknown, labels: unknown, locale: Locale) {
 }
 
 function Price({
+	label,
 	value,
 	unit,
 	currency,
-	className,
 }: {
+	label: string;
 	value: string;
 	unit: string;
 	currency: string;
-	className: string;
 }) {
 	return (
-		<span className="inline-flex flex-wrap items-baseline gap-x-1.5">
-			<bdi dir="ltr" className={className}>
-				{displayDecimal(value)} {currency}
-			</bdi>
-			<span className="text-muted">/ {unit}</span>
-		</span>
+		<div className="min-w-0 space-y-1">
+			<p className="text-sm font-medium text-muted">{label}</p>
+			<p className="flex flex-wrap items-baseline gap-x-2">
+				<bdi
+					dir="ltr"
+					className="break-all text-2xl font-bold tabular-nums text-action sm:text-3xl"
+				>
+					{displayDecimal(value)}{" "}
+					<span className="text-sm font-semibold">{currency}</span>
+				</bdi>
+				<span className="text-xs text-muted">/ {unit}</span>
+			</p>
+		</div>
 	);
 }
 
@@ -73,7 +79,6 @@ export function ProductDetail({
 				product.variants[0]
 			)?.id,
 	);
-	const [reportOpened, setReportOpened] = useState(false);
 	const [imageId, setImageId] = useState<string>();
 	const [canShare, setCanShare] = useState(false);
 	useEffect(() => {
@@ -99,15 +104,31 @@ export function ProductDetail({
 		row.unit_labels[locale] || row.unit;
 	const reviewCount =
 		summary?.count ?? product.store.review_summary?.count ?? 0;
+	const bodySpecs = attributes(
+		product.body.attributes,
+		product.body.attribute_labels,
+		locale,
+	);
+	const descriptionPoints = [
+		...bodySpecs.map(({ label, value }) => `${label}: ${value}`),
+		...(variant?.contents ? [variant.contents] : []),
+	].slice(0, 8);
 	const specs = [
 		{ label: t.sku, value: variant?.sku },
 		{ label: t.brand, value: product.body.brand },
-		{ label: catalogueCopy[locale].contents, value: variant?.contents },
-		...attributes(
-			product.body.attributes,
-			product.body.attribute_labels,
-			locale,
-		),
+		{
+			label: t.category,
+			value:
+				product.body.category_labels[locale] ||
+				product.body.category_labels["fa-AF"] ||
+				product.body.category,
+		},
+		{ label: t.unit, value: variant && unit(variant) },
+		{ label: t.increment, value: variant && displayDecimal(variant.increment) },
+		{ label: t.minimum, value: variant && displayDecimal(variant.minimum) },
+		{ label: t.pricing_mode, value: t[product.pricing_mode] },
+		{ label: t.availability, value: variant && t[availability] },
+		...bodySpecs,
 		...attributes(variant?.attributes, variant?.attribute_labels, locale),
 	]
 		.filter(
@@ -139,25 +160,23 @@ export function ProductDetail({
 
 	return (
 		<article
-			className="min-w-0 space-y-8 desktop:space-y-10"
+			className="min-w-0 space-y-8 lg:space-y-12"
 			data-testid="product-detail"
 		>
 			<div
 				className={
 					hasImages
-						? "grid items-start gap-5 desktop:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] desktop:grid-rows-[auto_1fr] desktop:gap-x-10"
+						? "grid items-start gap-y-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10 wide:gap-x-14"
 						: "max-w-2xl space-y-5"
 				}
 			>
 				<header
 					className={
-						hasImages
-							? "min-w-0 desktop:col-start-2 desktop:row-start-1"
-							: "min-w-0"
+						hasImages ? "min-w-0 lg:col-start-2 lg:row-start-1" : "min-w-0"
 					}
 				>
 					<h1
-						className="wrap-break-word text-2xl font-bold leading-tight sm:text-3xl"
+						className="wrap-break-word text-3xl font-bold leading-tight sm:text-4xl"
 						lang={language}
 						dir={direction(language)}
 					>
@@ -166,7 +185,7 @@ export function ProductDetail({
 					{product.source_fallback && (
 						<p className="mt-1.5 text-xs text-muted">{t.fallback}</p>
 					)}
-					<div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+					<div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
 						<Link
 							prefetch={false}
 							href={storePath}
@@ -174,14 +193,14 @@ export function ProductDetail({
 						>
 							<StoreAvatar
 								store={product.store}
-								className="size-8"
+								className="size-10"
 								textClassName="text-xs"
 								padding="p-0.5"
 							/>
-							<span className="min-w-0 truncate">
-								<span className="me-1.5 text-muted">{t.soldBy}</span>
+							<span className="min-w-0">
+								<span className="block text-xs text-muted">{t.soldBy}</span>
 								<bdi
-									className="font-semibold"
+									className="block truncate font-semibold"
 									lang={product.store.resolved_locale}
 								>
 									{product.store.name}
@@ -206,7 +225,7 @@ export function ProductDetail({
 				{hasImages && (
 					<section
 						aria-label={t.images}
-						className="min-w-0 desktop:col-start-1 desktop:row-span-2 desktop:row-start-1"
+						className="min-w-0 lg:col-start-1 lg:row-span-2 lg:row-start-1"
 					>
 						<ProductGallery
 							images={product.images}
@@ -219,7 +238,7 @@ export function ProductDetail({
 				<div
 					className={
 						hasImages
-							? "min-w-0 space-y-5 desktop:col-start-2 desktop:row-start-2"
+							? "min-w-0 space-y-5 lg:col-start-2 lg:row-start-2"
 							: "min-w-0 space-y-5"
 					}
 				>
@@ -250,41 +269,33 @@ export function ProductDetail({
 							</div>
 						</fieldset>
 					)}
-					<div className="space-y-2 border-y border-border py-4 text-sm">
-						{variant?.retail != null ? (
-							<p>
+					<div className="space-y-3 border-y border-solid border-border py-4">
+						<div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-x-4 gap-y-3">
+							{variant?.retail != null && (
 								<Price
+									label={t.retail}
 									value={variant.retail}
 									unit={unit(variant)}
 									currency={product.currency}
-									className="text-3xl font-bold tracking-tight text-action"
 								/>
-							</p>
-						) : (
-							variant?.wholesale == null && (
-								<p className="text-muted">{t.noPrice}</p>
-							)
-						)}
-						{variant?.wholesale != null && (
-							<p className="flex flex-wrap items-baseline gap-x-2">
-								<span className="text-muted">{t.wholesale}</span>
+							)}
+							{variant?.wholesale != null && (
 								<Price
+									label={t.wholesale}
 									value={variant.wholesale}
 									unit={unit(variant)}
 									currency={product.currency}
-									className={
-										variant.retail == null
-											? "text-2xl font-bold text-action"
-											: "font-semibold"
-									}
 								/>
-							</p>
-						)}
-						<div className="flex flex-wrap gap-x-4 gap-y-1">
+							)}
+							{variant?.retail == null && variant?.wholesale == null && (
+								<p className="text-sm text-muted">{t.noPrice}</p>
+							)}
+						</div>
+						<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
 							{variant && (
 								<p
 									role="status"
-									className={`inline-flex items-center gap-1.5 ${availability === "available" ? "text-success" : availability === "unavailableStock" ? "text-danger" : "text-muted"}`}
+									className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ${availability === "available" ? "bg-success-surface text-success" : availability === "unavailableStock" ? "bg-danger-surface text-danger" : "bg-surface text-muted"}`}
 								>
 									<Icon
 										name={
@@ -294,7 +305,7 @@ export function ProductDetail({
 													? "close"
 													: "help"
 										}
-										className="size-4"
+										className="size-3.5"
 									/>
 									{t[availability]}
 								</p>
@@ -315,7 +326,7 @@ export function ProductDetail({
 							variant={variant.id}
 						/>
 					)}
-					<div className="flex flex-wrap items-start gap-2">
+					<div className="flex flex-wrap items-start gap-2 border-t border-solid border-border pt-4">
 						<EnquiryEntry
 							key={`${locale}:${product.id}`}
 							locale={locale}
@@ -338,62 +349,82 @@ export function ProductDetail({
 					</div>
 				</div>
 			</div>
-			{(description || specs.length > 0) && (
-				<div
-					className={`grid gap-7 border-t border-border pt-6 ${description && specs.length > 0 ? "desktop:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] desktop:gap-10" : ""}`}
-				>
-					{description && (
-						<section className="min-w-0 space-y-3">
-							<h2 className="text-lg font-bold">{t.productDescription}</h2>
-							<p
-								className="max-w-prose wrap-break-word whitespace-pre-wrap text-sm leading-relaxed text-muted"
-								lang={language}
-								dir={direction(language)}
-							>
-								{description}
-							</p>
-						</section>
-					)}
-					{specs.length > 0 && (
-						<section className="min-w-0 space-y-2">
-							<h2 className="text-lg font-bold">{t.specifications}</h2>
-							<dl className="max-w-2xl divide-y divide-border text-sm">
-								{specs.map(({ label, value }) => (
-									<div
-										key={label}
-										className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-4 py-2.5"
+			<ProductTabs
+				locale={locale}
+				tabs={[
+					{
+						id: "description",
+						label: t.productDescription,
+						panel: (
+							<div className="space-y-3">
+								{description && (
+									<p
+										className="whitespace-pre-wrap break-words text-sm leading-6"
+										lang={language}
+										dir={direction(language)}
 									>
-										<dt className="wrap-break-word text-muted">{label}</dt>
-										<dd className="wrap-break-word">
-											<bdi>{value}</bdi>
-										</dd>
-									</div>
-								))}
-							</dl>
-						</section>
-					)}
-				</div>
-			)}
-			<details
-				className="group/report border-t border-border pt-3"
-				onToggle={(event) => {
-					if (event.currentTarget.open) setReportOpened(true);
-				}}
-			>
-				<summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm text-muted hover:text-action [&::-webkit-details-marker]:hidden">
-					<Icon name="shield" className="size-4" />
-					{communicationCopy[locale].reportProduct}
-					<Icon
-						name="chevron-down"
-						className="size-4 transition-transform group-open/report:rotate-180 motion-reduce:transition-none"
-					/>
-				</summary>
-				{reportOpened && (
-					<div className="max-w-2xl pb-3">
-						<ProductReportPanel locale={locale} id={product.id} />
-					</div>
-				)}
-			</details>
+										{description}
+									</p>
+								)}
+								{descriptionPoints.length > 0 && (
+									<ul className="space-y-1.5">
+										{descriptionPoints.map((point) => (
+											<li key={point} className="flex gap-2 text-sm">
+												<Icon
+													name="check"
+													className="mt-1 size-3.5 shrink-0 text-success"
+												/>
+												<span className="break-words">{point}</span>
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						),
+					},
+					{
+						id: "specifications",
+						label: t.specifications,
+						panel: <SpecTable rows={specs} />,
+					},
+					{
+						id: "store-delivery",
+						label: t.storeDelivery,
+						panel: (
+							<div className="space-y-3 text-sm">
+								<p className="text-muted">{t.delivery}</p>
+								<p className="text-muted">{t.wholesaleRule}</p>
+							</div>
+						),
+					},
+					{
+						id: "report",
+						label: t.reportTab,
+						panel: <ProductReportPanel locale={locale} id={product.id} />,
+					},
+				]}
+			/>
 		</article>
+	);
+}
+function SpecTable({ rows }: { rows: { label: string; value: string }[] }) {
+	return (
+		<dl className="overflow-hidden rounded-card border border-border">
+			{rows.map((row, i) => (
+				<div
+					key={row.label}
+					className={`grid grid-cols-[8rem_1fr] border-b border-border/60 transition-colors last:border-b-0 hover:bg-info/40 max-[480px]:grid-cols-[6.5rem_1fr] ${
+						i % 2 ? "bg-page/60" : "bg-surface"
+					}`}
+				>
+					<dt className="border-e border-border/60 px-3 py-2 text-xs font-bold text-muted sm:px-4">
+						{row.label}
+					</dt>
+					<dd className="break-words px-3 py-2 text-sm font-semibold sm:px-4">
+						{row.value}
+					</dd>
+				</div>
+			))}
+		</dl>
 	);
 }
