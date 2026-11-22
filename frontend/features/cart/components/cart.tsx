@@ -13,6 +13,7 @@ import { Icon } from "../../../components/ui/icon";
 import { Asset } from "../../marketplace/components/cards";
 import { marketplaceCopy } from "../../marketplace/copy";
 import {
+	addQuantity,
 	commerce,
 	cartPath,
 	estimate,
@@ -387,8 +388,9 @@ function CartRow({
 }) {
 	const t = commerceCopy[locale],
 		market = marketplaceCopy[locale],
+		savedQuantity = displayDecimal(row.quantity),
 		[invalid, setInvalid] = useState(false),
-		[quantity, setQuantity] = useState(row.quantity),
+		[quantity, setQuantity] = useState(savedQuantity),
 		labelId = `cart-quantity-${row.id}`,
 		helpId = `cart-quantity-help-${row.id}`,
 		draft = /^\d{1,9}(\.\d{1,3})?$/.test(quantity) ? quantity : row.quantity,
@@ -398,16 +400,17 @@ function CartRow({
 				return;
 			}
 			setInvalid(false);
-			update(value, tier);
+			setQuantity(displayDecimal(value));
+			update(addQuantity(value, "0"), tier);
 		},
 		step = (delta: 1 | -1) => {
 			try {
 				const next = stepQuantity(draft, row.increment, delta);
-				setQuantity(next);
+				setQuantity(displayDecimal(next));
 				if (next === row.quantity) setInvalid(false);
 				else commit(next);
 			} catch {
-				setQuantity(row.quantity);
+				setQuantity(savedQuantity);
 			}
 		};
 	return (
@@ -520,7 +523,8 @@ function CartRow({
 					{t.quantity}
 				</span>
 				<span id={helpId} className="sr-only">
-					{t.increment}: {row.increment} · {t.minimum}: {row.minimum}
+					{t.increment}: {displayDecimal(row.increment)} · {t.minimum}:{" "}
+					{displayDecimal(row.minimum)}
 				</span>
 				<button
 					type="button"
