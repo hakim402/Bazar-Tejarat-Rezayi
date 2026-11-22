@@ -269,7 +269,7 @@ export function ProductDetail({
 							</div>
 						</fieldset>
 					)}
-					<div className="space-y-3 border-y border-solid border-border py-4">
+					<div className="space-y-3 border-x-0 border-y border-solid border-border py-4">
 						<div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-x-4 gap-y-3">
 							{variant?.retail != null && (
 								<Price
@@ -326,7 +326,7 @@ export function ProductDetail({
 							variant={variant.id}
 						/>
 					)}
-					<div className="flex flex-wrap items-start gap-2 border-t border-solid border-border pt-4">
+					<div className="flex flex-wrap items-start gap-2 border-x-0 border-t border-b-0 border-solid border-border pt-4">
 						<EnquiryEntry
 							key={`${locale}:${product.id}`}
 							locale={locale}
