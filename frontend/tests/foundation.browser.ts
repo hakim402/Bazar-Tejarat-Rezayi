@@ -6,7 +6,7 @@ import { messages } from "../lib/i18n/messages";
 import { locales } from "../lib/i18n/locales";
 const apiOrigin = process.env.PLAYWRIGHT_API_ORIGIN ?? "http://127.0.0.1:8100";
 const evidence =
-	process.env.PLAYWRIGHT_EVIDENCE_DIR ?? "../doc/progress/phase-02-foundation";
+	process.env.PLAYWRIGHT_EVIDENCE_DIR ?? "./test-results/foundation";
 for (const locale of locales) {
 	for (const width of [390, 1440])
 		test(`${locale} ${width}: real API, fonts, direction, controls and theme`, async ({
