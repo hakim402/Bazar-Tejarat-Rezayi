@@ -7925,3 +7925,13 @@ msgstr "مشاهده ارقام روزانه"
 
 msgid "View review queues"
 msgstr "مشاهده صف های بررسی"
+
+# Review queues work list.
+msgid "<bdi>%(visible_queue_count)s</bdi> of <bdi>%(active_queue_count)s</bdi> queues with work"
+msgstr "<bdi>%(visible_queue_count)s</bdi> از <bdi>%(active_queue_count)s</bdi> صف دارای کار"
+
+msgid "Clear filters"
+msgstr "پاک کردن فیلترها"
+
+msgid "No open queues match these filters."
+msgstr "هیچ صف بازی با این فیلترها مطابقت ندارد."

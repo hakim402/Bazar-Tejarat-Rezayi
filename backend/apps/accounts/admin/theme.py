@@ -366,5 +366,6 @@ THEME = {
     "queue_filter": "rounded-md px-3 py-2 text-xs font-medium hover:bg-base-100 dark:hover:bg-base-800",
     "queue_filter_active": "bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400",
     "queue_row_hover": "hover:bg-base-50 dark:hover:bg-base-800",
+    "queue_group_heading": f"bg-base-50 px-5 py-2 dark:bg-base-800 {TEXT}",
     "queue_badge": {key: f"{BADGE_BASE} {value}" for key, value in BADGE_COLORS.items()},
 }

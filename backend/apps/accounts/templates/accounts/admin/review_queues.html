@@ -8,14 +8,34 @@
           <h2 id="review-queues-heading" class="{{ rz_theme.section_title }}">{% translate "Needs your attention" %}</h2>
           <p class="mt-1 text-sm {{ rz_theme.muted }}">{{ queue_labels.eligibility_note }}</p>
         </div>
-        <span class="{{ rz_theme.chip }}"><bdi>{{ active_queue_count }}</bdi> {{ queue_labels.open_queues }}</span>
+        <span class="{{ rz_theme.chip }}">
+          {% if queue_filters_active %}
+            {% blocktranslate trimmed %}<bdi>{{ visible_queue_count }}</bdi> of <bdi>{{ active_queue_count }}</bdi> queues with work{% endblocktranslate %}
+          {% else %}
+            <bdi>{{ active_queue_count }}</bdi> {{ queue_labels.open_queues }}
+          {% endif %}
+        </span>
       </header>
-      <div class="flex flex-wrap items-center justify-between gap-2 border-b {{ rz_theme.divider }} px-5 py-2">
-        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_area_filters filter_label=queue_labels.queue_area %}
-        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_priority_filters filter_label=queue_labels.priority %}
+      <div class="flex flex-wrap items-center gap-3 border-b {{ rz_theme.divider }} px-5 py-3">
+        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_area_filters filter_label=queue_labels.queue_area show_label=True %}
+        {% include "accounts/admin/includes/review_queue_filters.html" with filters=queue_priority_filters filter_label=queue_labels.priority show_label=True %}
+        {% if queue_filters_active %}
+          <a href="{{ queue_hub_url }}" class="{{ rz_theme.queue_filter }} {{ rz_theme.action }} ms-auto">{% translate "Clear filters" %}</a>
+        {% endif %}
       </div>
-      {% include "accounts/admin/includes/review_queue_rows.html" %}
-      {% if queue_rows %}
+      {% for group in queue_groups %}
+        <section aria-labelledby="queue-priority-{{ group.key }}" {% if not forloop.first %}class="border-t {{ rz_theme.divider }}"{% endif %}>
+          <h3 id="queue-priority-{{ group.key }}" class="{{ rz_theme.queue_group_heading }}">
+            <span class="{{ group.badge_class }}">{{ group.label }}</span>
+          </h3>
+          {% include "accounts/admin/includes/review_queue_rows.html" with queue_rows=group.rows %}
+        </section>
+      {% empty %}
+        <p class="px-5 py-5 text-sm {{ rz_theme.muted }}">
+          {% if queue_filters_active %}{% translate "No open queues match these filters." %}{% else %}{{ queue_labels.empty }}{% endif %}
+        </p>
+      {% endfor %}
+      {% if queue_groups %}
         <p class="border-t {{ rz_theme.divider }} px-5 py-3 text-xs {{ rz_theme.muted }}">{{ queue_labels.overlap }}</p>
       {% endif %}
     </section>

@@ -243,6 +243,7 @@ def queue_context(site, request, *, overview=False):
     return {
         "queue_labels": labels,
         "queue_rows": visible[:5] if overview else visible,
+        "queue_filters_active": area != "all" or priority != "all",
         "active_queue_count": len(active),
         "visible_queue_count": len(visible),
         "queue_hub_url": hub_url,
@@ -273,6 +274,18 @@ def queue_context(site, request, *, overview=False):
 @require_safe
 def review_queues(request, site):
     context = queue_context(site, request)
+    groups = {priority: [] for priority in PRIORITY_STYLES}
+    for row in context["queue_rows"]:
+        groups[row["priority"]].append(row)
+    context["queue_groups"] = [
+        {
+            "key": priority,
+            "label": context["queue_labels"][priority],
+            "badge_class": THEME["queue_badge"][PRIORITY_STYLES[priority]],
+            "rows": rows,
+        }
+        for priority, rows in groups.items() if rows
+    ]
     request.current_app = site.name
     return render(request, "accounts/admin/review_queues.html", {
         **site.each_context(request), **context,

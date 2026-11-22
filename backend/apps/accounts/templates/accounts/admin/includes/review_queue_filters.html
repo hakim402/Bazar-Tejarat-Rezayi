@@ -1,4 +1,5 @@
 <nav class="flex flex-wrap items-center gap-1" aria-label="{{ filter_label }}">
+  {% if show_label %}<span class="me-1 text-xs font-semibold {{ rz_theme.muted }}">{{ filter_label }}</span>{% endif %}
   {% for filter in filters %}
     <a href="{{ filter.url }}" class="{{ rz_theme.queue_filter }} {% if filter.selected %}{{ rz_theme.queue_filter_active }}{% else %}{{ rz_theme.muted }}{% endif %}" {% if filter.selected %}aria-current="true"{% endif %}>
       {{ filter.label }}

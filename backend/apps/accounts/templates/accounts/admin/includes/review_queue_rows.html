@@ -1,30 +1,25 @@
-{% load i18n %}
-{% if queue_rows %}
-  <ul>
-    {% for row in queue_rows %}
-      <li class="{% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
-        <a href="{{ row.url }}" class="flex items-center gap-3 px-5 py-3 {{ rz_theme.queue_row_hover }}">
-          <span class="{{ rz_theme.icon_tile }} h-8 w-8">
-            <span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">{{ row.icon }}</span>
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="block break-words text-sm font-medium {{ rz_theme.text }}">{{ row.label }}</span>
-            <span class="mt-1 inline-block {{ row.badge_class }}">{{ row.priority_label }}</span>
-            {% if row.unassigned %}
-              <span class="ms-2 text-xs {{ rz_theme.muted }}">{{ queue_labels.unassigned }} <bdi>{{ row.unassigned }}</bdi></span>
-            {% endif %}
-            {% if row.assigned_elsewhere %}
-              <span class="ms-2 text-xs {{ rz_theme.muted }}">{{ queue_labels.assigned_elsewhere }} <bdi>{{ row.assigned_elsewhere }}</bdi></span>
-            {% endif %}
-          </span>
-          <span class="shrink-0 text-end">
-            <bdi class="block text-base font-semibold {{ rz_theme.text }}">{{ row.count }}</bdi>
-            <span class="block text-xs {{ rz_theme.muted }}">{% if row.count == 1 %}{{ queue_labels.item }}{% else %}{{ queue_labels.items }}{% endif %}</span>
-          </span>
-        </a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p class="px-5 py-5 text-sm {{ rz_theme.muted }}">{{ queue_labels.empty }}</p>
-{% endif %}
+<ul>
+  {% for row in queue_rows %}
+    <li class="{% if not forloop.first %}border-t {{ rz_theme.divider }}{% endif %}">
+      <a href="{{ row.url }}" class="flex items-center gap-3 px-5 py-3 {{ rz_theme.queue_row_hover }}">
+        <span class="{{ rz_theme.icon_tile }} h-8 w-8">
+          <span data-admin-icon class="material-symbols-outlined text-lg" aria-hidden="true">{{ row.icon }}</span>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block break-words text-sm font-medium {{ rz_theme.text }}">{{ row.label }}</span>
+          {% if row.unassigned or row.assigned_elsewhere %}
+            <span class="mt-1 flex flex-wrap gap-2 text-xs {{ rz_theme.muted }}">
+              {% if row.unassigned %}<span>{{ queue_labels.unassigned }} <bdi>{{ row.unassigned }}</bdi></span>{% endif %}
+              {% if row.assigned_elsewhere %}<span>{{ queue_labels.assigned_elsewhere }} <bdi>{{ row.assigned_elsewhere }}</bdi></span>{% endif %}
+            </span>
+          {% endif %}
+        </span>
+        <span class="shrink-0 text-center">
+          <bdi class="block text-base font-semibold {{ rz_theme.text }}">{{ row.count }}</bdi>
+          <span class="block text-xs {{ rz_theme.muted }}">{% if row.count == 1 %}{{ queue_labels.item }}{% else %}{{ queue_labels.items }}{% endif %}</span>
+        </span>
+        <span data-admin-icon class="material-symbols-outlined text-base rtl:-scale-x-100 {{ rz_theme.muted }}" aria-hidden="true">chevron_right</span>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
