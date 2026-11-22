@@ -104,9 +104,9 @@ def navigation(request):
     }
     if root:
         section_of = {
-            "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work",
+            "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work", "reports": "Daily work",
             "payments": "Daily work", "delivery": "Daily work", "aftercare": "Daily work", "moderation": "Daily work",
-            "catalogue": "Manage", "people": "Manage", "website": "Manage", "reports": "Manage",
+            "catalogue": "Manage", "people": "Manage", "website": "Manage", "system": "Manage",
         }
     index_url = overview["link"]
     visible_active = active_destination(
@@ -173,6 +173,9 @@ def owner_groups(entry, overview):
         ("reviews", "Review queues", [
             {"title": review_labels()["title"], "icon": "fact_check", "link": reverse("admin:review_queues")},
         ]),
+        ("reports", "Commerce reports", [
+            {"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")},
+        ]),
         ("orders", "Orders", [
             entry("Accepted orders", "receipt_long", "orders.sellerorder"),
             entry("Formal requests", "request_quote", "orders.negotiation"),
@@ -225,8 +228,11 @@ def owner_groups(entry, overview):
             sections.get("seo"),
             settings,
         ]),
-        ("reports", "Commerce reports", [
-            {"title": _("Commerce reports"), "icon": "monitoring", "link": reverse("admin:reports_commerce")},
+        ("system", "System Health and Audit", [
+            entry("Background jobs", "task_alt", "runtime.job"),
+            entry("Schedulers", "schedule", "runtime.scheduler"),
+            entry("Audit log", "policy", "accounts.auditevent"),
+            entry("Admin change history", "history", "admin.logentry"),
         ]),
         ("settings", "Site Settings", [
             {**settings, "title": settings_titles["general"], "search_aliases": main_settings_tabs} if settings else None,
