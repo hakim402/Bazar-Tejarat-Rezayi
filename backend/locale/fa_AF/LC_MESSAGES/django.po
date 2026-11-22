@@ -8063,3 +8063,24 @@ msgstr "این پیوندها در نمایه عمومی فروشگاه نمای
 
 msgid "Buyers submit reviews from completed orders. Approve a submitted review to publish it on this store."
 msgstr "خریداران از طریق سفارش‌های تکمیل‌شده نظر می‌نویسند. برای نشر نظر در این فروشگاه، آن را تأیید کنید."
+
+msgid "Public visibility"
+msgstr "نمایش عمومی"
+
+msgid "Paid plan and sponsorship"
+msgstr "طرح پولی و نمایش تبلیغاتی"
+
+msgid "Paid plan scheduled"
+msgstr "طرح پولی زمان‌بندی شده"
+
+msgid "Paid plan ended"
+msgstr "طرح پولی پایان یافته"
+
+msgid "Hidden from the public"
+msgstr "پنهان از عموم"
+
+msgid "Awaiting publication"
+msgstr "در انتظار نشر"
+
+msgid "Visible to the public"
+msgstr "نمایان برای عموم"

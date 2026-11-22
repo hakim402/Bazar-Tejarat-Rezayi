@@ -193,6 +193,33 @@ WORKSPACE_THEME = {
     "chip": CHIP,
 }
 
+# Store settings keeps the editable controls alongside the saved-store preview.
+STORE_SETTINGS_THEME = {
+    "layout": WORKSPACE_THEME["layout"],
+    "grid": WORKSPACE_THEME["workspace_grid"],
+    "main": f"{CARD} min-w-0 overflow-hidden lg:col-span-2",
+    "header": f"{CARD} flex flex-wrap items-center justify-between gap-4 p-5",
+    "title": f"text-2xl font-semibold break-words {TEXT}",
+    "identity_icon": f"{ICON_TILE} h-10 w-10",
+    "section_icon": f"{ICON_TILE} h-8 w-8",
+    "section": f"flex flex-col gap-4 border-b p-5 {DIVIDER}",
+    "section_heading": f"flex min-w-0 items-center gap-3 {SECTION_TITLE}",
+    "switch_row": f"flex min-w-0 items-start justify-between gap-4 border-b py-3 last:border-b-0 {DIVIDER}",
+    "switch_control": "focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600",
+    "fields": "grid grid-cols-1 gap-4 md:grid-cols-2",
+    "label": f"block text-sm font-medium {TEXT}",
+    "help": f"text-xs {MUTED}",
+    "footer": "flex flex-col gap-4 bg-base-50 p-5 dark:bg-base-800",
+    "actions": "flex flex-wrap items-center justify-end gap-2",
+    "button": f'{WORKSPACE_THEME["button"]} cursor-pointer hover:bg-primary-700',
+    "secondary_button": WORKSPACE_THEME["secondary_button"],
+    "panel": WORKSPACE_THEME["panel"],
+    "panel_title": SECTION_TITLE,
+    "contact_row": f"flex min-w-0 flex-col gap-1 border-b py-2 last:border-b-0 {DIVIDER}",
+    "muted": MUTED,
+    "error": WORKSPACE_THEME["error"],
+}
+
 # Moderation case workspace: reported message, conversation history and the
 # guarded decision form share one visual language.
 MESSAGING_THEME = {

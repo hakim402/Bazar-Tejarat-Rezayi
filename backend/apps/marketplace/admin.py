@@ -10,15 +10,17 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.contrib import admin, messages
+from django.utils import timezone
 from django.utils.formats import localize
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _, ngettext
 from rest_framework.exceptions import APIException
-from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget, UnfoldBooleanWidget
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget, UnfoldBooleanSwitchWidget
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
 from apps.accounts.admin.display import short_id, state_badge
 from apps.accounts.admin.locale import admin_language, frontend_locale
+from apps.accounts.admin.theme import STORE_SETTINGS_THEME
 from apps.catalogue.admin.helpers import link_button
 from apps.catalogue.admin.presentation import seller_cell
 from apps.orders.admin_presentation import account_cell
@@ -55,11 +57,11 @@ class FeatureForm(forms.Form):
 class StoreSettingsForm(forms.Form):
     version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
     contacts_enabled = forms.BooleanField(
-        label=_("Show public contact links"), required=False, widget=UnfoldBooleanWidget,
+        label=_("Show public contact links"), required=False, widget=UnfoldBooleanSwitchWidget,
         help_text=_("Show WhatsApp and social links from the published store revision."),
     )
     verification_badge_enabled = forms.BooleanField(
-        label=_("Show verified business badge"), required=False, widget=UnfoldBooleanWidget,
+        label=_("Show verified business badge"), required=False, widget=UnfoldBooleanSwitchWidget,
         help_text=_("The badge is available only while the business verification is current."),
     )
     premium_starts_on = forms.DateField(
@@ -72,13 +74,18 @@ class StoreSettingsForm(forms.Form):
         help_text=_("The last day is included. Clear both dates to remove the grant."),
     )
     sponsored_placement = forms.BooleanField(
-        label=_("Show in sponsored stores"), required=False, widget=UnfoldBooleanWidget,
+        label=_("Show in sponsored stores"), required=False, widget=UnfoldBooleanSwitchWidget,
         help_text=_("The homepage can show this shop in Sponsored stores during its paid period if it is published and verified."),
     )
-    reason = forms.CharField(label=_("Reason"), max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 3}))
+    reason = forms.CharField(label=_("Reason for change"), max_length=1000, widget=UnfoldAdminTextareaWidget(attrs={"rows": 2}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field in ("contacts_enabled", "verification_badge_enabled", "sponsored_placement"):
+            widget = self.fields[field].widget
+            widget.attrs["role"] = "switch"
+            classes = [item for item in widget.attrs["class"].split() if item != "focus:outline-none"]
+            widget.attrs["class"] = " ".join([*classes, STORE_SETTINGS_THEME["switch_control"]])
         for field in ("premium_starts_on", "premium_ends_on"):
             if self.initial.get(field):
                 self.initial[field] = self.initial[field].isoformat()
@@ -350,14 +357,31 @@ class StoreAdmin(ReadOnlyAdmin):
         current_publication = bool(
             approved_case and published and published.state == "approved" and published.business_case_id == approved_case
         )
+        if store.premium_active:
+            plan_badge = state_badge("active", _("Paid shop"))
+        elif store.premium_starts_on and store.premium_starts_on > timezone.localdate():
+            plan_badge = state_badge("pending", _("Paid plan scheduled"))
+        elif store.premium_ends_on:
+            plan_badge = state_badge("expired", _("Paid plan ended"))
+        else:
+            plan_badge = state_badge("free", _("Free shop"))
+        if not store.contacts_enabled:
+            contact_badge = state_badge("hidden", _("Hidden from the public"))
+        elif not current_publication:
+            contact_badge = state_badge("pending", _("Awaiting publication"))
+        else:
+            contact_badge = state_badge("published", _("Visible to the public"))
         return render(request, "marketplace/store_settings.html", {
             **self.admin_site.each_context(request), "title": _("Manage store features"), "store": store, "form": form,
+            "rz_store": STORE_SETTINGS_THEME,
             "verified": bool(approved_case),
             "store_url": reverse("admin:marketplace_store_change", args=[pk]),
             "public_url": f"{settings.FRONTEND_ORIGIN}/{frontend_locale(admin_language(request))}/stores/{pk}" if approved_case else None,
-            "buyer_reviews_url": self.buyer_reviews_url(store),
-            "contact_fields": (published.body.get("contacts", {}) if published else {}).items(),
+            "buyer_rating": self.buyer_rating(store),
+            "contact_fields": list(published.body.get("contacts", {}).items()) if published else [],
             "current_publication": current_publication,
+            "plan_badge": plan_badge,
+            "contact_badge": contact_badge,
         }, status=status)
 
 

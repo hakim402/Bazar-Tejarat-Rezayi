@@ -1,53 +1,101 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 {% block content %}
-{% translate "Save store features" as submit_label %}
-<div class="{{ rz_order.layout }}">
-    <header class="{{ rz_order.panel }}">
-        <div class="{{ rz_order.toolbar }}">
+<div class="{{ rz_store.layout }}">
+    <header class="{{ rz_store.header }}">
+        <div class="flex min-w-0 items-center gap-3">
+            <span class="material-symbols-outlined {{ rz_store.identity_icon }}" aria-hidden="true">storefront</span>
             <div class="min-w-0">
-                <h1 class="{{ rz_order.heading }}">{{ title }}</h1>
-                <p class="{{ rz_order.muted }}"><bdi>{{ store.profile.display_name }}</bdi></p>
+                <h1 class="{{ rz_store.title }}"><bdi>{{ store.profile.display_name }}</bdi></h1>
+                <p class="text-sm {{ rz_store.muted }}">
+                    {% if verified %}
+                        {% translate "Business verification current" %}
+                    {% else %}
+                        {% translate "Business verification required" %}
+                    {% endif %}
+                </p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                {% if public_url %}
-                <a class="{{ rz_order.secondary_button }}" href="{{ public_url }}" target="_blank" rel="noopener">{% translate "Open public store" %}</a>
-                {% endif %}
-                <a class="{{ rz_order.secondary_button }}" href="{{ store_url }}">{% translate "Back to store" %}</a>
-            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a class="{{ rz_store.secondary_button }}" href="{{ store_url }}">{% translate "Back to store" %}</a>
+            {% if public_url %}
+                <a class="{{ rz_store.secondary_button }}" href="{{ public_url }}" target="_blank" rel="noopener">
+                    {% translate "Open public store" %}
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_outward</span>
+                </a>
+            {% endif %}
         </div>
     </header>
-    <div class="{{ rz_order.workspace_grid }}">
-        <section class="{{ rz_order.panel }}">
-            {% include "accounts/admin/includes/action_form.html" with submit_label=submit_label %}
-        </section>
-        <div class="{{ rz_order.layout }}">
-            <section class="{{ rz_order.panel }}">
-                <h2 class="{{ rz_order.section_heading }}">{% translate "Store status" %}</h2>
-                <ul class="{{ rz_order.muted }}">
-                    <li>{% if verified %}{% translate "Business verification current" %}{% else %}{% translate "Business verification required" %}{% endif %}</li>
-                    <li>{% if store.premium_active %}{% translate "Paid shop" %}{% else %}{% translate "Free shop" %}{% endif %}</li>
-                </ul>
-                <h3 class="{{ rz_order.section_heading }}">{% translate "Public contact links" %}</h3>
+
+    <div class="{{ rz_store.grid }}">
+        <form method="post" class="{{ rz_store.main }}">
+            {% csrf_token %}
+            {% for field in form.hidden_fields %}
+                {{ field }}
+                {% if field.errors %}<div class="px-5 py-3 {{ rz_store.error }}" role="alert">{{ field.errors }}</div>{% endif %}
+            {% endfor %}
+            {% if form.non_field_errors %}
+                <div class="px-5 py-3 {{ rz_store.error }}" role="alert">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <section class="{{ rz_store.section }}" aria-labelledby="store-visibility">
+                <h2 id="store-visibility" class="{{ rz_store.section_heading }}">
+                    <span class="material-symbols-outlined {{ rz_store.section_icon }}" aria-hidden="true">visibility</span>
+                    {% translate "Public visibility" %}
+                </h2>
+                <div>
+                    {% include "marketplace/store_settings_field.html" with field=form.contacts_enabled switch=True %}
+                    {% include "marketplace/store_settings_field.html" with field=form.verification_badge_enabled switch=True %}
+                </div>
+            </section>
+
+            <section class="{{ rz_store.section }}" aria-labelledby="store-plan">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 id="store-plan" class="{{ rz_store.section_heading }}">
+                        <span class="material-symbols-outlined {{ rz_store.section_icon }}" aria-hidden="true">campaign</span>
+                        {% translate "Paid plan and sponsorship" %}
+                    </h2>
+                    {{ plan_badge }}
+                </div>
+                <div class="{{ rz_store.fields }}">
+                    {% include "marketplace/store_settings_field.html" with field=form.premium_starts_on %}
+                    {% include "marketplace/store_settings_field.html" with field=form.premium_ends_on %}
+                </div>
+                {% include "marketplace/store_settings_field.html" with field=form.sponsored_placement switch=True %}
+            </section>
+
+            <footer class="{{ rz_store.footer }}">
+                {% include "marketplace/store_settings_field.html" with field=form.reason %}
+                <div class="{{ rz_store.actions }}">
+                    <button type="submit" class="{{ rz_store.button }}">{% translate "Save store features" %}</button>
+                </div>
+            </footer>
+        </form>
+
+        <aside class="{{ rz_store.layout }}">
+            <section class="{{ rz_store.panel }}" aria-labelledby="store-contacts">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 id="store-contacts" class="{{ rz_store.panel_title }}">{% translate "Published contact details" %}</h2>
+                    {% if contact_fields %}{{ contact_badge }}{% endif %}
+                </div>
                 {% if contact_fields %}
                     {% if not store.contacts_enabled %}
-                    <p class="{{ rz_order.notice }}">{% translate "Saved links are hidden. Enable Show public contact links and save to display them." %}</p>
+                        <p class="{{ rz_store.help }}">{% translate "Saved links are hidden. Enable Show public contact links and save to display them." %}</p>
                     {% elif not current_publication %}
-                    <p class="{{ rz_order.notice }}">{% translate "Contact links will appear after a revision is published with the current business verification." %}</p>
-                    {% else %}
-                    <p class="{{ rz_order.muted }}">{% translate "These links are visible on the public store profile." %}</p>
+                        <p class="{{ rz_store.help }}">{% translate "Contact links will appear after a revision is published with the current business verification." %}</p>
                     {% endif %}
-                    {% include "marketplace/contact_details.html" %}
+                    {% include "marketplace/contact_details.html" with compact=True %}
                 {% else %}
-                <p class="{{ rz_order.muted }}">{% translate "No published contact details" %}</p>
+                    <p class="{{ rz_store.muted }}">{% translate "No published contact details" %}</p>
                 {% endif %}
             </section>
-            <section class="{{ rz_order.panel }}">
-                <h2 class="{{ rz_order.section_heading }}">{% translate "Buyer reviews" %}</h2>
-                <p class="{{ rz_order.muted }}">{% translate "Buyers submit reviews from completed orders. Approve a submitted review to publish it on this store." %}</p>
-                <a class="{{ rz_order.secondary_button }}" href="{{ buyer_reviews_url }}">{% translate "View buyer reviews" %}</a>
+
+            <section class="{{ rz_store.panel }}" aria-labelledby="store-reviews">
+                <h2 id="store-reviews" class="{{ rz_store.panel_title }}">{% translate "Buyer reviews" %}</h2>
+                <p class="{{ rz_store.muted }}">{% translate "Buyers submit reviews from completed orders. Approve a submitted review to publish it on this store." %}</p>
+                {{ buyer_rating }}
             </section>
-        </div>
+        </aside>
     </div>
 </div>
 {% endblock %}
