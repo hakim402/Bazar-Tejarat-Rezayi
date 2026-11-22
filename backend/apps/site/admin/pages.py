@@ -30,8 +30,6 @@ class ContentPageAdmin(ModelAdmin):
     readonly_fields = ["cover_preview", "is_system", "version", "created_at", "updated_at"]
     inlines = [ContentPageLocaleInline]
     actions = ["publish_pages", "unpublish_pages"]
-    list_before_template = "site/admin/navigation.html"
-    change_form_outer_before_template = "site/admin/navigation.html"
     fieldsets = [
         (_("Page"), {
             "fields": [("slug", "kind"), ("group", "position")],

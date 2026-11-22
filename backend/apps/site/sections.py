@@ -31,5 +31,5 @@ SECTIONS = (
                     ("indexing", "og_file"), ("title_template", "description")),
 )
 
-# Sections with a dedicated ?section= view; only General remains the main page.
-ROUTE_SECTIONS = ("announcement", "contacts", "hero", "promotions", "seo", "branding", "maintenance")
+# Sections promoted to sidebar routes under Site Settings; the rest stay as page tabs.
+ROUTE_SECTIONS = ("announcement", "contacts", "hero", "promotions", "seo")

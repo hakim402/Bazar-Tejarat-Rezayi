@@ -180,16 +180,6 @@ SITE_THEME = {
     "panel_row_action": f"shrink-0 text-sm font-medium {ACTION} hover:underline",
     "panel_empty": f"p-4 text-center text-sm {MUTED}",
     "shrink": "shrink-0",
-    # Shared grouped page navigation: task switching, separate from language tabs.
-    "nav_card": f"{CARD} mb-6 flex flex-col gap-3 p-4",
-    "nav_back": f"inline-flex items-center gap-1 self-start text-sm font-medium {ACTION} hover:underline",
-    "nav_back_icon": "material-symbols-outlined text-[18px] rtl:-scale-x-100",
-    "nav_groups": "flex flex-wrap gap-6",
-    "nav_group": "flex flex-col gap-1.5",
-    "nav_label": f"text-xs font-semibold uppercase {MUTED}",
-    "nav_links": "flex flex-wrap gap-1",
-    "nav_link": f"rounded-md px-3 py-1.5 text-sm font-medium {TEXT} hover:bg-base-100 dark:hover:bg-base-800",
-    "nav_link_active": "rounded-md bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-400",
 }
 
 # --- Template-facing map (injected as ``rz_theme`` by dashboard_context) ----
