@@ -27,6 +27,8 @@ OWNER_NAVIGATION_DARI = {
     "Open payment reviews": "بررسی‌های پرداخت باز",
     "Refunds needing attention": "بازپرداخت‌های نیازمند رسیدگی",
     "Confirmed receipts": "رسیدهای تأییدشده",
+    "Open reports": "گزارش‌های باز",
+    "Notification delivery": "تحویل اعلان‌ها",
 }
 
 
@@ -70,8 +72,8 @@ def navigation(request):
     if root:
         section_of = {
             "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work",
-            "payments": "Daily work", "delivery": "Daily work", "catalogue": "Manage",
-            "people": "Manage", "website": "Manage", "reports": "Manage",
+            "payments": "Daily work", "delivery": "Daily work", "moderation": "Daily work",
+            "catalogue": "Manage", "people": "Manage", "website": "Manage", "reports": "Manage",
         }
     index_url = overview["link"]
     preserved_filters = parse_qs(request.GET.get("_changelist_filters", ""))
@@ -156,6 +158,10 @@ def owner_groups(entry, overview):
             entry("Open holds", "pause_circle", "fulfilment.blocker", OPEN_HOLDS_FILTER),
             entry("Shipments", "inventory_2", "fulfilment.shipment"),
             entry("All delivery records", "inventory_2", "fulfilment.state"),
+        ]),
+        ("moderation", "Reports & delivery", [
+            entry("Open reports", "flag", "messaging.report", {"status__exact": "open"}),
+            entry("Notification delivery", "outgoing_mail", "notifications.outbox"),
         ]),
         ("catalogue", "Catalogue & stock", [
             entry("Products", "inventory_2", "catalogue.product"),

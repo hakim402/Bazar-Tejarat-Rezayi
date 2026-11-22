@@ -65,12 +65,13 @@ STATE_VARIANTS = {
         "pending", "open", "submitted", "under_review", "reported", "review_required",
         "shortage", "blocked_zero", "queued", "retry_due", "claimed", "dispatching",
         "draft", "referred", "incomplete", "unpaid", "partial", "expiring",
-        "needs_information", "accepted",
+        "needs_information", "accepted", "reopen", "unread",
     },
     "success": {
         "approved", "confirmed", "completed", "active", "resolved", "paid", "published",
         "captured", "smtp_accepted", "consumed", "released", "verified", "enabled",
         "overpaid", "delivered", "dispatched", "settled", "recovered", "valid",
+        "resolve", "read",
     },
     "danger": {
         "rejected", "cancelled", "suspended", "exhausted", "failed", "expired",
@@ -78,7 +79,7 @@ STATE_VARIANTS = {
     },
     "info": {
         "held", "reserved", "sealed", "withdrawn", "decided", "erroneous", "running",
-        "complete", "done", "reduced", "unreserved", "flat", "unknown",
+        "complete", "done", "reduced", "unreserved", "flat", "unknown", "assign",
     },
 }
 
@@ -131,6 +132,76 @@ DIRECTORY_THEME = {
     "count": f"rounded-md bg-base-100 px-1.5 py-0.5 text-xs dark:bg-base-800 {MUTED}",
     "link": f"rounded-md hover:bg-base-100 dark:hover:bg-base-800 {TEXT}",
     "current_link": ACCOUNT_THEME["row_primary"],
+}
+
+# --- Shared owner workspace surfaces (cases and delivery diagnostics) --------
+# Presentation only. Every class below ships in Unfold's compiled
+# ``static/unfold/css/styles.css``; no custom build is required. The
+# messaging and delivery screens share this base so both read as one family.
+WORKSPACE_THEME = {
+    "layout": "flex min-w-0 flex-col gap-6",
+    "panel": f"{CARD} flex flex-col gap-3 p-5 text-sm",
+    "heading": f"text-xl font-semibold {TEXT}",
+    "section_heading": f"text-lg font-semibold {TEXT}",
+    "eyebrow": f"flex items-center gap-2 text-xs font-semibold {MUTED}",
+    "muted": MUTED,
+    "toolbar": "flex flex-wrap items-center justify-between gap-3",
+    "workspace_grid": "grid grid-cols-1 items-start gap-6 lg:grid-cols-3",
+    "main_column": "min-w-0 lg:col-span-2",
+    "notice": f"{CARD} flex flex-wrap items-center gap-2 p-4 text-sm {TEXT}",
+    "empty": f"rounded-lg border border-dashed {DIVIDER} p-6 text-center text-sm {MUTED}",
+    "history": f"rounded-default border {DIVIDER} p-3",
+    "detail_body": "flex flex-col gap-3 pt-3",
+    "label": f"block mb-2 font-medium {TEXT}",
+    "error": "text-sm text-red-600 dark:text-red-400",
+    "form": "flex flex-col gap-3",
+    "button": "inline-flex items-center justify-center rounded-default bg-primary-600 px-4 py-2 font-medium text-white",
+    "secondary_button": f"inline-flex items-center justify-center gap-2 rounded-default border {DIVIDER} px-3 py-2 text-sm font-medium {ACTION}",
+    "disclosure": f"cursor-pointer text-sm font-semibold {ACTION}",
+    "badge": BADGE_BASE,
+    "badge_tones": BADGE_COLORS,
+    "identity": "flex items-center gap-3",
+    "text": "min-w-0 w-48",
+    "name": "block truncate text-sm font-medium text-base-900 dark:text-base-100",
+    "meta": "block truncate text-xs text-base-500 dark:text-base-400",
+    "reference": "text-xs text-base-500 dark:text-base-400",
+    "body": "break-words text-sm",
+    "divider": DIVIDER,
+    "card": CARD,
+    "text": TEXT,
+    "action": ACTION,
+    "chip": CHIP,
+}
+
+# Moderation case workspace: reported message, conversation history and the
+# guarded decision form share one visual language.
+MESSAGING_THEME = {
+    **WORKSPACE_THEME,
+    "message": f"rounded-default border {DIVIDER} p-3",
+    "reported": (
+        "rounded-default border-2 border-primary-500 bg-primary-50 p-3 "
+        "dark:border-primary-700 dark:bg-primary-950"
+    ),
+    "flag": (
+        "rounded-md bg-primary-100 px-2 py-0.5 text-[11px] font-semibold uppercase "
+        "text-primary-700 dark:bg-primary-950 dark:text-primary-400"
+    ),
+    "author": f"font-semibold {TEXT}",
+    "state_grid": "grid grid-cols-1 gap-4 lg:grid-cols-2",
+}
+
+# Notification delivery diagnostics: delivery state, attempts and the guarded
+# retry controls stay together so an uncertain send is never read as a receipt.
+DELIVERY_THEME = {
+    **WORKSPACE_THEME,
+    "state": f"rounded-default border {DIVIDER} p-4 text-sm {TEXT}",
+    "state_tones": {
+        "pending": BADGE_COLORS["warning"],
+        "accepted": BADGE_COLORS["success"],
+        "failed": BADGE_COLORS["danger"],
+        "info": BADGE_COLORS["info"],
+        "default": BADGE_COLORS["default"],
+    },
 }
 
 # --- Site settings, homepage media and content pages ------------------------

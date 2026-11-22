@@ -21,7 +21,7 @@ from unfold.sites import UnfoldAdminSite
 from .access import GuardedAdminMixin, admin_actor, is_owner
 from .copy import COPY as ADMIN_COPY
 from .directory import application_directory
-from .theme import ACCOUNT_THEME, DIRECTORY_THEME, ORDER_THEME
+from .theme import ACCOUNT_THEME, DELIVERY_THEME, DIRECTORY_THEME, MESSAGING_THEME, ORDER_THEME
 from ..models import User
 from ..copy.owner import COPY, PASSWORD_ONLY_SUBTITLES
 from ..services import (admin_mfa_required, audit, begin_signin, finish_mfa,
@@ -93,6 +93,8 @@ class OwnerSite(UnfoldAdminSite):
             "is_owner_admin": is_owner(request),
             "rz_account": ACCOUNT_THEME,
             "rz_order": ORDER_THEME,
+            "rz_messaging": MESSAGING_THEME,
+            "rz_delivery": DELIVERY_THEME,
             "rz_directory": DIRECTORY_THEME,
             "application_directory": application_directory(
                 request, context["available_apps"], context["sidebar_navigation"],

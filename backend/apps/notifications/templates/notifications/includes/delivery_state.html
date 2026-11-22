@@ -1,0 +1,16 @@
+{% load i18n %}
+<div class="{{ rz_delivery.layout }}">
+<section class="{{ rz_delivery.panel }}">
+<p class="{{ rz_delivery.eyebrow }}">{% translate "Delivery state" %}</p>
+<h1 class="{{ rz_delivery.heading }}"><bdi>{{ delivery_target.recipient }}</bdi></h1>
+<div class="{{ rz_delivery.state }}">{{ delivery_state.badge }} <span class="{{ rz_delivery.muted }}">{{ delivery_state.meaning }}</span></div>
+<p class="{{ rz_delivery.muted }}">{% translate "Enquiry" %}: <bdi>{{ delivery_target.enquiry }}</bdi></p>
+{% if delivery_state.accepted %}
+<p class="{{ rz_delivery.notice }}" role="status">{% translate "Accepted by the mail server only. This is not proof the recipient received it, so a follow-up belongs in the marketplace conversation rather than in a forced retry." %}</p>
+{% elif delivery_state.retryable %}
+<p class="{{ rz_delivery.notice }}" role="status">{% translate "This delivery can be retried. The mail server may already have accepted it, so the retry can deliver the message a second time. Confirm the recipient did not receive it first." %}</p>
+{% else %}
+<p class="{{ rz_delivery.notice }}" role="status">{% translate "This delivery is not in a retryable state. Only an uncertain or exhausted delivery can be retried from this page." %}</p>
+{% endif %}
+</section>
+</div>

@@ -1,39 +1,86 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 {% block content %}
-<div class="rz-owner ra:space-y-6 ra:min-w-0">
-<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3">
-<h1 class="ra:text-xl ra:font-semibold">{% translate "Message report case" %}</h1>
-<p>{% translate "Case" %} <bdi>{{ report.id }}</bdi> · {{ report.get_category_display }} · {{ report.get_status_display }} · {% translate "Version" %} <bdi>{{ report.version }}</bdi></p>
-<p>{% translate "Private inspection requires an open participant report, current authorization and a recorded access audit. Participant read state is unchanged." %}</p>
+{% translate "Apply case action" as submit_label %}{% translate "Unassigned" as unassigned %}
+<div class="{{ rz_messaging.layout }}">
+<header class="{{ rz_messaging.panel }}">
+<div class="{{ rz_messaging.toolbar }}">
+<div class="min-w-0">
+<p class="{{ rz_messaging.eyebrow }}">{% translate "Message report case" %}</p>
+<h1 class="{{ rz_messaging.heading }}"><bdi>{{ target.name }}</bdi></h1>
+<p class="{{ rz_messaging.muted }}">{{ category }} · {{ status_badge }} · {{ target.kind_label }} · {% translate "Version" %} <bdi>{{ report.version }}</bdi> · <bdi class="{{ rz_messaging.reference }}">{{ report.id }}</bdi></p>
+</div>
+<a class="{{ rz_messaging.secondary_button }}" href="{{ target.url }}">{{ target.link }}<span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span></a>
+</div>
+<p class="{{ rz_messaging.muted }}">{% translate "Private inspection requires an open participant report, current authorization and a recorded access audit. Participant read state is unchanged." %}</p>
+</header>
+<div class="{{ rz_messaging.workspace_grid }}">
+<div class="{{ rz_messaging.main_column }}">
+<section class="{{ rz_messaging.panel }}">
+<h2 class="{{ rz_messaging.section_heading }}">{% translate "Guarded decision" %}</h2>
+{% if can_act %}
+<p class="{{ rz_messaging.muted }}">{% translate "Assignment, resolution and reopening run through the recorded case transition. Every decision needs a reason and the current case version." %}</p>
+{% include "accounts/admin/includes/action_form.html" with submit_label=submit_label %}
+{% else %}
+<p class="{{ rz_messaging.notice }}" role="status">{% translate "This case has no available action for your role and the current state." %}</p>
+{% endif %}
 </section>
-{% if content %}
-<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Case conversation' %}">
-<h2 class="ra:text-lg ra:font-semibold" dir="auto">{{ content.snapshot.title }}</h2>
-<p dir="auto">{{ content.snapshot.seller }} · <bdi>{{ content.snapshot.currency }}</bdi></p>
-<h3 class="ra:font-semibold">{% translate "Participant report reason" %}</h3><p class="ra:whitespace-pre-wrap ra:break-words" dir="auto">{{ content.reason }}</p>
+{% if inspection == "granted" %}
+<section class="{{ rz_messaging.panel }}" aria-label="{% translate 'Case conversation' %}">
+<h2 class="{{ rz_messaging.section_heading }}" dir="auto">{{ content.snapshot.title }}</h2>
+<p class="{{ rz_messaging.muted }}" dir="auto">{{ content.snapshot.seller }} · <bdi>{{ content.snapshot.currency }}</bdi></p>
+<h3 class="{{ rz_messaging.label }}">{% translate "Participant report reason" %}</h3>
+<p class="{{ rz_messaging.body }}" dir="auto">{{ report.reason|linebreaksbr }}</p>
 {% if content.reported_message %}
-<h3 class="ra:font-semibold">{% blocktranslate with sequence=content.reported_message.sequence %}Reported message · #{{ sequence }}{% endblocktranslate %}</h3>
-<article class="ra:rounded-control ra:border ra:border-line ra:p-3 ra:space-y-2">
-<p><strong dir="auto">{{ content.reported_message.author }}</strong> · <bdi>{{ content.reported_message.created_at|date:"Y-m-d H:i" }} {% translate "Kabul" %}</bdi></p>
-<p class="ra:whitespace-pre-wrap ra:break-words" dir="auto">{{ content.reported_message.body }}</p>
-{% for image in content.reported_message.images %}<p><a href="{{ image.download }}" rel="noreferrer">{% blocktranslate with width=image.width height=image.height %}Protected reported image · {{ width }} × {{ height }}{% endblocktranslate %}</a></p>{% endfor %}
+<h3 class="{{ rz_messaging.label }}">{% blocktranslate with sequence=content.reported_message.sequence %}Reported message · #{{ sequence }}{% endblocktranslate %}</h3>
+<article class="{{ rz_messaging.reported }}">
+<p><span class="{{ rz_messaging.flag }}">{% translate "Reported message" %}</span> <strong class="{{ rz_messaging.author }}" dir="auto">{{ content.reported_message.author }}</strong> · <bdi>{{ content.reported_message.created_at|date:"Y-m-d H:i" }} {% translate "Kabul" %}</bdi> · #{{ content.reported_message.sequence }}</p>
+<p class="{{ rz_messaging.body }}" dir="auto">{{ content.reported_message.body|linebreaksbr }}</p>
+{% for image in content.reported_message.images %}<p><a class="{{ rz_messaging.action }}" href="{{ image.download }}" rel="noreferrer">{% blocktranslate with width=image.width height=image.height %}Protected reported image · {{ width }} × {{ height }}{% endblocktranslate %}</a></p>{% endfor %}
 </article>
 {% endif %}
-<h3 class="ra:font-semibold">{% translate "Conversation history" %}</h3>
-{% if content.has_more %}<p><a href="?before={{ content.oldest }}">{% translate "Earlier messages" %}</a></p>{% endif %}
+<h3 class="{{ rz_messaging.label }}">{% translate "Conversation history" %}</h3>
+{% if content.has_more %}<p><a class="{{ rz_messaging.action }}" href="?before={{ content.oldest }}">{% translate "Earlier messages" %}</a></p>{% endif %}
 {% for message in content.messages %}
-<article class="ra:rounded-control ra:border ra:border-line ra:p-3 ra:space-y-2">
-<p><strong dir="auto">{{ message.author }}</strong> · {{ message.context }} · <bdi>{{ message.created_at|date:"Y-m-d H:i" }} {% translate "Kabul" %}</bdi> · #{{ message.sequence }}</p>
-<p class="ra:whitespace-pre-wrap ra:break-words" dir="auto">{{ message.body }}</p>
-{% for image in message.images %}<p><a href="{{ image.download }}" rel="noreferrer">{% blocktranslate with width=image.width height=image.height %}Protected image · {{ width }} × {{ height }}{% endblocktranslate %}</a></p>{% endfor %}
+<article class="{{ rz_messaging.message }}">
+<p><strong class="{{ rz_messaging.author }}" dir="auto">{{ message.author }}</strong> · {{ message.context_label }} · <bdi>{{ message.created_at|date:"Y-m-d H:i" }} {% translate "Kabul" %}</bdi> · #{{ message.sequence }}</p>
+<p class="{{ rz_messaging.body }}" dir="auto">{{ message.body|linebreaksbr }}</p>
+{% for image in message.images %}<p><a class="{{ rz_messaging.action }}" href="{{ image.download }}" rel="noreferrer">{% blocktranslate with width=image.width height=image.height %}Protected image · {{ width }} × {{ height }}{% endblocktranslate %}</a></p>{% endfor %}
 </article>
-{% empty %}<p>{% translate "No messages in this history page." %}</p>{% endfor %}
+{% empty %}
+<p class="{{ rz_messaging.empty }}">{% translate "No messages in this history page." %}</p>
+{% endfor %}
 </section>
-{% else %}<p role="status">{% translate "Conversation content is locked. An open case, current permission and assignment are required." %}</p>{% endif %}
-<section class="ra:rounded-card ra:border ra:border-line ra:bg-panel ra:p-5 ra:space-y-3" aria-label="{% translate 'Case action' %}">
-<h2 class="ra:text-lg ra:font-semibold">{% translate "Case action" %}</h2>
-<form method="post" class="ra:space-y-3">{% csrf_token %}{{ form.non_field_errors }}{{ form.as_p }}<button type="submit" class="ra:rounded-control ra:bg-action ra:text-on-action ra:px-4 ra:py-2 ra:font-semibold">{% translate "Apply case action" %}</button></form>
+{% elif inspection == "locked" %}
+<p class="{{ rz_messaging.notice }}" role="status">{% translate "This case is closed to private conversation inspection. An open case, the current permission and the assignment are required; the recorded decision history stays visible." %}</p>
+{% elif inspection == "unavailable" %}
+<p class="{{ rz_messaging.notice }}" role="status">{% translate "This order report has no buyer and seller enquiry thread, so there is no conversation to inspect. Decide the case from the reported order." %}</p>
+{% elif inspection == "empty" %}
+<p class="{{ rz_messaging.empty }}" role="status">{% translate "This history page holds no messages. Use the earlier messages link to read further back." %}</p>
+{% else %}
+<section class="{{ rz_messaging.panel }}">
+<h2 class="{{ rz_messaging.section_heading }}">{% translate "Reported target review" %}</h2>
+<p class="{{ rz_messaging.muted }}">{% translate "Product and store reports are decided on the reported target itself. They carry no conversation, so no message history is shown for them." %}</p>
+<h3 class="{{ rz_messaging.label }}">{% translate "Participant report reason" %}</h3>
+<p class="{{ rz_messaging.body }}" dir="auto">{{ report.reason|linebreaksbr }}</p>
 </section>
+{% endif %}
+</div>
+<aside class="{{ rz_messaging.layout }}" aria-label="{% translate 'Case details' %}">
+<section class="{{ rz_messaging.panel }}">
+<h2 class="{{ rz_messaging.section_heading }}">{% translate "Case details" %}</h2>
+<p class="{{ rz_messaging.muted }}">{% translate "Reported target" %}: {{ target.kind_label }}</p>
+<p class="{{ rz_messaging.body }}"><bdi>{{ target.name }}</bdi></p>
+<p class="{{ rz_messaging.muted }}">{% translate "Assigned reviewer" %}: <bdi>{{ reviewer|default:unassigned }}</bdi></p>
+<p class="{{ rz_messaging.muted }}">{% translate "Reported at" %}: <bdi>{{ report.created_at|date:"Y-m-d H:i" }}</bdi></p>
+<p class="{{ rz_messaging.muted }}">{% translate "Category" %}: {{ category }}</p>
+</section>
+<section class="{{ rz_messaging.panel }}">
+<h2 class="{{ rz_messaging.section_heading }}">{% translate "Case activity" %}</h2>
+{% for event in activities %}<p class="{{ rz_messaging.history }}"><bdi>{{ event.created_at|date:"Y-m-d H:i" }}</bdi> · {{ event.badge }} · <span dir="auto">{{ event.reason }}</span></p>{% empty %}<p class="{{ rz_messaging.muted }}">{% translate "No activity recorded yet." %}</p>{% endfor %}
+{% if more_activities %}<details><summary class="{{ rz_messaging.disclosure }}">{% translate "View more activity" %}</summary><div class="{{ rz_messaging.detail_body }}">{% for event in more_activities %}<p class="{{ rz_messaging.history }}"><bdi>{{ event.created_at|date:"Y-m-d H:i" }}</bdi> · {{ event.badge }} · <span dir="auto">{{ event.reason }}</span></p>{% endfor %}</div></details>{% endif %}
+</section>
+</aside>
+</div>
 </div>
 {% endblock %}

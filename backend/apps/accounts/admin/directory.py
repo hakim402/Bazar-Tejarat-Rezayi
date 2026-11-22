@@ -35,8 +35,17 @@ WORKFLOWS = (
     )),
 )
 
-COMMUNICATION = ("Messages & reports", "پیام‌ها و گزارش‌ها", "forum", (
-    "messaging.report", "messaging.conversation", "notifications.outbox",
+REPORTS = ("Reports and moderation", "گزارش‌ها و نظارت", "flag", (
+    "messaging.report",
+))
+DELIVERY = ("Notification delivery", "تحویل اعلان‌ها", "outgoing_mail", (
+    "notifications.outbox", "notifications.attempt",
+    "notifications.aftercareemail", "notifications.aftercareemailattempt",
+))
+MESSAGING_AUDIT = ("Messaging audit", "حسابرسی پیام‌ها", "forum", (
+    "messaging.conversation", "messaging.message", "messaging.attachment",
+    "messaging.readstate", "messaging.caseevent", "messaging.caseaccess",
+    "messaging.command",
 ))
 SYSTEM = ("System & audit", "سیستم و بررسی فعالیت‌ها", "admin_panel_settings", (
     "accounts.auditevent", "admin.logentry", "accounts.accountmail", "auth.group",
@@ -110,7 +119,7 @@ def application_directory(request, available_apps, sidebar_navigation):
             page["title"] = title
             page["search"] = f'{title} {page["search"]}'
 
-    for workflow in (*WORKFLOWS, COMMUNICATION):
+    for workflow in (*WORKFLOWS, REPORTS, DELIVERY, MESSAGING_AUDIT):
         if workflow[0] == "Delivery & fulfilment":
             sections = []
             for en, fa, models in DELIVERY_SECTIONS:

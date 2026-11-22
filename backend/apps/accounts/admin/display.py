@@ -26,13 +26,12 @@ def state_variant(value):
     return "default"
 
 
-def state_badge(value):
+def state_badge(value, label=None):
     if value in (None, ""):
         return "—"
     variant = state_variant(value)
-    return format_html(
-        '<span class="{} {}">{}</span>', BADGE_BASE, BADGE_COLORS[variant], _(str(value)).replace("_", " ")
-    )
+    text = label if label is not None else _(str(value)).replace("_", " ")
+    return format_html('<span class="{} {}">{}</span>', BADGE_BASE, BADGE_COLORS[variant], text)
 
 
 def money(amount, currency=None):
@@ -61,7 +60,7 @@ def short_id(value):
     if not value:
         return "—"
     text = str(value)
-    return format_html('<span class="font-mono text-xs" title="{}">{}</span>', text, text[:8])
+    return format_html('<span class="text-xs" title="{}">{}</span>', text, text[:8])
 
 
 # Curated, privacy-safe defaults for lists that define no explicit native columns.

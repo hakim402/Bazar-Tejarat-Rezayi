@@ -4287,7 +4287,7 @@ msgid "retained bundles"
 msgstr "بسته‌های نگه‌داشته‌شده"
 
 msgid "retry due"
-msgstr "تلاش دوبارهٔ بدهی"
+msgstr "تلاش دوباره در انتظار"
 
 msgid "return path"
 msgstr "مسیر بازگشت"
@@ -4434,7 +4434,7 @@ msgid "slot"
 msgstr "جایگاه"
 
 msgid "smtp accepted"
-msgstr "پذیرش SMTP"
+msgstr "پذیرفته‌شده توسط سرور ایمیل"
 
 msgid "snapshot"
 msgstr "عکس فوری"
@@ -6715,3 +6715,311 @@ msgstr "نسخهٔ ارسال‌شده"
 
 msgid "Submitted store media"
 msgstr "رسانهٔ فروشگاه ارسال‌شده"
+
+# Messages, reports and notification delivery redesign.
+#, python-format
+msgid "%(context)s · recorded access"
+msgstr "%(context)s · دسترسی ثبت‌شده"
+
+#, python-format
+msgid "%(kind)s · %(reference)s"
+msgstr "%(kind)s · %(reference)s"
+
+#, python-format
+msgid "%(read)s read · %(incoming)s received"
+msgstr "%(read)s خوانده‌شده · %(incoming)s دریافت‌شده"
+
+#, python-format
+msgid "Image %(width)s × %(height)s"
+msgstr "تصویر %(width)s × %(height)s"
+
+#, python-format
+msgid "Message %(message)s · Payment %(payment)s · Aftercare %(aftercare)s"
+msgstr "پیام %(message)s · پرداخت %(payment)s · پیگیری %(aftercare)s"
+
+#, python-format
+msgid "Message %(sequence)s"
+msgstr "پیام %(sequence)s"
+
+#, python-format
+msgid "Version %(version)s · %(actor)s"
+msgstr "نسخهٔ %(version)s · %(actor)s"
+
+msgid "Accepted command"
+msgstr "دستور پذیرفته‌شده"
+
+msgid "Attached image"
+msgstr "تصویر پیوست"
+
+msgid "Author side"
+msgstr "سمت نویسنده"
+
+msgid "Case access"
+msgstr "دسترسی به پرونده"
+
+msgid "Case activity"
+msgstr "فعالیت پرونده"
+
+msgid "Case details"
+msgstr "جزئیات پرونده"
+
+msgid "Case reopened"
+msgstr "پرونده بازگشایی شد"
+
+msgid "Case resolved"
+msgstr "پرونده حل شد"
+
+msgid "Command"
+msgstr "دستور"
+
+msgid "Conversation inspection"
+msgstr "بررسی گفت‌وگو"
+
+msgid "Cursor"
+msgstr "نشانگر"
+
+msgid "Delivery attempt"
+msgstr "تلاش ارسال"
+
+msgid "Delivery attempts"
+msgstr "تلاش‌های ارسال"
+
+msgid "Delivery state"
+msgstr "وضعیت ارسال"
+
+msgid "Enquiry"
+msgstr "پرسش"
+
+msgid "Enquiry opened"
+msgstr "پرسش باز شد"
+
+msgid "Enquiry thread"
+msgstr "گفت‌وگوی پرسش"
+
+msgid "Event kind"
+msgstr "نوع رویداد"
+
+msgid "Image download"
+msgstr "دریافت تصویر"
+
+msgid "Image uploaded"
+msgstr "تصویر بارگذاری شد"
+
+msgid "Message sent"
+msgstr "پیام ارسال شد"
+
+msgid "Notice"
+msgstr "اعلان"
+
+msgid "Notice fan-out"
+msgstr "پخش اعلان"
+
+msgid "Notification event"
+msgstr "رویداد اعلان"
+
+msgid "Notification preferences"
+msgstr "تنظیمات اعلان"
+
+msgid "Only an assigned independent reviewer can decide this case."
+msgstr "تنها بررسی‌کنندهٔ مستقلِ تعیین‌شده می‌تواند دربارهٔ این پرونده تصمیم بگیرد."
+
+msgid "Open case workspace"
+msgstr "باز کردن کارگاه پرونده"
+
+msgid "Open the reported order"
+msgstr "باز کردن سفارش گزارش‌شده"
+
+msgid "Open the reported product"
+msgstr "باز کردن محصول گزارش‌شده"
+
+msgid "Open the reported store"
+msgstr "باز کردن فروشگاه گزارش‌شده"
+
+msgid "Outcome"
+msgstr "نتیجه"
+
+msgid "Personal notice"
+msgstr "اعلان شخصی"
+
+msgid "Preference"
+msgstr "تنظیمات"
+
+msgid "Read state"
+msgstr "وضعیت خواندن"
+
+msgid "Report"
+msgstr "گزارش"
+
+msgid "Reported at"
+msgstr "زمان گزارش"
+
+msgid "Reported case"
+msgstr "پروندهٔ گزارش‌شده"
+
+msgid "Reported message"
+msgstr "پیام گزارش‌شده"
+
+msgid "Reported order"
+msgstr "سفارش گزارش‌شده"
+
+msgid "Reported store"
+msgstr "فروشگاه گزارش‌شده"
+
+msgid "Reported target"
+msgstr "مورد گزارش‌شده"
+
+msgid "Reported target review"
+msgstr "بررسی مورد گزارش‌شده"
+
+msgid "Reviewer assigned"
+msgstr "بررسی‌کننده تعیین شد"
+
+msgid "The reported item and the record it points at."
+msgstr "مورد گزارش‌شده و رکوردی که به آن اشاره دارد."
+
+msgid "What the participant reported, and the state the case currently holds."
+msgstr "آنچه شرکت‌کننده گزارش کرده و وضعیت فعلی پرونده."
+
+msgid "Assignment, resolution and reopening run through the recorded case transition. Every decision needs a reason and the current case version."
+msgstr "واگذاری، حل و بازگشایی از راه گذار ثبت‌شدهٔ پرونده انجام می‌شود. هر تصمیم به یک دلیل و نسخهٔ فعلی پرونده نیاز دارد."
+
+msgid "Product and store reports are decided on the reported target itself. They carry no conversation, so no message history is shown for them."
+msgstr "گزارش‌های محصول و فروشگاه روی خودِ مورد گزارش‌شده تصمیم‌گیری می‌شوند. این گزارش‌ها گفت‌وگویی ندارند، بنابراین تاریخچهٔ پیام برای آن‌ها نمایش داده نمی‌شود."
+
+msgid "This case has no available action for your role and the current state."
+msgstr "برای نقش شما و وضعیت فعلی، هیچ اقدامی برای این پرونده در دسترس نیست."
+
+msgid "This case is closed to private conversation inspection. An open case, the current permission and the assignment are required; the recorded decision history stays visible."
+msgstr "این پرونده برای بررسی گفت‌وگوی خصوصی بسته است. پروندهٔ باز، مجوز فعلی و واگذاری لازم است؛ تاریخچهٔ تصمیم‌های ثبت‌شده همچنان دیده می‌شود."
+
+msgid "This history page holds no messages. Use the earlier messages link to read further back."
+msgstr "این صفحه از تاریخچه پیامی ندارد. برای خواندن بخش‌های قدیمی‌تر از پیوند «پیام‌های پیشین» استفاده کنید."
+
+msgid "This order report has no buyer and seller enquiry thread, so there is no conversation to inspect. Decide the case from the reported order."
+msgstr "این گزارش سفارش گفت‌وگوی پرسشی میان خریدار و فروشنده ندارد، بنابراین گفت‌وگویی برای بررسی وجود ندارد. پرونده را بر پایهٔ سفارش گزارش‌شده تصمیم بگیرید."
+
+msgid "A definite rejection happened. Another attempt is already scheduled."
+msgstr "ردِ قطعی رخ داد. تلاش دیگری از پیش زمان‌بندی شده است."
+
+msgid "A worker holds this delivery and will send it shortly."
+msgstr "یک کارگر این ارسال را در اختیار دارد و به‌زودی آن را می‌فرستد."
+
+msgid "Accepted by mail server"
+msgstr "پذیرفته‌شده توسط سرور ایمیل"
+
+msgid "Accepted by the mail adapter"
+msgstr "پذیرفته‌شده توسط درگاه ایمیل"
+
+msgid "Accepted by the mail server. This is not proof the recipient received it."
+msgstr "سرور ایمیل پیام را پذیرفت. این به معنای رسیدن پیام به گیرنده نیست."
+
+msgid "Accepted by the mail server only. This is not proof the recipient received it, so a follow-up belongs in the marketplace conversation rather than in a forced retry."
+msgstr "تنها توسط سرور ایمیل پذیرفته شده است. این به معنای رسیدن پیام به گیرنده نیست؛ پیگیری بعدی جای خود را در گفت‌وگوی بازارگاه می‌گذارد، نه در تلاش دوبارهٔ اجباری."
+
+msgid "Aftercare email"
+msgstr "ایمیل پیگیری سفارش"
+
+msgid "Aftercare email attempt"
+msgstr "تلاش ایمیل پیگیری سفارش"
+
+msgid "Cancelled"
+msgstr "لغو شده"
+
+msgid "Captured"
+msgstr "ثبت‌شده"
+
+msgid "Claimed"
+msgstr "در اختیار کارگر"
+
+msgid "Definite rejection"
+msgstr "رد قطعی"
+
+msgid "Delivery unknown"
+msgstr "تحویل نامشخص"
+
+msgid "Dispatching"
+msgstr "در حال ارسال"
+
+msgid "Email channels"
+msgstr "کانال‌های ایمیل"
+
+msgid "Every attempt was used and failed. A guarded retry requeues the message from scratch."
+msgstr "همهٔ تلاش‌ها استفاده و ناموفق شدند. تلاش دوبارهٔ محافظت‌شده پیام را از ابتدا در صف می‌گذارد."
+
+msgid "Exhausted"
+msgstr "تمام‌شده"
+
+msgid "No delivery attempt recorded yet."
+msgstr "هنوز تلاش ارسالی ثبت نشده است."
+
+msgid "Only an uncertain or exhausted delivery can be retried. The worker re-checks eligibility before sending."
+msgstr "تنها ارسال نامطمئن یا تمام‌شده را می‌توان دوباره تلاش کرد. کارگر پیش از ارسال، واجد شرایط بودن را دوباره بررسی می‌کند."
+
+msgid "Only uncertain or exhausted deliveries can be retried, with a reason and a duplicate-risk acknowledgement."
+msgstr "تنها ارسال‌های نامطمئن یا تمام‌شده با دلیل و تأیید ریسک تکرار، دوباره تلاش می‌شوند."
+
+msgid "Preparation failed before sending"
+msgstr "آماده‌سازی پیش از ارسال ناموفق بود"
+
+msgid "Possible acceptance, outcome unknown"
+msgstr "احتمال پذیرش، نتیجه نامشخص"
+
+msgid "Queued"
+msgstr "در صف"
+
+msgid "Recipient no longer eligible"
+msgstr "گیرنده دیگر واجد شرایط نیست"
+
+msgid "Recorded with your identity in the delivery audit."
+msgstr "به همراه نام شما در سوابق ارسال ثبت می‌شود."
+
+msgid "Retry delivery"
+msgstr "تلاش دوبارهٔ ارسال"
+
+msgid "Retry due"
+msgstr "تلاش دوباره در انتظار"
+
+msgid "Send lease expired"
+msgstr "مدت اجارهٔ ارسال به پایان رسید"
+
+msgid "Technical history of this delivery."
+msgstr "سوابق فنی این ارسال."
+
+msgid "The mail adapter accepted the message. This is not proof the recipient received it."
+msgstr "درگاه ایمیل پیام را پذیرفت. این به معنای رسیدن پیام به گیرنده نیست."
+
+msgid "The mail server may already have accepted the message, so a retry can deliver it twice."
+msgstr "ممکن است سرور ایمیل پیش‌تر پیام را پذیرفته باشد، بنابراین تلاش دوباره می‌تواند پیام را دوبار تحویل دهد."
+
+msgid "The mail server may already have accepted this message. The outcome is unknown, so a retry can send it twice."
+msgstr "ممکن است سرور ایمیل پیش‌تر این پیام را پذیرفته باشد. نتیجه نامشخص است، بنابراین تلاش دوباره می‌تواند آن را دوبار ارسال کند."
+
+msgid "The recipient is no longer eligible for this message."
+msgstr "گیرنده دیگر واجد شرایط دریافت این پیام نیست."
+
+msgid "The send is in progress. Acceptance is not confirmed yet."
+msgstr "ارسال در جریان است. پذیرش هنوز تأیید نشده است."
+
+msgid "The state of this message and when the worker will act on it."
+msgstr "وضعیت این پیام و زمانی که کارگر روی آن عمل می‌کند."
+
+msgid "This delivery can be retried. The mail server may already have accepted it, so the retry can deliver the message a second time. Confirm the recipient did not receive it first."
+msgstr "این ارسال قابل تلاش دوباره است. ممکن است سرور ایمیل پیش‌تر آن را پذیرفته باشد، بنابراین تلاش دوباره می‌تواند پیام را برای بار دوم تحویل دهد. نخست مطمئن شوید گیرنده آن را دریافت نکرده است."
+
+msgid "This delivery is not in a retryable state. Only an uncertain or exhausted delivery can be retried from this page."
+msgstr "این ارسال در وضعیت قابل تلاش دوباره نیست. تنها ارسال نامطمئن یا تمام‌شده را می‌توان از این صفحه دوباره تلاش کرد."
+
+msgid "Waiting for the delivery worker to pick this message up."
+msgstr "در انتظار برداشته‌شدن این پیام توسط کارگر ارسال."
+
+msgid "off"
+msgstr "خاموش"
+
+msgid "on"
+msgstr "روشن"
+
+msgid "read"
+msgstr "خوانده‌شده"
+
+msgid "unread"
+msgstr "خوانده‌نشده"
