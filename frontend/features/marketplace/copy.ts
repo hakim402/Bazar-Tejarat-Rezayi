@@ -107,6 +107,9 @@ const en = {
 	browseProducts: "Browse products",
 	reviewCount: "reviews",
 	noReviews: "No reviews yet",
+	reviewOrderHelp:
+		"To write a review, open a completed order from this store. Choose Submit a review under Order aftercare.",
+	goToBuyerOrders: "Go to my orders",
 	verifiedBusiness: "Verified business",
 	sponsored: "Sponsored",
 	sponsoredStores: "Sponsored stores",
@@ -277,6 +280,9 @@ const fa: Copy = {
 	browseProducts: "مشاهده محصولات",
 	reviewCount: "دیدگاه",
 	noReviews: "هنوز دیدگاهی نیست",
+	reviewOrderHelp:
+		"برای نوشتن نظر، یک سفارش تکمیل‌شده از این فروشگاه را باز کنید. در بخش رسیدگی سفارش، ارسال دیدگاه را انتخاب کنید.",
+	goToBuyerOrders: "رفتن به سفارش‌های من",
 	verifiedBusiness: "کسب‌وکار تأییدشده",
 	sponsored: "تبلیغاتی",
 	sponsoredStores: "فروشگاه‌های تبلیغاتی",
@@ -447,6 +453,9 @@ const ps: Copy = {
 	browseProducts: "محصولات وګورئ",
 	reviewCount: "نظر",
 	noReviews: "تر اوسه نظر نشته",
+	reviewOrderHelp:
+		"د نظر لیکلو لپاره له دې پلورنځي څخه یوه بشپړه شوې سپارښتنه خلاصه کړئ. د سپارښتنې پاملرنې برخه کې نظر لېږل وټاکئ.",
+	goToBuyerOrders: "زما سپارښتنو ته تلل",
 	verifiedBusiness: "تایید شوی کاروبار",
 	sponsored: "اعلان",
 	sponsoredStores: "اعلان شوي پلورنځي",
@@ -617,6 +626,9 @@ const ar: Copy = {
 	browseProducts: "تصفح المنتجات",
 	reviewCount: "مراجعة",
 	noReviews: "لا مراجعات بعد",
+	reviewOrderHelp:
+		"لكتابة مراجعة، افتح طلبًا مكتملًا من هذا المتجر. اختر تقديم مراجعة من متابعة الطلبات.",
+	goToBuyerOrders: "الذهاب إلى طلباتي",
 	verifiedBusiness: "نشاط تجاري موثق",
 	sponsored: "إعلان مدفوع",
 	sponsoredStores: "متاجر مروّجة",

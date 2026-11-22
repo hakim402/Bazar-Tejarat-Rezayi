@@ -8048,3 +8048,18 @@ msgstr "دیدن نظرهای خریداران"
 
 msgid "Published by seller"
 msgstr "نشرشده توسط فروشنده"
+
+msgid "Open public store"
+msgstr "باز کردن فروشگاه عمومی"
+
+msgid "Saved links are hidden. Enable Show public contact links and save to display them."
+msgstr "پیوندهای ذخیره‌شده پنهان‌اند. برای نمایش آن‌ها، گزینه نمایش راه‌های تماس عمومی را فعال کنید و تنظیمات را ذخیره کنید."
+
+msgid "Contact links will appear after a revision is published with the current business verification."
+msgstr "راه‌های تماس پس از نشر نسخه فروشگاه با تأیید فعلی کسب‌وکار نمایش می‌یابند."
+
+msgid "These links are visible on the public store profile."
+msgstr "این پیوندها در نمایه عمومی فروشگاه نمایش می‌یابند."
+
+msgid "Buyers submit reviews from completed orders. Approve a submitted review to publish it on this store."
+msgstr "خریداران از طریق سفارش‌های تکمیل‌شده نظر می‌نویسند. برای نشر نظر در این فروشگاه، آن را تأیید کنید."

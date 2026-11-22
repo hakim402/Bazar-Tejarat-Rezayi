@@ -18,6 +18,7 @@ from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextareaWidget, U
 from apps.accounts.admin import owner_site
 from apps.accounts.admin.access import admin_actor, is_owner, permits
 from apps.accounts.admin.display import short_id, state_badge
+from apps.accounts.admin.locale import admin_language, frontend_locale
 from apps.catalogue.admin.helpers import link_button
 from apps.catalogue.admin.presentation import seller_cell
 from apps.orders.admin_presentation import account_cell
@@ -298,6 +299,9 @@ class StoreAdmin(ReadOnlyAdmin):
             return link_button(reverse("admin:verification_reviewcase_workflow", args=[case.pk]), _("Open business verification"), "verified")
         return _("Not submitted")
 
+    def buyer_reviews_url(self, obj):
+        return reverse("admin:orders_review_changelist", query={"order__seller__id__exact": obj.profile_id})
+
     @admin.display(description=_("Buyer rating"))
     def buyer_rating(self, obj):
         rating = aggregate(obj.profile)
@@ -306,10 +310,9 @@ class StoreAdmin(ReadOnlyAdmin):
             label = ngettext("%(average)s out of 5 · %(count)s review", "%(average)s out of 5 · %(count)s reviews", rating["count"]) % {
                 "average": localize(Decimal(rating["average"])), "count": localize(rating["count"]),
             }
-        url = reverse("admin:orders_review_changelist", query={"order__seller__id__exact": obj.profile_id})
         return format_html(
             '<div class="flex flex-wrap items-center gap-3"><span>{}</span>{}</div>',
-            label, link_button(url, _("View buyer reviews"), "rate_review"),
+            label, link_button(self.buyer_reviews_url(obj), _("View buyer reviews"), "rate_review"),
         )
 
     @admin.display(description=_("Shop plan"))
@@ -342,11 +345,19 @@ class StoreAdmin(ReadOnlyAdmin):
             else:
                 self.message_user(request, _("Store features saved."), level=messages.SUCCESS)
                 return HttpResponseRedirect(request.path)
+        approved_case = access.eligible_profiles([pk]).values_list("approved_case", flat=True).first()
+        published = store.published
+        current_publication = bool(
+            approved_case and published and published.state == "approved" and published.business_case_id == approved_case
+        )
         return render(request, "marketplace/store_settings.html", {
             **self.admin_site.each_context(request), "title": _("Manage store features"), "store": store, "form": form,
-            "verified": access.eligible_profiles([pk]).exists(),
+            "verified": bool(approved_case),
             "store_url": reverse("admin:marketplace_store_change", args=[pk]),
-            "contact_fields": (store.published.body.get("contacts", {}) if store.published_id else {}).items(),
+            "public_url": f"{settings.FRONTEND_ORIGIN}/{frontend_locale(admin_language(request))}/stores/{pk}" if approved_case else None,
+            "buyer_reviews_url": self.buyer_reviews_url(store),
+            "contact_fields": (published.body.get("contacts", {}) if published else {}).items(),
+            "current_publication": current_publication,
         }, status=status)
 
 

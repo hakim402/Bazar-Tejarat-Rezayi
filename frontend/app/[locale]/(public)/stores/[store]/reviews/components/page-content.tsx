@@ -1,5 +1,7 @@
 import type { Locale } from "../../../../../../../lib/i18n/locales";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/shadcn/button";
 import {
 	readMarketplace,
 	marketMetadata,
@@ -95,7 +97,17 @@ export async function PageContent({
 	return (
 		<StoreShell locale={locale} id={params.store} tab="reviews">
 			<section className="space-y-4 rounded-card border border-border bg-surface p-5">
-				<h2 className="text-2xl font-bold">{t.reviews}</h2>
+				<div className="flex flex-wrap items-start justify-between gap-3">
+					<div className="min-w-0 space-y-1">
+						<h2 className="m-0 text-2xl font-bold">{t.reviews}</h2>
+						<p className="m-0 text-sm text-muted">{t.reviewOrderHelp}</p>
+					</div>
+					<Button asChild variant="outline" className="min-h-10 shadow-none">
+						<Link href={`/${locale}/account/buyer/orders`}>
+							{t.goToBuyerOrders}
+						</Link>
+					</Button>
+				</div>
 				{!reviews || !summary ? (
 					<Feedback
 						locale={locale}

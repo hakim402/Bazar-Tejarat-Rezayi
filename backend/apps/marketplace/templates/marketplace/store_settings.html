@@ -9,26 +9,45 @@
                 <h1 class="{{ rz_order.heading }}">{{ title }}</h1>
                 <p class="{{ rz_order.muted }}"><bdi>{{ store.profile.display_name }}</bdi></p>
             </div>
-            <a class="{{ rz_order.secondary_button }}" href="{{ store_url }}">{% translate "Back to store" %}</a>
+            <div class="flex flex-wrap gap-2">
+                {% if public_url %}
+                <a class="{{ rz_order.secondary_button }}" href="{{ public_url }}" target="_blank" rel="noopener">{% translate "Open public store" %}</a>
+                {% endif %}
+                <a class="{{ rz_order.secondary_button }}" href="{{ store_url }}">{% translate "Back to store" %}</a>
+            </div>
         </div>
     </header>
     <div class="{{ rz_order.workspace_grid }}">
         <section class="{{ rz_order.panel }}">
             {% include "accounts/admin/includes/action_form.html" with submit_label=submit_label %}
         </section>
-        <section class="{{ rz_order.panel }}">
-            <h2 class="{{ rz_order.section_heading }}">{% translate "Store status" %}</h2>
-            <ul class="{{ rz_order.muted }}">
-                <li>{% if verified %}{% translate "Business verification current" %}{% else %}{% translate "Business verification required" %}{% endif %}</li>
-                <li>{% if store.premium_active %}{% translate "Paid shop" %}{% else %}{% translate "Free shop" %}{% endif %}</li>
-            </ul>
-            <h3 class="{{ rz_order.section_heading }}">{% translate "Published contact details" %}</h3>
-            {% if contact_fields %}
-            {% include "marketplace/contact_details.html" %}
-            {% else %}
-            <p class="{{ rz_order.muted }}">{% translate "No published contact details" %}</p>
-            {% endif %}
-        </section>
+        <div class="{{ rz_order.layout }}">
+            <section class="{{ rz_order.panel }}">
+                <h2 class="{{ rz_order.section_heading }}">{% translate "Store status" %}</h2>
+                <ul class="{{ rz_order.muted }}">
+                    <li>{% if verified %}{% translate "Business verification current" %}{% else %}{% translate "Business verification required" %}{% endif %}</li>
+                    <li>{% if store.premium_active %}{% translate "Paid shop" %}{% else %}{% translate "Free shop" %}{% endif %}</li>
+                </ul>
+                <h3 class="{{ rz_order.section_heading }}">{% translate "Public contact links" %}</h3>
+                {% if contact_fields %}
+                    {% if not store.contacts_enabled %}
+                    <p class="{{ rz_order.notice }}">{% translate "Saved links are hidden. Enable Show public contact links and save to display them." %}</p>
+                    {% elif not current_publication %}
+                    <p class="{{ rz_order.notice }}">{% translate "Contact links will appear after a revision is published with the current business verification." %}</p>
+                    {% else %}
+                    <p class="{{ rz_order.muted }}">{% translate "These links are visible on the public store profile." %}</p>
+                    {% endif %}
+                    {% include "marketplace/contact_details.html" %}
+                {% else %}
+                <p class="{{ rz_order.muted }}">{% translate "No published contact details" %}</p>
+                {% endif %}
+            </section>
+            <section class="{{ rz_order.panel }}">
+                <h2 class="{{ rz_order.section_heading }}">{% translate "Buyer reviews" %}</h2>
+                <p class="{{ rz_order.muted }}">{% translate "Buyers submit reviews from completed orders. Approve a submitted review to publish it on this store." %}</p>
+                <a class="{{ rz_order.secondary_button }}" href="{{ buyer_reviews_url }}">{% translate "View buyer reviews" %}</a>
+            </section>
+        </div>
     </div>
 </div>
 {% endblock %}
