@@ -319,6 +319,15 @@ msgstr "سوابق حسابرسی"
 msgid "Admin change history"
 msgstr "تاریخچه تغییرات مدیران"
 
+msgid "Access Control"
+msgstr "مدیریت دسترسی"
+
+msgid "Role Groups"
+msgstr "گروه های نقش"
+
+msgid "Permissions"
+msgstr "مجوزهای دسترسی"
+
 msgid "Authenticators"
 msgstr "برنامه‌های تأیید هویت"
 

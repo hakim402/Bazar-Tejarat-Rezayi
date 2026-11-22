@@ -106,7 +106,8 @@ def navigation(request):
         section_of = {
             "overview": "Daily work", "orders": "Daily work", "reviews": "Daily work", "reports": "Daily work",
             "payments": "Daily work", "delivery": "Daily work", "aftercare": "Daily work", "moderation": "Daily work",
-            "catalogue": "Manage", "people": "Manage", "website": "Manage", "system_health": "Manage", "audit": "Manage",
+            "catalogue": "Manage", "people": "Manage", "access": "Manage", "website": "Manage",
+            "system_health": "Manage", "audit": "Manage",
         }
     index_url = overview["link"]
     visible_active = active_destination(
@@ -210,13 +211,14 @@ def owner_groups(entry, overview):
             entry("Unresolved shortages", "warning", "inventory.shortage", {"shortage_state": "unresolved_roots"}),
         ]),
         ("people", "People & stores", [
-            entry("Users", "group", "accounts.user"),
             entry("Buyer accounts", "person", "accounts.account", {"context__exact": "buyer"}),
             entry("Seller accounts", "storefront", "accounts.account", {"context__exact": "seller"}),
-            entry("Business profiles", "business", "organizations.businessprofile"),
-            entry("Verification cases", "verified_user", "verification.reviewcase"),
-            entry("Public stores", "store", "marketplace.store"),
-            entry("Store reviews", "fact_check", "marketplace.storerevision", {"state__exact": "submitted"}),
+        ]),
+        ("access", "Access Control", [
+            entry("Users", "group", "accounts.user"),
+            entry("Staff accounts", "badge", "accounts.account", {"context__exact": "staff"}),
+            entry("Role Groups", "groups", "auth.group"),
+            entry("Permissions", "security", "auth.permission"),
         ]),
         ("website", "Website & content", [
             pages,

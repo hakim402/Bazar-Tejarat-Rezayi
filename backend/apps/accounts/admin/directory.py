@@ -24,7 +24,7 @@ WORKFLOWS = (
         "catalogue.variant", "catalogue.translation", "inventory.batch", "inventory.movement",
     )),
     ("People & stores", "کاربران و فروشگاه‌ها", "storefront", (
-        "accounts.user", "accounts.account", "organizations.businessprofile",
+        "accounts.account", "organizations.businessprofile",
         "verification.reviewcase", "verification.evidence",
         "marketplace.store", "marketplace.storerevision", "marketplace.storemedia",
         "marketplace.storeevent",
@@ -47,7 +47,7 @@ MESSAGING_AUDIT = ("Messaging audit", "حسابرسی پیام‌ها", "forum",
 ))
 SYSTEM = ("System, audit & access", "سیستم، حسابرسی و دسترسی", "admin_panel_settings", (
     "accounts.auditevent", "admin.logentry", "accounts.accountmail", "accounts.mailattempt",
-    "auth.group", "auth.permission",
+    "accounts.user", "auth.group", "auth.permission",
 ))
 RUNTIME = ("System health", "وضعیت سیستم", "monitoring", (
     "runtime.job", "runtime.scheduler", "runtime.schema", "runtime.transfer",
