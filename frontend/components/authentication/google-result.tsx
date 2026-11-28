@@ -1,4 +1,5 @@
 "use client";
+import { AuthSecondaryLinks } from "./auth-secondary-links";
 import { Button } from "../shadcn/button";
 import { RegistrationConsent } from "./registration-consent";
 import { authFailure } from "@/features/identity/auth-errors";
@@ -133,7 +134,7 @@ export function GoogleResult({ locale }: { locale: Locale }) {
 					</Button>
 				</form>
 			)}
-			<nav className="account-links mt-7 flex flex-col gap-3.5 text-base font-bold">
+			<AuthSecondaryLinks>
 				<Link
 					href={authHref(
 						locale,
@@ -155,7 +156,7 @@ export function GoogleResult({ locale }: { locale: Locale }) {
 				{action === "link" || action === "add-role" ? (
 					<Link href={`/${locale}/account/${context}`}>{a.profile}</Link>
 				) : null}
-			</nav>
+			</AuthSecondaryLinks>
 		</>
 	);
 }

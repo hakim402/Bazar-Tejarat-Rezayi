@@ -1,4 +1,5 @@
 "use client";
+import { AuthSecondaryLinks } from "./auth-secondary-links";
 import { VerificationCode } from "./verification-code";
 import { useId } from "react";
 import Link from "next/link";
@@ -132,7 +133,7 @@ export function PublicAuthForm({
 				context={role}
 				action={register ? "register" : "signin"}
 			/>
-			<nav className="account-links mt-5 flex flex-col gap-3 border-0 border-t border-solid border-border pt-4 text-center text-sm font-medium">
+			<AuthSecondaryLinks>
 				<Link
 					href={flow.href(`${role}-${register ? "sign-in" : "registration"}`)}
 				>
@@ -144,7 +145,7 @@ export function PublicAuthForm({
 				>
 					{role === "seller" ? t.buyerSignin : t.sellerSignin}
 				</Link>
-			</nav>
+			</AuthSecondaryLinks>
 		</>
 	);
 }

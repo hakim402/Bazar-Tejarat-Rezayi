@@ -1,4 +1,5 @@
 "use client";
+import { AuthSecondaryLinks } from "./auth-secondary-links";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -310,11 +311,11 @@ export function VerificationCode({
 					</form>
 				</>
 			)}
-			<Button asChild variant="link" className="w-full">
+			<AuthSecondaryLinks>
 				<Link href={returnTo ?? `/${locale}/auth/${context}-sign-in`}>
 					{a.backSignin}
 				</Link>
-			</Button>
+			</AuthSecondaryLinks>
 		</div>
 	);
 }

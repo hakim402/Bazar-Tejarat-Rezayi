@@ -1,4 +1,5 @@
 "use client";
+import { AuthSecondaryLinks } from "./auth-secondary-links";
 import { VerificationCode } from "./verification-code";
 import { useId } from "react";
 import Link from "next/link";
@@ -186,9 +187,9 @@ export function AuthForm({
 					)}
 				</>
 			)}
-			<nav className="account-links mt-5 text-center text-sm font-medium">
+			<AuthSecondaryLinks>
 				<Link href={flow.href(`${flow.context}-sign-in`)}>{t.backSignin}</Link>
-			</nav>
+			</AuthSecondaryLinks>
 		</>
 	);
 }
