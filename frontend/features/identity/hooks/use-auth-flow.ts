@@ -7,73 +7,90 @@ import {
 	type AccountContext,
 } from "../api/accounts";
 import {
-	verificationStorageKey,
+	pendingVerificationFor,
 	retainVerification,
 	type PendingVerification,
-} from "@/components/authentication/verification-code";
+} from "../verification-state";
+import {
+	authHref,
+	clearAuthToken,
+	AUTH_NAVIGATION_CHANGED,
+} from "@/lib/routes/auth-routes";
+import { useSearchParams } from "next/navigation";
+import { authFailure } from "../auth-errors";
+import { authFeedback } from "@/lib/i18n/auth-feedback";
+import toast from "react-hot-toast";
 import { authCopy } from "../../../lib/i18n/auth";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { AuthScreen } from "../../../lib/i18n/auth-screens";
-export function useAuthFlow(locale: Locale, screen: AuthScreen) {
+export function useAuthFlow(
+	locale: Locale,
+	screen: AuthScreen,
+	audience: AccountContext = "buyer",
+) {
+	const search = useSearchParams();
 	const t = authCopy[locale];
 	const context: AccountContext = screen.startsWith("seller")
 		? "seller"
-		: "buyer";
+		: screen.startsWith("buyer")
+			? "buyer"
+			: audience;
 	const register = screen.endsWith("registration"),
 		signin = screen.endsWith("sign-in");
 	const [pendingVerification, setPendingVerification] =
 		useState<PendingVerification>();
+	const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+	const [completed, setCompleted] = useState(false);
+	const [invalidToken, setInvalidToken] = useState(false);
+	const [email, setEmail] = useState("");
 	const [busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
 		[notice, setNotice] = useState(""),
 		[token, setToken] = useState("");
 	const inFlight = useRef(false);
 	const alertRef = useRef<HTMLParagraphElement>(null);
+	const alive = useRef(true);
 	useEffect(() => {
-		setPendingVerification(undefined);
-		try {
-			const saved = JSON.parse(
-				sessionStorage.getItem(verificationStorageKey) ?? "null",
-			);
-			if (
-				saved &&
-				typeof saved.email === "string" &&
-				["buyer", "seller"].includes(saved.context) &&
-				typeof saved.resendAt === "number" &&
-				(!register || saved.context === context)
-			)
-				setPendingVerification(saved);
-		} catch {
-			retainVerification(null);
-		}
-		const hash = new URLSearchParams(window.location.hash.slice(1));
-		const value = hash.get("token");
-		if (value) {
-			setToken(value);
-			window.history.replaceState(
-				null,
-				"",
-				window.location.pathname + window.location.search,
-			);
-		}
-	}, [context, register]);
+		alive.current = true;
+		return () => {
+			alive.current = false;
+		};
+	}, []);
+	useEffect(() => {
+		const restore = () => {
+			setPendingVerification(pendingVerificationFor(context));
+			if (screen === "reset-password" || screen === "verify-email") {
+				const value = new URLSearchParams(window.location.hash.slice(1)).get(
+					"token",
+				);
+				setToken(value && /^[A-Za-z0-9_-]{32,100}$/.test(value) ? value : "");
+			}
+		};
+		restore();
+		window.addEventListener("hashchange", restore);
+		window.addEventListener(AUTH_NAVIGATION_CHANGED, restore);
+		return () => {
+			window.removeEventListener("hashchange", restore);
+			window.removeEventListener(AUTH_NAVIGATION_CHANGED, restore);
+		};
+	}, [context, screen]);
 	useEffect(() => {
 		if (error) alertRef.current?.focus();
 	}, [error]);
 	function handleFailure(err: unknown) {
-		setError(
-			err instanceof AccountError
-				? err.status === 429
-					? t.limited
-					: err.code === "registration_closed"
-						? t.registrationClosed
-						: err.code === "csrf_failed"
-							? t.stale
-							: err.status === 403
-								? t.denied
-								: t.invalid
-				: t.unavailable,
-		);
+		const operation = register
+			? "register"
+			: signin
+				? "signin"
+				: screen === "verify-email"
+					? "verify"
+					: screen === "reset-password"
+						? "reset"
+						: "request";
+		const failure = authFailure(err, locale, operation);
+		setError(failure.message);
+		setFieldErrors(failure.fields);
+		toast.error(failure.message);
 	}
 	function completeSignin() {
 		window.location.assign(
@@ -90,6 +107,7 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 		inFlight.current = true;
 		setBusy(true);
 		setError("");
+		setFieldErrors({});
 		setNotice("");
 		const form = event.currentTarget;
 		const values = new FormData(form);
@@ -97,8 +115,11 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 		try {
 			if (value("repeat") && value("password") !== value("repeat")) {
 				setError(t.mismatch);
+				setFieldErrors({ repeat: t.mismatch });
+				toast.error(t.mismatch);
 				return;
 			}
+			setEmail(value("email"));
 			if (register) {
 				const result = await authMutation(`${context}/register/`, {
 					email: value("email"),
@@ -107,12 +128,15 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 					consent: values.has("consent"),
 					locale,
 				});
+				if (!alive.current) return;
 				const pending = {
 					email: value("email"),
 					context,
 					resendAt: Date.now() + (result.resend_after ?? 60) * 1000,
+					expiresAt: Date.now() + (result.expires_in ?? 600) * 1000,
+					returnTo: safeReturn(search.get("return"), locale, context),
 				};
-				retainVerification(pending);
+				retainVerification(pending, context);
 				setPendingVerification(pending);
 				form.reset();
 				setNotice(t.requested);
@@ -121,37 +145,68 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 					email: value("email"),
 					password: value("password"),
 				});
+				if (!alive.current) return;
+				if (result.status !== "signed_in")
+					throw new Error("Unexpected sign-in result");
 				form.reset();
-				if (result.status === "signed_in") completeSignin();
+				completeSignin();
 			} else if (screen === "verify-email" && token) {
 				await authMutation("verify/", { token });
+				if (!alive.current) return;
+				clearAuthToken();
+				retainVerification(null, context);
 				setToken("");
-				setNotice(t.verified);
+				setCompleted(true);
+				setNotice(authFeedback[locale].verifyDone);
 			} else if (screen === "reset-password") {
 				if (!token) {
 					setError(t.invalidLink);
 					return;
 				}
 				await authMutation("reset/", { token, password: value("password") });
+				if (!alive.current) return;
+				clearAuthToken();
 				setToken("");
 				form.reset();
-				setNotice(t.passwordUpdated);
+				setCompleted(true);
+				setNotice(authFeedback[locale].resetDone);
 			} else {
 				await authMutation(
 					`mail/${screen === "forgot-password" ? "reset" : "verify"}/`,
-					{ email: value("email"), locale },
+					{ email: value("email"), locale, context },
 				);
-				setNotice(t.requested);
+				if (!alive.current) return;
+				setNotice(authFeedback[locale].recoverySent);
 			}
 		} catch (err) {
+			if (!alive.current) return;
+			if (
+				screen === "reset-password" &&
+				err instanceof AccountError &&
+				err.fields.includes("token")
+			)
+				setInvalidToken(true);
 			handleFailure(err);
 		} finally {
 			inFlight.current = false;
-			setBusy(false);
+			if (alive.current) setBusy(false);
 		}
 	}
 	return {
 		context,
+		fieldErrors,
+		completed,
+		invalidToken,
+		email,
+		href: (next: AuthScreen) =>
+			authHref(
+				locale,
+				next,
+				new URLSearchParams({
+					context,
+					return: safeReturn(search.get("return"), locale, context),
+				}),
+			),
 		pendingVerification,
 		register,
 		signin,

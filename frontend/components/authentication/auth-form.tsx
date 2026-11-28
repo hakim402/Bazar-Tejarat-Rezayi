@@ -3,6 +3,7 @@ import { VerificationCode } from "./verification-code";
 import { useId } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { Button as CompletionButton } from "../shadcn/button";
 import { Field, Input } from "../ui/form-field";
 import { Alert } from "../ui/alert";
 import { AccountHeading } from "../ui/account-heading";
@@ -25,7 +26,7 @@ export function AuthForm({
 	const t = authCopy[locale],
 		prefix = useId(),
 		errorId = `${prefix}-error`,
-		flow = useAuthFlow(locale, screen);
+		flow = useAuthFlow(locale, screen, audience);
 	const {
 		register,
 		signin,
@@ -37,6 +38,18 @@ export function AuthForm({
 		handleSubmit,
 	} = flow;
 	if (screen === "google-result") return <GoogleResult locale={locale} />;
+	if (flow.completed)
+		return (
+			<>
+				<AccountHeading>{screenTitle(locale, screen)}</AccountHeading>
+				<Alert variant="success" role="status">
+					{notice}
+				</Alert>
+				<CompletionButton asChild>
+					<Link href={flow.href(`${flow.context}-sign-in`)}>{t.signin}</Link>
+				</CompletionButton>
+			</>
+		);
 	if (screen === "verify-email" && !token)
 		return (
 			<>
@@ -45,6 +58,7 @@ export function AuthForm({
 					locale={locale}
 					context={audience}
 					pending={flow.pendingVerification}
+					returnTo={flow.href(`${flow.context}-sign-in`)}
 					key={flow.pendingVerification?.email ?? "email"}
 				/>
 			</>
@@ -124,7 +138,7 @@ export function AuthForm({
 				</>
 			)}
 			<nav className="account-links mt-5 text-sm font-medium">
-				<Link href={`/${locale}/auth/${audience}-sign-in`}>{t.backSignin}</Link>
+				<Link href={flow.href(`${flow.context}-sign-in`)}>{t.backSignin}</Link>
 			</nav>
 		</>
 	);

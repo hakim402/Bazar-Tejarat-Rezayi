@@ -11,7 +11,14 @@ import {
 	type KeyboardEvent,
 } from "react";
 import Link from "next/link";
-import { modalScreens, authHref } from "../../lib/routes/auth-routes";
+import {
+	modalScreens,
+	authHref,
+	authAudience,
+	authParameters,
+	clearAuthToken,
+	AUTH_NAVIGATION_CHANGED,
+} from "../../lib/routes/auth-routes";
 import { useSearchParams } from "next/navigation";
 import type { Locale } from "../../lib/i18n/locales";
 import { direction } from "../../lib/i18n/locales";
@@ -132,32 +139,69 @@ export function AccessProvider({
 	}
 
 	const openScreen = useCallback(
-		(next: AuthScreen, parameters?: URLSearchParams) => {
+		(next: AuthScreen, parameters?: URLSearchParams, hash?: string) => {
 			if (!modalScreens.includes(next)) return;
-			if (next.startsWith("seller")) setAudience("seller");
-			else if (next.startsWith("buyer")) setAudience("buyer");
-			setScreen(next);
 			const url = new URL(window.location.href);
-			url.searchParams.set("auth", next);
-			if (parameters?.has("return"))
-				url.searchParams.set("return", parameters.get("return") ?? "");
+			const previous = url.searchParams.get("auth");
+			const supplied = new URLSearchParams(parameters ?? url.searchParams);
+			if (!supplied.has("return") && url.searchParams.has("return"))
+				supplied.set("return", url.searchParams.get("return") ?? "");
+			const fallback =
+				url.searchParams.get("context") === "seller" ||
+				url.pathname.endsWith("/sell")
+					? "seller"
+					: "buyer";
+			const role = authAudience(next, supplied, fallback);
+			const query = authParameters(next, supplied, role);
+			for (const key of [
+				"auth",
+				"google",
+				"attempt",
+				"context",
+				"action",
+				"return",
+			])
+				url.searchParams.delete(key);
+			query.forEach((value, key) => {
+				url.searchParams.set(key, value);
+			});
+			const acceptsToken = next === "verify-email" || next === "reset-password";
+			url.hash = acceptsToken
+				? (hash ?? (previous === next ? url.hash : ""))
+				: "";
+			setAudience(role);
+			setScreen(next);
 			window.history.pushState(null, "", url.pathname + url.search + url.hash);
+			window.dispatchEvent(new Event(AUTH_NAVIGATION_CHANGED));
 		},
 		[],
 	);
 	function closeScreen() {
 		setScreen(null);
 		const url = new URL(window.location.href);
-		for (const key of ["auth", "google", "attempt", "context", "action"])
+		clearAuthToken();
+		url.hash = new URL(window.location.href).hash;
+		for (const key of [
+			"auth",
+			"google",
+			"attempt",
+			"context",
+			"action",
+			"return",
+		])
 			url.searchParams.delete(key);
 		window.history.replaceState(null, "", url.pathname + url.search + url.hash);
 	}
 	useEffect(() => {
 		const candidate = search.get("auth") as AuthScreen | null;
 		if (candidate && modalScreens.includes(candidate)) {
-			if (candidate.startsWith("seller")) setAudience("seller");
-			else if (candidate.startsWith("buyer")) setAudience("buyer");
-			else if (search.get("context") === "seller") setAudience("seller");
+			setAudience(
+				authAudience(
+					candidate,
+					new URLSearchParams(search),
+					window.location.pathname.endsWith("/sell") ? "seller" : "buyer",
+				),
+			);
 			setScreen(candidate);
 		} else setScreen(null);
 	}, [search]);
@@ -185,7 +229,7 @@ export function AccessProvider({
 			) as AuthScreen;
 			if (!modalScreens.includes(candidate)) return;
 			event.preventDefault();
-			openScreen(candidate, url.searchParams);
+			openScreen(candidate, url.searchParams, url.hash);
 		}
 		document.addEventListener("click", follow, true);
 		return () => document.removeEventListener("click", follow, true);

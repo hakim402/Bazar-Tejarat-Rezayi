@@ -46,7 +46,12 @@ export function PublicAuthForm({
 		return (
 			<>
 				<AccountHeading compact>{t.verify}</AccountHeading>
-				<VerificationCode locale={locale} pending={flow.pendingVerification} />
+				<VerificationCode
+					locale={locale}
+					context={role}
+					pending={flow.pendingVerification}
+					returnTo={flow.href(`${role}-sign-in`)}
+				/>
 			</>
 		);
 	return (
@@ -111,7 +116,7 @@ export function PublicAuthForm({
 				) : (
 					<Link
 						className="self-end py-1 text-xs font-medium"
-						href={`/${locale}/auth/forgot-password`}
+						href={flow.href("forgot-password")}
 					>
 						{t.forgot}
 					</Link>
@@ -129,7 +134,7 @@ export function PublicAuthForm({
 			<nav className="account-links mt-4 flex flex-col gap-2 border-t border-border pt-3 text-center text-xs font-medium">
 				<Link
 					className="inline-flex min-h-8 items-center justify-center"
-					href={`/${locale}/auth/${role}-${register ? "sign-in" : "registration"}`}
+					href={flow.href(`${role}-${register ? "sign-in" : "registration"}`)}
 				>
 					{register ? t.existing : t.newAccount}
 				</Link>

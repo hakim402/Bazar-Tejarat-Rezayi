@@ -26,10 +26,6 @@ export function GoogleResult({ locale }: { locale: Locale }) {
 		setAttempt(q.get("attempt") ?? "");
 		setContext(q.get("context") === "seller" ? "seller" : "buyer");
 		setAction(q.get("action") ?? "");
-		const clean = new URL(window.location.href);
-		for (const key of ["google", "attempt", "context", "action"])
-			clean.searchParams.delete(key);
-		window.history.replaceState(null, "", clean.pathname + clean.search);
 	}, []);
 	async function finish(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -48,6 +44,10 @@ export function GoogleResult({ locale }: { locale: Locale }) {
 					safeReturn(response.return_path ?? null, locale, context),
 				);
 			else {
+				const clean = new URL(window.location.href);
+				clean.searchParams.set("google", "linked");
+				clean.searchParams.delete("attempt");
+				window.history.replaceState(null, "", clean.pathname + clean.search);
 				setResult("linked");
 				setBusy(false);
 			}
