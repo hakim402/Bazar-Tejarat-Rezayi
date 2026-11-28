@@ -11,7 +11,7 @@ from django.utils.translation import get_language, gettext_lazy as _
 OWNER_NAVIGATION_DARI = {
     "Daily work": "کارهای روزانه",
     "Manage": "مدیریت",
-    "Catalogue & stock": "کاتالوگ و موجودی",
+    "Catalogue & stock": "دسته بندی محصولات ثبت شده",
     "People & stores": "کاربران و فروشگاه‌ها",
     "Delivery operations": "عملیات تحویل",
     "All delivery records": "همهٔ سوابق تحویل",

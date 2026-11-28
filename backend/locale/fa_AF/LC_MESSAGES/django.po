@@ -326,7 +326,7 @@ msgid "Role Groups"
 msgstr "گروه های نقش"
 
 msgid "Permissions"
-msgstr "مجوزهای دسترسی"
+msgstr "دسترسی حساب های کاربران"
 
 msgid "Authenticators"
 msgstr "برنامه‌های تأیید هویت"
@@ -1788,7 +1788,7 @@ msgid "Product media"
 msgstr "رسانه‌های محصول"
 
 msgid "Product source review"
-msgstr "بررسی منبع محصول"
+msgstr "برسی محصولات کاربران"
 
 msgid "Products"
 msgstr "محصولات"
@@ -2679,7 +2679,7 @@ msgid "Verification"
 msgstr "تأیید"
 
 msgid "Verification cases"
-msgstr "پرونده‌های تأیید"
+msgstr "هویت کاربران ثبت شده"
 
 msgid "Verification documents"
 msgstr "اسناد تأیید"

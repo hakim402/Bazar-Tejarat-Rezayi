@@ -31,6 +31,10 @@ def dashboard_context(request, context):
 
     work = queue_context(owner_site, request, overview=True)
     language = int(get_language() == "fa-af")
+    overview_link_labels = {
+        "Products": "برسی محصولات کاربران",
+        "Users": "کاربران ثبت شده",
+    } if language else {}
     priorities = work["priority_counts"]
     urgent = priorities[0]["count"]
     context.update(
@@ -44,7 +48,7 @@ def dashboard_context(request, context):
             for _ in range(priority["count"])
         ],
         overview_links=[
-            {"label": _(label), "icon": icon, "url": reverse(f"admin:{route}")}
+            {"label": overview_link_labels.get(label, _(label)), "icon": icon, "url": reverse(f"admin:{route}")}
             for label, icon, route in (
                 ("Accepted orders", "receipt_long", "orders_sellerorder_changelist"),
                 ("Products", "inventory_2", "catalogue_product_changelist"),

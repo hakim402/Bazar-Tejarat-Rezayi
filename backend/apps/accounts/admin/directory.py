@@ -18,7 +18,7 @@ WORKFLOWS = (
         "payments.refunddue", "payments.refundreport", "payments.correction", "payments.finance",
     )),
     ("Delivery & fulfilment", "ارسال و تحویل", "local_shipping", ()),
-    ("Catalogue & stock", "کاتالوگ و موجودی", "inventory_2", (
+    ("Catalogue & stock", "دسته بندی محصولات ثبت شده", "inventory_2", (
         "catalogue.product", "catalogue.sourcerevision", "inventory.position",
         "inventory.shortage",
         "catalogue.variant", "catalogue.translation", "inventory.batch", "inventory.movement",
