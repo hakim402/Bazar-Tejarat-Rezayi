@@ -323,7 +323,7 @@ msgid "Access Control"
 msgstr "مدیریت دسترسی"
 
 msgid "Role Groups"
-msgstr "گروه های نقش"
+msgstr "تاید وظیفه کارمند"
 
 msgid "Permissions"
 msgstr "دسترسی حساب های کاربران"
