@@ -180,6 +180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/configuration/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_configuration_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/csrf/": {
         parameters: {
             query?: never;
@@ -3284,6 +3300,15 @@ export interface components {
          * @enum {string}
          */
         ArrangerEnum: "seller" | "rezayi";
+        AuthConfiguration: {
+            development: boolean;
+            signup_enabled: boolean;
+            policies: components["schemas"]["AuthPolicy"][];
+        };
+        AuthPolicy: {
+            title: string;
+            path: string;
+        };
         AuthResult: {
             status: string;
             expires_in?: number;
@@ -5897,6 +5922,7 @@ export interface components {
             sequence: number;
         };
         SessionData: {
+            available_contexts: components["schemas"]["PublicAccountContextEnum"][];
             identity: components["schemas"]["IdentityData"];
             accounts: components["schemas"]["AccountData"][];
         };
@@ -6648,6 +6674,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_configuration_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthConfiguration"];
                 };
             };
         };

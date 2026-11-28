@@ -16,11 +16,12 @@ export function authFailure(
 	error: unknown,
 	locale: Locale,
 	operation: AuthOperation,
-) {
+): { message: string; fields: Record<string, string>; retryAfter?: number } {
 	const t = authFeedback[locale];
 	const fields: Record<string, string> = {};
 	if (error instanceof AccountError) {
-		if (error.status === 429) return { message: t.limited, fields };
+		if (error.status === 429)
+			return { message: t.limited, fields, retryAfter: error.retryAfter };
 		if (error.code === "registration_closed")
 			return { message: authCopy[locale].registrationClosed, fields };
 		if (error.code === "csrf_failed") return { message: t.stale, fields };

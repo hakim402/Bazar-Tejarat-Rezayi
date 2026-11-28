@@ -745,6 +745,32 @@
                 }
             }
         },
+        "/api/v1/auth/configuration/": {
+            "get": {
+                "operationId": "auth_configuration_retrieve",
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthConfiguration"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/auth/csrf/": {
             "get": {
                 "operationId": "auth_csrf_retrieve",
@@ -12016,6 +12042,43 @@
                 "type": "string",
                 "description": "* `seller` - seller\n* `rezayi` - rezayi"
             },
+            "AuthConfiguration": {
+                "type": "object",
+                "properties": {
+                    "development": {
+                        "type": "boolean"
+                    },
+                    "signup_enabled": {
+                        "type": "boolean"
+                    },
+                    "policies": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AuthPolicy"
+                        }
+                    }
+                },
+                "required": [
+                    "development",
+                    "policies",
+                    "signup_enabled"
+                ]
+            },
+            "AuthPolicy": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "path",
+                    "title"
+                ]
+            },
             "AuthResult": {
                 "type": "object",
                 "properties": {
@@ -20541,6 +20604,12 @@
             "SessionData": {
                 "type": "object",
                 "properties": {
+                    "available_contexts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PublicAccountContextEnum"
+                        }
+                    },
                     "identity": {
                         "$ref": "#/components/schemas/IdentityData"
                     },
@@ -20553,6 +20622,7 @@
                 },
                 "required": [
                     "accounts",
+                    "available_contexts",
                     "identity"
                 ]
             },

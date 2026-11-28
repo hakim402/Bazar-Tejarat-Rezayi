@@ -50,6 +50,10 @@ class AuthFailure(APIException):
 
 
 class TooManyRequests(APIException):
+    def __init__(self, wait=60):
+        self.wait = max(1, int(wait))
+        super().__init__()
+
     status_code = 429
     default_detail = "Too many attempts. Please try again later."
     default_code = "rate_limited"
@@ -97,7 +101,7 @@ def rate_limit(request, scope, *, identity="", limit=20, seconds=900):
             bucket.save(update_fields=["count", "expires_at"])
             denied = bucket.count > maximum
         if denied:
-            raise TooManyRequests()
+            raise TooManyRequests(wait=(bucket.expires_at - timezone.now()).total_seconds() + 1)
 
 
 def password_check(value, user):

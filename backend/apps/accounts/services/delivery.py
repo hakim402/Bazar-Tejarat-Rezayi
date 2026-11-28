@@ -87,9 +87,8 @@ def message_for(token, payload):
     locale = payload["locale"] if payload["locale"] in COPY else "fa-AF"
     route = "reset-password" if token.purpose == "reset" else "verify-email"
     url = f"{settings.FRONTEND_ORIGIN}/{locale}/auth/{route}"
-    if payload.get("code"):
-        url += "?context=" + ("seller" if payload.get("context") == "seller" else "buyer")
-    else:
+    url += "?context=" + ("seller" if payload.get("context") == "seller" else "buyer")
+    if not payload.get("code"):
         url += f"#token={payload['raw']}"
     subject, text, html = render_account_mail(token.purpose, locale, token.user.display_name, url, payload.get("code"))
     return assemble_message((subject, text, html), token.user.email, locale)

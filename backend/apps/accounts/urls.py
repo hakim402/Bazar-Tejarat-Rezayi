@@ -9,6 +9,7 @@ urlpatterns = [
     path("google/start/", google_views.GoogleStart.as_view(), name="google-start"),
     path("google/callback/", google_views.GoogleCallback.as_view(), name="google-callback"),
     path("google/complete/", google_views.GoogleComplete.as_view(), name="google-complete"),
+    path("configuration/", views.AuthConfigurationView.as_view(), name="configuration"),
     path("csrf/", views.CsrfView.as_view(), name="csrf"),
     re_path(r"^(?P<context>buyer|seller)/register/$", views.RegisterView.as_view(), name="register"),
     re_path(r"^(?P<context>buyer|seller)/signin/$", views.SigninView.as_view(), name="signin"),

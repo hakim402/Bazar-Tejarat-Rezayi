@@ -22,18 +22,21 @@ export class AccountError extends ApiError {
 	readonly code: string;
 	readonly resource?: string;
 	readonly violations: ValidationIssue[];
+	readonly retryAfter?: number;
 	constructor(
 		status: number,
 		fields: string[] = [],
 		code = "request_failed",
 		violations: ValidationIssue[] = [],
 		resource?: string,
+		retryAfter?: number,
 	) {
 		super("invalid", status);
 		this.fields = fields;
 		this.code = code;
 		this.violations = violations;
 		this.resource = resource;
+		this.retryAfter = retryAfter;
 	}
 }
 
@@ -102,6 +105,11 @@ export async function privateCall<T>(
 			typeof envelope?.error?.code === "string"
 				? envelope.error.code
 				: "request_failed";
+		const retryHeader = response.headers.get("Retry-After");
+		const retryAfter =
+			retryHeader && /^\d{1,5}$/.test(retryHeader)
+				? Number(retryHeader)
+				: undefined;
 		throw new AccountError(
 			response.status,
 			fields,
@@ -119,6 +127,7 @@ export async function privateCall<T>(
 				)
 				? body.conversation
 				: undefined,
+			retryAfter,
 		);
 	}
 	if (!body || typeof body !== "object") throw new ApiError("invalid");

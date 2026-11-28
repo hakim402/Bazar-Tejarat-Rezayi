@@ -165,7 +165,7 @@ class SessionView(AuthView):
     @extend_schema(responses=c.SessionData)
     def get(self, request, context):
         account = get_grant(request, context)
-        return Response({"identity": identity_data(request.user), "accounts": [account_summary(account)]})
+        return Response({"identity": identity_data(request.user), "accounts": [account_summary(account)], "available_contexts": list(Account.objects.filter(user=request.user, context__in=["buyer", "seller"], status=Account.Status.ACTIVE).values_list("context", flat=True))})
 
 
 class ProfileView(AuthView):
@@ -286,3 +286,23 @@ class LogoutAllView(AuthView):
         audit("session_signed_out", request=request, user=request.user if request.user.is_authenticated else None)
         logout(request)
         return Response({"status": "signed_out"})
+
+
+class AuthConfigurationView(AuthView):
+    @extend_schema(responses=c.AuthConfiguration)
+    def get(self, request):
+        from django.conf import settings
+        from apps.foundation.contracts import LOCALES
+        from apps.site.queries import page_summaries
+        locale = request.query_params.get("locale", "fa-AF")
+        if locale not in LOCALES or set(request.query_params) - {"locale"}:
+            raise ValidationError({"locale": ["Unsupported locale."]})
+        policies = [
+            {"title": page["title"], "path": page["path"]}
+            for page in page_summaries(locale) if page["group"] == "legal"
+        ]
+        return Response({
+            "development": not settings.PRODUCTION,
+            "signup_enabled": settings.PUBLIC_SIGNUP_ENABLED if settings.PRODUCTION else settings.DEVELOPMENT_SIGNUP_ENABLED,
+            "policies": policies,
+        })

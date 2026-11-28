@@ -21,7 +21,7 @@ class Registration(StrictSerializer):
 
     def validate_consent(self, value):
         if not value:
-            raise serializers.ValidationError("Development policy acknowledgement is required.")
+            raise serializers.ValidationError("Terms acknowledgement is required.")
         return value
 
 
@@ -147,6 +147,7 @@ class AuthResult(serializers.Serializer):
 
 
 class SessionData(serializers.Serializer):
+    available_contexts = serializers.ListField(child=serializers.ChoiceField(choices=["buyer", "seller"]))
     identity = IdentityData()
     accounts = serializers.ListField(child=AccountData())
 
@@ -202,3 +203,14 @@ class ClosureStatus(serializers.Serializer):
 class ClosureResult(serializers.Serializer):
     closed = serializers.BooleanField()
     context = serializers.ChoiceField(choices=["buyer", "seller"])
+
+
+class AuthPolicy(serializers.Serializer):
+    title = serializers.CharField()
+    path = serializers.CharField()
+
+
+class AuthConfiguration(serializers.Serializer):
+    development = serializers.BooleanField()
+    signup_enabled = serializers.BooleanField()
+    policies = AuthPolicy(many=True)
