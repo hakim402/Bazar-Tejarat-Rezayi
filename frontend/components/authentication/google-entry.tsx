@@ -1,6 +1,6 @@
 "use client";
-import { Button } from "../ui/button";
 import { Field, Input } from "../ui/form-field";
+import { authFeedback } from "@/lib/i18n/auth-feedback";
 import { Alert } from "../ui/alert";
 import { Button as ShadcnButton } from "../shadcn/button";
 import { Input as ShadcnInput } from "../shadcn/input";
@@ -172,9 +172,12 @@ export function GoogleButton({
 		);
 	if (!available && (action === "signin" || action === "register")) return null;
 	return (
-		<div
-			className={`google-entry border-t border-border ${compact ? "mt-3 pt-2" : "my-6 py-5"}`}
-		>
+		<div className={`google-entry ${compact ? "mt-4" : "my-6"}`}>
+			<div className="mb-4 flex items-center gap-3 text-xs text-muted">
+				<span className="h-px flex-1 bg-border" />
+				<span>{authFeedback[locale].orContinue}</span>
+				<span className="h-px flex-1 bg-border" />
+			</div>
 			{error && (
 				<Alert variant="danger" role="alert">
 					{error}
@@ -193,16 +196,16 @@ export function GoogleButton({
 						/>
 					</Field>
 				)}
-				<Button
-					variant="google"
-					compact={compact}
-					className="google-button"
+				<ShadcnButton
+					variant="outline"
+					className="google-button min-h-12 w-full gap-3 rounded-xl border-border bg-surface text-sm font-medium text-foreground shadow-none hover:bg-page"
+					aria-label={t.button}
 					type="submit"
 					disabled={!available || busy}
 				>
 					{googleMark}
-					{busy ? t.loading : t.button}
-				</Button>
+					{busy ? t.loading : "Google"}
+				</ShadcnButton>
 			</form>
 			{loaded && !available && (
 				<p

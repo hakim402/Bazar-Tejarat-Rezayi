@@ -56,7 +56,7 @@ export function PublicAuthForm({
 				dir={name === "display_name" ? undefined : "ltr"}
 				maxLength={name === "email" ? 254 : 150}
 				disabled={busy}
-				className="min-h-11 text-base"
+				className="min-h-12 rounded-xl border-border bg-page px-4 text-base shadow-none"
 				aria-invalid={!!fieldErrors[name]}
 				aria-describedby={fieldErrors[name] ? `${id}-${name}-error` : undefined}
 			/>
@@ -94,6 +94,7 @@ export function PublicAuthForm({
 				{register && field("display_name", t.name, "text", "name")}
 				{field("email", t.email, "email", "username")}
 				<PasswordField
+					className="min-h-12 rounded-xl border-border bg-page px-4 text-base shadow-none"
 					id={`${id}-password`}
 					name="password"
 					label={t.password}
@@ -118,7 +119,7 @@ export function PublicAuthForm({
 					</div>
 				)}
 				<Button
-					className="min-h-11 w-full"
+					className="min-h-12 w-full rounded-xl text-sm font-semibold shadow-none"
 					type="submit"
 					disabled={busy || wait > 0}
 				>
@@ -137,13 +138,23 @@ export function PublicAuthForm({
 				<Link
 					href={flow.href(`${role}-${register ? "sign-in" : "registration"}`)}
 				>
-					{register ? t.existing : t.newAccount}
+					{register ? t.signin : t.register}
 				</Link>
-				{!register && <Link href={flow.href("verify-email")}>{t.verify}</Link>}
+				{!register && (
+					<Link href={flow.href("verify-email")} aria-label={t.verify}>
+						{t.verify}
+					</Link>
+				)}
 				<Link
 					href={flow.href(`${role === "seller" ? "buyer" : "seller"}-sign-in`)}
+					aria-label={role === "seller" ? t.buyerSignin : t.sellerSignin}
 				>
-					{role === "seller" ? t.buyerSignin : t.sellerSignin}
+					<span className="desktop:hidden">
+						{role === "seller" ? t.buyer : t.seller}
+					</span>
+					<span className="hidden desktop:inline">
+						{role === "seller" ? t.buyerSignin : t.sellerSignin}
+					</span>
 				</Link>
 			</AuthSecondaryLinks>
 		</>

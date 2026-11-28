@@ -2,6 +2,7 @@ import type { Locale } from "./locales";
 
 export const authFeedback = {
 	en: {
+		orContinue: "Or continue with",
 		signin: "Enter your email and password to open this account.",
 		register:
 			"Create your account, then confirm your email with the code we send.",
@@ -47,6 +48,7 @@ export const authFeedback = {
 			"Published policy links are currently unavailable. Please try again.",
 	},
 	"fa-AF": {
+		orContinue: "یا ادامه دهید با",
 		signin: "برای ورود به این حساب، ایمیل و رمز عبور خود را وارد کنید.",
 		register:
 			"حساب خود را بسازید و سپس ایمیل را با کدی که می‌فرستیم تایید کنید.",
@@ -94,6 +96,7 @@ export const authFeedback = {
 			"پیوندهای شرایط منتشر شده فعلاً در دسترس نیست. لطفاً دوباره تلاش کنید.",
 	},
 	ps: {
+		orContinue: "یا دوام ورکړئ له",
 		signin: "دې حساب ته د ننوتلو لپاره خپل برېښنالیک او پټنوم ولیکئ.",
 		register:
 			"خپل حساب جوړ کړئ، بیا برېښنالیک په هغه کوډ تایید کړئ چې درلېږو یې.",
@@ -137,6 +140,7 @@ export const authFeedback = {
 		policiesUnavailable: "د خپرو شویو تګلارو لینکونه اوس نه شته. بیا هڅه وکړئ.",
 	},
 	ar: {
+		orContinue: "أو المتابعة باستخدام",
 		signin: "أدخل بريدك الإلكتروني وكلمة المرور للدخول إلى هذا الحساب.",
 		register: "أنشئ حسابك ثم أكد بريدك الإلكتروني بالرمز الذي نرسله.",
 		recovery:

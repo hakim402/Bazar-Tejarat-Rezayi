@@ -3,6 +3,7 @@ import { useState, type ComponentProps } from "react";
 import { Input } from "../shadcn/input";
 import { Button } from "../shadcn/button";
 import { Icon } from "../ui/icon";
+import { cn } from "@/lib/shadcn-utils";
 import { FormField } from "../ui/dialog-form";
 
 export function PasswordField({
@@ -11,6 +12,7 @@ export function PasswordField({
 	error,
 	showLabel,
 	hideLabel,
+	className,
 	...props
 }: ComponentProps<typeof Input> & {
 	id: string;
@@ -48,7 +50,7 @@ export function PasswordField({
 				type={revealed ? "text" : "password"}
 				dir="ltr"
 				maxLength={128}
-				className="min-h-11 text-base"
+				className={cn("min-h-11 text-base", className)}
 				aria-invalid={!!error}
 				aria-describedby={
 					error ? `${props.id}-error` : help ? `${props.id}-help` : undefined

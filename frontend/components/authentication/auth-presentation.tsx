@@ -35,8 +35,8 @@ export function AuthPresentation({
 		);
 	return (
 		<AuthLinksPanel.Provider value={linksPanel}>
-			<div className="mx-auto grid w-full max-w-2xl min-w-0 overflow-hidden rounded-card border border-solid border-border bg-surface shadow-card desktop:grid-cols-[13rem_minmax(0,1fr)]">
-				<aside className="hidden min-w-0 flex-col bg-brand-panel p-5 text-brand-ink desktop:flex">
+			<div className="mx-auto grid w-full max-w-2xl min-w-0 overflow-hidden rounded-card border border-solid border-border bg-surface shadow-card p-2 desktop:grid-cols-[13rem_minmax(0,1fr)] desktop:p-3">
+				<aside className="hidden min-w-0 flex-col rounded-2xl bg-brand-panel p-5 text-brand-ink desktop:flex">
 					<BrandLogo locale={locale} reversed className="w-32" />
 					<h2 className="mt-8 text-xl leading-snug">
 						{seller ? t.sellerAccess : t.buyerAccess}
