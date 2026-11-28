@@ -39,6 +39,17 @@ class TokenRequest(StrictSerializer):
     token = serializers.CharField(min_length=32, max_length=100, write_only=True)
 
 
+class VerificationRequest(StrictSerializer):
+    token = serializers.CharField(min_length=32, max_length=100, write_only=True, required=False)
+    email = serializers.EmailField(max_length=254, required=False)
+    code = serializers.RegexField(r"^[0-9]{6}$", write_only=True, required=False)
+
+    def validate(self, data):
+        if set(data) not in ({"token"}, {"email", "code"}):
+            raise serializers.ValidationError("Supply a verification link or email and code.")
+        return data
+
+
 class ResetRequest(TokenRequest):
     password = serializers.CharField(min_length=12, max_length=128, write_only=True, trim_whitespace=False)
 

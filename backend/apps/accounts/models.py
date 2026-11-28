@@ -174,6 +174,8 @@ class Address(models.Model):
 class ActionToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     digest = models.CharField(max_length=64, unique=True)
+    code_digest = models.CharField(max_length=64, blank=True, default="")
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
     purpose = models.CharField(max_length=8, choices=[("verify", "Verify email"), ("reset", "Reset password")])
     credential_state = models.CharField(max_length=64)
     expires_at = models.DateTimeField()

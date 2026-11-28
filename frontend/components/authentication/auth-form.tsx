@@ -1,4 +1,5 @@
 "use client";
+import { VerificationCode } from "./verification-code";
 import { useId } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
@@ -36,6 +37,17 @@ export function AuthForm({
 		handleSubmit,
 	} = flow;
 	if (screen === "google-result") return <GoogleResult locale={locale} />;
+	if (screen === "verify-email" && !token)
+		return (
+			<>
+				<AccountHeading>{t.verify}</AccountHeading>
+				<VerificationCode
+					locale={locale}
+					pending={flow.pendingVerification}
+					key={flow.pendingVerification?.email ?? "email"}
+				/>
+			</>
+		);
 	if (register || signin)
 		return <PublicAuthForm locale={locale} screen={screen} flow={flow} />;
 	const field = (name: string, label: string, type = "text", auto = "") => (

@@ -27,7 +27,7 @@ def reveal(value):
     return json.loads(Fernet(settings.MFA_ENCRYPTION_KEY.encode()).decrypt(value.encode()))
 
 
-def render_account_mail(purpose, locale, name, url):
+def render_account_mail(purpose, locale, name, url, code=None):
     locale = locale if locale in COPY else "fa-AF"
     t = COPY[locale]
     context = dict(
@@ -35,12 +35,13 @@ def render_account_mail(purpose, locale, name, url):
         locale=locale,
         direction="ltr" if locale == "en" else "rtl",
         name=name,
+        code=code,
         url=url,
         title=t[purpose],
         preheader=t[purpose + "_body"],
-        instructions=t[purpose + "_body"],
+        instructions=t["verify_link_body"] if purpose == "verify" and not code else t[purpose + "_body"],
         cta=t[purpose + "_cta"],
-        expiry=t["expiry"].format(minutes=settings.ACCOUNT_MAIL_TTL_MINUTES[purpose]),
+        expiry=t["expiry"].format(minutes=(10 if code else settings.ACCOUNT_MAIL_TTL_MINUTES[purpose])),
     )
     return (
         f"{t['brand']} — {t[purpose]}",
@@ -60,15 +61,19 @@ def queue_account_mail(user, purpose, locale):
             return "cooldown"
         raw = secrets.token_urlsafe(32)
         ActionToken.objects.filter(user=user, purpose=purpose, used_at__isnull=True).update(used_at=timezone.now())
+        code = f"{secrets.randbelow(1000000):06d}" if purpose == "verify" else None
+        from .verification_code import code_digest
+        digest = hashlib.sha256(raw.encode()).hexdigest()
         token = ActionToken.objects.create(
             user=user,
             purpose=purpose,
-            digest=hashlib.sha256(raw.encode()).hexdigest(),
+            digest=digest,
+            code_digest=code_digest(user.pk, digest, code) if code else "",
             credential_state=credential_state(user),
-            expires_at=timezone.now() + timedelta(minutes=settings.ACCOUNT_MAIL_TTL_MINUTES[purpose]),
+            expires_at=timezone.now() + timedelta(minutes=10 if code else settings.ACCOUNT_MAIL_TTL_MINUTES[purpose]),
         )
         AccountMail.objects.create(
-            token=token, encrypted_payload=protect({"raw": raw, "locale": locale}), expires_at=token.expires_at
+            token=token, encrypted_payload=protect({"raw": raw, "locale": locale, "code": code}), expires_at=token.expires_at
         )
         # Commit first; worker sweep recovers a crash or ambiguous send. Same token on every retry.
         from apps.runtime.jobs import enqueue
@@ -79,8 +84,10 @@ def queue_account_mail(user, purpose, locale):
 def message_for(token, payload):
     locale = payload["locale"] if payload["locale"] in COPY else "fa-AF"
     route = "reset-password" if token.purpose == "reset" else "verify-email"
-    url = f"{settings.FRONTEND_ORIGIN}/{locale}/auth/{route}#token={payload['raw']}"
-    subject, text, html = render_account_mail(token.purpose, locale, token.user.display_name, url)
+    url = f"{settings.FRONTEND_ORIGIN}/{locale}/auth/{route}"
+    if not payload.get("code"):
+        url += f"#token={payload['raw']}"
+    subject, text, html = render_account_mail(token.purpose, locale, token.user.display_name, url, payload.get("code"))
     return assemble_message((subject, text, html), token.user.email, locale)
 
 

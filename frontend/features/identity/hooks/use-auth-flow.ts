@@ -6,6 +6,10 @@ import {
 	safeReturn,
 	type AccountContext,
 } from "../api/accounts";
+import {
+	verificationStorageKey,
+	type PendingVerification,
+} from "@/components/authentication/verification-code";
 import { authCopy } from "../../../lib/i18n/auth";
 import type { Locale } from "../../../lib/i18n/locales";
 import type { AuthScreen } from "../../../lib/i18n/auth-screens";
@@ -16,6 +20,8 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 		: "buyer";
 	const register = screen.endsWith("registration"),
 		signin = screen.endsWith("sign-in");
+	const [pendingVerification, setPendingVerification] =
+		useState<PendingVerification>();
 	const [busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
 		[notice, setNotice] = useState(""),
@@ -23,6 +29,21 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 	const inFlight = useRef(false);
 	const alertRef = useRef<HTMLParagraphElement>(null);
 	useEffect(() => {
+		try {
+			const saved = JSON.parse(
+				sessionStorage.getItem(verificationStorageKey) ?? "null",
+			);
+			if (
+				saved &&
+				typeof saved.email === "string" &&
+				["buyer", "seller"].includes(saved.context) &&
+				typeof saved.resendAt === "number" &&
+				(!register || saved.context === context)
+			)
+				setPendingVerification(saved);
+		} catch {
+			sessionStorage.removeItem(verificationStorageKey);
+		}
 		const hash = new URLSearchParams(window.location.hash.slice(1));
 		const value = hash.get("token");
 		if (value) {
@@ -84,6 +105,13 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 					consent: values.has("consent"),
 					locale,
 				});
+				const pending = {
+					email: value("email"),
+					context,
+					resendAt: Date.now() + 60000,
+				};
+				sessionStorage.setItem(verificationStorageKey, JSON.stringify(pending));
+				setPendingVerification(pending);
 				form.reset();
 				setNotice(t.requested);
 			} else if (signin) {
@@ -122,6 +150,7 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 	}
 	return {
 		context,
+		pendingVerification,
 		register,
 		signin,
 		busy,

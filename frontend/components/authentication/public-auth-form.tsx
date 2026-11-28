@@ -1,4 +1,5 @@
 "use client";
+import { VerificationCode } from "./verification-code";
 import { useId } from "react";
 import Link from "next/link";
 import { authCopy } from "../../lib/i18n/auth";
@@ -41,6 +42,13 @@ export function PublicAuthForm({
 			/>
 		</Field>
 	);
+	if (register && flow.pendingVerification)
+		return (
+			<>
+				<AccountHeading compact>{t.verify}</AccountHeading>
+				<VerificationCode locale={locale} pending={flow.pendingVerification} />
+			</>
+		);
 	return (
 		<>
 			<AccountHeading compact>{screenTitle(locale, screen)}</AccountHeading>

@@ -3,6 +3,7 @@
 
 {{ name }}
 {{ instructions }}
+{% if code %}{{ code }}{% endif %}
 {{ cta }}:
 {{ url }}
 

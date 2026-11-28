@@ -136,11 +136,16 @@ class MailView(AuthView):
 
 
 class VerifyView(AuthView):
-    @extend_schema(request=c.TokenRequest, responses=c.AuthResult)
+    @extend_schema(request=c.VerificationRequest, responses=c.AuthResult)
     def post(self, request):
-        data = self.data(c.TokenRequest)
-        rate_limit(request, "verify_token", identity=hashlib.sha256(data["token"].encode()).hexdigest(), limit=8)
-        consume_token(data["token"], "verify", request=request)
+        data = self.data(c.VerificationRequest)
+        if "code" in data:
+            from ..services.verification_code import consume_code
+            rate_limit(request, "verify_code", identity=normalize_email(data["email"]), limit=15)
+            consume_code(data["email"], data["code"], request)
+        else:
+            rate_limit(request, "verify_token", identity=hashlib.sha256(data["token"].encode()).hexdigest(), limit=8)
+            consume_token(data["token"], "verify", request=request)
         return Response({"status": "verified"})
 
 
