@@ -21,10 +21,15 @@ def scope(actor, seller=None):
     owned = Q(account_id=account.pk, kind__in=["individual", "business"]) | Q(pk__in=company_ids)
     from apps.organizations.models import BusinessProfile
     profiles = BusinessProfile.objects.filter(owned)
+    catalogue_companies = account.memberships.filter(active=True, bundles__contains=["catalogue"]).values("company_id")
+    product_profiles = BusinessProfile.objects.filter(
+        Q(account_id=account.pk, kind="individual") | Q(kind="company", pk__in=catalogue_companies)
+    )
     if seller:
         profiles = profiles.filter(pk=seller)
+        product_profiles = product_profiles.filter(pk=seller)
     return ReviewNotice.objects.filter(account=account).filter(
-        Q(verification_case__profile__in=profiles) | Q(source_revision__product__seller__in=profiles)
+        Q(verification_case__profile__in=profiles) | Q(source_revision__product__seller__in=product_profiles)
     )
 
 

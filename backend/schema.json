@@ -313,6 +313,287 @@
                 }
             }
         },
+        "/api/v1/auth/{context}/profile/addresses/": {
+            "get": {
+                "operationId": "auth_profile_addresses_list",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AddressData"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "auth_profile_addresses_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddressPayloadRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddressPayloadRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddressPayloadRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AddressData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/profile/addresses/{id}/": {
+            "patch": {
+                "operationId": "auth_profile_addresses_partial_update",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f-]{36}$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedAddressPayloadRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedAddressPayloadRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedAddressPayloadRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AddressData"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "auth_profile_addresses_destroy",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f-]{36}$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/{context}/profile/avatar/": {
+            "post": {
+                "operationId": "auth_profile_avatar_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AvatarUploadRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AvatarUploadRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AvatarUploadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "auth_profile_avatar_destroy",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "context",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^buyer|seller$"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/v1/auth/{context}/register/": {
             "post": {
                 "operationId": "auth_register_create",
@@ -766,21 +1047,20 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/TokenRequestRequest"
+                                "$ref": "#/components/schemas/VerificationRequestRequest"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/TokenRequestRequest"
+                                "$ref": "#/components/schemas/VerificationRequestRequest"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/TokenRequestRequest"
+                                "$ref": "#/components/schemas/VerificationRequestRequest"
                             }
                         }
-                    },
-                    "required": true
+                    }
                 },
                 "security": [
                     {
@@ -5233,6 +5513,43 @@
                 }
             }
         },
+        "/api/v1/messaging/seller/recent/": {
+            "get": {
+                "operationId": "messaging_seller_recent",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "seller",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "messaging"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RecentConversations"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/notifications/{context}/": {
             "get": {
                 "operationId": "notifications_list",
@@ -7991,6 +8308,53 @@
                 }
             }
         },
+        "/api/v1/orders/buyer/orders/{id}/lines/{line_id}/image/": {
+            "get": {
+                "operationId": "orders_buyer_line_image",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "line_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/orders/buyer/orders/{id}/review/": {
             "get": {
                 "operationId": "reviews_status",
@@ -8621,6 +8985,53 @@
                                 "schema": {
                                     "type": "object",
                                     "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/orders/seller/orders/{id}/activity/": {
+            "get": {
+                "operationId": "orders_seller_activity",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 10000,
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    }
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderActivityPage"
                                 }
                             }
                         },
@@ -10793,6 +11204,93 @@
                 }
             }
         },
+        "/api/v1/site/contact/{locale}/": {
+            "post": {
+                "operationId": "site_contact",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "site"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContactSubmissionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ContactResult"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/site/pages/{locale}/{slug}/": {
+            "get": {
+                "operationId": "site_page",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "locale",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "slug",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "site"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicPage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/site/public/{locale}/": {
             "get": {
                 "operationId": "site_settings",
@@ -11104,6 +11602,94 @@
                     "reason",
                     "version"
                 ]
+            },
+            "AddressData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "recipient_name": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "province": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "area": {
+                        "type": "string"
+                    },
+                    "street_address": {
+                        "type": "string"
+                    },
+                    "landmark": {
+                        "type": "string"
+                    },
+                    "is_default": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "area",
+                    "city",
+                    "id",
+                    "is_default",
+                    "label",
+                    "landmark",
+                    "phone",
+                    "province",
+                    "recipient_name",
+                    "street_address"
+                ]
+            },
+            "AddressPayloadRequest": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "maxLength": 80
+                    },
+                    "recipient_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "province": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "city": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "area": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "street_address": {
+                        "type": "string",
+                        "maxLength": 400
+                    },
+                    "landmark": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "is_default": {
+                        "type": "boolean"
+                    }
+                }
             },
             "AftercareDetail": {
                 "type": "object",
@@ -11436,6 +12022,12 @@
                     "status": {
                         "type": "string"
                     },
+                    "expires_in": {
+                        "type": "integer"
+                    },
+                    "resend_after": {
+                        "type": "integer"
+                    },
                     "csrf_token": {
                         "type": "string"
                     },
@@ -11469,6 +12061,18 @@
                 ],
                 "type": "string",
                 "description": "* `available` - available\n* `unavailable` - unavailable\n* `unknown` - unknown"
+            },
+            "AvatarUploadRequest": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                },
+                "required": [
+                    "file"
+                ]
             },
             "Batch": {
                 "type": "object",
@@ -11510,6 +12114,11 @@
                     "held",
                     "id",
                     "physical"
+                ]
+            },
+            "BlankEnum": {
+                "enum": [
+                    ""
                 ]
             },
             "BlockersEnum": {
@@ -12214,6 +12823,10 @@
             "CatalogueCreateRequest": {
                 "type": "object",
                 "properties": {
+                    "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
                     "seller": {
                         "type": "string",
                         "format": "uuid"
@@ -12226,6 +12839,7 @@
                     }
                 },
                 "required": [
+                    "command_id",
                     "currency",
                     "pricing_mode",
                     "seller"
@@ -12908,6 +13522,64 @@
                     "version"
                 ]
             },
+            "ContactResult": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/ContactResultStatusEnum"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "ContactResultStatusEnum": {
+                "enum": [
+                    "sent"
+                ],
+                "type": "string",
+                "description": "* `sent` - sent"
+            },
+            "ContactSubmissionRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "minLength": 1,
+                        "maxLength": 254
+                    },
+                    "topic": {
+                        "$ref": "#/components/schemas/TopicEnum"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 100
+                    },
+                    "message": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 4000
+                    },
+                    "website": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "email",
+                    "message",
+                    "name",
+                    "topic"
+                ]
+            },
             "Contacts": {
                 "type": "object",
                 "properties": {
@@ -12942,6 +13614,16 @@
                     "website",
                     "youtube"
                 ]
+            },
+            "ContentPageKindEnum": {
+                "enum": [
+                    "page",
+                    "article",
+                    "contact",
+                    "help-index"
+                ],
+                "type": "string",
+                "description": "* `page` - page\n* `article` - article\n* `contact` - contact\n* `help-index` - help-index"
             },
             "ConversationCommandRequest": {
                 "type": "object",
@@ -15403,6 +16085,16 @@
                     "version"
                 ]
             },
+            "GenderEnum": {
+                "enum": [
+                    "male",
+                    "female",
+                    "other",
+                    "prefer_not_to_say"
+                ],
+                "type": "string",
+                "description": "* `` - \n* `male` - male\n* `female` - female\n* `other` - other\n* `prefer_not_to_say` - prefer_not_to_say"
+            },
             "GoodsPaymentMethodEnum": {
                 "enum": [
                     "advance",
@@ -15486,6 +16178,16 @@
                     "action",
                     "context"
                 ]
+            },
+            "GroupEnum": {
+                "enum": [
+                    "company",
+                    "help",
+                    "legal",
+                    "hidden"
+                ],
+                "type": "string",
+                "description": "* `company` - company\n* `help` - help\n* `legal` - legal\n* `hidden` - hidden"
             },
             "Hero": {
                 "type": "object",
@@ -15625,13 +16327,57 @@
                     },
                     "email_verified": {
                         "type": "boolean"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "last_name": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "bio": {
+                        "type": "string"
+                    },
+                    "gender": {
+                        "type": "string"
+                    },
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "preferred_locale": {
+                        "type": "string"
+                    },
+                    "avatar": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "date_joined": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "required": [
+                    "avatar",
+                    "bio",
+                    "date_joined",
+                    "date_of_birth",
                     "display_name",
                     "email",
                     "email_verified",
-                    "id"
+                    "first_name",
+                    "gender",
+                    "id",
+                    "last_name",
+                    "phone",
+                    "preferred_locale"
                 ]
             },
             "Image": {
@@ -15847,6 +16593,9 @@
             "MailRequestRequest": {
                 "type": "object",
                 "properties": {
+                    "context": {
+                        "$ref": "#/components/schemas/PublicAccountContextEnum"
+                    },
                     "email": {
                         "type": "string",
                         "format": "email",
@@ -15978,12 +16727,44 @@
                     },
                     "count": {
                         "type": "integer"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "image": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "units": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MarketplaceCategoryUnit"
+                        }
                     }
                 },
                 "required": [
                     "code",
                     "count",
                     "labels",
+                    "name"
+                ]
+            },
+            "MarketplaceCategoryUnit": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "fractional": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "code",
+                    "fractional",
                     "name"
                 ]
             },
@@ -16892,6 +17673,20 @@
                     "kind": {
                         "$ref": "#/components/schemas/NoticeRowKindEnum"
                     },
+                    "profile": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "revision": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
                     "aftercare": {
                         "type": "string",
                         "format": "uuid",
@@ -16947,7 +17742,8 @@
                     },
                     "seller": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "nullable": true
                     },
                     "read": {
                         "type": "boolean"
@@ -16984,10 +17780,12 @@
                     "negotiation",
                     "payment",
                     "fulfilment",
-                    "aftercare"
+                    "aftercare",
+                    "business_review",
+                    "product_review"
                 ],
                 "type": "string",
-                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment\n* `fulfilment` - fulfilment\n* `aftercare` - aftercare"
+                "description": "* `message` - message\n* `report_status` - report_status\n* `order_accepted` - order_accepted\n* `negotiation` - negotiation\n* `payment` - payment\n* `fulfilment` - fulfilment\n* `aftercare` - aftercare\n* `business_review` - business_review\n* `product_review` - product_review"
             },
             "Operation": {
                 "type": "object",
@@ -17018,6 +17816,53 @@
                 },
                 "required": [
                     "status"
+                ]
+            },
+            "OrderActivityEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "source": {
+                        "$ref": "#/components/schemas/SourceEnum"
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "action",
+                    "created_at",
+                    "id",
+                    "source"
+                ]
+            },
+            "OrderActivityPage": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OrderActivityEvent"
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "page": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "page",
+                    "results"
                 ]
             },
             "OrderCustomer": {
@@ -17133,6 +17978,11 @@
                     "customer": {
                         "$ref": "#/components/schemas/OrderCustomer"
                     },
+                    "dispute_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
                     "id": {
                         "type": "string",
                         "format": "uuid"
@@ -17214,6 +18064,9 @@
                         "type": "string",
                         "format": "uuid"
                     },
+                    "seller_name": {
+                        "type": "string"
+                    },
                     "state": {
                         "type": "string"
                     },
@@ -17245,17 +18098,33 @@
                     },
                     "price_changed": {
                         "type": "boolean"
+                    },
+                    "item_count": {
+                        "type": "integer"
+                    },
+                    "destination": {},
+                    "method": {
+                        "type": "string"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {}
                     }
                 },
                 "required": [
                     "accepted_at",
                     "code",
+                    "destination",
                     "goods_total",
                     "invoice",
+                    "item_count",
+                    "items",
+                    "method",
                     "number",
                     "order",
                     "price_changed",
                     "seller",
+                    "seller_name",
                     "state"
                 ]
             },
@@ -17427,6 +18296,46 @@
                     "password"
                 ]
             },
+            "PatchedAddressPayloadRequest": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "maxLength": 80
+                    },
+                    "recipient_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "province": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "city": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "area": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "street_address": {
+                        "type": "string",
+                        "maxLength": 400
+                    },
+                    "landmark": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "is_default": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "PatchedBusinessProfileUpdateRequest": {
                 "type": "object",
                 "properties": {
@@ -17489,6 +18398,47 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 150
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "bio": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "gender": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/GenderEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "date_of_birth": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "preferred_locale": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/LocaleEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
                     }
                 }
             },
@@ -17892,6 +18842,12 @@
                     "review_status": {
                         "type": "string"
                     },
+                    "effective_approval": {
+                        "nullable": true
+                    },
+                    "review_reason": {
+                        "type": "string"
+                    },
                     "entitlement": {
                         "type": "boolean"
                     },
@@ -17914,10 +18870,12 @@
                     "bundles",
                     "can_manage",
                     "display_name",
+                    "effective_approval",
                     "entitlement",
                     "id",
                     "kind",
                     "my_membership_id",
+                    "review_reason",
                     "review_status",
                     "revision",
                     "version"
@@ -18109,6 +19067,131 @@
                 "type": "string",
                 "description": "* `buyer` - buyer\n* `seller` - seller"
             },
+            "PublicPage": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "pattern": "^[-a-zA-Z0-9_]+$"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "group": {
+                        "$ref": "#/components/schemas/GroupEnum"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/ContentPageKindEnum"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "intro": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    },
+                    "show_in_footer": {
+                        "type": "boolean"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "meta_description": {
+                        "type": "string"
+                    },
+                    "cover": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Media"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "cta_label": {
+                        "type": "string"
+                    },
+                    "cta_url": {
+                        "type": "string"
+                    },
+                    "cta_secondary_label": {
+                        "type": "string"
+                    },
+                    "cta_secondary_url": {
+                        "type": "string"
+                    },
+                    "content_locale": {
+                        "$ref": "#/components/schemas/LocaleEnum"
+                    },
+                    "fallback": {
+                        "type": "boolean"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "body",
+                    "content_locale",
+                    "cover",
+                    "cta_label",
+                    "cta_secondary_label",
+                    "cta_secondary_url",
+                    "cta_url",
+                    "fallback",
+                    "group",
+                    "intro",
+                    "kind",
+                    "meta_description",
+                    "path",
+                    "position",
+                    "show_in_footer",
+                    "slug",
+                    "title",
+                    "updated_at"
+                ]
+            },
+            "PublicPageSummary": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "pattern": "^[-a-zA-Z0-9_]+$"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "group": {
+                        "$ref": "#/components/schemas/GroupEnum"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/ContentPageKindEnum"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "intro": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    },
+                    "show_in_footer": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "group",
+                    "intro",
+                    "kind",
+                    "path",
+                    "position",
+                    "show_in_footer",
+                    "slug",
+                    "title"
+                ]
+            },
             "PublicSite": {
                 "type": "object",
                 "properties": {
@@ -18163,6 +19246,12 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "pages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PublicPageSummary"
+                        }
                     }
                 },
                 "required": [
@@ -18177,6 +19266,7 @@
                     "maintenance",
                     "media_hosts",
                     "og_image",
+                    "pages",
                     "seo"
                 ]
             },
@@ -18331,6 +19421,84 @@
                     "reason",
                     "token",
                     "version"
+                ]
+            },
+            "RecentConversation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "seller": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "counterparty": {
+                        "type": "string"
+                    },
+                    "unread": {
+                        "type": "boolean"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "last_message": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/RecentMessage"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "counterparty",
+                    "id",
+                    "last_message",
+                    "seller",
+                    "unread",
+                    "updated_at"
+                ]
+            },
+            "RecentConversations": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RecentConversation"
+                        }
+                    }
+                },
+                "required": [
+                    "results"
+                ]
+            },
+            "RecentMessage": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "maxLength": 160
+                    },
+                    "at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "own": {
+                        "type": "boolean"
+                    },
+                    "has_images": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "at",
+                    "has_images",
+                    "own",
+                    "text"
                 ]
             },
             "RecipientCommandRequest": {
@@ -18786,6 +19954,9 @@
                     "revision": {
                         "type": "integer"
                     },
+                    "reference": {
+                        "type": "integer"
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time"
@@ -18838,6 +20009,7 @@
                     "invoice",
                     "order",
                     "proposal",
+                    "reference",
                     "revision",
                     "seller",
                     "seller_name",
@@ -19612,18 +20784,28 @@
                     "title"
                 ]
             },
+            "SourceEnum": {
+                "enum": [
+                    "orders",
+                    "payments",
+                    "fulfilment",
+                    "aftercare"
+                ],
+                "type": "string",
+                "description": "* `orders` - orders\n* `payments` - payments\n* `fulfilment` - fulfilment\n* `aftercare` - aftercare"
+            },
             "Status": {
                 "type": "object",
                 "properties": {
                     "status": {
-                        "$ref": "#/components/schemas/StatusEnum"
+                        "$ref": "#/components/schemas/StatusStatusEnum"
                     }
                 },
                 "required": [
                     "status"
                 ]
             },
-            "StatusEnum": {
+            "StatusStatusEnum": {
                 "enum": [
                     "alive",
                     "ready",
@@ -20281,19 +21463,16 @@
                     "token"
                 ]
             },
-            "TokenRequestRequest": {
-                "type": "object",
-                "properties": {
-                    "token": {
-                        "type": "string",
-                        "writeOnly": true,
-                        "minLength": 32,
-                        "maxLength": 100
-                    }
-                },
-                "required": [
-                    "token"
-                ]
+            "TopicEnum": {
+                "enum": [
+                    "general",
+                    "selling",
+                    "order",
+                    "payment",
+                    "feedback"
+                ],
+                "type": "string",
+                "description": "* `general` - general\n* `selling` - selling\n* `order` - order\n* `payment` - payment\n* `feedback` - feedback"
             },
             "TrackingCommandRequest": {
                 "type": "object",
@@ -20483,6 +21662,29 @@
                     "command_id",
                     "file"
                 ]
+            },
+            "VerificationRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 32,
+                        "maxLength": 100
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "minLength": 1,
+                        "maxLength": 254
+                    },
+                    "code": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "minLength": 1,
+                        "pattern": "^[0-9]{6}$"
+                    }
+                }
             },
             "VersionActionActionEnum": {
                 "enum": [

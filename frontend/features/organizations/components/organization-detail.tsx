@@ -1,4 +1,5 @@
 "use client";
+import { ApprovalStatus } from "./approval-status";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Pencil } from "lucide-react";
@@ -94,6 +95,7 @@ export function OrganizationDetail({
 					</Button>
 				)}
 			</div>
+			<ApprovalStatus profile={profile} locale={locale} />
 			{allowed.length > 0 && (
 				<TabNav
 					locale={locale}

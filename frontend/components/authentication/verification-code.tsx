@@ -21,12 +21,24 @@ export type PendingVerification = {
 	resendAt: number;
 };
 
+export function retainVerification(pending: PendingVerification | null) {
+	try {
+		if (pending)
+			sessionStorage.setItem(verificationStorageKey, JSON.stringify(pending));
+		else sessionStorage.removeItem(verificationStorageKey);
+	} catch {
+		// The current screen remains usable when browser storage is unavailable.
+	}
+}
+
 export function VerificationCode({
 	locale,
 	pending,
+	context: audience = "buyer",
 }: {
 	locale: Locale;
 	pending?: PendingVerification;
+	context?: AccountContext;
 }) {
 	const t = verificationCodeCopy[locale];
 	const a = authCopy[locale];
@@ -38,7 +50,7 @@ export function VerificationCode({
 	const [verified, setVerified] = useState(false);
 	const [resendAt, setResendAt] = useState(pending?.resendAt ?? 0);
 	const [now, setNow] = useState(0);
-	const context = pending?.context ?? "buyer";
+	const context = pending?.context ?? audience;
 	useEffect(() => {
 		setNow(Date.now());
 		const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -55,7 +67,7 @@ export function VerificationCode({
 			await authMutation("verify/", { email, code });
 			setVerified(true);
 			setCode("");
-			sessionStorage.removeItem(verificationStorageKey);
+			retainVerification(null);
 			toast.success(t.activated);
 		} catch (e) {
 			const message =
@@ -71,13 +83,14 @@ export function VerificationCode({
 		setBusy(true);
 		setError("");
 		try {
-			await authMutation("mail/verify/", { email, locale });
-			const next = Date.now() + 60000;
+			const result = await authMutation("mail/verify/", {
+				email,
+				locale,
+				context,
+			});
+			const next = Date.now() + (result.resend_after ?? 60) * 1000;
 			setResendAt(next);
-			sessionStorage.setItem(
-				verificationStorageKey,
-				JSON.stringify({ email, context, resendAt: next }),
-			);
+			retainVerification({ email, context, resendAt: next });
 			toast.success(t.received);
 		} catch {
 			setError(a.unavailable);
@@ -99,7 +112,7 @@ export function VerificationCode({
 	return (
 		<div className="space-y-4">
 			<p className="text-sm leading-relaxed" role="status">
-				{t.received}
+				{pending ? t.received : t.help}
 			</p>
 			<form className="space-y-3" onSubmit={submit} aria-busy={busy}>
 				<div className="space-y-1">

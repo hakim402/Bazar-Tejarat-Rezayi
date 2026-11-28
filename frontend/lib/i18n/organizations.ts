@@ -71,7 +71,7 @@ const en = {
 	submitConfirm: "Submit this revision? Submitted evidence cannot be edited.",
 	revise: "Start a new revision",
 	reviseHelp:
-		"A new revision removes the current approval until review. Previous decisions and evidence remain in history.",
+		"Create a new draft for admin review. Your previously approved details remain active until a replacement is approved.",
 	alternative: "Request an evidence alternative",
 	alternativeHelp:
 		"Explain why an alternative is needed. A reviewer must explicitly accept it with a reason.",
@@ -240,7 +240,7 @@ const fa: Copy = {
 		"این نسخه برای بررسی ارسال شود؟ اسناد ارسال‌شده قابل ویرایش نیستند.",
 	revise: "آغاز نسخهٔ تازه",
 	reviseHelp:
-		"با نسخهٔ تازه، تأیید فعلی تا بررسی دوباره غیرفعال می‌شود. تصمیم‌ها و اسناد پیشین حفظ می‌شوند.",
+		"برای بررسی مدیریت یک نسخه تازه ایجاد کنید. اطلاعات تایید شده قبلی تا تایید نسخه جایگزین فعال می‌ماند.",
 	alternative: "درخواست سند بدیل",
 	alternativeHelp:
 		"دلیل نیاز به بدیل را بنویسید. بررسی‌کننده باید آن را با دلیل بپذیرد.",
@@ -406,7 +406,7 @@ const ps: Copy = {
 	submitConfirm: "دا نسخه کتنې ته وسپارل شي؟ سپارل شوي اسناد نه بدلېږي.",
 	revise: "نوې نسخه پیل کړئ",
 	reviseHelp:
-		"نوې نسخه تر بیا کتنې پورې اوسنی تایید بندوي. پخواني اسناد او پرېکړې ساتل کېږي.",
+		"د ادارې د کتنې لپاره نوې نسخه جوړه کړئ. پخواني تایید شوي معلومات د نوې نسخې تر تایید پورې فعال پاتې کېږي.",
 	alternative: "د بدیل سند غوښتنه",
 	alternativeHelp: "د بدیل اړتیا بیان کړئ. کتونکی باید په دلیل سره هغه ومني.",
 	history: "د کتنې تاریخ",
@@ -567,7 +567,7 @@ const ar: Copy = {
 	submitConfirm: "تقديم هذه النسخة؟ لا يمكن تعديل المستندات المقدمة.",
 	revise: "بدء نسخة جديدة",
 	reviseHelp:
-		"توقف النسخة الجديدة الاعتماد الحالي حتى المراجعة. تبقى المستندات والقرارات السابقة محفوظة.",
+		"أنشئ مسودة جديدة لمراجعة الإدارة. تبقى التفاصيل المعتمدة سابقاً فعالة حتى اعتماد النسخة البديلة.",
 	alternative: "طلب مستند بديل",
 	alternativeHelp:
 		"اشرح الحاجة إلى البديل. يجب أن يقبله المراجع صراحةً مع ذكر السبب.",

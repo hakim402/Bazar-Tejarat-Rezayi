@@ -1,4 +1,5 @@
 "use client";
+import { reviewNoticeDetails } from "@/features/notifications/review-presentation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -37,6 +38,8 @@ import { useHeaderRole, useHeaderSession } from "./header-session";
 type Notice = Notices["results"][number];
 
 const kindIcon: Record<Notice["kind"], IconName> = {
+	business_review: "shield",
+	product_review: "box",
 	message: "mail",
 	report_status: "shield",
 	order_accepted: "check-circle",
@@ -47,14 +50,16 @@ const kindIcon: Record<Notice["kind"], IconName> = {
 };
 
 function noticeHref(locale: Locale, context: Context, row: Notice) {
-	const seller = context === "seller" ? row.seller : undefined;
+	const review = reviewNoticeDetails(row, locale, context);
+	if (review) return review.href;
+	const seller = context === "seller" ? (row.seller ?? undefined) : undefined;
 	if (row.kind === "report_status" && (row.product || row.store || row.order))
 		return reportTargetHref(
 			locale,
 			context,
 			row.product ? "product" : row.store ? "store" : "order",
 			row.product ?? row.store ?? row.order ?? "",
-			row.seller,
+			row.seller ?? undefined,
 		);
 	if (row.kind === "aftercare")
 		return aftercareHref(locale, context, row.aftercare ?? undefined, seller);
@@ -70,6 +75,8 @@ function noticeHref(locale: Locale, context: Context, row: Notice) {
 }
 
 function noticeLabel(locale: Locale, context: Context, row: Notice) {
+	const review = reviewNoticeDetails(row, locale, context);
+	if (review) return review.title;
 	switch (row.kind) {
 		case "aftercare":
 			return context === "buyer"

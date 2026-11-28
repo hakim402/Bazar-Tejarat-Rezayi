@@ -31,6 +31,7 @@ class Signin(StrictSerializer):
 
 
 class MailRequest(StrictSerializer):
+    context = serializers.ChoiceField(choices=["buyer", "seller"], required=False)
     email = serializers.EmailField(max_length=254)
     locale = serializers.ChoiceField(choices=["fa-AF", "en", "ps", "ar"], default="fa-AF")
 
@@ -135,6 +136,8 @@ class IdentityData(serializers.Serializer):
 
 class AuthResult(serializers.Serializer):
     status = serializers.CharField()
+    expires_in = serializers.IntegerField(required=False)
+    resend_after = serializers.IntegerField(required=False)
     csrf_token = serializers.CharField(required=False)
     identity = IdentityData(required=False)
     account = AccountData(required=False)

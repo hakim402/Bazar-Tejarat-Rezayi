@@ -8,6 +8,7 @@ import {
 } from "../api/accounts";
 import {
 	verificationStorageKey,
+	retainVerification,
 	type PendingVerification,
 } from "@/components/authentication/verification-code";
 import { authCopy } from "../../../lib/i18n/auth";
@@ -42,7 +43,7 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 			)
 				setPendingVerification(saved);
 		} catch {
-			sessionStorage.removeItem(verificationStorageKey);
+			retainVerification(null);
 		}
 		const hash = new URLSearchParams(window.location.hash.slice(1));
 		const value = hash.get("token");
@@ -54,7 +55,7 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 				window.location.pathname + window.location.search,
 			);
 		}
-	}, []);
+	}, [context, register]);
 	useEffect(() => {
 		if (error) alertRef.current?.focus();
 	}, [error]);
@@ -98,7 +99,7 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 				return;
 			}
 			if (register) {
-				await authMutation(`${context}/register/`, {
+				const result = await authMutation(`${context}/register/`, {
 					email: value("email"),
 					password: value("password"),
 					display_name: value("display_name"),
@@ -108,9 +109,9 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 				const pending = {
 					email: value("email"),
 					context,
-					resendAt: Date.now() + 60000,
+					resendAt: Date.now() + (result.resend_after ?? 60) * 1000,
 				};
-				sessionStorage.setItem(verificationStorageKey, JSON.stringify(pending));
+				retainVerification(pending);
 				setPendingVerification(pending);
 				form.reset();
 				setNotice(t.requested);

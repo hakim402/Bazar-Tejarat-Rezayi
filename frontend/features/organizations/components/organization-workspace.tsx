@@ -1,4 +1,5 @@
 "use client";
+import { ApprovalStatus } from "./approval-status";
 import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -92,7 +93,7 @@ function SellerOrganizationWorkspace({
 		});
 	const disabled = state.busy || state.blocked || state.loading;
 	const approvedCount = profiles.filter(
-		(profile) => profile.review_status === "approved",
+		(profile) => profile.entitlement,
 	).length;
 	const reviewCount = profiles.filter(
 		(profile) => profile.review_status === "under_review",
@@ -371,6 +372,7 @@ function SellerOrganizationWorkspace({
 						<span className="block">{copy.authorityHelp}</span>
 						<span className="mt-1 block">{t.emailVerified}</span>
 					</p>
+					<ApprovalStatus profile={selected} locale={locale} />
 					<TabNav
 						locale={locale}
 						aria-label={t.sectionsNav}

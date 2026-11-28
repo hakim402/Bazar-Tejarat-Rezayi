@@ -26,9 +26,9 @@ const en = {
 	currentPassword: "Current password",
 	verify: "Verify email",
 	verifyAction: "Confirm email",
-	resend: "Request another verification link",
+	resend: "Request another verification code",
 	requested:
-		"Request received. If the account is eligible, check your email. If no link arrives, retry after a minute. Already registered? Sign in before adding another account.",
+		"Request received. If the account is eligible, check your email. If no message arrives, retry after a minute. Already registered? Sign in before adding another account.",
 	verified: "Email verified. Sign in to your account.",
 	updated: "Saved successfully.",
 	passwordUpdated:
@@ -129,9 +129,9 @@ const fa: Copy = {
 	currentPassword: "رمز عبور فعلی",
 	verify: "تأیید ایمیل",
 	verifyAction: "تأیید ایمیل",
-	resend: "درخواست دوبارهٔ پیوند تأیید",
+	resend: "درخواست دوباره کد تایید",
 	requested:
-		"درخواست دریافت شد. اگر حساب واجد شرایط باشد، ایمیل خود را بررسی کنید. اگر پیوند نرسید، پس از یک دقیقه دوباره درخواست دهید. اگر حساب دارید، برای افزودن حساب دیگر نخست وارد شوید.",
+		"درخواست دریافت شد. اگر حساب واجد شرایط باشد، ایمیل خود را بررسی کنید. اگر پیام نرسید، پس از یک دقیقه دوباره درخواست دهید. اگر حساب دارید، برای افزودن حساب دیگر نخست وارد شوید.",
 	verified: "ایمیل تأیید شد. به حساب خود وارد شوید.",
 	updated: "تغییرات ذخیره شد.",
 	passwordUpdated:
@@ -230,9 +230,9 @@ const ps: Copy = {
 	currentPassword: "اوسنی پټنوم",
 	verify: "د برېښنالیک تایید",
 	verifyAction: "برېښنالیک تایید کړئ",
-	resend: "د تایید نوی تړونی وغواړئ",
+	resend: "د تایید نوی کوډ وغواړئ",
 	requested:
-		"غوښتنه ترلاسه شوه. که حساب شرایط پوره کوي، برېښنالیک وګورئ. که تړونی ونه رسېږي، یوه دقیقه وروسته بیا هڅه وکړئ. که حساب لرئ، د بل حساب د زیاتولو لپاره لومړی ننوځئ.",
+		"غوښتنه ترلاسه شوه. که حساب شرایط پوره کوي، برېښنالیک وګورئ. که پیغام ونه رسېږي، یوه دقیقه وروسته بیا هڅه وکړئ. که حساب لرئ، د بل حساب د زیاتولو لپاره لومړی ننوځئ.",
 	verified: "برېښنالیک تایید شو. خپل حساب ته ننوځئ.",
 	updated: "بدلونونه خوندي شول.",
 	passwordUpdated:
@@ -331,9 +331,9 @@ const ar: Copy = {
 	currentPassword: "كلمة المرور الحالية",
 	verify: "تأكيد البريد الإلكتروني",
 	verifyAction: "تأكيد البريد",
-	resend: "طلب رابط تأكيد جديد",
+	resend: "طلب رمز تأكيد جديد",
 	requested:
-		"تم استلام الطلب. إذا كان الحساب مؤهلاً، فتحقق من بريدك. إذا لم يصلك الرابط، أعد الطلب بعد دقيقة. لديك حساب؟ سجّل الدخول قبل إضافة حساب آخر.",
+		"تم استلام الطلب. إذا كان الحساب مؤهلاً، فتحقق من بريدك. إذا لم تصلك الرسالة، أعد الطلب بعد دقيقة. لديك حساب؟ سجّل الدخول قبل إضافة حساب آخر.",
 	verified: "تم تأكيد البريد. سجّل الدخول إلى حسابك.",
 	updated: "تم حفظ التغييرات.",
 	passwordUpdated:

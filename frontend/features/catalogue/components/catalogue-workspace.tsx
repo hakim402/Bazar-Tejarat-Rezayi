@@ -1,4 +1,5 @@
 "use client";
+import { reviewFlowCopy } from "@/lib/i18n/review-flow";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -737,6 +738,11 @@ export function CatalogueWorkspace({
 							{selected?.state === "rejected" && selected.reason && (
 								<p className="w-full rounded-xl bg-warning-surface p-3 text-warning">
 									{selected.reason}
+									{item.published && (
+										<span className="mt-2 block">
+											{reviewFlowCopy[locale].retained}
+										</span>
+									)}
 								</p>
 							)}
 						</div>
@@ -745,7 +751,9 @@ export function CatalogueWorkspace({
 								role="status"
 								className="mx-auto w-full max-w-4xl rounded-xl bg-info p-4 text-sm text-foreground"
 							>
-								{productFlowCopy[locale].submitted}
+								{item.published
+									? reviewFlowCopy[locale].pending
+									: reviewFlowCopy[locale].firstPending}
 							</p>
 						)}
 						<ProductEditor
@@ -1021,7 +1029,10 @@ export function CatalogueWorkspace({
 						<>
 							{productFlowCopy[locale].deleteHelp}
 							{deleteTarget && (
-								<span className="mt-2 block font-semibold wrap-anywhere" dir="auto">
+								<span
+									className="mt-2 block font-semibold wrap-anywhere"
+									dir="auto"
+								>
 									<bdi>{deleteTarget.title}</bdi>
 								</span>
 							)}

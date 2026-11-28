@@ -50,7 +50,7 @@ def render_account_mail(purpose, locale, name, url, code=None):
     )
 
 
-def queue_account_mail(user, purpose, locale):
+def queue_account_mail(user, purpose, locale, context=None):
     from . import credential_state
 
     with transaction.atomic():
@@ -72,8 +72,10 @@ def queue_account_mail(user, purpose, locale):
             credential_state=credential_state(user),
             expires_at=timezone.now() + timedelta(minutes=10 if code else settings.ACCOUNT_MAIL_TTL_MINUTES[purpose]),
         )
+        contexts = list(user.accounts.filter(context__in=["buyer", "seller"]).values_list("context", flat=True))
+        context = context if context in contexts else contexts[0] if contexts else "buyer"
         AccountMail.objects.create(
-            token=token, encrypted_payload=protect({"raw": raw, "locale": locale, "code": code}), expires_at=token.expires_at
+            token=token, encrypted_payload=protect({"raw": raw, "locale": locale, "code": code, "context": context}), expires_at=token.expires_at
         )
         # Commit first; worker sweep recovers a crash or ambiguous send. Same token on every retry.
         from apps.runtime.jobs import enqueue
@@ -85,7 +87,9 @@ def message_for(token, payload):
     locale = payload["locale"] if payload["locale"] in COPY else "fa-AF"
     route = "reset-password" if token.purpose == "reset" else "verify-email"
     url = f"{settings.FRONTEND_ORIGIN}/{locale}/auth/{route}"
-    if not payload.get("code"):
+    if payload.get("code"):
+        url += "?context=" + ("seller" if payload.get("context") == "seller" else "buyer")
+    else:
         url += f"#token={payload['raw']}"
     subject, text, html = render_account_mail(token.purpose, locale, token.user.display_name, url, payload.get("code"))
     return assemble_message((subject, text, html), token.user.email, locale)

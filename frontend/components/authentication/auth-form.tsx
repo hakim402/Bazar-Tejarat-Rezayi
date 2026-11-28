@@ -43,6 +43,7 @@ export function AuthForm({
 				<AccountHeading>{t.verify}</AccountHeading>
 				<VerificationCode
 					locale={locale}
+					context={audience}
 					pending={flow.pendingVerification}
 					key={flow.pendingVerification?.email ?? "email"}
 				/>

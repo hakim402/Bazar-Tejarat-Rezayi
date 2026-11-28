@@ -237,6 +237,8 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
+        "ContentPageKindEnum": ["page", "article", "contact", "help-index"],
+        "NoticeRowKindEnum": ["message", "report_status", "order_accepted", "negotiation", "payment", "fulfilment", "aftercare", "business_review", "product_review"],
         "LocaleEnum": "apps.foundation.contracts.LOCALES",
         "CurrencyEnum": ["AFN", "USD"],
         "GoodsPaymentMethodEnum": ["advance", "cod"],

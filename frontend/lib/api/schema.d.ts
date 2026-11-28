@@ -84,6 +84,54 @@ export interface paths {
         patch: operations["auth_profile_partial_update"];
         trace?: never;
     };
+    "/api/v1/auth/{context}/profile/addresses/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_profile_addresses_list"];
+        put?: never;
+        post: operations["auth_profile_addresses_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/profile/addresses/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["auth_profile_addresses_destroy"];
+        options?: never;
+        head?: never;
+        patch: operations["auth_profile_addresses_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/auth/{context}/profile/avatar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_profile_avatar_create"];
+        delete: operations["auth_profile_avatar_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/{context}/register/": {
         parameters: {
             query?: never;
@@ -1508,6 +1556,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/messaging/seller/recent/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["messaging_seller_recent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/{context}/": {
         parameters: {
             query?: never;
@@ -2164,6 +2228,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/buyer/orders/{id}/lines/{line_id}/image/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orders_buyer_line_image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/buyer/orders/{id}/review/": {
         parameters: {
             query?: never;
@@ -2350,6 +2430,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["negotiation_request_correction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/seller/orders/{id}/activity/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orders_seller_activity"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2948,6 +3044,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/site/contact/{locale}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["site_contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/site/pages/{locale}/{slug}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["site_page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site/public/{locale}/": {
         parameters: {
             query?: never;
@@ -3030,6 +3158,30 @@ export interface components {
             command_id: string;
             version: number;
             reason: string;
+        };
+        AddressData: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            recipient_name: string;
+            phone: string;
+            province: string;
+            city: string;
+            area: string;
+            street_address: string;
+            landmark: string;
+            is_default: boolean;
+        };
+        AddressPayloadRequest: {
+            label?: string;
+            recipient_name?: string;
+            phone?: string;
+            province?: string;
+            city?: string;
+            area?: string;
+            street_address?: string;
+            landmark?: string;
+            is_default?: boolean;
         };
         AftercareDetail: {
             /** Format: uuid */
@@ -3134,6 +3286,8 @@ export interface components {
         ArrangerEnum: "seller" | "rezayi";
         AuthResult: {
             status: string;
+            expires_in?: number;
+            resend_after?: number;
             csrf_token?: string;
             identity?: components["schemas"]["IdentityData"];
             account?: components["schemas"]["AccountData"];
@@ -3150,6 +3304,10 @@ export interface components {
          * @enum {string}
          */
         AvailabilityEnum: "available" | "unavailable" | "unknown";
+        AvatarUploadRequest: {
+            /** Format: binary */
+            file: string;
+        };
         Batch: {
             /** Format: uuid */
             id: string;
@@ -3162,6 +3320,8 @@ export interface components {
             expired: boolean;
             expiring: boolean;
         };
+        /** @enum {unknown} */
+        BlankEnum: "";
         /**
          * @description * `open_orders` - open_orders
          *     * `refunds_outstanding` - refunds_outstanding
@@ -3375,6 +3535,8 @@ export interface components {
         };
         CatalogueCreateRequest: {
             /** Format: uuid */
+            command_id: string;
+            /** Format: uuid */
             seller: string;
             currency: components["schemas"]["CurrencyEnum"];
             pricing_mode: components["schemas"]["PricingModeEnum"];
@@ -3576,6 +3738,25 @@ export interface components {
             /** Format: uuid */
             plan?: string;
         };
+        ContactResult: {
+            status: components["schemas"]["ContactResultStatusEnum"];
+        };
+        /**
+         * @description * `sent` - sent
+         * @enum {string}
+         */
+        ContactResultStatusEnum: "sent";
+        ContactSubmissionRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            topic: components["schemas"]["TopicEnum"];
+            /** @default  */
+            reference: string;
+            message: string;
+            /** @default  */
+            website: string;
+        };
         Contacts: {
             email: string;
             phone: string;
@@ -3585,6 +3766,14 @@ export interface components {
             linkedin: string;
             youtube: string;
         };
+        /**
+         * @description * `page` - page
+         *     * `article` - article
+         *     * `contact` - contact
+         *     * `help-index` - help-index
+         * @enum {string}
+         */
+        ContentPageKindEnum: "page" | "article" | "contact" | "help-index";
         ConversationCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -4439,6 +4628,15 @@ export interface components {
             };
         };
         /**
+         * @description * `` -
+         *     * `male` - male
+         *     * `female` - female
+         *     * `other` - other
+         *     * `prefer_not_to_say` - prefer_not_to_say
+         * @enum {string}
+         */
+        GenderEnum: "male" | "female" | "other" | "prefer_not_to_say";
+        /**
          * @description * `advance` - advance
          *     * `cod` - cod
          * @enum {string}
@@ -4469,6 +4667,14 @@ export interface components {
             source_context?: components["schemas"]["PublicAccountContextEnum"];
             password?: string;
         };
+        /**
+         * @description * `company` - company
+         *     * `help` - help
+         *     * `legal` - legal
+         *     * `hidden` - hidden
+         * @enum {string}
+         */
+        GroupEnum: "company" | "help" | "legal" | "hidden";
         Hero: {
             mode: components["schemas"]["ModeEnum"];
             autoplay: boolean;
@@ -4502,6 +4708,17 @@ export interface components {
             email: string;
             display_name: string;
             email_verified: boolean;
+            first_name: string;
+            last_name: string;
+            phone: string;
+            bio: string;
+            gender: string;
+            /** Format: date */
+            date_of_birth: string | null;
+            preferred_locale: string;
+            avatar: components["schemas"]["Media"] | null;
+            /** Format: date-time */
+            date_joined: string;
         };
         Image: {
             /** Format: uuid */
@@ -4569,6 +4786,7 @@ export interface components {
             completed: number;
         };
         MailRequestRequest: {
+            context?: components["schemas"]["PublicAccountContextEnum"];
             /** Format: email */
             email: string;
             /** @default fa-AF */
@@ -4609,6 +4827,14 @@ export interface components {
                 [key: string]: string;
             };
             count: number;
+            icon?: string;
+            image?: string | null;
+            units?: components["schemas"]["MarketplaceCategoryUnit"][];
+        };
+        MarketplaceCategoryUnit: {
+            code: string;
+            name: string;
+            fractional: boolean;
         };
         MarketplaceContact: {
             channel: components["schemas"]["ChannelEnum"];
@@ -4856,6 +5082,11 @@ export interface components {
             id: string;
             kind: components["schemas"]["NoticeRowKindEnum"];
             /** Format: uuid */
+            profile?: string | null;
+            revision?: number;
+            reason?: string;
+            title?: string;
+            /** Format: uuid */
             aftercare: string | null;
             /** Format: uuid */
             payment: string | null;
@@ -4877,7 +5108,7 @@ export interface components {
             /** Format: uuid */
             report: string | null;
             /** Format: uuid */
-            seller: string;
+            seller: string | null;
             read: boolean;
             /** Format: date-time */
             created_at: string;
@@ -4890,9 +5121,11 @@ export interface components {
          *     * `payment` - payment
          *     * `fulfilment` - fulfilment
          *     * `aftercare` - aftercare
+         *     * `business_review` - business_review
+         *     * `product_review` - product_review
          * @enum {string}
          */
-        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment" | "fulfilment" | "aftercare";
+        NoticeRowKindEnum: "message" | "report_status" | "order_accepted" | "negotiation" | "payment" | "fulfilment" | "aftercare" | "business_review" | "product_review";
         Operation: {
             /** Format: uuid */
             operation: string;
@@ -4901,6 +5134,19 @@ export interface components {
         };
         OperationResult: {
             status: string;
+        };
+        OrderActivityEvent: {
+            /** Format: uuid */
+            id: string;
+            source: components["schemas"]["SourceEnum"];
+            action: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        OrderActivityPage: {
+            results: components["schemas"]["OrderActivityEvent"][];
+            count: number;
+            page: number;
         };
         OrderCustomer: {
             name: string;
@@ -4933,6 +5179,8 @@ export interface components {
         OrderRow: {
             customer?: components["schemas"]["OrderCustomer"];
             /** Format: uuid */
+            dispute_id?: string | null;
+            /** Format: uuid */
             id: string;
             /** Format: uuid */
             seller: string;
@@ -4961,6 +5209,7 @@ export interface components {
         Outcome: {
             /** Format: uuid */
             seller: string;
+            seller_name: string;
             state: string;
             code: string;
             /** Format: uuid */
@@ -4972,6 +5221,10 @@ export interface components {
             /** Format: date-time */
             accepted_at: string | null;
             price_changed: boolean;
+            item_count: number;
+            destination: unknown;
+            method: string;
+            items: unknown[];
         };
         Overview: {
             results: components["schemas"]["Position"][];
@@ -5030,6 +5283,17 @@ export interface components {
             current_password: string;
             password: string;
         };
+        PatchedAddressPayloadRequest: {
+            label?: string;
+            recipient_name?: string;
+            phone?: string;
+            province?: string;
+            city?: string;
+            area?: string;
+            street_address?: string;
+            landmark?: string;
+            is_default?: boolean;
+        };
         PatchedBusinessProfileUpdateRequest: {
             display_name?: string;
             legal_name?: string;
@@ -5048,6 +5312,14 @@ export interface components {
         };
         PatchedProfileUpdateRequest: {
             display_name?: string;
+            first_name?: string;
+            last_name?: string;
+            phone?: string;
+            bio?: string;
+            gender?: components["schemas"]["GenderEnum"] | components["schemas"]["BlankEnum"];
+            /** Format: date */
+            date_of_birth?: string | null;
+            preferred_locale?: components["schemas"]["LocaleEnum"] | components["schemas"]["BlankEnum"];
         };
         PaymentOutcome: {
             outcome: unknown;
@@ -5164,6 +5436,8 @@ export interface components {
             version: number;
             revision: number;
             review_status: string;
+            effective_approval: unknown;
+            review_reason: string;
             entitlement: boolean;
             can_manage: boolean;
             /** Format: uuid */
@@ -5216,6 +5490,36 @@ export interface components {
          * @enum {string}
          */
         PublicAccountContextEnum: "buyer" | "seller";
+        PublicPage: {
+            slug: string;
+            path: string;
+            group: components["schemas"]["GroupEnum"];
+            kind: components["schemas"]["ContentPageKindEnum"];
+            title: string;
+            intro: string;
+            position: number;
+            show_in_footer: boolean;
+            body: string;
+            meta_description: string;
+            cover: components["schemas"]["Media"] | null;
+            cta_label: string;
+            cta_url: string;
+            cta_secondary_label: string;
+            cta_secondary_url: string;
+            content_locale: components["schemas"]["LocaleEnum"];
+            fallback: boolean;
+            updated_at: string;
+        };
+        PublicPageSummary: {
+            slug: string;
+            path: string;
+            group: components["schemas"]["GroupEnum"];
+            kind: components["schemas"]["ContentPageKindEnum"];
+            title: string;
+            intro: string;
+            position: number;
+            show_in_footer: boolean;
+        };
         PublicSite: {
             default_locale: components["schemas"]["LocaleEnum"];
             default_theme: components["schemas"]["DefaultThemeEnum"];
@@ -5229,6 +5533,7 @@ export interface components {
             hero: components["schemas"]["Hero"];
             seo: components["schemas"]["SEO"][];
             media_hosts: string[];
+            pages: components["schemas"]["PublicPageSummary"][];
         };
         ReadCommandRequest: {
             sequence: number;
@@ -5269,6 +5574,27 @@ export interface components {
             batch_code?: string;
             /** Format: date */
             expires_on?: string | null;
+        };
+        RecentConversation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            seller: string;
+            counterparty: string;
+            unread: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            last_message: components["schemas"]["RecentMessage"] | null;
+        };
+        RecentConversations: {
+            results: components["schemas"]["RecentConversation"][];
+        };
+        RecentMessage: {
+            text: string;
+            /** Format: date-time */
+            at: string;
+            own: boolean;
+            has_images: boolean;
         };
         RecipientCommandRequest: {
             /** Format: uuid */
@@ -5403,6 +5729,7 @@ export interface components {
             state: string;
             version: number;
             revision: number;
+            reference: number;
             /** Format: date-time */
             created_at: string;
             proposal: unknown;
@@ -5638,8 +5965,16 @@ export interface components {
             currency: string;
             seller: string;
         };
+        /**
+         * @description * `orders` - orders
+         *     * `payments` - payments
+         *     * `fulfilment` - fulfilment
+         *     * `aftercare` - aftercare
+         * @enum {string}
+         */
+        SourceEnum: "orders" | "payments" | "fulfilment" | "aftercare";
         Status: {
-            status: components["schemas"]["StatusEnum"];
+            status: components["schemas"]["StatusStatusEnum"];
         };
         /**
          * @description * `alive` - alive
@@ -5647,7 +5982,7 @@ export interface components {
          *     * `not_ready` - not_ready
          * @enum {string}
          */
-        StatusEnum: "alive" | "ready" | "not_ready";
+        StatusStatusEnum: "alive" | "ready" | "not_ready";
         /**
          * @description * `consume_hold` - consume_hold
          *     * `deduct_cod` - deduct_cod
@@ -5835,9 +6170,15 @@ export interface components {
         TokenInputRequest: {
             token: string;
         };
-        TokenRequestRequest: {
-            token: string;
-        };
+        /**
+         * @description * `general` - general
+         *     * `selling` - selling
+         *     * `order` - order
+         *     * `payment` - payment
+         *     * `feedback` - feedback
+         * @enum {string}
+         */
+        TopicEnum: "general" | "selling" | "order" | "payment" | "feedback";
         TrackingCommandRequest: {
             /** Format: uuid */
             command_id: string;
@@ -5902,6 +6243,12 @@ export interface components {
             command_id: string;
             /** Format: binary */
             file: string;
+        };
+        VerificationRequestRequest: {
+            token?: string;
+            /** Format: email */
+            email?: string;
+            code?: string;
         };
         /**
          * @description * `resend` - resend
@@ -6083,6 +6430,150 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AuthResult"];
                 };
+            };
+        };
+    };
+    auth_profile_addresses_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressData"][];
+                };
+            };
+        };
+    };
+    auth_profile_addresses_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AddressPayloadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["AddressPayloadRequest"];
+                "multipart/form-data": components["schemas"]["AddressPayloadRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressData"];
+                };
+            };
+        };
+    };
+    auth_profile_addresses_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_profile_addresses_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAddressPayloadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAddressPayloadRequest"];
+                "multipart/form-data": components["schemas"]["PatchedAddressPayloadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressData"];
+                };
+            };
+        };
+    };
+    auth_profile_avatar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarUploadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["AvatarUploadRequest"];
+                "multipart/form-data": components["schemas"]["AvatarUploadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResult"];
+                };
+            };
+        };
+    };
+    auth_profile_avatar_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6345,11 +6836,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["TokenRequestRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRequestRequest"];
-                "multipart/form-data": components["schemas"]["TokenRequestRequest"];
+                "application/json": components["schemas"]["VerificationRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["VerificationRequestRequest"];
+                "multipart/form-data": components["schemas"]["VerificationRequestRequest"];
             };
         };
         responses: {
@@ -8524,6 +9015,27 @@ export interface operations {
             };
         };
     };
+    messaging_seller_recent: {
+        parameters: {
+            query: {
+                seller: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentConversations"];
+                };
+            };
+        };
+    };
     notifications_list: {
         parameters: {
             query?: {
@@ -9798,6 +10310,28 @@ export interface operations {
             };
         };
     };
+    orders_buyer_line_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+        };
+    };
     reviews_status: {
         parameters: {
             query?: {
@@ -10139,6 +10673,29 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    orders_seller_activity: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderActivityPage"];
                 };
             };
         };
@@ -11155,6 +11712,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SellerSummary"];
+                };
+            };
+        };
+    };
+    site_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactSubmissionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactResult"];
+                };
+            };
+        };
+    };
+    site_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locale: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPage"];
                 };
             };
         };

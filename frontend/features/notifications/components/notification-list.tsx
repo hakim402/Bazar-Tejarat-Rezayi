@@ -34,6 +34,8 @@ import { negotiationCopy } from "../../negotiations/copy";
 import { invoiceHref } from "../../orders/api";
 import { commerceCopy } from "../../orders/copy";
 import { notification, type Notices } from "../api";
+import { reviewNoticeDetails } from "../review-presentation";
+import { reviewFlowCopy } from "@/lib/i18n/review-flow";
 import { notificationCopy } from "../copy";
 import { CountStrip } from "./unread-counts";
 
@@ -42,6 +44,8 @@ const noticeAppearance: Record<
 	Notice["kind"],
 	{ icon: IconName; color: string }
 > = {
+	business_review: { icon: "shield", color: "text-action" },
+	product_review: { icon: "box", color: "text-action" },
 	message: { icon: "mail", color: "text-warning" },
 	report_status: { icon: "shield", color: "text-warning" },
 	order_accepted: { icon: "receipt", color: "text-success" },
@@ -53,7 +57,9 @@ const noticeAppearance: Record<
 
 function noticeDetails(row: Notice, locale: Locale, context: Context) {
 	const t = communicationCopy[locale];
-	const seller = context === "seller" ? row.seller : undefined;
+	const review = reviewNoticeDetails(row, locale, context);
+	if (review) return review;
+	const seller = context === "seller" ? (row.seller ?? undefined) : undefined;
 	const href =
 		row.kind === "report_status" && (row.product || row.store || row.order)
 			? reportTargetHref(
@@ -61,7 +67,7 @@ function noticeDetails(row: Notice, locale: Locale, context: Context) {
 					context,
 					row.product ? "product" : row.store ? "store" : "order",
 					row.product ?? row.store ?? row.order ?? "",
-					row.seller,
+					row.seller ?? undefined,
 				)
 			: row.kind === "aftercare"
 				? aftercareHref(locale, context, row.aftercare ?? undefined, seller)
@@ -77,7 +83,7 @@ function noticeDetails(row: Notice, locale: Locale, context: Context) {
 										locale,
 										context,
 										row.conversation ?? "",
-										row.seller,
+										row.seller ?? undefined,
 									);
 	const title =
 		row.kind === "aftercare"
@@ -225,8 +231,16 @@ function NoticeItem({
 					</time>
 				</div>
 				<p className="m-0 mt-1 text-sm leading-relaxed text-muted">
-					{notificationCopy[locale][row.kind]}
+					{row.kind === "business_review" || row.kind === "product_review"
+						? row.title
+						: notificationCopy[locale][row.kind]}
 				</p>
+				{(row.kind === "business_review" || row.kind === "product_review") &&
+					row.reason && (
+						<p className="m-0 mt-1 whitespace-pre-wrap break-words text-sm text-muted">
+							{reviewFlowCopy[locale].reason} · {row.reason}
+						</p>
+					)}
 			</div>
 			{!row.read && (
 				<Button

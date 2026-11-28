@@ -99,7 +99,7 @@ class RegisterView(AuthView):
         require_registration_open()
         try:
             with transaction.atomic():
-                user = User.objects.create_user(email, data["password"], display_name=data["display_name"])
+                user = User.objects.create_user(email, data["password"], display_name=data["display_name"], preferred_locale=data["locale"])
                 account = Account.objects.create(
                     user=user,
                     context=context,
@@ -107,11 +107,11 @@ class RegisterView(AuthView):
                     review_status="pending" if context == "seller" or data["intent"] == "business" else "not_requested",
                 )
                 audit("registered_draft_consent", request=request, user=user, account=account, context=context)
-                request_mail(user, "verify", data["locale"])
+                request_mail(user, "verify", data["locale"], context=context)
         except IntegrityError:
             # Never merge, overwrite a password, or reveal whether this identity/role already exists.
             pass
-        return Response({"status": "request_received"}, status=202)
+        return Response({"status": "request_received", "expires_in": 600, "resend_after": 60}, status=202)
 
 
 class SigninView(AuthView):
@@ -131,8 +131,11 @@ class MailView(AuthView):
         with transaction.atomic():
             user = User.objects.select_for_update().filter(email=email, is_active=True).first()
             if user and (purpose == "reset" or not user.email_verified):
-                request_mail(user, purpose, data["locale"])
-        return Response({"status": "request_received"}, status=202)
+                request_mail(user, purpose, data["locale"], context=data.get("context"))
+        response = {"status": "request_received"}
+        if purpose == "verify":
+            response.update(expires_in=600, resend_after=60)
+        return Response(response, status=202)
 
 
 class VerifyView(AuthView):
