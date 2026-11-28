@@ -30,6 +30,7 @@ export function useAuthFlow(locale: Locale, screen: AuthScreen) {
 	const inFlight = useRef(false);
 	const alertRef = useRef<HTMLParagraphElement>(null);
 	useEffect(() => {
+		setPendingVerification(undefined);
 		try {
 			const saved = JSON.parse(
 				sessionStorage.getItem(verificationStorageKey) ?? "null",
