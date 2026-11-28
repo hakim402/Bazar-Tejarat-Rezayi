@@ -406,7 +406,12 @@ function SellerAccountPanel({
 	}
 	function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		if (write.current || !data) return;
+		if (
+			write.current ||
+			!data ||
+			(screen === "link" && data.available_contexts?.includes("buyer"))
+		)
+			return;
 		if (screen === "password" && draft.password !== draft.repeat) {
 			setError(t.mismatch);
 			setFields(["repeat"]);
@@ -923,34 +928,41 @@ function SellerAccountPanel({
 									}
 									icon={screen === "link" ? "link" : "shield-lock"}
 								>
-									<form
-										onSubmit={submit}
-										className="max-w-2xl space-y-4"
-										aria-busy={busy}
-									>
-										{field("current_password", t.currentPassword)}
-										{screen === "password" && (
-											<>
-												{field("password", t.newPassword)}
-												{field("repeat", t.repeat)}
-											</>
-										)}
-										<SettingsActions
-											locale={locale}
-											dirty={
-												!!(
-													draft.current_password ||
-													draft.password ||
-													draft.repeat
-												)
-											}
+									{!(
+										screen === "link" &&
+										data.available_contexts?.includes("buyer")
+									) && (
+										<form
+											onSubmit={submit}
+											className="max-w-2xl space-y-4"
+											aria-busy={busy}
 										>
-											<Button type="submit" disabled={busy}>
-												{busy ? t.saving : t.submit}
-											</Button>
-										</SettingsActions>
-									</form>
-									{notice === t.linkDone && (
+											{field("current_password", t.currentPassword)}
+											{screen === "password" && (
+												<>
+													{field("password", t.newPassword)}
+													{field("repeat", t.repeat)}
+												</>
+											)}
+											<SettingsActions
+												locale={locale}
+												dirty={
+													!!(
+														draft.current_password ||
+														draft.password ||
+														draft.repeat
+													)
+												}
+											>
+												<Button type="submit" disabled={busy}>
+													{busy ? t.saving : t.submit}
+												</Button>
+											</SettingsActions>
+										</form>
+									)}
+									{(notice === t.linkDone ||
+										(screen === "link" &&
+											data?.available_contexts?.includes("buyer"))) && (
 										<Link
 											className={settingsSecondary}
 											href={`/${locale}/auth/buyer-sign-in`}
@@ -960,15 +972,16 @@ function SellerAccountPanel({
 									)}
 								</BusinessSection>
 								<div className="space-y-4">
-									{screen === "link" && (
-										<BusinessSection
-											title={copy.buyerGoogle}
-											description={s.linkHelp}
-											icon="link"
-										>
-											{google}
-										</BusinessSection>
-									)}
+									{screen === "link" &&
+										!data.available_contexts?.includes("buyer") && (
+											<BusinessSection
+												title={copy.buyerGoogle}
+												description={s.linkHelp}
+												icon="link"
+											>
+												{google}
+											</BusinessSection>
+										)}
 									<BusinessSection
 										title={googleCopy[locale].recovery}
 										description={copy.recoveryHelp}

@@ -23,6 +23,7 @@ import type { Locale } from "../../../lib/i18n/locales";
 import { salesTableCard } from "../../sales/components/seller-sales-ui";
 import {
 	AccountError,
+	ACCOUNT_SESSION_CHANGED,
 	accountSession,
 	authMutation,
 	type SessionData,
@@ -42,11 +43,15 @@ export function BuyerLinkPanel({ locale }: { locale: Locale }) {
 		[password, setPassword] = useState(""),
 		[linked, setLinked] = useState(false);
 	const inFlight = useRef(false);
+	const mounted = useRef(true);
 	const refresh = useCallback(async () => {
 		try {
-			setData(await accountSession("buyer"));
+			const session = await accountSession("buyer");
+			if (!mounted.current) return;
+			setData(session);
 			setError("");
 		} catch (err) {
+			if (!mounted.current) return;
 			setData(null);
 			setError(
 				err instanceof AccountError && err.status === 403
@@ -54,19 +59,23 @@ export function BuyerLinkPanel({ locale }: { locale: Locale }) {
 					: t.unavailable,
 			);
 		} finally {
-			setLoading(false);
+			if (mounted.current) setLoading(false);
 		}
 	}, [t]);
 	useEffect(() => {
 		let current = true;
+		mounted.current = true;
 		const load = () => {
 			if (current) void refresh();
 		};
 		load();
 		window.addEventListener("focus", load);
+		window.addEventListener(ACCOUNT_SESSION_CHANGED, load);
 		return () => {
 			current = false;
+			mounted.current = false;
 			window.removeEventListener("focus", load);
+			window.removeEventListener(ACCOUNT_SESSION_CHANGED, load);
 		};
 	}, [refresh]);
 	async function submit(event: FormEvent<HTMLFormElement>) {
@@ -77,10 +86,12 @@ export function BuyerLinkPanel({ locale }: { locale: Locale }) {
 		setFormError("");
 		try {
 			await authMutation("buyer/link/seller/", { password });
+			if (!mounted.current) return;
 			setPassword("");
 			setLinked(true);
 			toast.success(t.linked);
 		} catch (err) {
+			if (!mounted.current) return;
 			const message =
 				err instanceof AccountError
 					? err.status === 429
@@ -95,7 +106,8 @@ export function BuyerLinkPanel({ locale }: { locale: Locale }) {
 			toast.error(message);
 		} finally {
 			inFlight.current = false;
-			setBusy(false);
+			mounted.current = false;
+			if (mounted.current) setBusy(false);
 		}
 	}
 	return (
@@ -152,7 +164,7 @@ export function BuyerLinkPanel({ locale }: { locale: Locale }) {
 							</StatusBadge>
 						</div>
 					</Card>
-					{linked ? (
+					{linked || data.available_contexts?.includes("seller") ? (
 						<Card className={salesTableCard}>
 							<div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
 								<div className="flex min-w-0 items-center gap-3">
