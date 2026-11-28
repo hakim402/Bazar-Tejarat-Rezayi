@@ -134,8 +134,17 @@ def ready():
         applied = set(MigrationRecorder(connection).migration_qs.values_list("app", "name"))
         if not required.issubset(applied):
             return False
+        from .review_schema import verify as verify_reviews
+        required_reviews = {
+            ("accounts", "0004_email_verification_codes"),
+            ("organizations", "0002_effective_business_approval"),
+            ("notifications", "0007_review_decision_notices"),
+        }
+        if not required_reviews.issubset(applied):
+            return False
         with connection.cursor() as cursor:
             verify_content(cursor)
+            verify_reviews(cursor)
         return True
     except (DatabaseError, RuntimeError, OSError, ValueError):
         return False
@@ -196,5 +205,7 @@ def structural_inventory(cursor, *, include_content=False):
         if not include_content:
             from .content_schema import financial_rows
             rows = financial_rows(name, rows)
+            from .review_schema import financial_rows as review_rows
+            rows = review_rows(name, rows)
         result[name] = rows
     return result

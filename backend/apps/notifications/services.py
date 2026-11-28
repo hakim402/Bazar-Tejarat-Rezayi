@@ -105,6 +105,7 @@ def notice_scope(actor, seller=None):
     from django.db.models import Q
     from apps.orders.access import scope as order_scope, profiles
     from apps.organizations.models import BusinessProfile
+    from apps.organizations.access import visible_profiles
     from django.shortcuts import get_object_or_404
 
     account = actor.account
@@ -127,6 +128,7 @@ def notice_scope(actor, seller=None):
         get_object_or_404(
             BusinessProfile.objects.filter(
                 Q(pk__in=access.seller_profiles_for(account).values("pk"))
+                | Q(pk__in=visible_profiles(actor).values("pk"))
                 | Q(pk__in=profiles(account, invoices=True).values("pk"))
                 | Q(pk__in=fulfilment_scope(actor).values("seller_id"))
             ),
@@ -163,7 +165,7 @@ def _reporter_stores(account):
     return Report.objects.filter(reporter=account, store__isnull=False).values("store_id")
 
 
-def notices(actor, *, seller=None, page=1, unread=False):
+def _domain_notices(actor, *, seller=None, page=1, unread=False, prefix=False):
     qs, _ = notice_scope(actor, seller)
     if unread:
         qs = qs.filter(read_at__isnull=True)
@@ -182,7 +184,7 @@ def notices(actor, *, seller=None, page=1, unread=False):
         "product",
         "store",
         "event__report",
-    ).order_by("-created_at", "pk")[(page - 1) * 20 : page * 20]
+    ).order_by("-created_at", "pk")[0 if prefix else (page - 1) * 20 : page * 20]
     return {
         "count": qs.count(),
         "page": page,
@@ -236,7 +238,7 @@ def notices(actor, *, seller=None, page=1, unread=False):
     }
 
 
-def counts(actor, seller=None):
+def _domain_counts(actor, seller=None):
     qs, messages = notice_scope(actor, seller)
     return {
         "unread_notices": qs.filter(read_at__isnull=True).count(),
@@ -247,7 +249,7 @@ def counts(actor, seller=None):
 
 
 @transaction.atomic
-def read_notice(actor, pk):
+def _domain_read_notice(actor, pk):
     qs, _ = notice_scope(actor)
     preliminary = get_object_or_404(
         qs.select_related("conversation", "order", "negotiation", "payment_order", "fulfilment_order", "aftercare_order", "product", "store"),
@@ -306,3 +308,40 @@ def set_preference(actor, data):
     row.version = 1 if created else row.version + 1
     row.save()
     return preference(actor)
+
+
+def notices(actor, *, seller=None, page=1, unread=False):
+    from . import review_events
+    reviews = review_events.scope(actor, seller).select_related(
+        "account", "verification_case", "source_revision__product",
+    )
+    if unread:
+        reviews = reviews.filter(read_at__isnull=True)
+    result = _domain_notices(actor, seller=seller, page=page, unread=unread, prefix=True)
+    rows = result["results"] + [
+        review_events.projection(row) for row in reviews.order_by("-created_at", "pk")[:page * 20]
+    ]
+    rows.sort(key=lambda row: row["id"])
+    rows.sort(key=lambda row: row["created_at"], reverse=True)
+    result["count"] += reviews.count()
+    result["results"] = rows[(page - 1) * 20:page * 20]
+    return result
+
+
+def counts(actor, seller=None):
+    from .review_events import scope
+    result = _domain_counts(actor, seller)
+    result["unread_notices"] += scope(actor, seller).filter(read_at__isnull=True).count()
+    return result
+
+
+@transaction.atomic
+def read_notice(actor, pk):
+    from .review_events import scope
+    row = scope(actor).select_for_update().filter(pk=pk).first()
+    if row:
+        if row.read_at is None:
+            row.read_at = timezone.now()
+            row.save(update_fields=["read_at"])
+        return {"read": True}
+    return _domain_read_notice(actor, pk)

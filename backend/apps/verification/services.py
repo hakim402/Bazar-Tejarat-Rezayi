@@ -188,6 +188,9 @@ def review_action(actor, pk, data):
         before={"status": before, "assigned_to": previous_assignee} if action == "assign" else before,
         after={"status": case.status, "assigned_to": str(case.assigned_to_id)} if action == "assign" else case.status,
     )
+    if action in {"approved", "rejected"}:
+        from apps.notifications.review_events import decision_notice
+        decision_notice(case, action)
     if data.get("internal_note"):
         event(actor, "verification_internal_note", case, reason=data["internal_note"])
     return case

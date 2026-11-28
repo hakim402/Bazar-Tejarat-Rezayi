@@ -6,3 +6,6 @@ def sweep_notifications():
     from .order_events import sweep_orders
     sweep_orders()
 
+
+    from .review_events import sweep as review_sweep
+    review_sweep()

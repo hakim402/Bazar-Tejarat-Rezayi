@@ -286,6 +286,9 @@ def transition(actor, pk, data):
         if item.published_id != revision.pk:
             raise Conflict()
         item.published = None
+    if action in {"publish", "reject"} and not republish:
+        from apps.notifications.review_events import decision_notice
+        decision_notice(revision, "approved" if action == "publish" else "rejected")
     if action != "unpublish" or actor.context != "owner":
         revision.reason = reason
         revision._allow_catalogue_transition = True

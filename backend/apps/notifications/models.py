@@ -2,6 +2,7 @@
 
 import uuid
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from .managers import NoticeManager, EventManager
@@ -319,3 +320,28 @@ class AftercareEmailAttempt(models.Model):
     status = models.CharField(max_length=18)
     code = models.CharField(max_length=32)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ReviewNotice(models.Model):
+    """One applicant-facing decision and durable email intent per reviewed submission."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
+    verification_case = models.OneToOneField("verification.ReviewCase", null=True, on_delete=models.PROTECT)
+    source_revision = models.OneToOneField("catalogue.SourceRevision", null=True, on_delete=models.PROTECT)
+    decision = models.CharField(max_length=10, choices=[("approved", "Approved"), ("rejected", "Rejected")])
+    identity_digest = models.CharField(max_length=64)
+    read_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    email_status = models.CharField(max_length=18, default="queued")
+    email_attempts = models.PositiveSmallIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(Q(verification_case__isnull=False, source_revision__isnull=True)
+                           | Q(verification_case__isnull=True, source_revision__isnull=False)),
+                name="notifications_review_target",
+            ),
+            models.CheckConstraint(condition=Q(decision__in=["approved", "rejected"]), name="notifications_review_decision"),
+        ]

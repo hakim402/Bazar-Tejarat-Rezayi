@@ -30,6 +30,7 @@ from .models import (
     OrderNoticeCursor,
     Outbox,
     Preference,
+    ReviewNotice,
 )
 
 # Only an uncertain or exhausted delivery may be retried.
@@ -537,3 +538,12 @@ owner_site.register(Notice, NoticeAdmin)
 owner_site.register(Preference, PreferenceAdmin)
 owner_site.register(OrderNoticeCursor, CursorAdmin)
 owner_site.register(AftercareNoticeCursor, CursorAdmin)
+
+
+@admin.register(ReviewNotice, site=owner_site)
+class ReviewNoticeAdmin(ReadOnlyAdmin):
+    fields = ["account", "verification_case", "source_revision", "decision", "read_at", "created_at", "email_status", "email_attempts", "next_attempt_at"]
+    list_display = ["account", "decision", "email_status", "email_attempts", "created_at"]
+    list_filter = ["decision", "email_status"]
+    search_fields = ["account__user__email", "account__user__display_name"]
+    ordering = ["-created_at"]
