@@ -8180,3 +8180,9 @@ msgstr "جزئیات تحویل را بررسی کنید و دوباره تلا�
 
 msgid "Your current assignment or permissions do not allow this delivery action."
 msgstr "واگذاری یا دسترسی فعلی شما اجازه انجام این اقدام تحویل را نمی‌دهد."
+
+msgid "Business changes start a new review revision. Previously approved details remain active until the new revision is approved. Account, kind and historical revisions cannot be reassigned."
+msgstr "تغییر مشخصات کسب و کار یک نسخه تازه برای بررسی ایجاد می‌کند. اطلاعات تایید شده قبلی تا تایید نسخه تازه فعال می‌ماند. حساب، نوع و نسخه‌های تاریخی قابل انتقال نیستند."
+
+msgid "Previously approved details"
+msgstr "اطلاعات تایید شده قبلی"

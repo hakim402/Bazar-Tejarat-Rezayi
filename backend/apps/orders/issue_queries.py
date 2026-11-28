@@ -23,7 +23,7 @@ def page(actor, *, seller=None, tab="attention", q="", page=1):
     if tab == "attention":
         # Match payment_access.capabilities()['refund'] and due_state without loading every order.
         financial = payment_access.profiles(actor.account).annotate(
-            approved=Exists(ReviewCase.objects.filter(profile_id=OuterRef("pk"), revision=OuterRef("revision"), status="approved"))
+            approved=Exists(ReviewCase.objects.filter(profile_id=OuterRef("pk"), pk=OuterRef("effective_case_id"), status="approved"))
         ).filter(approved=True)
         dues = dues.filter(order__seller_id__in=financial.values("pk")).annotate(
             confirmed=Exists(RefundReport.objects.filter(due_id=OuterRef("pk"), decision__action="confirmed")),

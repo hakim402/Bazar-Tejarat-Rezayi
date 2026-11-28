@@ -215,7 +215,7 @@ class ProfileAdmin(ModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         description = _(
-            "Validated business details. Material changes start a new verification revision and can remove current public eligibility; review remains independent. Account, kind and historical revisions cannot be reassigned."
+            "Business changes start a new review revision. Previously approved details remain active until the new revision is approved. Account, kind and historical revisions cannot be reassigned."
         )
         return [(None, {'fields': self.fields, 'description': description})]
 

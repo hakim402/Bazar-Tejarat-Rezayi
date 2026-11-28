@@ -23,6 +23,7 @@ class BusinessProfile(models.Model):
     representative = models.CharField(max_length=200, blank=True)
     version = models.PositiveIntegerField(default=1)
     revision = models.PositiveIntegerField(default=1)
+    effective_case = models.ForeignKey("verification.ReviewCase", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

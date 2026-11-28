@@ -22,6 +22,16 @@ def profile_data(profile, actor):
         "version": profile.version,
         "revision": profile.revision,
         "review_status": current_case(profile).status,
+        "effective_approval": (
+            {
+                "revision": profile.effective_case.revision,
+                "details": profile.effective_case.snapshot if can_manage else {
+                    "display_name": profile.effective_case.snapshot.get("display_name", ""),
+                },
+            }
+            if profile.effective_case_id else None
+        ),
+        "review_reason": current_case(profile).reason,
         "entitlement": effective_entitlement(profile, account),
         "can_manage": can_manage,
         "my_membership_id": member.pk if member else None,

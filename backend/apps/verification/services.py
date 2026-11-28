@@ -177,6 +177,9 @@ def review_action(actor, pk, data):
         case.decided_at = timezone.now()
     case.version += 1
     case.save()
+    if action == "approved":
+        profile.effective_case = case
+        profile.save(update_fields=["effective_case"])
     event(
         actor,
         "verification_" + action,

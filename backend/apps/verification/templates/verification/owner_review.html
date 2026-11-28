@@ -53,6 +53,19 @@
                         </div>
                     {% endfor %}
                 </dl>
+                {% if approved_snapshot %}
+                    <details class="mt-4">
+                        <summary class="{{ rz_review.label }}">{% translate "Previously approved details" %}</summary>
+                        <dl class="{{ rz_review.fields }}">
+                            {% for item in approved_snapshot %}
+                                <div class="min-w-0">
+                                    <dt class="{{ rz_review.label }}">{{ item.label }}</dt>
+                                    <dd class="break-words {{ rz_review.muted }}" dir="auto">{{ item.value|default:not_provided }}</dd>
+                                </div>
+                            {% endfor %}
+                        </dl>
+                    </details>
+                {% endif %}
             {% else %}
                 <p class="{{ rz_review.muted }}">{% translate "Submission content requires assigned read permission." %}</p>
             {% endif %}

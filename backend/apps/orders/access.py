@@ -54,7 +54,7 @@ def owned(profile, account):
 
 
 def verified_case(profile):
-    case = ReviewCase.objects.filter(profile=profile, revision=profile.revision, status="approved").first()
+    case = ReviewCase.objects.filter(pk=profile.effective_case_id, profile=profile, status="approved").first()
     if not case:
         return None
     try:

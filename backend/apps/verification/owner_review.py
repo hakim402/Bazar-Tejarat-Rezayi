@@ -120,6 +120,10 @@ def workflow(admin, request, pk):
         rz_review=VERIFICATION_THEME, decision_fields=decision_fields, alternative_fields=alternative_fields,
         show_alternatives=editable and any(field.errors or field.value() for field in alternative_fields),
         form=form, t=t, independent_decision=independent_decision, editable=editable, can_act=can_act, current=current, evidence_rows=rows if can_read else [], can_read=can_read,
+        approved_snapshot=[
+            {"label": label, "value": case.profile.effective_case.snapshot.get(key, "")}
+            for key, label in fields
+        ] if can_read and case.profile.effective_case_id and case.profile.effective_case_id != case.pk else [],
         snapshot=[{"label": label, "value": case.snapshot.get(key, "")} for key, label in fields] if can_read else [],
         review_events=AuditEvent.objects.filter(Q(resource_type="verification.reviewcase", resource_id=case.pk) | Q(resource_type="verification.evidence", state__case_id=str(case.pk))).order_by("-created_at", "-pk") if can_read else [], latest_url=(
             reverse("admin:verification_reviewcase_workflow", args=[latest.pk]) if latest else None

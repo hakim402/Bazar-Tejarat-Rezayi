@@ -115,10 +115,10 @@ def credential_state(user):
     ).hexdigest()
 
 
-def request_mail(user, purpose, locale="fa-AF"):
+def request_mail(user, purpose, locale="fa-AF", context=None):
     from .delivery import queue_account_mail
 
-    return queue_account_mail(user, purpose, locale)
+    return queue_account_mail(user, purpose, locale, context=context)
 
 
 def consume_token(raw, purpose, *, password=None, request=None):
@@ -465,7 +465,8 @@ def compatibility_review_status(account):
     from apps.organizations.models import BusinessProfile
     from django.db.models import Q
     profiles = BusinessProfile.objects.filter(Q(account=account, kind__in=["individual", "business"]) | Q(kind="company", memberships__account=account, memberships__active=True)).distinct()
-    statuses = [p.cases.get(revision=p.revision).status for p in profiles]
+    from apps.organizations.profiles import approved
+    statuses = ["approved" if approved(p) else p.cases.get(revision=p.revision).status for p in profiles]
     if "approved" in statuses:
         return "approved"
     if "rejected" in statuses:

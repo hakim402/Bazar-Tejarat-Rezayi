@@ -362,7 +362,7 @@ class StoreAdmin(ReadOnlyAdmin):
         published = store.published
         contact_fields = list(published.body.get("contacts", {}).items()) if published else []
         current_publication = bool(
-            approved_case and published and published.state == "approved" and published.business_case_id == approved_case
+            approved_case and published and published.state == "approved"
         )
         if store.premium_active:
             plan_badge = state_badge("active", _("Paid shop"))

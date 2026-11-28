@@ -39,7 +39,7 @@ def bump(actor, store, action, revision=None, reason=""):
 
 
 def business_case(profile):
-    return get_object_or_404(ReviewCase, profile=profile, revision=profile.revision, status="approved")
+    return get_object_or_404(ReviewCase, profile=profile, pk=profile.effective_case_id, status="approved")
 
 
 def media_references(store, body, *, check_bytes=True):

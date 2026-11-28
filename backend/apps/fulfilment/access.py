@@ -89,7 +89,7 @@ def approved(order):
     from apps.verification.models import ReviewCase as Verification
 
     return Verification.objects.filter(
-        profile_id=order.seller_id, revision=order.seller.revision, status="approved"
+        profile_id=order.seller_id, pk=order.seller.effective_case_id, status="approved"
     ).exists()
 
 
@@ -104,7 +104,7 @@ def read_context(actor, orders):
 
         result["approved"] = set(
             Verification.objects.filter(
-                profile_id__in=[x.seller_id for x in orders], status="approved", revision=F("profile__revision")
+                profile_id__in=[x.seller_id for x in orders], status="approved", pk=F("profile__effective_case_id")
             ).values_list("profile_id", flat=True)
         )
     elif actor.context == "staff":

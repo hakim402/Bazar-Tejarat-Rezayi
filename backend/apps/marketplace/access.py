@@ -15,7 +15,7 @@ from .models import PERMISSIONS
 
 
 def eligible_profiles(profile_ids=None):
-    approved = ReviewCase.objects.filter(profile_id=OuterRef("pk"), revision=OuterRef("revision"), status="approved")
+    approved = ReviewCase.objects.filter(profile_id=OuterRef("pk"), pk=OuterRef("effective_case_id"), status="approved")
     member = Membership.objects.filter(company_id=OuterRef("pk"), account_id=OuterRef("account_id"), active=True)
     profiles = BusinessProfile.objects.filter(kind__in=["individual", "company"], account__context="seller", account__status="active", account__user__is_active=True, account__user__email_verified=True).annotate(
         approved_case=Subquery(approved.values("pk")[:1]), owner_membership=Exists(member)

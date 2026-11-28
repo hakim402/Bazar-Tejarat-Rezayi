@@ -108,6 +108,8 @@ class ProfileData(ProfileFields):
     version = s.IntegerField()
     revision = s.IntegerField()
     review_status = s.CharField()
+    effective_approval = s.JSONField(allow_null=True)
+    review_reason = s.CharField(allow_blank=True)
     entitlement = s.BooleanField()
     can_manage = s.BooleanField()
     my_membership_id = s.UUIDField(allow_null=True)

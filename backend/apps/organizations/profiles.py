@@ -22,7 +22,7 @@ def approved(profile):
     from django.core.exceptions import SuspiciousFileOperation
     from django.core.files.storage.handler import InvalidStorageError
 
-    case = ReviewCase.objects.filter(profile=profile, revision=profile.revision, status="approved").first()
+    case = ReviewCase.objects.filter(pk=profile.effective_case_id, profile=profile, status="approved").first()
     if not case:
         return False
     try:
@@ -85,7 +85,10 @@ def update_profile(actor, pk, data):
     manage_profile(profile, actor)
     assert_version(profile, data.pop("version"))
     case = current_case(profile)
-    material_change = any(getattr(profile, field) != data.get(field, getattr(profile, field)) for field in MATERIAL)
+    material_change = any(getattr(profile, field) != data.get(field, getattr(profile, field)) for field in PROFILE_FIELDS)
+    if material_change and case.status in {"submitted", "under_review"}:
+        from .access import Conflict
+        raise Conflict("Start a new revision before editing the pending application.")
     for field, value in data.items():
         setattr(profile, field, value)
     if material_change and case.status != "draft":
