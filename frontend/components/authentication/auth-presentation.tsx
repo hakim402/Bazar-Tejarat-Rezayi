@@ -26,12 +26,12 @@ export function AuthPresentation({
 	);
 	if (!split)
 		return (
-			<div className="mx-auto w-full max-w-sm overflow-hidden rounded-card border border-border bg-surface shadow-card">
+			<div className="mx-auto w-full max-w-sm overflow-hidden rounded-card border border-solid border-border bg-surface shadow-card">
 				{form}
 			</div>
 		);
 	return (
-		<div className="mx-auto grid w-full max-w-2xl min-w-0 overflow-hidden rounded-card border border-border bg-surface shadow-card desktop:grid-cols-[13rem_minmax(0,1fr)]">
+		<div className="mx-auto grid w-full max-w-2xl min-w-0 overflow-hidden rounded-card border border-solid border-border bg-surface shadow-card desktop:grid-cols-[13rem_minmax(0,1fr)]">
 			<aside className="hidden min-w-0 flex-col bg-brand-panel p-5 text-brand-ink desktop:flex">
 				<BrandLogo locale={locale} reversed className="w-32" />
 				<h2 className="mt-8 text-xl leading-snug">

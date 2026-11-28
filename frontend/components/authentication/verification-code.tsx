@@ -45,6 +45,7 @@ export function VerificationCode({
 		initial ? "code" : "email",
 	);
 	const [resendAt, setResendAt] = useState(initial?.resendAt ?? 0);
+	const [blockedAt, setBlockedAt] = useState(0);
 	const [expiresAt, setExpiresAt] = useState(initial?.expiresAt ?? 0);
 	const [now, setNow] = useState<number>();
 	const locked = useRef(false);
@@ -76,13 +77,18 @@ export function VerificationCode({
 	const expired = remaining === 0;
 	function failure(error: unknown, operation: "verify" | "request") {
 		const feedback = authFailure(error, locale, operation);
+		if (feedback.retryAfter) {
+			const until = Date.now() + feedback.retryAfter * 1000;
+			if (operation === "request") setResendAt(until);
+			else setBlockedAt(until);
+		}
 		setError(feedback.message);
 		setFields(feedback.fields);
 		toast.error(feedback.message);
 	}
 	async function verify(event: FormEvent) {
 		event.preventDefault();
-		if (locked.current || expired) return;
+		if (locked.current || expired || Date.now() < blockedAt) return;
 		locked.current = true;
 		setBusy(true);
 		setError("");
@@ -263,7 +269,7 @@ export function VerificationCode({
 								maxLength={12}
 								required
 								dir="ltr"
-								disabled={busy || expired}
+								disabled={busy || (now ?? 0) < blockedAt || expired}
 								aria-describedby={`${id}-help${fields.code ? ` ${id}-error` : ""}`}
 								aria-invalid={!!fields.code}
 							/>
@@ -286,7 +292,7 @@ export function VerificationCode({
 						<Button
 							className="min-h-11 w-full"
 							type="submit"
-							disabled={busy || expired}
+							disabled={busy || (now ?? 0) < blockedAt || expired}
 						>
 							{busy ? a.saving : a.verifyAction}
 						</Button>

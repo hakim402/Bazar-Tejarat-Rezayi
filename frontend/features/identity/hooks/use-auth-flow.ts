@@ -40,6 +40,9 @@ export function useAuthFlow(
 	const [pendingVerification, setPendingVerification] =
 		useState<PendingVerification>();
 	const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+	const [ready, setReady] = useState(false);
+	const [retryAt, setRetryAt] = useState(0);
+	const [now, setNow] = useState(0);
 	const [completed, setCompleted] = useState(false);
 	const [invalidToken, setInvalidToken] = useState(false);
 	const [email, setEmail] = useState("");
@@ -52,13 +55,16 @@ export function useAuthFlow(
 	const alive = useRef(true);
 	useEffect(() => {
 		alive.current = true;
+		const timer = setInterval(() => setNow(Date.now()), 1000);
 		return () => {
 			alive.current = false;
+			clearInterval(timer);
 		};
 	}, []);
 	useEffect(() => {
 		const restore = () => {
 			setPendingVerification(pendingVerificationFor(context));
+			setReady(true);
 			if (screen === "reset-password" || screen === "verify-email") {
 				const value = new URLSearchParams(window.location.hash.slice(1)).get(
 					"token",
@@ -88,6 +94,10 @@ export function useAuthFlow(
 						? "reset"
 						: "request";
 		const failure = authFailure(err, locale, operation);
+		if (failure.retryAfter) {
+			setNow(Date.now());
+			setRetryAt(Date.now() + failure.retryAfter * 1000);
+		}
 		setError(failure.message);
 		setFieldErrors(failure.fields);
 		toast.error(failure.message);
@@ -103,7 +113,7 @@ export function useAuthFlow(
 	}
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		if (inFlight.current) return;
+		if (inFlight.current || Date.now() < retryAt) return;
 		inFlight.current = true;
 		setBusy(true);
 		setError("");
@@ -181,7 +191,7 @@ export function useAuthFlow(
 		} catch (err) {
 			if (!alive.current) return;
 			if (
-				screen === "reset-password" &&
+				(screen === "reset-password" || screen === "verify-email") &&
 				err instanceof AccountError &&
 				err.fields.includes("token")
 			)
@@ -194,6 +204,8 @@ export function useAuthFlow(
 	}
 	return {
 		context,
+		ready,
+		wait: Math.max(0, Math.ceil((retryAt - now) / 1000)),
 		fieldErrors,
 		completed,
 		invalidToken,

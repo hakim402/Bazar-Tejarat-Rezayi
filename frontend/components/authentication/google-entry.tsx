@@ -5,13 +5,14 @@ import { Alert } from "../ui/alert";
 import { Button as ShadcnButton } from "../shadcn/button";
 import { Input as ShadcnInput } from "../shadcn/input";
 import { FormActions, FormField } from "../ui/dialog-form";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, useRef, type FormEvent } from "react";
 import {
 	authMutation,
 	googleAvailability,
 	safeReturn,
 } from "../../features/identity/api/accounts";
-import { AccountError } from "../../lib/api/private-client";
+import { authFailure } from "@/features/identity/auth-errors";
+import toast from "react-hot-toast";
 import { authCopy } from "../../lib/i18n/auth";
 import { googleCopy } from "../../lib/i18n/google";
 import type { Locale } from "../../lib/i18n/locales";
@@ -57,6 +58,8 @@ export function GoogleButton({
 	const t = googleCopy[locale],
 		a = authCopy[locale];
 	const base = useId();
+	const locked = useRef(false),
+		alive = useRef(true);
 	const [available, setAvailable] = useState(false),
 		[loaded, setLoaded] = useState(false),
 		[busy, setBusy] = useState(false),
@@ -64,6 +67,7 @@ export function GoogleButton({
 		[password, setPassword] = useState("");
 	useEffect(() => {
 		let current = true;
+		alive.current = true;
 		void googleAvailability()
 			.then((result) => {
 				if (current) setAvailable(result.status === "google_available");
@@ -74,11 +78,13 @@ export function GoogleButton({
 			});
 		return () => {
 			current = false;
+			alive.current = false;
 		};
 	}, []);
 	async function start(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		if (busy) return;
+		if (locked.current) return;
+		locked.current = true;
 		setBusy(true);
 		setError("");
 		const values = new FormData(event.currentTarget);
@@ -97,6 +103,7 @@ export function GoogleButton({
 					context,
 				),
 			});
+			if (!alive.current) return;
 			if (result.status !== "redirect" || !result.authorization_url)
 				throw new Error();
 			const url = new URL(result.authorization_url);
@@ -107,12 +114,13 @@ export function GoogleButton({
 				throw new Error();
 			window.location.assign(url.href);
 		} catch (error) {
-			setError(
-				error instanceof AccountError && error.code === "registration_closed"
-					? a.registrationClosed
-					: t.provider_error,
-			);
-			setBusy(false);
+			if (!alive.current) return;
+			const failure = authFailure(error, locale, "google");
+			setError(failure.message);
+			toast.error(failure.message);
+		} finally {
+			locked.current = false;
+			if (alive.current) setBusy(false);
 		}
 	}
 	const googleMark = <GoogleMark />;
@@ -162,6 +170,7 @@ export function GoogleButton({
 				)}
 			</div>
 		);
+	if (!available && (action === "signin" || action === "register")) return null;
 	return (
 		<div
 			className={`google-entry border-t border-border ${compact ? "mt-3 pt-2" : "my-6 py-5"}`}

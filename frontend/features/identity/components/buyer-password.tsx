@@ -12,89 +12,28 @@ import {
 import toast from "react-hot-toast";
 import { Button } from "../../../components/shadcn/button";
 import { Card } from "../../../components/shadcn/card";
-import { Input } from "../../../components/shadcn/input";
+import { PasswordField as SharedPasswordField } from "../../../components/authentication/password-field";
+
 import { Icon } from "../../../components/ui/icon";
 import { salesTableCard } from "../../sales/components/seller-sales-ui";
 import { DetailDialog } from "../../orders/components/detail-dialog";
-import { FormActions, FormField } from "../../../components/ui/dialog-form";
+import { FormActions } from "../../../components/ui/dialog-form";
 import { buyerPasswordCopy } from "../../../lib/i18n/buyer-password";
 import { authCopy } from "../../../lib/i18n/auth";
 import type { Locale } from "../../../lib/i18n/locales";
 import { AccountError, accountSession, authMutation } from "../api/accounts";
 
 function PasswordField({
-	id,
-	label,
-	value,
-	autoComplete,
-	minLength,
-	help,
-	error,
-	disabled,
-	showLabel,
-	hideLabel,
 	onChange,
-}: {
-	id: string;
-	label: string;
-	value: string;
-	autoComplete: string;
-	minLength?: number;
-	help?: string;
-	error?: string;
-	disabled: boolean;
-	showLabel: string;
-	hideLabel: string;
+	...props
+}: Omit<Parameters<typeof SharedPasswordField>[0], "onChange"> & {
 	onChange: (value: string) => void;
 }) {
-	const [revealed, setRevealed] = useState(false);
-	useEffect(() => {
-		if (!value) setRevealed(false);
-	}, [value]);
 	return (
-		<FormField
-			id={id}
-			label={label}
-			required
-			help={help}
-			error={error}
-			valid={value.length >= (minLength ?? 1)}
-			trailing={
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon"
-					disabled={disabled}
-					aria-label={revealed ? hideLabel : showLabel}
-					title={revealed ? hideLabel : showLabel}
-					aria-pressed={revealed}
-					onClick={() => setRevealed((current) => !current)}
-					className="size-7"
-				>
-					<Icon
-						name="eye"
-						className={revealed ? "size-4" : "size-4 text-muted"}
-					/>
-				</Button>
-			}
-		>
-			<Input
-				id={id}
-				type={revealed ? "text" : "password"}
-				dir="ltr"
-				value={value}
-				required
-				minLength={minLength}
-				maxLength={128}
-				autoComplete={autoComplete}
-				disabled={disabled}
-				aria-invalid={!!error}
-				aria-describedby={
-					error ? `${id}-error` : help ? `${id}-help` : undefined
-				}
-				onChange={(event) => onChange(event.target.value)}
-			/>
-		</FormField>
+		<SharedPasswordField
+			{...props}
+			onChange={(event) => onChange(event.target.value)}
+		/>
 	);
 }
 

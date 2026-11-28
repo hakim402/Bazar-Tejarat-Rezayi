@@ -8,7 +8,6 @@ import {
 	useCallback,
 	Suspense,
 	type ReactNode,
-	type KeyboardEvent,
 } from "react";
 import Link from "next/link";
 import {
@@ -24,7 +23,7 @@ import type { Locale } from "../../lib/i18n/locales";
 import { direction } from "../../lib/i18n/locales";
 import { screenTitle, type AuthScreen } from "../../lib/i18n/auth-screens";
 import { accessCopy } from "../../lib/i18n/access";
-import { Icon } from "../ui/icon";
+import { Dialog, DialogContent, DialogTitle } from "../shadcn/dialog";
 import { AuthForm } from "./auth-form";
 import { AuthPresentation } from "./auth-presentation";
 const AccessContext = createContext<((screen: AuthScreen) => void) | null>(
@@ -75,31 +74,14 @@ export function AccessProvider({
 	const search = useSearchParams();
 	const [screen, setScreen] = useState<AuthScreen | null>(null);
 	const [audience, setAudience] = useState<"buyer" | "seller">("buyer");
-	const dialog = useRef<HTMLDialogElement>(null);
+	const dialog = useRef<HTMLDivElement>(null);
+	const trigger = useRef<HTMLElement | null>(null);
 	const scroll = useRef<HTMLDivElement>(null);
 	const open = screen !== null;
 	const split =
 		audience === "buyer" ||
 		screen === "seller-sign-in" ||
 		screen === "seller-registration";
-	useEffect(() => {
-		if (!open) return;
-		const element = dialog.current;
-		const trigger =
-			document.activeElement instanceof HTMLElement
-				? document.activeElement
-				: null;
-		element?.showModal();
-		const previous = document.body.style.overflow;
-		document.body.style.overflow = "hidden";
-		return () => {
-			element?.close();
-			document.body.style.overflow = previous;
-			queueMicrotask(() => {
-				if (trigger?.isConnected) trigger.focus();
-			});
-		};
-	}, [open]);
 	useEffect(() => {
 		if (!screen) return;
 		const frame = requestAnimationFrame(() => {
@@ -108,39 +90,12 @@ export function AccessProvider({
 		});
 		return () => cancelAnimationFrame(frame);
 	}, [screen]);
-	function trapFocus(event: KeyboardEvent<HTMLDialogElement>) {
-		if (event.key !== "Tab") return;
-		const element = event.currentTarget;
-		const controls = Array.from(
-			element.querySelectorAll<HTMLElement>(
-				'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
-			),
-		).filter(
-			(control) =>
-				control.getClientRects().length > 0 && !control.closest("[inert]"),
-		);
-		const first = controls[0],
-			last = controls.at(-1);
-		if (!first || !last) {
-			event.preventDefault();
-			return;
-		}
-		if (
-			event.shiftKey &&
-			(document.activeElement === first ||
-				document.activeElement?.tagName === "H1")
-		) {
-			event.preventDefault();
-			last.focus();
-		} else if (!event.shiftKey && document.activeElement === last) {
-			event.preventDefault();
-			first.focus();
-		}
-	}
 
 	const openScreen = useCallback(
 		(next: AuthScreen, parameters?: URLSearchParams, hash?: string) => {
 			if (!modalScreens.includes(next)) return;
+			if (!dialog.current && document.activeElement instanceof HTMLElement)
+				trigger.current = document.activeElement;
 			const url = new URL(window.location.href);
 			const previous = url.searchParams.get("auth");
 			const supplied = new URLSearchParams(parameters ?? url.searchParams);
@@ -238,49 +193,51 @@ export function AccessProvider({
 	return (
 		<AccessContext.Provider value={openScreen}>
 			{children}
-			{screen && (
-				<dialog
-					ref={dialog}
-					aria-label={screenTitle(locale, screen)}
-					lang={locale}
-					dir={direction(locale)}
-					onKeyDown={trapFocus}
-					onCancel={closeScreen}
-					onClose={() => {
-						if (screen) closeScreen();
-					}}
-					className={`fixed m-auto max-h-[94dvh] w-[calc(100%_-_2rem)] ${split ? "max-w-2xl" : "max-w-sm"} overflow-visible rounded-card border-0 bg-transparent p-0 text-foreground backdrop:bg-foreground/50 backdrop:backdrop-blur-sm`}
-				>
-					<button
-						type="button"
-						aria-label={accessCopy[locale].close}
-						className="absolute end-2 top-2 z-10 flex size-8 items-center justify-center rounded-full border border-border bg-surface text-foreground shadow-card hover:bg-info"
-						onClick={closeScreen}
+			<Dialog
+				open={open}
+				onOpenChange={(value) => {
+					if (!value) closeScreen();
+				}}
+			>
+				{screen && (
+					<DialogContent
+						ref={dialog}
+						lang={locale}
+						dir={direction(locale)}
+						onCloseAutoFocus={(event) => {
+							event.preventDefault();
+							if (trigger.current?.isConnected) trigger.current.focus();
+						}}
+						aria-describedby={undefined}
+						closeLabel={accessCopy[locale].close}
+						className={`max-h-[94dvh] ${split ? "max-w-2xl" : "max-w-sm"} gap-0 overflow-hidden border-0 bg-surface p-0 motion-reduce:animate-none`}
 					>
-						<Icon name="close" />
-					</button>
-					<div
-						ref={scroll}
-						className="max-h-[94dvh] overflow-y-auto overscroll-contain rounded-card"
-					>
-						<AuthPresentation
-							locale={locale}
-							seller={audience === "seller"}
-							split={split}
-							inDialog
+						<DialogTitle className="sr-only">
+							{screenTitle(locale, screen)}
+						</DialogTitle>
+						<div
+							ref={scroll}
+							className="max-h-[94dvh] overflow-y-auto overscroll-contain rounded-card"
 						>
-							<Suspense>
-								<AuthForm
-									key={screen}
-									locale={locale}
-									screen={screen}
-									audience={audience}
-								/>
-							</Suspense>
-						</AuthPresentation>
-					</div>
-				</dialog>
-			)}
+							<AuthPresentation
+								locale={locale}
+								seller={audience === "seller"}
+								split={split}
+								inDialog
+							>
+								<Suspense>
+									<AuthForm
+										key={`${screen}:${audience}`}
+										locale={locale}
+										screen={screen}
+										audience={audience}
+									/>
+								</Suspense>
+							</AuthPresentation>
+						</div>
+					</DialogContent>
+				)}
+			</Dialog>
 		</AccessContext.Provider>
 	);
 }
